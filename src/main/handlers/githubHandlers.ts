@@ -782,6 +782,7 @@ const buildWebReportPayload = (
         { label: 'playerSkillBreakdowns', apply: () => clearArray(stats, 'playerSkillBreakdowns') },
         { label: 'boonTimeline', apply: () => clearArray(stats, 'boonTimeline') },
         { label: 'boonUptimeTimeline', apply: () => clearArray(stats, 'boonUptimeTimeline') },
+        { label: 'controlTimelineDrilldown', apply: () => clearArray((stats as any).controlTimelineDrilldown, 'fights') },
         { label: 'specialTables', apply: () => clearArray(stats, 'specialTables') },
         { label: 'fightDiffMode', apply: () => clearArray(stats, 'fightDiffMode') },
         { label: 'outgoingConditionPlayers', apply: () => clearArray(stats, 'outgoingConditionPlayers') },
