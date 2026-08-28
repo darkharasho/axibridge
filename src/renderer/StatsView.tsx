@@ -70,6 +70,7 @@ import type { AllBoonsBoon } from './stats/sections/AllBoonsSection';
 import type { AllDamageData } from './stats/computeAllDamageData';
 import { FightMetricSection } from './stats/sections/FightMetricSection';
 import type { FightMetricPlayer, FightMetricPoint } from './stats/sections/FightMetricSection';
+import { CcTimelineSection } from './stats/sections/CcTimelineSection';
 import type { StripFight, StripPlayer } from './stats/computeStripSpikesData';
 import { AttendanceSection } from './stats/sections/AttendanceSection';
 import { CommanderPushTimingSection, CommanderStatsSection, CommanderTagDeathResponseSection, CommanderTagMovementSection, CommanderTargetConversionSection } from './stats/sections/CommanderStatsSection';
@@ -3468,6 +3469,9 @@ type SpikeFight = {
         return Math.max(1, selectedPeak, fightPeak);
     }, [stabPerfChartData]);
     const stabPerformanceDrilldown = (safeStats as any)?.stabPerformanceDrilldown;
+    const controlTimelineDrilldown = (safeStats as any)?.controlTimelineDrilldown;
+    const controlTimelineFights: any[] = Array.isArray(controlTimelineDrilldown?.fights) ? controlTimelineDrilldown.fights : [];
+    const controlTimelineRecorded: boolean = Boolean(controlTimelineDrilldown?.recorded);
     const stabPerfDrilldown = useMemo(() => {
         const emptyResult = {
             title: 'Fight Breakdown (5s Squad Stab Generation Buckets)',
@@ -4581,6 +4585,12 @@ type SpikeFight = {
                                 noEgoMode={noEgoMode}
                             />)}
 
+                            {renderSectionWrap(<CcTimelineSection
+                                fights={controlTimelineFights}
+                                recorded={controlTimelineRecorded}
+                                selectedFightId={null}
+                            />)}
+
                             {renderSectionWrap(<DamageModifiersSection
                                 search={damageModSearch}
                                 setSearch={setDamageModSearch}
@@ -4982,6 +4992,11 @@ type SpikeFight = {
                                 offenseViewMode={offenseViewMode}
                                 setOffenseViewMode={setOffenseViewMode}
                                 noEgoMode={noEgoMode}
+                            /> },
+                            { id: 'cc-timeline', element: <CcTimelineSection
+                                fights={controlTimelineFights}
+                                recorded={controlTimelineRecorded}
+                                selectedFightId={null}
                             /> },
                             { id: 'damage-breakdown', element: <DamageBreakdownSection
                                 playerSkillBreakdowns={playerSkillBreakdowns}
