@@ -41,15 +41,21 @@ export const CcTimelineSection: React.FC<CcTimelineSectionProps> = ({
     // log carries lanes. In a mixed dataset (some logs parsed before axilog
     // 1.8.0), an individual fight can still have no data even though the
     // flag is true — falling back to it here would draw that fight as a
-    // false all-zero grid. Resolve the fight's own `recorded` first; only
-    // fall back to the dataset-wide flag when no fight resolves at all.
-    const effectiveRecorded = fight ? fight.recorded : recorded;
+    // false all-zero grid. Resolve the fight's own `recorded` first.
+    //
+    // With no fight at all the dataset flag is not enough either: a trimmed
+    // `report.json` clears `fights` while leaving `recorded` true, and
+    // trusting it there renders an empty header-only grid instead of saying
+    // why there is nothing to show.
+    const effectiveRecorded = fight ? fight.recorded : (recorded && fights.length > 0);
 
     return (
         <>
-            <div className="flex items-center gap-2 mb-2">
-                <FightPicker fights={fights} selectedId={fight?.id} onChange={setInternalFightId} />
-            </div>
+            {fights.length > 1 && (
+                <div className="flex items-center gap-2 mb-2">
+                    <FightPicker fights={fights} selectedId={fight?.id} onChange={setInternalFightId} />
+                </div>
+            )}
             <BucketGridTable
                 rows={rows}
                 bucketCount={fight?.bucketCount || 0}

@@ -48,9 +48,10 @@ export const StripTimelineSection: React.FC<StripTimelineSectionProps> = ({
 
     // See CcTimelineSection: the resolved fight's own `recorded` takes
     // priority over the dataset-wide flag, which is too coarse for a mixed
-    // dataset (some logs parsed before axilog 1.8.0). Only fall back to the
-    // dataset-wide flag when no fight resolves.
-    const effectiveRecorded = fight ? fight.recorded : recorded;
+    // dataset (some logs parsed before axilog 1.8.0), and an empty `fights`
+    // is never "recorded" — a trimmed `report.json` clears it while leaving
+    // the dataset flag true.
+    const effectiveRecorded = fight ? fight.recorded : (recorded && fights.length > 0);
 
     return (
         <>

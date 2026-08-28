@@ -122,10 +122,10 @@ export function ingestLogControlTimeline(log: any, acc: ControlTimelineAccumulat
 
         // Consumers (CcTimelineSection, StripTimelineSection) iterate
         // `Object.entries(fight.players)` and already tolerate a missing key
-        // — omitting an all-zero player here roughly halves the payload on a
-        // real roster where most players never applied CC or stripped a
-        // boon, and `report.json`'s trim pass has no way to shrink a
-        // dense-zeros section after the fact.
+        // — omitting an all-zero player here drops roughly a sixth of the
+        // rows on a real roster (measured on the native fixtures), and
+        // `report.json`'s trim pass has no way to shrink a dense-zeros
+        // section after the fact.
         const hasAnyValue = (arr: number[]) => arr.some((v) => v !== 0);
         if (!hasAnyValue(ccBuckets) && !hasAnyValue(stripsOutBuckets) && !hasAnyValue(stripsInBuckets)) {
             return;

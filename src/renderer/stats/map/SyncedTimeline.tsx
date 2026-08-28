@@ -121,15 +121,16 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
                           y1={132} y2={144} stroke="#ef4444" strokeWidth={2} />
                 ))}
                 {layersState.ccLane && (
-                    fight.ccSamples ? (
+                    fight.ccSamples?.length ? (
                         ccPath && (
                             <g data-testid="cc-lane">
                                 <path d={ccPath} stroke="#f59e0b" strokeWidth={2} fill="none" opacity={0.85} />
                             </g>
                         )
                     ) : (
-                        // `null` means "never captured" (log predates axilog
-                        // 1.8.0, or was parsed without raw timeline arrays) —
+                        // `null` (or a degenerate empty lane) means "never captured"
+                        // — log predates axilog
+                        // 1.8.0, or was parsed without raw timeline arrays.
                         // pixel-identical to a genuinely all-zero series
                         // otherwise. A dashed baseline + muted label keeps
                         // the two states visually distinct on the replay.
@@ -140,7 +141,7 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
                     )
                 )}
                 {layersState.stripLane && (
-                    fight.stripSamples ? (
+                    fight.stripSamples?.length ? (
                         stripPath && (
                             <g data-testid="strip-lane">
                                 <path d={stripPath} stroke="#e879f9" strokeWidth={2} fill="none" opacity={0.85} />

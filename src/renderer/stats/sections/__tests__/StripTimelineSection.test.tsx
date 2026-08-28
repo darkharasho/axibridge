@@ -61,4 +61,10 @@ describe('StripTimelineSection', () => {
         fireEvent.change(picker, { target: { value: 'logs/fight-two.zevtc' } });
         expect(screen.getByTitle(/Alice — 0:00: 9/)).toBeTruthy();
     });
+
+    it('says why there is nothing to show when a trimmed report leaves no fights', () => {
+        const { container } = render(<StripTimelineSection fights={[] as any} recorded selectedFightId={null} />);
+        expect(screen.getByText(/predates axilog 1.8.0/)).toBeTruthy();
+        expect(container.querySelectorAll('[data-bucket-cell]')).toHaveLength(0);
+    });
 });

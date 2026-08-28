@@ -56,4 +56,19 @@ describe('CcTimelineSection', () => {
         fireEvent.change(picker, { target: { value: 'logs/fight-two.zevtc' } });
         expect(screen.getByTitle(/Alice — 0:00: 8/)).toBeTruthy();
     });
+
+    it('says why there is nothing to show when a trimmed report leaves no fights', () => {
+        // `report.json`'s trim pass clears `fights` but leaves the
+        // dataset-wide `recorded` flag true. Trusting that flag here drew an
+        // empty header-only grid with no explanation.
+        const { container } = render(<CcTimelineSection fights={[] as any} recorded selectedFightId={null} />);
+        expect(screen.getByText(/predates axilog 1.8.0/)).toBeTruthy();
+        expect(container.querySelectorAll('[data-bucket-cell]')).toHaveLength(0);
+    });
+
+    it('omits the picker row entirely for a single-fight dataset', () => {
+        const { container } = render(<CcTimelineSection fights={fights as any} recorded selectedFightId="f1" />);
+        expect(container.querySelector('select')).toBeNull();
+        expect(container.querySelector('.mb-2')).toBeNull();
+    });
 });
