@@ -60,7 +60,7 @@
         "ci:local": "npm run validate && npm run audit:boons && npm run audit:metrics && npm run audit:conditions && npm run audit:conditions:consistency && npm run test:unit && npm run test:e2e:web && npm run test:e2e:app && npm run test:e2e:electron"
     },
     "dependencies": {
-        "@axiapps/axilog": "1.8.0",
+        "@axiapps/axilog": "1.8.1",
         "@axiapps/bridge-metrics": "^0.2.0",
         "adm-zip": "^0.5.16",
         "axios": "^1.6.0",
