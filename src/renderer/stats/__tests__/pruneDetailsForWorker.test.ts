@@ -57,6 +57,28 @@ describe('pruneDetailsForWorker', () => {
         expect(result.combatReplayMetaData).toEqual(input.combatReplayMetaData);
     });
 
+    it('retains the native series the worker path needs for the CC/strip timelines', () => {
+        // computeControlTimeline (and computeStabPerformance before it) reads
+        // details.native via readEntitySeries/squadEntities on the WORKER
+        // side. `native` is not in DETAILS_TOP_LEVEL_DENY, but that list is
+        // maintained by hand — if a future entry ever added 'native' (or
+        // something that shadows it) to the deny list, the worker path would
+        // silently produce an all-zero grid while the inline path kept
+        // working, which is exactly the failure mode "absent is not zero"
+        // exists to prevent. Pin the survival explicitly rather than relying
+        // on the deny list staying empty of it by accident.
+        const input = {
+            ...makeDetails(),
+            native: {
+                blocks: {
+                    series: { 1: { cc_applied: [1, 2, 3], strips: [0, 1, 0] } },
+                },
+            },
+        };
+        const result = pruneDetailsForWorker(input);
+        expect(result.native).toEqual(input.native);
+    });
+
     it('strips per-player denied fields', () => {
         const input = makeDetails();
         const result = pruneDetailsForWorker(input);

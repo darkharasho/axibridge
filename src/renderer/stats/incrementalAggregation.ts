@@ -39,6 +39,7 @@ import { createSkillUsageAccumulator, ingestLogSkillUsage, finalizeSkillUsage, e
 import { createBoonTimelineAccumulator, ingestLogBoonTimeline, finalizeBoonTimeline, extractBoonTimelineFrame, mergeBoonTimelineFrame } from './computeBoonTimeline';
 import { createBoonUptimeTimelineAccumulator, ingestLogBoonUptimeTimeline, finalizeBoonUptimeTimeline, extractBoonUptimeFrame, mergeBoonUptimeFrame } from './computeBoonUptimeTimeline';
 import { createStabPerformanceAccumulator, ingestLogStabPerformance, finalizeStabPerformance, extractStabPerformanceFrame, mergeStabPerformanceFrame } from './computeStabPerformance';
+import { createControlTimelineAccumulator, ingestLogControlTimeline, extractControlTimelineFrame, mergeControlTimelineFrame, finalizeControlTimeline } from './computeControlTimeline';
 
 import { encodeState, decodeState } from './slice/stateCodec';
 import { applyLabel, buildFrameLabelSeed, resolveFrameFightLabels, type FrameLabelSeed } from './slice/frameLabels';
@@ -557,6 +558,7 @@ export class IncrementalAggregator {
     private boonTimelineAcc;
     private boonUptimeAcc;
     private stabPerfAcc;
+    private controlTimelineAcc;
 
     // Map counts
     private mapCounts: Record<string, number> = {};
@@ -608,6 +610,7 @@ export class IncrementalAggregator {
         this.boonTimelineAcc = createBoonTimelineAccumulator();
         this.boonUptimeAcc = createBoonUptimeTimelineAccumulator(boonIntervalSettings);
         this.stabPerfAcc = createStabPerformanceAccumulator();
+        this.controlTimelineAcc = createControlTimelineAccumulator();
     }
 
     /** Process a single log and accumulate results. The log is NOT stored. */
@@ -753,6 +756,7 @@ export class IncrementalAggregator {
         ingestLogBoonTimeline(log, this.boonTimelineAcc);
         ingestLogBoonUptimeTimeline(log, this.boonUptimeAcc);
         ingestLogStabPerformance(log, this.stabPerfAcc);
+        ingestLogControlTimeline(log, this.controlTimelineAcc);
 
         // 6. incomingDamagePerSecond
         this.processIncomingDamagePerSecond(log, idx);
@@ -881,6 +885,7 @@ export class IncrementalAggregator {
                 boonTimeline: extractBoonTimelineFrame(this.boonTimelineAcc),
                 boonUptime: extractBoonUptimeFrame(this.boonUptimeAcc),
                 stabPerformance: extractStabPerformanceFrame(this.stabPerfAcc),
+                controlTimeline: extractControlTimelineFrame(this.controlTimelineAcc),
                 playerAcc: this.playerAcc,
                 commanderStatsAcc: this.commanderStatsAcc,
             }
@@ -985,10 +990,11 @@ export class IncrementalAggregator {
         if (frame.boonTimeline) mergeBoonTimelineFrame(this.boonTimelineAcc, frame.boonTimeline, labels);
         if (frame.boonUptime) mergeBoonUptimeFrame(this.boonUptimeAcc, frame.boonUptime, labels);
         if (frame.stabPerformance) mergeStabPerformanceFrame(this.stabPerfAcc, frame.stabPerformance);
+        if (frame.controlTimeline) mergeControlTimelineFrame(this.controlTimelineAcc, frame.controlTimeline);
     }
 
     /** Finalize aggregation and return the result. */
-    finalize(): { stats: any; skillUsageData: any } {
+    finalize(): { stats: any; skillUsageData: any; controlTimelineDrilldown?: any } {
         if (this.options.precomputedStats) {
             return {
                 stats: enrichPrecomputedStats(this.options.precomputedStats, this.precomputedLogs),
@@ -1023,6 +1029,7 @@ export class IncrementalAggregator {
         const boonTimeline = finalizeBoonTimeline(this.boonTimelineAcc);
         const boonUptimeTimeline = finalizeBoonUptimeTimeline(this.boonUptimeAcc);
         const stabPerformanceDrilldown = finalizeStabPerformance(this.stabPerfAcc);
+        const controlTimelineDrilldown = finalizeControlTimeline(this.controlTimelineAcc);
 
         // 4. Build boon tables from stored log data
         const { boonTables } = buildBoonTables(this.boonTableLogs, this.splitPlayersByClass);
@@ -1710,7 +1717,7 @@ export class IncrementalAggregator {
             }))
         };
 
-        return { stats, skillUsageData };
+        return { stats, skillUsageData, controlTimelineDrilldown };
     }
 
     // ---- Private helpers ----
@@ -2032,7 +2039,7 @@ export const computeStatsSync = ({
     statsViewSettings?: IStatsViewSettings;
     disruptionMethod?: DisruptionMethod;
     includePlayerSkillMap?: boolean;
-}): { stats: any; skillUsageData: any } => {
+}): { stats: any; skillUsageData: any; controlTimelineDrilldown?: any } => {
     const aggregator = new IncrementalAggregator({
         precomputedStats,
         mvpWeights,
