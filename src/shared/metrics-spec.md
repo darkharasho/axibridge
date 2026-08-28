@@ -104,6 +104,61 @@ UI note: the Support table can display either **All** (condiCleanse + condiClean
 
 Implementation: `src/shared/dashboardMetrics.ts` (getPlayerStrips).
 
+## CC Applied (timeline)
+
+Outgoing crowd control applied by a player, bucketed per second by axilog
+and summed to 5s buckets for display. Folded from the same `is_cc`
+predicate as the whole-fight CC scalar, including pet and minion CC
+credited to the owning player, so a player's buckets sum exactly to that
+player's whole-fight CC total.
+
+Outgoing only — there is no incoming CC timeline. Incoming CC remains the
+`received_cc_count` scalar (see "Incoming Strips and Crowd Control" above).
+
+Requires **Include Timeline Arrays** enabled at parse time (Settings →
+Analysis). Absent is not zero: an all-zero grid can mean the option was
+off, the log was parsed before axilog 1.8.0, or a genuinely quiet fight —
+only the last one is real data.
+
+Implementation: `src/renderer/stats/computeControlTimeline.ts`
+(ingestLogControlTimeline), reading `cc_applied` via
+`@axiapps/bridge-metrics` `readEntitySeries`.
+
+**Known upstream discrepancy:** the squad-level `cc_applied` lane (read via
+`readSquadSeries`, used by the replay CC sub-lane) and the sum of the
+per-entity `cc_applied` lanes (used by this section) can disagree by a
+small amount on the same fight — e.g. fixture `20260117-180135` sums to 33
+squad-side vs. 34 per-entity, with EI's `appliedCrowdControl` agreeing with
+the per-entity total (34). This is an axilog-side nuance in how the two
+lanes are aggregated upstream, not introduced by AxiBridge, and is not
+expected to be fixed here — noted so the CC Timeline section and the replay
+CC lane occasionally disagreeing by 1 on a total is not mistaken for a bug
+in either surface.
+
+## Boon Strips (timeline)
+
+Boon removals over time, in either direction:
+
+- **Outgoing** — boons this player removed from enemies. Credited to the
+  REMOVER, counted at the boon-removal event, one per boon removed. Sums to
+  the outgoing `Strips` total (count methodology).
+- **Incoming** — boons enemies removed from this player. Sums to the
+  `Boon Strips Taken` total shown in the Stab Performance strips-taken
+  overlay.
+
+Both directions count removal events on the twelve boons only, never
+conditions — condition removal is `Cleanses`, a separate metric (see
+above).
+
+Requires **Include Timeline Arrays** enabled at parse time (Settings →
+Analysis). Absent is not zero: an all-zero grid can mean the option was
+off, the log was parsed before axilog 1.8.0, or a genuinely quiet fight —
+only the last one is real data.
+
+Implementation: `src/renderer/stats/computeControlTimeline.ts`
+(ingestLogControlTimeline), reading `strips` / `strips_taken` via
+`@axiapps/bridge-metrics` `readEntitySeries`.
+
 ## Down Contribution
 
 Down contribution is read from EI output; AxiBridge does not compute it.

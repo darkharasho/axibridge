@@ -39,6 +39,7 @@ import { createSkillUsageAccumulator, ingestLogSkillUsage, finalizeSkillUsage, e
 import { createBoonTimelineAccumulator, ingestLogBoonTimeline, finalizeBoonTimeline, extractBoonTimelineFrame, mergeBoonTimelineFrame } from './computeBoonTimeline';
 import { createBoonUptimeTimelineAccumulator, ingestLogBoonUptimeTimeline, finalizeBoonUptimeTimeline, extractBoonUptimeFrame, mergeBoonUptimeFrame } from './computeBoonUptimeTimeline';
 import { createStabPerformanceAccumulator, ingestLogStabPerformance, finalizeStabPerformance, extractStabPerformanceFrame, mergeStabPerformanceFrame } from './computeStabPerformance';
+import { createControlTimelineAccumulator, ingestLogControlTimeline, extractControlTimelineFrame, mergeControlTimelineFrame, finalizeControlTimeline } from './computeControlTimeline';
 
 import { encodeState, decodeState } from './slice/stateCodec';
 import { applyLabel, buildFrameLabelSeed, resolveFrameFightLabels, type FrameLabelSeed } from './slice/frameLabels';
@@ -49,6 +50,7 @@ import { classifyPlayerRoles } from './classifyPlayerRoles';
 
 import { buildMovementData, type SquadMemberMovement } from '../../shared/movementData';
 import { getArena, replayCanvas } from '@axiapps/bridge-metrics/nativePositioning';
+import { readSquadSeries } from '@axiapps/bridge-metrics/nativeSeries';
 import { resolveMapFromZone, computeFightAvgPosition, buildFightLabelV2 } from '../../shared/mapUtils';
 import { findNearestLandmark } from '../../shared/wvwLandmarks';
 import { TRACKED_REPLAY_BUFF_IDS } from '../../shared/replayBuffs';
@@ -188,6 +190,8 @@ export function buildReplayFightPayload(log: any, fightIndex: number, opts?: { p
     const deaths = squadMembers.filter(m => m.deadRanges.length > 0).length;
 
     const dpsSamples: ReplayDpsSample[] = computeSquadDpsSamples(details);
+    const ccSamples = readSquadSeries(details?.native ?? {}, 'cc_applied');
+    const stripSamples = readSquadSeries(details?.native ?? {}, 'strips');
     const killEvents: ReplayKillEvent[] = collectKillEvents(movement);
     const rallyEvents = computeRallyEvents(movement.members);
     const damageSpikeEvents = computeDamageSpikeEvents(details);
@@ -210,6 +214,8 @@ export function buildReplayFightPayload(log: any, fightIndex: number, opts?: { p
         deaths,
         movementData: movement,
         dpsSamples,
+        ccSamples,
+        stripSamples,
         killEvents,
         damageSpikeEvents,
         rallyEvents,
@@ -557,6 +563,7 @@ export class IncrementalAggregator {
     private boonTimelineAcc;
     private boonUptimeAcc;
     private stabPerfAcc;
+    private controlTimelineAcc;
 
     // Map counts
     private mapCounts: Record<string, number> = {};
@@ -608,6 +615,7 @@ export class IncrementalAggregator {
         this.boonTimelineAcc = createBoonTimelineAccumulator();
         this.boonUptimeAcc = createBoonUptimeTimelineAccumulator(boonIntervalSettings);
         this.stabPerfAcc = createStabPerformanceAccumulator();
+        this.controlTimelineAcc = createControlTimelineAccumulator();
     }
 
     /** Process a single log and accumulate results. The log is NOT stored. */
@@ -753,6 +761,7 @@ export class IncrementalAggregator {
         ingestLogBoonTimeline(log, this.boonTimelineAcc);
         ingestLogBoonUptimeTimeline(log, this.boonUptimeAcc);
         ingestLogStabPerformance(log, this.stabPerfAcc);
+        ingestLogControlTimeline(log, this.controlTimelineAcc);
 
         // 6. incomingDamagePerSecond
         this.processIncomingDamagePerSecond(log, idx);
@@ -881,6 +890,7 @@ export class IncrementalAggregator {
                 boonTimeline: extractBoonTimelineFrame(this.boonTimelineAcc),
                 boonUptime: extractBoonUptimeFrame(this.boonUptimeAcc),
                 stabPerformance: extractStabPerformanceFrame(this.stabPerfAcc),
+                controlTimeline: extractControlTimelineFrame(this.controlTimelineAcc),
                 playerAcc: this.playerAcc,
                 commanderStatsAcc: this.commanderStatsAcc,
             }
@@ -985,6 +995,7 @@ export class IncrementalAggregator {
         if (frame.boonTimeline) mergeBoonTimelineFrame(this.boonTimelineAcc, frame.boonTimeline, labels);
         if (frame.boonUptime) mergeBoonUptimeFrame(this.boonUptimeAcc, frame.boonUptime, labels);
         if (frame.stabPerformance) mergeStabPerformanceFrame(this.stabPerfAcc, frame.stabPerformance);
+        if (frame.controlTimeline) mergeControlTimelineFrame(this.controlTimelineAcc, frame.controlTimeline);
     }
 
     /** Finalize aggregation and return the result. */
@@ -1023,6 +1034,7 @@ export class IncrementalAggregator {
         const boonTimeline = finalizeBoonTimeline(this.boonTimelineAcc);
         const boonUptimeTimeline = finalizeBoonUptimeTimeline(this.boonUptimeAcc);
         const stabPerformanceDrilldown = finalizeStabPerformance(this.stabPerfAcc);
+        const controlTimelineDrilldown = finalizeControlTimeline(this.controlTimelineAcc);
 
         // 4. Build boon tables from stored log data
         const { boonTables } = buildBoonTables(this.boonTableLogs, this.splitPlayersByClass);
@@ -1627,7 +1639,7 @@ export class IncrementalAggregator {
             playerSkillBreakdowns,
             healingBreakdownPlayers,
             topSkillsMetric: this.topSkillsMetric,
-            mapData, timelineData, boonTables, boonLeaderboards, boonTimeline, boonUptimeTimeline, stabPerformanceDrilldown, incomingDamagePerSecondByFightId,
+            mapData, timelineData, boonTables, boonLeaderboards, boonTimeline, boonUptimeTimeline, stabPerformanceDrilldown, controlTimelineDrilldown, incomingDamagePerSecondByFightId,
             offensePlayers: Array.from(playerStats.values()).map(s => ({
                 account: s.account, profession: s.profession, professionList: s.professionList,
                 offenseTotals: s.offenseTotals, offenseRateWeights: s.offenseRateWeights, totalFightMs: s.totalFightMs

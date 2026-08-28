@@ -43,6 +43,9 @@ const shared = {
     overallUptimePercent: 50,
     timelineScope: 'squad', setTimelineScope: () => {},
     showIncomingHeatmap: false, setShowIncomingHeatmap: () => {},
+    // StabPerformanceSection alone takes a mode (not the boolean above) —
+    // see task-9-report.md. The boon sections in this file keep the boolean.
+    heatmapOverlay: 'none' as const, setHeatmapOverlay: () => {},
     showPartyDeaths: false, setShowPartyDeaths: () => {},
     showPartyDistance: false, setShowPartyDistance: () => {},
     partyMembers: [],

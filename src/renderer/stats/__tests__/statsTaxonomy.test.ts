@@ -15,14 +15,14 @@ const EXPECTED_SECTION_IDS = [
     'data-map', 'overview', 'fight-breakdown', 'fight-diff-mode', 'timeline',
     'map-distribution', 'top-players', 'top-skills-outgoing', 'top-skills-incoming',
     // offense
-    'offense-detailed', 'damage-breakdown', 'all-damage', 'spike-damage',
+    'offense-detailed', 'cc-timeline', 'damage-breakdown', 'all-damage', 'spike-damage',
     'damage-modifiers', 'conditions-outgoing',
     // defense
     'defense-detailed', 'incoming-strike-damage', 'incoming-damage-modifiers',
     'defense-mitigation',
     // boons-strips
     'boon-output', 'boon-uptime', 'all-boons', 'boon-timeline', 'stab-performance',
-    'boon-strip-comparison', 'strip-spikes',
+    'boon-strip-comparison', 'strip-spikes', 'strip-timeline',
     // support-healing
     'support-detailed', 'healing-stats', 'healing-breakdown', 'heal-effectiveness',
     // squad-cohesion
@@ -107,5 +107,15 @@ describe('statsTaxonomy', () => {
     it('returns null for unknown anchors', () => {
         expect(resolveSectionTarget('does-not-exist')).toBeNull();
         expect(resolveSectionTarget('')).toBeNull();
+    });
+
+    it('registers cc-timeline under offense', () => {
+        const offense = STATS_CATEGORIES.find(c => c.id === 'offense');
+        expect(offense?.sections.map(s => s.id)).toContain('cc-timeline');
+    });
+
+    it('registers strip-timeline under boons-strips', () => {
+        const boonsStrips = STATS_CATEGORIES.find(c => c.id === 'boons-strips');
+        expect(boonsStrips?.sections.map(s => s.id)).toContain('strip-timeline');
     });
 });

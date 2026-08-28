@@ -248,6 +248,17 @@ describe('aggregator frame export/merge', () => {
             .toEqual(direct.stabPerfAcc.fights.map((f: any) => f.id));
     });
 
+    it('control timeline survives the frame round-trip', () => {
+        const direct = computeStatsSync({ logs: LOGS });
+        expect(direct.stats.controlTimelineDrilldown).toBeDefined();
+
+        const merged = new IncrementalAggregator();
+        framesFor(LOGS).forEach((frame) => merged.mergeFrame(frame));
+
+        expect(merged.finalize().stats.controlTimelineDrilldown)
+            .toEqual(direct.stats.controlTimelineDrilldown);
+    });
+
     it('renumbers the commander fight-row shortLabel, which finalize never touches', () => {
         // ingestLogCommanderStats bakes `F${idx + 1}` into every fight row and
         // finalizeCommanderStats only re-SORTS them, so without the rewrite

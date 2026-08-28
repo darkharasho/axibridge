@@ -62,6 +62,7 @@ export const STATS_CATEGORIES: readonly StatsCategory[] = [
         keywords: ['damage', 'dps', 'attack'],
         sections: [
             { id: 'offense-detailed', label: 'Offense Detailed', icon: Swords, description: 'Full offensive stat table per player: damage, down contribution, CC, crits.', keywords: ['down contribution', 'cc', 'interrupts', 'critical', 'kills'] },
+            { id: 'cc-timeline', label: 'CC Timeline', icon: Zap, description: 'Outgoing crowd control per player over the course of each fight.', keywords: ['cc over time', 'control timeline', 'cc timing', 'when cc'] },
             { id: 'damage-breakdown', label: 'Damage Breakdown', icon: BarChart3, description: 'Damage split by type and target.', keywords: ['power', 'condition damage'] },
             { id: 'all-damage', label: 'All Damage', icon: Flame, description: 'Total damage view including all sources.', keywords: ['total damage'] },
             { id: 'spike-damage', label: 'Spike Damage', icon: Zap, description: 'Burst windows — who contributes when it matters.', keywords: ['burst', 'spike'] },
@@ -92,6 +93,7 @@ export const STATS_CATEGORIES: readonly StatsCategory[] = [
             { id: 'stab-performance', label: 'Stab Performance', icon: Shield, description: 'Stability coverage in the moments it matters.', keywords: ['stability', 'stab'] },
             { id: 'boon-strip-comparison', label: 'Boon Strips', icon: Eraser, description: 'Strips and corrupts — squad versus enemy.', keywords: ['strips', 'corrupts', 'removal'] },
             { id: 'strip-spikes', label: 'Strip Spikes', icon: Eraser, description: 'Strip burst windows and down contribution from strips.', keywords: ['strip burst'] },
+            { id: 'strip-timeline', label: 'Strip Timeline', icon: Eraser, description: 'Boon strips per player over the course of each fight, incoming or outgoing.', keywords: ['strips over time', 'strip timing', 'when stripped', 'strip timeline'] },
         ],
     },
     {

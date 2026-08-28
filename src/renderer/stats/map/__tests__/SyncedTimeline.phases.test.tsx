@@ -26,7 +26,7 @@ const mkFight = (): ReplayFightPayload => ({
     },
     dpsSamples: [{ timeMs: 0, squadDps: 0 }, { timeMs: 5000, squadDps: 1000 }, { timeMs: 10_000, squadDps: 0 }],
     killEvents: [], damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
-    sectorOwners: null,
+    sectorOwners: null, ccSamples: null, stripSamples: null,
 });
 
 describe('SyncedTimeline — phases', () => {
