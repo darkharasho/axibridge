@@ -882,7 +882,30 @@ Prepend to `docs/CHANGELOG.md` immediately after the header block, above `## v1.
 
 - [ ] **Step 3: Bump the version in both manifests**
 
-`Cargo.toml:6` → `version = "1.8.0"`, and the `"version"` field in `crates/axilog-node/package.json` → `"1.8.0"`.
+`scripts/check-versions.sh` enforces **eleven** version sites, not two. Bump
+all of them:
+
+- `Cargo.toml:6` → `version = "1.8.0"`
+- `crates/axilog-node/package.json` → the `"version"` field **and** all five
+  `optionalDependencies` pins (`@axiapps/axilog-{linux-x64-gnu,linux-arm64-gnu,win32-x64-msvc,darwin-x64,darwin-arm64}`)
+- `crates/axilog-node/npm/<platform>/package.json` → the `"version"` field in
+  each of the five platform manifests
+- `crates/axilog-py/pyproject.toml:7` → `version = "1.8.0"`
+- `crates/axilog-node/index.js` → the napi version-check literals (a plain
+  `s/1.7.2/1.8.0/g` over the file)
+
+Then verify before committing:
+
+```bash
+scripts/check-versions.sh --pre-publish
+```
+
+Expected: `OK: all versions in sync (1.8.0).` This gate is the release
+workflow's first job — if it fails there, every downstream job including
+npm-publish is skipped and you must force-move the tag.
+
+`package-lock.json` is deliberately NOT bumped by hand; `release.yml`
+regenerates it after npm-publish.
 
 - [ ] **Step 4: Verify you are on `main` before tagging**
 
