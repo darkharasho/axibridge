@@ -124,6 +124,17 @@ Implementation: `src/renderer/stats/computeControlTimeline.ts`
 (ingestLogControlTimeline), reading `cc_applied` via
 `@axiapps/bridge-metrics` `readEntitySeries`.
 
+**Known upstream discrepancy:** the squad-level `cc_applied` lane (read via
+`readSquadSeries`, used by the replay CC sub-lane) and the sum of the
+per-entity `cc_applied` lanes (used by this section) can disagree by a
+small amount on the same fight — e.g. fixture `20260117-180135` sums to 33
+squad-side vs. 34 per-entity, with EI's `appliedCrowdControl` agreeing with
+the per-entity total (34). This is an axilog-side nuance in how the two
+lanes are aggregated upstream, not introduced by AxiBridge, and is not
+expected to be fixed here — noted so the CC Timeline section and the replay
+CC lane occasionally disagreeing by 1 on a total is not mistaken for a bug
+in either surface.
+
 ## Boon Strips (timeline)
 
 Boon removals over time, in either direction:
