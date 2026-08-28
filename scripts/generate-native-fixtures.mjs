@@ -84,7 +84,7 @@ const loadTsModule = (filePath) => {
     return module.exports;
 };
 
-const { mapEiSettingsToAxilogOptions, applyEiCompatShims } = loadTsModule(
+const { mapParserSettingsToAxilogOptions, applyEiCompatShims } = loadTsModule(
     path.join(cwd, 'src/main/axilogParser.ts')
 );
 const { buildNativeCarrySet } = loadTsModule(path.join(cwd, 'src/main/nativeCarrySet.ts'));
@@ -102,9 +102,9 @@ try {
 // Derived from the app's DEFAULT settings through the app's own mapping rather
 // than hardcoded, so a fixture regenerated after a settings-mapping change
 // tracks it. `parseCombatReplay` is deliberately absent from the mapping (see
-// `mapEiSettingsToAxilogOptions`): `replay` is unconditionally on at parse time
-// and the user setting only governs post-parse pruning, which fixtures skip.
-const PARSE_OPTIONS = mapEiSettingsToAxilogOptions({
+// `mapParserSettingsToAxilogOptions`): `replay` is unconditionally on at parse
+// time and the user setting only governs post-parse pruning, which fixtures skip.
+const PARSE_OPTIONS = mapParserSettingsToAxilogOptions({
     rawTimelineArrays: true,
     computeDamageModifiers: true,
 });

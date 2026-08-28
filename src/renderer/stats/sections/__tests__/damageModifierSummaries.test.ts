@@ -35,7 +35,7 @@ describe('hasPersonalModClassification', () => {
         expect(hasPersonalModClassification(new Set(['d32']))).toBe(true);
     });
 
-    it('is false when the catalog is absent (native axilog logs)', () => {
+    it('is false when the catalog is absent (unclassified, not "nothing is personal")', () => {
         expect(hasPersonalModClassification(new Set())).toBe(false);
     });
 });
@@ -88,9 +88,13 @@ describe('regression: natively parsed logs render damage modifiers', () => {
         })) as any,
     }).stats;
 
-    it('aggregates modifier data but supplies no personal-mod catalog', () => {
+    it('aggregates modifier data and supplies a personal-mod catalog from axilog', () => {
+        // axilog's EI-compat surface has emitted `personalDamageMods` since at
+        // least 1.7.2 (confirmed unchanged by the 1.8.0 bump) - the classified
+        // set is non-empty for a real native log, not the "unclassified"
+        // empty-set case `hasPersonalModClassification` also has to handle.
         expect(Object.keys(stats.damageModMap).length).toBeGreaterThan(0);
-        expect(stats.personalDamageModKeys).toEqual([]);
+        expect(stats.personalDamageModKeys.length).toBeGreaterThan(0);
     });
 
     it('shows outgoing modifiers with Hypothetical off', () => {

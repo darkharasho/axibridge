@@ -21,10 +21,14 @@ export type ModSummary = {
  * attributed to every benefiting player rather than to the provider — what the
  * Damage Modifiers section calls "hypothetical" and hides by default.
  *
- * Native axilog logs have no equivalent field, so the set comes back empty.
- * That is "unclassified", NOT "nothing is personal": treating it as the latter
- * hid every modifier and left the whole section reading "No damage modifier
- * data available" even though the per-player totals were fully aggregated.
+ * axilog's EI-compat surface has emitted the same `personalDamageMods` field
+ * since at least 1.7.2, so native logs are classified too in practice. This
+ * function still has to handle the empty-set case: an empty
+ * `personalDamageModKeys` means "unclassified", NOT "nothing is personal" -
+ * treating it as the latter hid every modifier and left the whole section
+ * reading "No damage modifier data available" even though the per-player
+ * totals were fully aggregated. That empty-set path is what
+ * `is false when the catalog is absent` below still pins.
  */
 export const hasPersonalModClassification = (personalModKeys: ReadonlySet<string>): boolean =>
     personalModKeys.size > 0;

@@ -179,13 +179,12 @@ describe('player aggregation merge equivalence', () => {
         expect(Object.keys(acc.incomingCondiTotals).length).toBeGreaterThan(0);
         expect(Object.keys(acc.enemyProfessionCounts).length).toBeGreaterThan(0);
         expect(acc.pendingSkillCasts.size).toBeGreaterThan(0);
-        // NOT exercised by these fixtures: they are boon-trimmed, so every
-        // entry in `catalogs.buffs` is a boon or a condition and each player's
-        // `buffUptimes` carries only the 12 boons -- nothing survives the
-        // special-buff gate. The combiners are pinned synthetically below, and
-        // the gate itself is pinned against a full log in bridge-metrics'
-        // `specialBuffs.native.test.ts`.
-        expect(acc.specialBuffAgg.size).toBe(0);
+        // These fixtures carry real non-boon buffs (WvW Reinforced Armor /
+        // Borderlands Bloodlust, food/utility effects, etc.) alongside the 12
+        // boons, so the special-buff gate is exercised here too. The gate's
+        // own boon/condition classification is pinned synthetically below and
+        // against a full log in bridge-metrics' `specialBuffs.native.test.ts`.
+        expect(acc.specialBuffAgg.size).toBeGreaterThan(0);
     });
 
     it('reproduces the all-fights player stats from per-fight accumulators', () => {
