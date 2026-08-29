@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { BucketGridTable, FightPicker, TIMELINE_NOT_RECORDED_MESSAGE, type BucketGridRow } from './BucketGridTable';
+import { renderProfessionIcon } from '../ui/StatsViewShared';
 import { CONTROL_BUCKET_MS, type ControlFightData } from '../computeControlTimeline';
 
 type StripDirection = 'out' | 'in';
@@ -41,6 +42,7 @@ export const StripTimelineSection: React.FC<StripTimelineSectionProps> = ({
                 key,
                 displayName: p.displayName,
                 group: p.group,
+                profession: p.profession,
                 buckets: direction === 'out' ? p.stripsOut : p.stripsIn,
             }))
             .sort((a, b) => a.group - b.group || a.displayName.localeCompare(b.displayName));
@@ -89,6 +91,7 @@ export const StripTimelineSection: React.FC<StripTimelineSectionProps> = ({
                 bucketCount={fight?.bucketCount || 0}
                 bucketMs={CONTROL_BUCKET_MS}
                 accent={direction === 'out' ? '#e879f9' : '#f87171'}
+                renderIcon={(profession) => renderProfessionIcon(profession, undefined, 'w-[15px] h-[15px]')}
                 recorded={effectiveRecorded}
                 notRecordedMessage={TIMELINE_NOT_RECORDED_MESSAGE}
             />

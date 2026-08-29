@@ -580,6 +580,27 @@ body.glass-surfaces .stats-view .fight-diff-select option {
     color: var(--text-primary);
 }
 
+/* Pinned player column of the CC / Strip timeline grids.
+
+   Must be OPAQUE: it overlaps the cells that scroll underneath it, and both
+   glass themes set --bg-card to a low-alpha white, which would let those
+   cells bleed through. Same trap the .app-dropdown overrides exist for.
+   The right edge is a shadow rather than a border so it reads as depth
+   against the time ruler instead of adding another gridline. */
+.stats-view .bucket-grid__pin {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--bg-card);
+    background-clip: padding-box;
+    box-shadow: 6px 0 10px -6px rgba(0, 0, 0, 0.45);
+}
+
+body.glass-surfaces .stats-view .bucket-grid__pin,
+body.glassmorphic .stats-view .bucket-grid__pin {
+    background: rgb(21, 25, 34);
+}
+
 body.web-report .stats-sections>[data-section-visible="true"]+[data-section-visible="true"] {
     margin-top: 1.5rem;
 }

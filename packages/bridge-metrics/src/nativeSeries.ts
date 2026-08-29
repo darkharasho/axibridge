@@ -87,7 +87,13 @@ export const decodeCountSeries = (series: NativeSeries | null | undefined): numb
 };
 
 export type SquadSeriesLane = 'damage' | 'cc_applied' | 'downs' | 'strips';
-export type EntitySeriesLane = 'cc_applied' | 'strips' | 'strips_taken';
+/**
+ * `cc_taken` arrived in axilog 1.9.0, later than the other three, so a
+ * report parsed by 1.8.x carries every other lane and not this one. Callers
+ * must therefore check this lane's own presence rather than inferring it
+ * from a sibling — see `ControlFightData.ccInRecorded`.
+ */
+export type EntitySeriesLane = 'cc_applied' | 'strips' | 'strips_taken' | 'cc_taken';
 
 /**
  * Read a squad-level lane out of a native report.

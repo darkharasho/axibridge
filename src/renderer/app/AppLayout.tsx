@@ -377,9 +377,15 @@ export function AppLayout({ ctx }: { ctx: any }) {
                             </div>
                         )}
                         {view === 'stats' && (
-                            <div className="flex-1 min-h-0 flex gap-3">
+                            /* `min-w-0` on both levels is load-bearing, not decoration: a flex
+                               item's automatic minimum size is its content's max-content width,
+                               so without it a single wide stats table propagates its full width
+                               up this chain until `app-content`'s overflow-hidden clips the
+                               whole app — header included. With it, the width stops here and
+                               `#stats-dashboard-container` scrolls horizontally instead. */
+                            <div className="flex-1 min-h-0 min-w-0 flex gap-3">
                                 <CategoryBar />
-                                <div className="flex-1 min-h-0 flex flex-col">
+                                <div className="flex-1 min-w-0 min-h-0 flex flex-col">
                                     <StatsErrorBoundary>
                                         <StatsView
                                             logs={logsForStats}

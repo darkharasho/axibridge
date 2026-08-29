@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { StabPerformanceSection } from '../StabPerformanceSection';
 
 vi.mock('../../StatsViewContext', () => ({
@@ -84,5 +84,29 @@ describe('StabPerformanceSection heatmap overlay', () => {
         );
         expect(queryByText(/not recorded for this fight/i)).toBeNull();
         expect(container.querySelector('[data-overlay="strips-taken"]')).not.toBeNull();
+    });
+});
+
+describe('StabPerformanceSection overlay toggles', () => {
+    it('selects the clicked overlay directly, without cycling through the other', () => {
+        const setHeatmapOverlay = vi.fn();
+        render(<StabPerformanceSection {...props('none')} setHeatmapOverlay={setHeatmapOverlay} />);
+        fireEvent.click(screen.getByRole('button', { name: /strips taken/i }));
+        expect(setHeatmapOverlay).toHaveBeenCalledWith('strips-taken');
+    });
+
+    it('turns the active overlay off when its own button is clicked again', () => {
+        const setHeatmapOverlay = vi.fn();
+        render(<StabPerformanceSection {...props('incoming-damage')} setHeatmapOverlay={setHeatmapOverlay} />);
+        fireEvent.click(screen.getByRole('button', { name: /party damage/i }));
+        expect(setHeatmapOverlay).toHaveBeenCalledWith('none');
+    });
+
+    // Both overlay names stay on screen whatever the current mode is, so the
+    // reader can see that strips-taken exists without clicking to find out.
+    it('shows both overlay names at once, and marks which is active', () => {
+        render(<StabPerformanceSection {...props('strips-taken')} />);
+        expect(screen.getByRole('button', { name: /party damage/i })).toHaveAttribute('aria-pressed', 'false');
+        expect(screen.getByRole('button', { name: /strips taken/i })).toHaveAttribute('aria-pressed', 'true');
     });
 });

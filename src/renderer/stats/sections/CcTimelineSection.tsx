@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { BucketGridTable, FightPicker, TIMELINE_NOT_RECORDED_MESSAGE, type BucketGridRow } from './BucketGridTable';
+import { renderProfessionIcon } from '../ui/StatsViewShared';
 import { CONTROL_BUCKET_MS, type ControlFightData } from '../computeControlTimeline';
 
 interface CcTimelineSectionProps {
@@ -33,7 +34,7 @@ export const CcTimelineSection: React.FC<CcTimelineSectionProps> = ({
     const rows = useMemo<BucketGridRow[]>(() => {
         if (!fight) return [];
         return Object.entries(fight.players)
-            .map(([key, p]) => ({ key, displayName: p.displayName, group: p.group, buckets: p.cc }))
+            .map(([key, p]) => ({ key, displayName: p.displayName, group: p.group, profession: p.profession, buckets: p.cc }))
             .sort((a, b) => a.group - b.group || a.displayName.localeCompare(b.displayName));
     }, [fight]);
 
@@ -61,6 +62,7 @@ export const CcTimelineSection: React.FC<CcTimelineSectionProps> = ({
                 bucketCount={fight?.bucketCount || 0}
                 bucketMs={CONTROL_BUCKET_MS}
                 accent="#f59e0b"
+                renderIcon={(profession) => renderProfessionIcon(profession, undefined, 'w-[15px] h-[15px]')}
                 recorded={effectiveRecorded}
                 notRecordedMessage={TIMELINE_NOT_RECORDED_MESSAGE}
             />

@@ -19,14 +19,32 @@ export const CONTROL_BUCKET_MS = 5000;
 const NATIVE_INTERVAL_MS = 1000;
 const PER_BUCKET = CONTROL_BUCKET_MS / NATIVE_INTERVAL_MS;
 
-export type ControlLane = 'cc' | 'stripsOut' | 'stripsIn';
+export type ControlLane = 'cc' | 'stripsOut' | 'stripsIn' | 'ccIn';
 
 export type ControlPlayerData = {
     group: number;
     displayName: string;
+    /**
+     * EI's profession string, carried so the grid can show a class icon
+     * beside each name. Icons resolve to bundled base64 data URIs at build
+     * time (`classIconUtils`), so this adds one short string per player per
+     * fight to `report.json` and no image payload at all.
+     */
+    profession: string;
     cc: number[];
     stripsOut: number[];
     stripsIn: number[];
+    /**
+     * Incoming CC — the per-second decomposition of
+     * `blocks.defenses.by_entity[].received_cc_count`, added in axilog 1.9.0.
+     *
+     * Deliberately not comparable to `cc` summed the other way round: GW2EI
+     * counts incoming CC with no source filter and no pet/minion fold, so a
+     * squad's `ccIn` total exceeds its `cc` total by everything the enemy
+     * applied and by every minion hit. Reading one as the mirror of the other
+     * is wrong at the source, not here.
+     */
+    ccIn: number[];
 };
 
 export type ControlFightData = {
@@ -44,6 +62,16 @@ export type ControlFightData = {
      * log's own lane check.
      */
     recorded: boolean;
+    /**
+     * `recorded`, but for `ccIn` alone. The `cc_taken` lane landed in axilog
+     * 1.9.0, one release after the other three, so a fight parsed by 1.8.x
+     * sets `recorded` true off its strips lanes while carrying no incoming CC
+     * at all. Folding this into the shared flag would draw that fight's CC
+     * overlay as an all-zero band reading "nobody was CC'd" — the exact lie
+     * the flag exists to prevent. Absent on a `report.json` written before
+     * this field existed, which is falsy, which is the honest answer.
+     */
+    ccInRecorded: boolean;
 };
 
 export type ControlTimelineAccumulator = {
@@ -105,6 +133,7 @@ export function ingestLogControlTimeline(log: any, acc: ControlTimelineAccumulat
 
     const playersOut: Record<string, ControlPlayerData> = {};
     let sawLane = false;
+    let sawCcIn = false;
 
     squadPlayers.forEach((player: any) => {
         const account = String(player?.account || player?.name || 'Unknown');
@@ -114,11 +143,14 @@ export function ingestLogControlTimeline(log: any, acc: ControlTimelineAccumulat
         const cc = key === null ? null : readEntitySeries(native, key, 'cc_applied');
         const stripsOut = key === null ? null : readEntitySeries(native, key, 'strips');
         const stripsIn = key === null ? null : readEntitySeries(native, key, 'strips_taken');
+        const ccIn = key === null ? null : readEntitySeries(native, key, 'cc_taken');
         if (cc?.length || stripsOut?.length || stripsIn?.length) sawLane = true;
+        if (ccIn?.length) sawCcIn = true;
 
         const ccBuckets = downsample(cc, bucketCount);
         const stripsOutBuckets = downsample(stripsOut, bucketCount);
         const stripsInBuckets = downsample(stripsIn, bucketCount);
+        const ccInBuckets = downsample(ccIn, bucketCount);
 
         // Consumers (CcTimelineSection, StripTimelineSection) iterate
         // `Object.entries(fight.players)` and already tolerate a missing key
@@ -127,21 +159,27 @@ export function ingestLogControlTimeline(log: any, acc: ControlTimelineAccumulat
         // `report.json`'s trim pass has no way to shrink a dense-zeros
         // section after the fact.
         const hasAnyValue = (arr: number[]) => arr.some((v) => v !== 0);
-        if (!hasAnyValue(ccBuckets) && !hasAnyValue(stripsOutBuckets) && !hasAnyValue(stripsInBuckets)) {
+        if (!hasAnyValue(ccBuckets) && !hasAnyValue(stripsOutBuckets)
+            && !hasAnyValue(stripsInBuckets) && !hasAnyValue(ccInBuckets)) {
             return;
         }
 
         playersOut[account] = {
             group: Number(player?.group || 0),
             displayName: String(player?.name || account),
+            profession: String(player?.profession || ''),
             cc: ccBuckets,
             stripsOut: stripsOutBuckets,
             stripsIn: stripsInBuckets,
+            ccIn: ccInBuckets,
         };
     });
 
     if (sawLane) acc.recorded = true;
-    acc.fights.push({ id: fightId, bucketCount, durationMs, players: playersOut, recorded: sawLane });
+    acc.fights.push({
+        id: fightId, bucketCount, durationMs, players: playersOut,
+        recorded: sawLane, ccInRecorded: sawCcIn,
+    });
 }
 
 export function extractControlTimelineFrame(acc: ControlTimelineAccumulator): ControlTimelineFrame {
@@ -164,4 +202,107 @@ export function finalizeControlTimeline(
     acc: ControlTimelineAccumulator,
 ): { fights: ControlFightData[]; recorded: boolean } {
     return { fights: acc.fights, recorded: acc.recorded };
+}
+
+export type IncomingLaneScope = 'player' | 'squad';
+
+export type IncomingLaneResult = {
+    /** One entry per target bucket. All zeros when nothing was captured. */
+    buckets: number[];
+    /** 0..1 per bucket, normalized against this fight's own peak. */
+    intensity: number[];
+    /** False means the series was never captured — say so, don't draw zeros. */
+    recorded: boolean;
+    /**
+     * `player` when `playerKey` names a real squad member in this fight;
+     * `squad` when it does not. The boon charts address rows by keys the
+     * control accumulator never sees — `__all__` and `__subgroup__:N` — and
+     * a per-player lookup for those silently yields an all-zero band that
+     * reads as "nothing happened to anyone". Summing the squad is the honest
+     * answer for an aggregate row, and the caller labels the band from this.
+     */
+    scope: IncomingLaneScope;
+};
+
+/** The incoming lanes a boon drilldown can shade its buckets by. */
+type IncomingLaneKey = 'stripsIn' | 'ccIn';
+
+/**
+ * An incoming lane for a player (or the whole squad), re-bucketed from this
+ * module's 5s grid onto whatever interval the caller's chart uses.
+ *
+ * The boon uptime drilldown's bucket interval is user-configurable down to
+ * 1s, finer than CONTROL_BUCKET_MS. Rather than fabricate a distribution
+ * inside a 5s bucket we don't have, each target bucket repeats the 5s value
+ * covering it — so the band's *shape* is right at 5s resolution and its
+ * numbers stay whole counts. Callers label the tooltip "(5s)" to say so.
+ * Rebuilding this at 1s would mean storing the native series at 1s in
+ * `report.json`, five times the numbers in a payload that is already trimmed.
+ */
+function resolveIncomingLane(
+    fight: ControlFightData | null | undefined,
+    lane: IncomingLaneKey,
+    recorded: boolean,
+    playerKey: string | null | undefined,
+    targetIntervalMs: number,
+    targetCount: number,
+): IncomingLaneResult {
+    const count = Math.max(0, Math.floor(targetCount));
+    const empty = Array.from({ length: count }, () => 0);
+    if (!fight || !recorded) {
+        return { buckets: empty, intensity: empty.slice(), recorded: false, scope: 'squad' };
+    }
+
+    const entry = playerKey ? fight.players?.[playerKey] : undefined;
+    const scope: IncomingLaneScope = entry ? 'player' : 'squad';
+    let source: number[];
+    if (entry) {
+        source = Array.isArray(entry[lane]) ? entry[lane] : [];
+    } else {
+        source = Array.from({ length: fight.bucketCount }, () => 0);
+        Object.values(fight.players || {}).forEach((player) => {
+            (player?.[lane] || []).forEach((value, index) => {
+                source[index] = Number(source[index] || 0) + Number(value || 0);
+            });
+        });
+    }
+
+    const interval = Math.max(1, Number(targetIntervalMs) || CONTROL_BUCKET_MS);
+    const buckets = Array.from({ length: count }, (_, index) => {
+        const sourceIndex = Math.floor((index * interval) / CONTROL_BUCKET_MS);
+        return Number(source[sourceIndex] || 0);
+    });
+    const max = buckets.reduce((best, value) => Math.max(best, value), 0);
+    const intensity = buckets.map((value) => (max > 0 ? Math.max(0, Math.min(1, value / max)) : 0));
+    return { buckets, intensity, recorded: true, scope };
+}
+
+/** Boons stripped off a player (or the whole squad). See `resolveIncomingLane`. */
+export function resolveIncomingStrips(
+    fight: ControlFightData | null | undefined,
+    playerKey: string | null | undefined,
+    targetIntervalMs: number,
+    targetCount: number,
+): IncomingLaneResult {
+    return resolveIncomingLane(
+        fight, 'stripsIn', Boolean(fight?.recorded), playerKey, targetIntervalMs, targetCount,
+    );
+}
+
+/**
+ * CC landed on a player (or the whole squad). See `resolveIncomingLane`.
+ *
+ * Gated on `ccInRecorded`, not `recorded`: `cc_taken` shipped in axilog
+ * 1.9.0, a release after the strips lanes, so a fight can be `recorded` and
+ * still carry no incoming CC.
+ */
+export function resolveIncomingCc(
+    fight: ControlFightData | null | undefined,
+    playerKey: string | null | undefined,
+    targetIntervalMs: number,
+    targetCount: number,
+): IncomingLaneResult {
+    return resolveIncomingLane(
+        fight, 'ccIn', Boolean(fight?.ccInRecorded), playerKey, targetIntervalMs, targetCount,
+    );
 }

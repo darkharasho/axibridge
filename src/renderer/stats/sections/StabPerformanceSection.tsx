@@ -53,6 +53,19 @@ type StabPerfDrilldownEntry = {
 
 type StabPerfHeatmapOverlay = 'none' | 'incoming-damage' | 'strips-taken';
 
+/**
+ * One control per overlay, each toggling only itself. Both overlays paint
+ * the same band behind the same line, so selecting one replaces the other —
+ * but neither hides behind the other in a cycle, which would keep the
+ * reader from seeing that both exist. The sibling boon drilldowns carry the
+ * same idea in `boonHeatmapOverlay.ts`; the two stay separate because this
+ * chart's overlays are party-scoped rather than squad-scoped.
+ */
+const toggleStabPerfOverlay = (
+    mode: StabPerfHeatmapOverlay,
+    target: Exclude<StabPerfHeatmapOverlay, 'none'>,
+): StabPerfHeatmapOverlay => (mode === target ? 'none' : target);
+
 type StabPerformanceSectionProps = {
     playerFilter: string;
     setPlayerFilter: (v: string) => void;
@@ -192,23 +205,29 @@ export const StabPerformanceSection = ({
             drilldownExtras={<>
                 <button
                     type="button"
-                    onClick={() => setHeatmapOverlay(
-                        heatmapOverlay === 'none' ? 'incoming-damage'
-                        : heatmapOverlay === 'incoming-damage' ? 'strips-taken'
-                        : 'none',
-                    )}
-                    title={
-                        heatmapOverlay === 'none' ? 'Show party incoming damage intensity overlay'
-                        : heatmapOverlay === 'incoming-damage' ? 'Show boon strips taken intensity overlay'
-                        : 'Hide the intensity overlay'
-                    }
+                    onClick={() => setHeatmapOverlay(toggleStabPerfOverlay(heatmapOverlay, 'incoming-damage'))}
+                    title="Shade the drilldown buckets by party incoming damage"
+                    aria-pressed={heatmapOverlay === 'incoming-damage'}
                     className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
-                        heatmapOverlay !== 'none'
+                        heatmapOverlay === 'incoming-damage'
                             ? 'text-red-200 hover:text-red-100'
                             : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                     }`}
                 >
-                    {heatmapOverlay === 'strips-taken' ? 'Strips Taken' : 'Party Damage'}
+                    Party Damage
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setHeatmapOverlay(toggleStabPerfOverlay(heatmapOverlay, 'strips-taken'))}
+                    title="Shade the drilldown buckets by boons stripped off the party"
+                    aria-pressed={heatmapOverlay === 'strips-taken'}
+                    className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                        heatmapOverlay === 'strips-taken'
+                            ? 'text-red-300 hover:text-red-200'
+                            : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
+                    }`}
+                >
+                    Strips Taken
                 </button>
                 <button
                     type="button"
