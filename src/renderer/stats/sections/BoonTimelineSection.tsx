@@ -14,9 +14,7 @@ import {
     BOON_HEATMAP_DAMAGE_RGB,
     BOON_HEATMAP_STRIPS_RGB,
     boonHeatmapAlpha,
-    boonHeatmapOverlayLabel,
-    boonHeatmapOverlayTitle,
-    nextBoonHeatmapOverlay,
+    toggleBoonHeatmapOverlay,
     type BoonHeatmapOverlay,
 } from './boonHeatmapOverlay';
 
@@ -219,20 +217,34 @@ export const BoonTimelineSection = ({
                     inactiveClassName="text-[color:var(--text-secondary)]"
                 />
             </>}
-            drilldownExtras={
+            drilldownExtras={<>
                 <button
                     type="button"
-                    onClick={() => setHeatmapOverlay(nextBoonHeatmapOverlay(heatmapOverlay))}
-                    title={boonHeatmapOverlayTitle(heatmapOverlay)}
+                    onClick={() => setHeatmapOverlay(toggleBoonHeatmapOverlay(heatmapOverlay, 'incoming-damage'))}
+                    title="Shade the drilldown buckets by squad incoming damage"
+                    aria-pressed={heatmapOverlay === 'incoming-damage'}
                     className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
-                        heatmapOverlay !== 'none'
+                        heatmapOverlay === 'incoming-damage'
                             ? 'text-red-200 hover:text-red-100'
                             : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                     }`}
                 >
-                    {boonHeatmapOverlayLabel(heatmapOverlay)}
+                    Incoming Damage
                 </button>
-            }
+                <button
+                    type="button"
+                    onClick={() => setHeatmapOverlay(toggleBoonHeatmapOverlay(heatmapOverlay, 'incoming-strips'))}
+                    title="Shade the drilldown buckets by boons stripped off the squad"
+                    aria-pressed={heatmapOverlay === 'incoming-strips'}
+                    className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                        heatmapOverlay === 'incoming-strips'
+                            ? 'text-red-300 hover:text-red-200'
+                            : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
+                    }`}
+                >
+                    Incoming Strips
+                </button>
+            </>}
             renderTitleExtra={() => (
                 <div className="relative" ref={dropdownRef}>
                     <button

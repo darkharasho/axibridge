@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BoonUptimeSection } from '../BoonUptimeSection';
 import { BoonTimelineSection } from '../BoonTimelineSection';
-import { nextBoonHeatmapOverlay, boonHeatmapAlpha } from '../boonHeatmapOverlay';
+import { toggleBoonHeatmapOverlay, boonHeatmapAlpha } from '../boonHeatmapOverlay';
 
 vi.mock('../../StatsViewContext', () => ({
     useStatsSharedContext: () => ({
@@ -50,11 +50,19 @@ const props = (overrides: Record<string, unknown> = {}) => ({
     ...overrides,
 }) as any;
 
-describe('nextBoonHeatmapOverlay', () => {
-    it('cycles none -> incoming damage -> incoming strips -> none', () => {
-        expect(nextBoonHeatmapOverlay('none')).toBe('incoming-damage');
-        expect(nextBoonHeatmapOverlay('incoming-damage')).toBe('incoming-strips');
-        expect(nextBoonHeatmapOverlay('incoming-strips')).toBe('none');
+describe('toggleBoonHeatmapOverlay', () => {
+    it('turns a mode on from off, and off again when it is already showing', () => {
+        expect(toggleBoonHeatmapOverlay('none', 'incoming-damage')).toBe('incoming-damage');
+        expect(toggleBoonHeatmapOverlay('incoming-damage', 'incoming-damage')).toBe('none');
+        expect(toggleBoonHeatmapOverlay('none', 'incoming-strips')).toBe('incoming-strips');
+        expect(toggleBoonHeatmapOverlay('incoming-strips', 'incoming-strips')).toBe('none');
+    });
+
+    // Both overlays paint the same band behind the same line, so picking one
+    // must replace the other rather than requiring two clicks to swap.
+    it('replaces the other mode instead of cycling through it', () => {
+        expect(toggleBoonHeatmapOverlay('incoming-damage', 'incoming-strips')).toBe('incoming-strips');
+        expect(toggleBoonHeatmapOverlay('incoming-strips', 'incoming-damage')).toBe('incoming-damage');
     });
 
     // A bucket with any activity must stay visibly distinct from an empty one,
@@ -71,16 +79,27 @@ describe.each([
     ['Boon Uptime', BoonUptimeSection],
     ['Boon Timeline', BoonTimelineSection],
 ])('%s incoming-strips overlay', (_name, Section: any) => {
-    it('advances the overlay mode when the toggle is clicked', () => {
+    it('selects the clicked overlay directly, without cycling through the other', () => {
         const setHeatmapOverlay = vi.fn();
-        render(<Section {...props({ heatmapOverlay: 'incoming-damage', setHeatmapOverlay })} />);
-        fireEvent.click(screen.getByRole('button', { name: /incoming damage/i }));
+        render(<Section {...props({ heatmapOverlay: 'none', setHeatmapOverlay })} />);
+        fireEvent.click(screen.getByRole('button', { name: /incoming strips/i }));
         expect(setHeatmapOverlay).toHaveBeenCalledWith('incoming-strips');
     });
 
-    it('labels the toggle for the mode it will show next', () => {
+    it('turns the active overlay off when its own button is clicked again', () => {
+        const setHeatmapOverlay = vi.fn();
+        render(<Section {...props({ heatmapOverlay: 'incoming-damage', setHeatmapOverlay })} />);
+        fireEvent.click(screen.getByRole('button', { name: /incoming damage/i }));
+        expect(setHeatmapOverlay).toHaveBeenCalledWith('none');
+    });
+
+    // The point of two buttons over one cycling button: both overlays are
+    // named on screen whatever the current mode is, so the reader can see
+    // that strips exist without clicking to find out.
+    it('shows both overlay names at once, and marks which is active', () => {
         render(<Section {...props({ heatmapOverlay: 'incoming-strips' })} />);
-        expect(screen.getByRole('button', { name: /incoming strips/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /incoming damage/i })).toHaveAttribute('aria-pressed', 'false');
+        expect(screen.getByRole('button', { name: /incoming strips/i })).toHaveAttribute('aria-pressed', 'true');
     });
 
     // Absent is not zero: a log parsed before axilog 1.8.0 has no strips

@@ -15,21 +15,23 @@
  */
 export type BoonHeatmapOverlay = 'none' | 'incoming-damage' | 'incoming-strips';
 
-export const nextBoonHeatmapOverlay = (mode: BoonHeatmapOverlay): BoonHeatmapOverlay => (
-    mode === 'none' ? 'incoming-damage'
-        : mode === 'incoming-damage' ? 'incoming-strips'
-            : 'none'
-);
-
-export const boonHeatmapOverlayLabel = (mode: BoonHeatmapOverlay): string => (
-    mode === 'incoming-strips' ? 'Incoming Strips' : 'Incoming Damage'
-);
-
-export const boonHeatmapOverlayTitle = (mode: BoonHeatmapOverlay): string => (
-    mode === 'none' ? 'Show squad incoming damage intensity overlay'
-        : mode === 'incoming-damage' ? 'Show incoming boon strips intensity overlay'
-            : 'Hide the intensity overlay'
-);
+/**
+ * One control per overlay, each toggling only itself — not a single button
+ * that cycles through every mode. A cycling button hides the choices behind
+ * the one currently showing: the reader cannot see that a strips overlay
+ * exists without clicking, cannot reach it except through damage, and the
+ * label keeps changing to name the state rather than the action. Two
+ * always-labelled buttons that light up when active say what is available
+ * and what is on, which is how `Deaths` and `Distance` already behave on
+ * the Stab Performance drilldown beside this one.
+ *
+ * Selecting a mode still deselects the other — the exclusivity lives in the
+ * type, since both overlays paint the same band behind the same line.
+ */
+export const toggleBoonHeatmapOverlay = (
+    mode: BoonHeatmapOverlay,
+    target: Exclude<BoonHeatmapOverlay, 'none'>,
+): BoonHeatmapOverlay => (mode === target ? 'none' : target);
 
 /**
  * Intensity -> band alpha. The floor keeps a bucket with any activity
