@@ -125,3 +125,13 @@ describe('computeControlTimeline', () => {
         expect(out.fights[1].recorded).toBe(false);
     });
 });
+
+describe('profession passthrough', () => {
+    it("carries each player's profession so the grid can show a class icon", () => {
+        const acc = createControlTimelineAccumulator();
+        ingestLogControlTimeline(nativeLog({ cc_applied: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0] }), acc);
+        const players = acc.fights[0].players;
+        expect(Object.values(players).map((p) => p.profession)).toContain('Guardian');
+    });
+});
+

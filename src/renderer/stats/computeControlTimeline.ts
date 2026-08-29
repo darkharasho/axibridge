@@ -24,6 +24,13 @@ export type ControlLane = 'cc' | 'stripsOut' | 'stripsIn';
 export type ControlPlayerData = {
     group: number;
     displayName: string;
+    /**
+     * EI's profession string, carried so the grid can show a class icon
+     * beside each name. Icons resolve to bundled base64 data URIs at build
+     * time (`classIconUtils`), so this adds one short string per player per
+     * fight to `report.json` and no image payload at all.
+     */
+    profession: string;
     cc: number[];
     stripsOut: number[];
     stripsIn: number[];
@@ -134,6 +141,7 @@ export function ingestLogControlTimeline(log: any, acc: ControlTimelineAccumulat
         playersOut[account] = {
             group: Number(player?.group || 0),
             displayName: String(player?.name || account),
+            profession: String(player?.profession || ''),
             cc: ccBuckets,
             stripsOut: stripsOutBuckets,
             stripsIn: stripsInBuckets,
