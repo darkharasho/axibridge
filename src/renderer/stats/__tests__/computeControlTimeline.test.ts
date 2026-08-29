@@ -135,3 +135,44 @@ describe('profession passthrough', () => {
     });
 });
 
+
+describe('cc_taken lane', () => {
+    it('downsamples the cc_taken lane into ccIn on the same 5s grid', () => {
+        const acc = createControlTimelineAccumulator();
+        ingestLogControlTimeline(nativeLog({ cc_taken: [1, 0, 2, 0, 1, 3, 0, 0, 0, 0] }), acc);
+        const fight = finalizeControlTimeline(acc).fights[0];
+        const player = Object.values(fight.players)[0];
+        expect(player.ccIn).toEqual([4, 3]);
+        expect(fight.ccInRecorded).toBe(true);
+    });
+
+    // A log parsed by axilog 1.8.x carries every lane but this one, and the
+    // shared `recorded` flag latches true off the strips lanes. Only the
+    // lane's own flag can tell the CC overlay that it has nothing to draw.
+    it('keeps ccInRecorded false for a 1.8.x fight that recorded the other lanes', () => {
+        const acc = createControlTimelineAccumulator();
+        ingestLogControlTimeline(nativeLog({ cc_applied: [1, 1], strips_taken: [2, 0] }), acc);
+        const fight = finalizeControlTimeline(acc).fights[0];
+        expect(fight.recorded).toBe(true);
+        expect(fight.ccInRecorded).toBe(false);
+        expect(Object.values(fight.players)[0].ccIn).toEqual([0, 0]);
+    });
+
+    // The all-zero-player trim must not drop someone whose only activity is
+    // incoming CC -- they would vanish from the squad sum behind the overlay.
+    it('keeps a player whose only non-zero lane is ccIn', () => {
+        const acc = createControlTimelineAccumulator();
+        ingestLogControlTimeline(nativeLog({ cc_applied: [0, 0], cc_taken: [0, 5] }), acc);
+        const fight = finalizeControlTimeline(acc).fights[0];
+        expect(Object.keys(fight.players)).toHaveLength(1);
+        expect(Object.values(fight.players)[0].ccIn[0]).toBe(5);
+    });
+
+    it('carries ccInRecorded across the worker frame boundary', () => {
+        const source = createControlTimelineAccumulator();
+        ingestLogControlTimeline(nativeLog({ cc_taken: [3, 0] }), source);
+        const target = createControlTimelineAccumulator();
+        mergeControlTimelineFrame(target, extractControlTimelineFrame(source));
+        expect(finalizeControlTimeline(target).fights[0].ccInRecorded).toBe(true);
+    });
+});

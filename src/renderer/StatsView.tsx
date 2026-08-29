@@ -41,7 +41,7 @@ import { DamageBreakdownSection } from './stats/sections/DamageBreakdownSection'
 import { BoonTimelineSection } from './stats/sections/BoonTimelineSection';
 import { BoonUptimeSection } from './stats/sections/BoonUptimeSection';
 import type { BoonHeatmapOverlay } from './stats/sections/boonHeatmapOverlay';
-import { resolveIncomingStrips, CONTROL_BUCKET_MS } from './stats/computeControlTimeline';
+import { resolveIncomingStrips, resolveIncomingCc, CONTROL_BUCKET_MS } from './stats/computeControlTimeline';
 import { OffenseSection } from './stats/sections/OffenseSection';
 import { DamageModifiersSection } from './stats/sections/DamageModifiersSection';
 import { ConditionsSection } from './stats/sections/ConditionsSection';
@@ -3318,7 +3318,7 @@ type SpikeFight = {
         return map;
     }, [safeStats.fightBreakdown]);
     // Hoisted above the boon drilldowns, which read it for their incoming-strips
-    // overlay. The Stab Performance and CC/Strip Timeline sections further down
+    // and incoming-CC overlays. The Stab Performance and CC/Strip Timeline sections further down
     // use the same values — this is one declaration, not a duplicate.
     const controlTimelineDrilldown = (safeStats as any)?.controlTimelineDrilldown;
     const controlTimelineFights: any[] = Array.isArray(controlTimelineDrilldown?.fights) ? controlTimelineDrilldown.fights : EMPTY_ANY_ARRAY;
@@ -3353,9 +3353,13 @@ type SpikeFight = {
                     incomingIntensity: number;
                     incomingStrips: number;
                     incomingStripsIntensity: number;
+                    incomingCc: number;
+                    incomingCcIntensity: number;
                 }>,
                 incomingStripsRecorded: false,
-                incomingStripsScope: 'player' as const
+                incomingStripsScope: 'player' as const,
+                incomingCcRecorded: false,
+                incomingCcScope: 'player' as const
             };
         }
         const selectedFight = activeBoonTimeline.fights[selectedPoint.index];
@@ -3429,8 +3433,15 @@ type SpikeFight = {
         });
         // This drilldown's buckets are 5s, the same grid the control timeline
         // accumulator stores, so this join is exact rather than resampled.
+        const controlFight = findControlFight(selectedFight?.id, selectedPoint?.fightId);
         const strips = resolveIncomingStrips(
-            findControlFight(selectedFight?.id, selectedPoint?.fightId),
+            controlFight,
+            selectedBoonTimelinePlayerKey,
+            CONTROL_BUCKET_MS,
+            bucketCount,
+        );
+        const cc = resolveIncomingCc(
+            controlFight,
             selectedBoonTimelinePlayerKey,
             CONTROL_BUCKET_MS,
             bucketCount,
@@ -3440,10 +3451,14 @@ type SpikeFight = {
             data: dataWithIncoming.map((entry, index) => ({
                 ...entry,
                 incomingStrips: strips.buckets[index] || 0,
-                incomingStripsIntensity: strips.intensity[index] || 0
+                incomingStripsIntensity: strips.intensity[index] || 0,
+                incomingCc: cc.buckets[index] || 0,
+                incomingCcIntensity: cc.intensity[index] || 0
             })),
             incomingStripsRecorded: strips.recorded,
-            incomingStripsScope: strips.scope
+            incomingStripsScope: strips.scope,
+            incomingCcRecorded: cc.recorded,
+            incomingCcScope: cc.scope
         };
     }, [selectedBoonTimelineFightIndex, boonTimelineChartData, activeBoonTimeline, selectedBoonTimelinePlayerKey, boonTimelineScope, boonTimelineScopeLabel, squadIncomingDamageBucketsByFightId, fallbackIncomingDamageBucketsByFightId, squadIncomingDamageTotalByFightId, findControlFight]);
 
@@ -4003,18 +4018,22 @@ type SpikeFight = {
         if (!selectedPoint || !activeBoonUptime || !selectedBoonUptimePlayerKey) {
             return {
                 title: 'Fight Breakdown',
-                data: [] as Array<{ label: string; value: number; maxValue: number; incomingDamage: number; incomingIntensity: number; incomingStrips: number; incomingStripsIntensity: number }>,
+                data: [] as Array<{ label: string; value: number; maxValue: number; incomingDamage: number; incomingIntensity: number; incomingStrips: number; incomingStripsIntensity: number; incomingCc: number; incomingCcIntensity: number }>,
                 incomingStripsRecorded: false,
-                incomingStripsScope: 'player' as const
+                incomingStripsScope: 'player' as const,
+                incomingCcRecorded: false,
+                incomingCcScope: 'player' as const
             };
         }
         const selectedFight = boonUptimeFightsWithSubgroups?.[selectedPoint.index];
         if (!selectedFight) {
             return {
                 title: 'Fight Breakdown',
-                data: [] as Array<{ label: string; value: number; maxValue: number; incomingDamage: number; incomingIntensity: number; incomingStrips: number; incomingStripsIntensity: number }>,
+                data: [] as Array<{ label: string; value: number; maxValue: number; incomingDamage: number; incomingIntensity: number; incomingStrips: number; incomingStripsIntensity: number; incomingCc: number; incomingCcIntensity: number }>,
                 incomingStripsRecorded: false,
-                incomingStripsScope: 'player' as const
+                incomingStripsScope: 'player' as const,
+                incomingCcRecorded: false,
+                incomingCcScope: 'player' as const
             };
         }
         const selectedValue = selectedFight?.values?.[selectedBoonUptimePlayerKey];
@@ -4070,8 +4089,15 @@ type SpikeFight = {
         // This drilldown's interval is user-configurable down to 1s, finer than
         // the accumulator's 5s grid — see `resolveIncomingStrips` for why each
         // sub-bucket repeats its 5s value instead of inventing a distribution.
+        const controlFight = findControlFight(selectedFight?.id, selectedPoint?.fightId);
         const strips = resolveIncomingStrips(
-            findControlFight(selectedFight?.id, selectedPoint?.fightId),
+            controlFight,
+            selectedBoonUptimePlayerKey,
+            activeBoonUptime?.intervalMs || 5000,
+            bucketCount,
+        );
+        const cc = resolveIncomingCc(
+            controlFight,
             selectedBoonUptimePlayerKey,
             activeBoonUptime?.intervalMs || 5000,
             bucketCount,
@@ -4081,10 +4107,14 @@ type SpikeFight = {
             data: dataWithIncoming.map((entry, index) => ({
                 ...entry,
                 incomingStrips: strips.buckets[index] || 0,
-                incomingStripsIntensity: strips.intensity[index] || 0
+                incomingStripsIntensity: strips.intensity[index] || 0,
+                incomingCc: cc.buckets[index] || 0,
+                incomingCcIntensity: cc.intensity[index] || 0
             })),
             incomingStripsRecorded: strips.recorded,
-            incomingStripsScope: strips.scope
+            incomingStripsScope: strips.scope,
+            incomingCcRecorded: cc.recorded,
+            incomingCcScope: cc.scope
         };
     }, [selectedBoonUptimeFightIndex, boonUptimeChartData, boonUptimeFightsWithSubgroups, selectedBoonUptimePlayerKey, activeBoonUptime, squadIncomingDamageBucketsByFightId, fallbackIncomingDamageBucketsByFightId, findControlFight]);
     const boonUptimeOverallPercent = useMemo(() => {
@@ -4609,6 +4639,8 @@ type SpikeFight = {
                                 setHeatmapOverlay={setBoonTimelineHeatmapOverlay}
                                 incomingStripsRecorded={boonTimelineDrilldown.incomingStripsRecorded}
                                 incomingStripsScope={boonTimelineDrilldown.incomingStripsScope}
+                                incomingCcRecorded={boonTimelineDrilldown.incomingCcRecorded}
+                                incomingCcScope={boonTimelineDrilldown.incomingCcScope}
                             />)}
                             {renderSectionWrap(<BoonUptimeSection
                                 boonSearch={boonUptimeSearch}
@@ -4635,6 +4667,8 @@ type SpikeFight = {
                                 setHeatmapOverlay={setBoonUptimeHeatmapOverlay}
                                 incomingStripsRecorded={boonUptimeDrilldown.incomingStripsRecorded}
                                 incomingStripsScope={boonUptimeDrilldown.incomingStripsScope}
+                                incomingCcRecorded={boonUptimeDrilldown.incomingCcRecorded}
+                                incomingCcScope={boonUptimeDrilldown.incomingCcScope}
                             />)}
                             {renderSectionWrap(<StabPerformanceSection
                                 playerFilter={stabPerfPlayerFilter}
@@ -5244,6 +5278,8 @@ type SpikeFight = {
                                 setHeatmapOverlay={setBoonUptimeHeatmapOverlay}
                                 incomingStripsRecorded={boonUptimeDrilldown.incomingStripsRecorded}
                                 incomingStripsScope={boonUptimeDrilldown.incomingStripsScope}
+                                incomingCcRecorded={boonUptimeDrilldown.incomingCcRecorded}
+                                incomingCcScope={boonUptimeDrilldown.incomingCcScope}
                             /> },
                             { id: 'all-boons', element: <AllBoonsSection
                                 boons={boonTimelineBoons as AllBoonsBoon[]}
@@ -5280,6 +5316,8 @@ type SpikeFight = {
                                 setHeatmapOverlay={setBoonTimelineHeatmapOverlay}
                                 incomingStripsRecorded={boonTimelineDrilldown.incomingStripsRecorded}
                                 incomingStripsScope={boonTimelineDrilldown.incomingStripsScope}
+                                incomingCcRecorded={boonTimelineDrilldown.incomingCcRecorded}
+                                incomingCcScope={boonTimelineDrilldown.incomingCcScope}
                             /> },
                             { id: 'stab-performance', element: <StabPerformanceSection
                                 playerFilter={stabPerfPlayerFilter}

@@ -12,13 +12,25 @@ import { formatDurationMs } from '../utils/dashboardUtils';
 
 /**
  * Absent is not zero. Three things independently produce an empty grid:
- * the log predates axilog 1.8.0, it was parsed with Include Timeline Arrays
- * off, or (either way) it needs a re-parse to populate. Every "not
- * recorded" surface in the CC/strip/stab-perf timeline family shares this
- * exact wording so it cannot drift out of sync across sections again.
+ * the log predates the axilog release that added the lane, it was parsed
+ * with Include Timeline Arrays off, or (either way) it needs a re-parse to
+ * populate. Every "not recorded" surface in the CC/strip/stab-perf timeline
+ * family builds its wording here so it cannot drift out of sync across
+ * sections again.
+ *
+ * The version floor is a parameter because the lanes did not all ship at
+ * once: the strips and outgoing-CC lanes arrived in 1.8.0, `cc_taken` in
+ * 1.9.0. Naming the wrong floor sends a reader off to re-parse logs that
+ * were never going to carry the lane.
  */
-export const TIMELINE_NOT_RECORDED_MESSAGE =
-    'Not recorded for this fight — the log predates axilog 1.8.0, was parsed with Include Timeline Arrays off, or needs a re-parse to populate.';
+export const timelineNotRecordedMessage = (axilogFloor: string): string =>
+    `Not recorded for this fight — the log predates axilog ${axilogFloor}, was parsed with Include Timeline Arrays off, or needs a re-parse to populate.`;
+
+/** The 1.8.0 lanes: outgoing CC, strips out, strips taken. */
+export const TIMELINE_NOT_RECORDED_MESSAGE = timelineNotRecordedMessage('1.8.0');
+
+/** The `cc_taken` lane, which shipped one release later. */
+export const TIMELINE_CC_TAKEN_NOT_RECORDED_MESSAGE = timelineNotRecordedMessage('1.9.0');
 
 export type TimelinePickerFight = { id: string; durationMs: number };
 

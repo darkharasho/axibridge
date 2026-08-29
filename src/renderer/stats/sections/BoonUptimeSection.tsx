@@ -10,10 +10,11 @@ import { useStatsSharedContext } from '../StatsViewContext';
 import { useFixedTooltipPosition } from '../ui/StatsViewShared';
 import { FightMetricSection } from './FightMetricSection';
 import type { FightMetricPlayer, FightMetricPoint } from './FightMetricSection';
-import { TIMELINE_NOT_RECORDED_MESSAGE } from './BucketGridTable';
+import { TIMELINE_NOT_RECORDED_MESSAGE, TIMELINE_CC_TAKEN_NOT_RECORDED_MESSAGE } from './BucketGridTable';
 import {
     BOON_HEATMAP_DAMAGE_RGB,
     BOON_HEATMAP_STRIPS_RGB,
+    BOON_HEATMAP_CC_RGB,
     boonHeatmapAlpha,
     toggleBoonHeatmapOverlay,
     type BoonHeatmapOverlay,
@@ -79,6 +80,8 @@ type BoonUptimeSectionProps = {
         incomingIntensity?: number;
         incomingStrips?: number;
         incomingStripsIntensity?: number;
+        incomingCc?: number;
+        incomingCcIntensity?: number;
     }>;
     overallUptimePercent: number | null;
     showStackCapLine?: boolean;
@@ -94,6 +97,16 @@ type BoonUptimeSectionProps = {
     incomingStripsRecorded?: boolean;
     /** Whether the band sums the squad, because the selected row is an aggregate. */
     incomingStripsScope?: 'player' | 'squad';
+    /**
+     * The `cc_taken` sibling of `incomingStripsRecorded`, and a separate prop
+     * rather than a share of that one: the lane shipped in axilog 1.9.0, a
+     * release after the strips lanes, so a fight can have recorded strips and
+     * no incoming CC. Defaults false, which is what a report written before
+     * the lane existed honestly means.
+     */
+    incomingCcRecorded?: boolean;
+    /** Whether the CC band sums the squad, because the selected row is an aggregate. */
+    incomingCcScope?: 'player' | 'squad';
 };
 
 const SubgroupMembersTooltip = ({
@@ -189,7 +202,9 @@ export const BoonUptimeSection = ({
     heatmapOverlay,
     setHeatmapOverlay,
     incomingStripsRecorded = false,
-    incomingStripsScope = 'player'
+    incomingStripsScope = 'player',
+    incomingCcRecorded = false,
+    incomingCcScope = 'player'
 }: BoonUptimeSectionProps) => {
     const { formatWithCommas, renderProfessionIcon } = useStatsSharedContext();
     const [boonDropdownOpen, setBoonDropdownOpen] = useState(false);
@@ -216,6 +231,9 @@ export const BoonUptimeSection = ({
     const hasStripsHeatData = drilldownData.some((entry) => Number(entry?.incomingStrips || 0) > 0);
     const stripsDataAbsent = heatmapOverlay === 'incoming-strips' && !incomingStripsRecorded;
     const stripsLabel = incomingStripsScope === 'squad' ? 'Squad Incoming Strips' : 'Incoming Strips';
+    const hasCcHeatData = drilldownData.some((entry) => Number(entry?.incomingCc || 0) > 0);
+    const ccDataAbsent = heatmapOverlay === 'incoming-cc' && !incomingCcRecorded;
+    const ccLabel = incomingCcScope === 'squad' ? 'Squad Incoming CC' : 'Incoming CC';
 
     const drilldownHeatData = drilldownData.map((entry) => ({
         ...entry,
@@ -334,6 +352,19 @@ export const BoonUptimeSection = ({
                 >
                     Incoming Strips
                 </button>
+                <button
+                    type="button"
+                    onClick={() => setHeatmapOverlay(toggleBoonHeatmapOverlay(heatmapOverlay, 'incoming-cc'))}
+                    title="Shade the drilldown buckets by crowd control landed on the squad"
+                    aria-pressed={heatmapOverlay === 'incoming-cc'}
+                    className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                        heatmapOverlay === 'incoming-cc'
+                            ? 'text-amber-300 hover:text-amber-200'
+                            : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
+                    }`}
+                >
+                    Incoming CC
+                </button>
             </>}
             renderTitleExtra={() => (
                 <div className="relative" ref={dropdownRef}>
@@ -450,9 +481,9 @@ export const BoonUptimeSection = ({
                         <div className="h-full flex items-center justify-center text-xs text-slate-500">
                             No detailed data available for this fight.
                         </div>
-                    ) : stripsDataAbsent ? (
+                    ) : (stripsDataAbsent || ccDataAbsent) ? (
                         <div className="h-full flex items-center justify-center text-center text-xs text-[color:var(--text-secondary)] px-6">
-                            {TIMELINE_NOT_RECORDED_MESSAGE}
+                            {ccDataAbsent ? TIMELINE_CC_TAKEN_NOT_RECORDED_MESSAGE : TIMELINE_NOT_RECORDED_MESSAGE}
                         </div>
                     ) : (
                         <ChartContainer width="100%" height="100%">
@@ -484,6 +515,9 @@ export const BoonUptimeSection = ({
                                                 )}
                                                 {heatmapOverlay === 'incoming-strips' && Number(d.incomingStrips || 0) > 0 && (
                                                     <div className="text-red-300">{stripsLabel} (5s): <strong>{formatWithCommas(Number(d.incomingStrips || 0), 0)}</strong></div>
+                                                )}
+                                                {heatmapOverlay === 'incoming-cc' && Number(d.incomingCc || 0) > 0 && (
+                                                    <div className="text-amber-300">{ccLabel} (5s): <strong>{formatWithCommas(Number(d.incomingCc || 0), 0)}</strong></div>
                                                 )}
                                             </div>
                                         );
@@ -521,6 +555,24 @@ export const BoonUptimeSection = ({
                                             <Cell
                                                 key={`incoming-strips-heat-${index}`}
                                                 fill={`rgba(${BOON_HEATMAP_STRIPS_RGB}, ${boonHeatmapAlpha(Number(entry?.incomingStripsIntensity || 0)).toFixed(3)})`}
+                                            />
+                                        ))}
+                                    </Bar>
+                                )}
+                                {heatmapOverlay === 'incoming-cc' && hasCcHeatData && (
+                                    <Bar
+                                        yAxisId="incomingHeat"
+                                        dataKey="incomingHeatBand"
+                                        name="Incoming CC Heat"
+                                        barSize={24}
+                                        fill="rgba(245,158,11,0.35)"
+                                        stroke="none"
+                                        isAnimationActive={false}
+                                    >
+                                        {drilldownData.map((entry, index) => (
+                                            <Cell
+                                                key={`incoming-cc-heat-${index}`}
+                                                fill={`rgba(${BOON_HEATMAP_CC_RGB}, ${boonHeatmapAlpha(Number(entry?.incomingCcIntensity || 0)).toFixed(3)})`}
                                             />
                                         ))}
                                     </Bar>

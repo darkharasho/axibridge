@@ -112,8 +112,8 @@ predicate as the whole-fight CC scalar, including pet and minion CC
 credited to the owning player, so a player's buckets sum exactly to that
 player's whole-fight CC total.
 
-Outgoing only — there is no incoming CC timeline. Incoming CC remains the
-`received_cc_count` scalar (see "Incoming Strips and Crowd Control" above).
+Outgoing only. The incoming direction is a separate lane with different
+counting rules — see "CC Taken (timeline)" below.
 
 Requires **Include Timeline Arrays** enabled at parse time (Settings →
 Analysis). Absent is not zero: an all-zero grid can mean the option was
@@ -134,6 +134,43 @@ lanes are aggregated upstream, not introduced by AxiBridge, and is not
 expected to be fixed here — noted so the CC Timeline section and the replay
 CC lane occasionally disagreeing by 1 on a total is not mistaken for a bug
 in either surface.
+
+## CC Taken (timeline)
+
+Crowd control landed ON a player, bucketed per second by axilog and summed
+to 5s buckets for display. The per-second decomposition of the
+`received_cc_count` scalar (see "Incoming Strips and Crowd Control" above),
+so a player's buckets sum exactly to that player's whole-fight incoming CC.
+
+**Not the mirror of CC Applied.** Summing `cc_taken` across the squad does
+NOT give the same number as summing `cc_applied` across the squad, and the
+gap is upstream in GW2EI's own definitions, not an AxiBridge or axilog bug.
+Two asymmetries, both reproduced deliberately:
+
+- **No source filter.** Outgoing CC counts only what the squad applied;
+  incoming CC counts every control effect landed on a squad member whatever
+  applied it, including enemy players, NPCs and environmental sources.
+- **No pet/minion fold.** Outgoing CC credits a pet's or minion's CC to the
+  owning player; incoming CC does not fold minion-inflicted CC anywhere.
+
+Consequently squad `cc_taken` exceeds squad `cc_applied` on any fight with
+enemies in it, which is every fight. The two are separate measures that
+happen to share a unit, not two views of one number.
+
+Requires **Include Timeline Arrays** enabled at parse time (Settings →
+Analysis). Absent is not zero: an all-zero grid can mean the option was
+off, the log was parsed before **axilog 1.9.0** — one release later than
+the other three lanes, so a log can carry every lane but this one — or a
+genuinely quiet fight; only the last one is real data. This is why
+`ControlFightData` carries `ccInRecorded` separately from `recorded`.
+
+Surfaced as the **Incoming CC** heatmap overlay behind the Boon Uptime and
+Boon Timeline drilldown charts, alongside Incoming Damage and Incoming
+Strips.
+
+Implementation: `src/renderer/stats/computeControlTimeline.ts`
+(ingestLogControlTimeline / resolveIncomingCc), reading `cc_taken` via
+`@axiapps/bridge-metrics` `readEntitySeries`.
 
 ## Boon Strips (timeline)
 

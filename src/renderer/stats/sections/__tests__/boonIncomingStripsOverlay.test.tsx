@@ -37,13 +37,14 @@ const props = (overrides: Record<string, unknown> = {}) => ({
     selectedFightIndex: 0, setSelectedFightIndex: () => {},
     drilldownTitle: 'Fight Breakdown',
     drilldownData: [
-        { label: '0s-5s', value: 5, incomingDamage: 100, incomingIntensity: 0.5, incomingStrips: 4, incomingStripsIntensity: 1 },
-        { label: '5s-10s', value: 3, incomingDamage: 0, incomingIntensity: 0, incomingStrips: 0, incomingStripsIntensity: 0 },
+        { label: '0s-5s', value: 5, incomingDamage: 100, incomingIntensity: 0.5, incomingStrips: 4, incomingStripsIntensity: 1, incomingCc: 7, incomingCcIntensity: 1 },
+        { label: '5s-10s', value: 3, incomingDamage: 0, incomingIntensity: 0, incomingStrips: 0, incomingStripsIntensity: 0, incomingCc: 0, incomingCcIntensity: 0 },
     ],
     overallUptimePercent: 50,
     timelineScope: 'squad', setTimelineScope: () => {},
     heatmapOverlay: 'none', setHeatmapOverlay: () => {},
     incomingStripsRecorded: true,
+    incomingCcRecorded: true,
     showPartyDeaths: false, setShowPartyDeaths: () => {},
     showPartyDistance: false, setShowPartyDistance: () => {},
     partyMembers: [],
@@ -56,6 +57,8 @@ describe('toggleBoonHeatmapOverlay', () => {
         expect(toggleBoonHeatmapOverlay('incoming-damage', 'incoming-damage')).toBe('none');
         expect(toggleBoonHeatmapOverlay('none', 'incoming-strips')).toBe('incoming-strips');
         expect(toggleBoonHeatmapOverlay('incoming-strips', 'incoming-strips')).toBe('none');
+        expect(toggleBoonHeatmapOverlay('none', 'incoming-cc')).toBe('incoming-cc');
+        expect(toggleBoonHeatmapOverlay('incoming-cc', 'incoming-cc')).toBe('none');
     });
 
     // Both overlays paint the same band behind the same line, so picking one
@@ -63,6 +66,8 @@ describe('toggleBoonHeatmapOverlay', () => {
     it('replaces the other mode instead of cycling through it', () => {
         expect(toggleBoonHeatmapOverlay('incoming-damage', 'incoming-strips')).toBe('incoming-strips');
         expect(toggleBoonHeatmapOverlay('incoming-strips', 'incoming-damage')).toBe('incoming-damage');
+        expect(toggleBoonHeatmapOverlay('incoming-damage', 'incoming-cc')).toBe('incoming-cc');
+        expect(toggleBoonHeatmapOverlay('incoming-cc', 'incoming-strips')).toBe('incoming-strips');
     });
 
     // A bucket with any activity must stay visibly distinct from an empty one,
@@ -96,10 +101,18 @@ describe.each([
     // The point of two buttons over one cycling button: both overlays are
     // named on screen whatever the current mode is, so the reader can see
     // that strips exist without clicking to find out.
-    it('shows both overlay names at once, and marks which is active', () => {
+    it('shows every overlay name at once, and marks which is active', () => {
         render(<Section {...props({ heatmapOverlay: 'incoming-strips' })} />);
         expect(screen.getByRole('button', { name: /incoming damage/i })).toHaveAttribute('aria-pressed', 'false');
         expect(screen.getByRole('button', { name: /incoming strips/i })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', { name: /incoming cc/i })).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('selects the incoming-CC overlay directly from any other mode', () => {
+        const setHeatmapOverlay = vi.fn();
+        render(<Section {...props({ heatmapOverlay: 'incoming-strips', setHeatmapOverlay })} />);
+        fireEvent.click(screen.getByRole('button', { name: /incoming cc/i }));
+        expect(setHeatmapOverlay).toHaveBeenCalledWith('incoming-cc');
     });
 
     // Absent is not zero: a log parsed before axilog 1.8.0 has no strips
@@ -113,5 +126,31 @@ describe.each([
     it('draws the chart normally for the damage overlay even when strips are absent', () => {
         render(<Section {...props({ heatmapOverlay: 'incoming-damage', incomingStripsRecorded: false })} />);
         expect(screen.queryByText(/predates axilog 1\.8\.0/i)).not.toBeInTheDocument();
+    });
+});
+
+describe.each([
+    ['Boon Uptime', BoonUptimeSection],
+    ['Boon Timeline', BoonTimelineSection],
+])('%s incoming-CC overlay absence', (_name, Section: any) => {
+    // The whole reason incoming CC has its own recorded flag: `cc_taken`
+    // shipped in axilog 1.9.0, so a log parsed by 1.8.x has strips and no CC.
+    // The message must name 1.9.0, or it sends the reader off to re-parse
+    // logs that were never going to carry the lane.
+    it('names the 1.9.0 floor when the CC lane is absent', () => {
+        render(<Section {...props({ heatmapOverlay: 'incoming-cc', incomingCcRecorded: false })} />);
+        expect(screen.getByText(/predates axilog 1\.9\.0/i)).toBeInTheDocument();
+    });
+
+    it('still draws the strips overlay on a fight that recorded strips but no CC', () => {
+        render(<Section {...props({
+            heatmapOverlay: 'incoming-strips', incomingStripsRecorded: true, incomingCcRecorded: false,
+        })} />);
+        expect(screen.queryByText(/predates axilog/i)).not.toBeInTheDocument();
+    });
+
+    it('names the 1.8.0 floor when the strips lane is the absent one', () => {
+        render(<Section {...props({ heatmapOverlay: 'incoming-strips', incomingStripsRecorded: false })} />);
+        expect(screen.getByText(/predates axilog 1\.8\.0/i)).toBeInTheDocument();
     });
 });
