@@ -166,11 +166,29 @@ genuinely quiet fight; only the last one is real data. This is why
 
 Surfaced as the **Incoming CC** heatmap overlay behind the Boon Uptime and
 Boon Timeline drilldown charts, alongside Incoming Damage and Incoming
-Strips.
+Strips, and as the **CC taken lane** on the replay's synced timeline.
+
+**The replay lanes are not equally available.** axilog carries no
+squad-level incoming series: `blocks.series.squad` has exactly four lanes
+(`damage`, `cc_applied`, `downs`, `strips`), and `cc_taken`/`strips_taken`
+exist only under `by_entity`. The squad block is computed unconditionally
+while `by_entity` is gated on `timeseries` (Include Timeline Arrays), so
+the replay's outgoing lanes are present on any 1.8.0+ report while the
+incoming pair — folded from the roster by `readSquadSumOfEntitySeries` —
+goes absent whenever that option is off. A fight routinely draws a full CC
+lane and a "CC taken not recorded" marker, which is why the four lanes are
+gated on their own series rather than on a shared flag.
+
+On the timeline each measure draws outgoing above and incoming below one
+shared zero line, normalized independently. Independent scaling is
+required, not cosmetic: the two asymmetries above make incoming CC read
+much higher, and a shared axis would flatten the outgoing lane against it.
 
 Implementation: `src/renderer/stats/computeControlTimeline.ts`
 (ingestLogControlTimeline / resolveIncomingCc), reading `cc_taken` via
-`@axiapps/bridge-metrics` `readEntitySeries`.
+`@axiapps/bridge-metrics` `readEntitySeries`; the replay lanes come from
+`incrementalAggregation.ts` (buildReplayFightPayload) and render in
+`src/renderer/stats/map/SyncedTimeline.tsx`.
 
 ## Boon Strips (timeline)
 

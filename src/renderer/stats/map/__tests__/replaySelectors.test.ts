@@ -9,7 +9,7 @@ const fight = (over: Partial<ReplayFightPayload>): ReplayFightPayload => ({
     nearestLandmark: null, squadSize: 0, kills: 0, deaths: 0,
     movementData: { pollingRate: 300, durationMs: 100, pixelsPerInch: { x: 1, y: 1 }, members: [], boonIcons: {}, skillIcons: {}, groundMarkers: [] },
     dpsSamples: [], killEvents: [], damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
-    sectorOwners: null, ccSamples: null, stripSamples: null, ...over,
+    sectorOwners: null, ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null, ...over,
 });
 
 describe('pickDefaultFightId', () => {

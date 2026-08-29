@@ -62,6 +62,11 @@ interface StatsStoreState {
         ccLane: boolean;
         /** Squad boon-strip lane under the DPS area. */
         stripLane: boolean;
+        /** Squad CC-taken lane. Folded from the per-entity series, so it goes
+         *  absent whenever raw timeline arrays are off, unlike `ccLane`. */
+        ccInLane: boolean;
+        /** Squad boon-strips-taken lane. Same availability caveat as `ccInLane`. */
+        stripInLane: boolean;
         heatmap: 'off' | 'deaths' | 'time' | 'damage-taken';
     };
     replaySpotlightParty: number | null;
@@ -130,6 +135,8 @@ const initialState = {
         enemyPulses: false,
         ccLane: true,
         stripLane: true,
+        ccInLane: true,
+        stripInLane: true,
         heatmap: 'off' as const,
     },
     replaySpotlightParty: null,
@@ -199,6 +206,7 @@ export const useStatsStore = create<StatsStoreState>()((set) => ({
             squadHealthStrip: false, partyHulls: false, phases: false,
             rallyRings: false, targetFocusLines: false, damagePulses: false, enemyPulses: false,
             ccLane: true, stripLane: true,
+            ccInLane: true, stripInLane: true,
             heatmap: 'off',
         },
         replaySpotlightParty: null,

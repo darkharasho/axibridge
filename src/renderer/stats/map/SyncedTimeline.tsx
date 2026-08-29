@@ -50,7 +50,7 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
      * DPS y-axis: squad DPS runs in the hundreds of thousands and CC counts in
      * single digits, so a shared axis flattens the counts onto the baseline.
      */
-    const subLane = useCallback((samples: number[] | null, top: number, height: number) => {
+    const subLane = useCallback((samples: number[] | null, top: number, height: number, invert = false) => {
         if (!samples || samples.length === 0 || fight.durationMs <= 0) return '';
         const max = Math.max(1, ...samples);
         // These are native squad series stamped at SERIES_INTERVAL_MS (1s)
@@ -60,13 +60,23 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
         // playhead do, keeps this lane aligned with the rest of the SVG
         // instead of drifting by `index / samples.length`.
         const stepPx = (SERIES_INTERVAL_MS / fight.durationMs) * 1000;
+        // `invert` hangs the bars downward from `top` instead of standing them
+        // up from the baseline. Each measure draws its outgoing lane upward and
+        // its incoming lane downward around one shared zero line, so the pair
+        // reads as one mirrored axis. The max is per-lane on purpose: incoming
+        // CC counts every source and folds no pets, so a shared scale would
+        // flatten the outgoing lane against a much taller incoming one.
+        const baseline = invert ? top : top + height;
+        const reach = (v: number) => (invert ? baseline + (v / max) * height : baseline - (v / max) * height);
         return samples
-            .map((v, i) => `M ${(i * stepPx).toFixed(1)},${top + height} V ${(top + height - (v / max) * height).toFixed(1)}`)
+            .map((v, i) => `M ${(i * stepPx).toFixed(1)},${baseline} V ${reach(v).toFixed(1)}`)
             .join(' ');
     }, [fight.durationMs]);
 
     const ccPath = useMemo(() => subLane(fight.ccSamples, 104, 10), [subLane, fight.ccSamples]);
-    const stripPath = useMemo(() => subLane(fight.stripSamples, 118, 10), [subLane, fight.stripSamples]);
+    const ccInPath = useMemo(() => subLane(fight.ccInSamples, 114, 10, true), [subLane, fight.ccInSamples]);
+    const stripPath = useMemo(() => subLane(fight.stripSamples, 132, 10), [subLane, fight.stripSamples]);
+    const stripInPath = useMemo(() => subLane(fight.stripInSamples, 142, 10, true), [subLane, fight.stripInSamples]);
 
     const allyKillMarks = fight.killEvents.filter(e => e.isAlly);
     const enemyKillMarks = fight.killEvents.filter(e => !e.isAlly);
@@ -93,9 +103,9 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
             <svg
                 ref={svgRef}
                 className="replay-timeline"
-                viewBox="0 0 1000 152"
+                viewBox="0 0 1000 176"
                 preserveAspectRatio="none"
-                style={{ width: '100%', height: 132, display: 'block', cursor: 'col-resize', background: 'rgba(8,12,26,0.6)', borderRadius: 6 }}
+                style={{ width: '100%', height: 152, display: 'block', cursor: 'col-resize', background: 'rgba(8,12,26,0.6)', borderRadius: 6 }}
                 onClick={scrubFromEvent}
                 onMouseDown={(e) => { setDragging(true); scrubFromEvent(e); }}
                 onMouseMove={onMouseMove}
@@ -118,7 +128,7 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
                 ))}
                 {allyKillMarks.map((m, i) => (
                     <line key={`d-${i}`} x1={(m.timeMs / fight.durationMs) * 1000} x2={(m.timeMs / fight.durationMs) * 1000}
-                          y1={132} y2={144} stroke="#ef4444" strokeWidth={2} />
+                          y1={156} y2={168} stroke="#ef4444" strokeWidth={2} />
                 ))}
                 {layersState.ccLane && (
                     fight.ccSamples?.length ? (
@@ -140,6 +150,26 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
                         </g>
                     )
                 )}
+                {layersState.ccInLane && (
+                    fight.ccInSamples?.length ? (
+                        ccInPath && (
+                            <g data-testid="cc-in-lane">
+                                <path d={ccInPath} stroke="#f59e0b" strokeWidth={2} fill="none" opacity={0.45} />
+                            </g>
+                        )
+                    ) : (
+                        // Absent here means something narrower than it does for
+                        // the outgoing lane above: axilog has no squad-level
+                        // incoming series, so this is folded from `by_entity`,
+                        // which needs raw timeline arrays on AND axilog 1.9.0.
+                        // A log can therefore draw a full CC lane and nothing
+                        // here, which is exactly why the two are gated apart.
+                        <g data-testid="cc-in-lane-not-recorded">
+                            <line x1={0} x2={1000} y1={114} y2={114} stroke="#f59e0b" strokeWidth={1} strokeDasharray="4 3" opacity={0.2} />
+                            <text x={4} y={122} fontSize={7} fill="#f59e0b" opacity={0.45}>CC taken not recorded</text>
+                        </g>
+                    )
+                )}
                 {layersState.stripLane && (
                     fight.stripSamples?.length ? (
                         stripPath && (
@@ -149,12 +179,26 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
                         )
                     ) : (
                         <g data-testid="strip-lane-not-recorded">
-                            <line x1={0} x2={1000} y1={128} y2={128} stroke="#e879f9" strokeWidth={1} strokeDasharray="4 3" opacity={0.35} />
-                            <text x={4} y={126} fontSize={7} fill="#e879f9" opacity={0.6}>Strips not recorded</text>
+                            <line x1={0} x2={1000} y1={142} y2={142} stroke="#e879f9" strokeWidth={1} strokeDasharray="4 3" opacity={0.35} />
+                            <text x={4} y={140} fontSize={7} fill="#e879f9" opacity={0.6}>Strips not recorded</text>
                         </g>
                     )
                 )}
-                <line x1={playheadX} x2={playheadX} y1={0} y2={152} stroke="#fbbf24" strokeWidth={1.5} />
+                {layersState.stripInLane && (
+                    fight.stripInSamples?.length ? (
+                        stripInPath && (
+                            <g data-testid="strip-in-lane">
+                                <path d={stripInPath} stroke="#e879f9" strokeWidth={2} fill="none" opacity={0.45} />
+                            </g>
+                        )
+                    ) : (
+                        <g data-testid="strip-in-lane-not-recorded">
+                            <line x1={0} x2={1000} y1={142} y2={142} stroke="#e879f9" strokeWidth={1} strokeDasharray="4 3" opacity={0.2} />
+                            <text x={4} y={150} fontSize={7} fill="#e879f9" opacity={0.45}>Strips taken not recorded</text>
+                        </g>
+                    )
+                )}
+                <line x1={playheadX} x2={playheadX} y1={0} y2={176} stroke="#fbbf24" strokeWidth={1.5} />
             </svg>
             {layersState.phases && derived.phases.length > 0 && (
                 <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>

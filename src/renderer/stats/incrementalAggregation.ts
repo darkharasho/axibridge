@@ -50,7 +50,8 @@ import { classifyPlayerRoles } from './classifyPlayerRoles';
 
 import { buildMovementData, type SquadMemberMovement } from '../../shared/movementData';
 import { getArena, replayCanvas } from '@axiapps/bridge-metrics/nativePositioning';
-import { readSquadSeries } from '@axiapps/bridge-metrics/nativeSeries';
+import { readSquadSeries, readSquadSumOfEntitySeries } from '@axiapps/bridge-metrics/nativeSeries';
+import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
 import { resolveMapFromZone, computeFightAvgPosition, buildFightLabelV2 } from '../../shared/mapUtils';
 import { findNearestLandmark } from '../../shared/wvwLandmarks';
 import { TRACKED_REPLAY_BUFF_IDS } from '../../shared/replayBuffs';
@@ -190,8 +191,16 @@ export function buildReplayFightPayload(log: any, fightIndex: number, opts?: { p
     const deaths = squadMembers.filter(m => m.deadRanges.length > 0).length;
 
     const dpsSamples: ReplayDpsSample[] = computeSquadDpsSamples(details);
-    const ccSamples = readSquadSeries(details?.native ?? {}, 'cc_applied');
-    const stripSamples = readSquadSeries(details?.native ?? {}, 'strips');
+    const nativeReport = details?.native ?? {};
+    const ccSamples = readSquadSeries(nativeReport, 'cc_applied');
+    const stripSamples = readSquadSeries(nativeReport, 'strips');
+    // The incoming lanes have no squad-level equivalent, so they are folded
+    // from the roster here. That fold is why they go absent independently of
+    // the two above: `by_entity` is gated on `timeseries`, the squad block
+    // is not.
+    const squadIds = squadEntities(nativeReport).map(e => String(e.id));
+    const ccInSamples = readSquadSumOfEntitySeries(nativeReport, squadIds, 'cc_taken');
+    const stripInSamples = readSquadSumOfEntitySeries(nativeReport, squadIds, 'strips_taken');
     const killEvents: ReplayKillEvent[] = collectKillEvents(movement);
     const rallyEvents = computeRallyEvents(movement.members);
     const damageSpikeEvents = computeDamageSpikeEvents(details);
@@ -216,6 +225,8 @@ export function buildReplayFightPayload(log: any, fightIndex: number, opts?: { p
         dpsSamples,
         ccSamples,
         stripSamples,
+        ccInSamples,
+        stripInSamples,
         killEvents,
         damageSpikeEvents,
         rallyEvents,

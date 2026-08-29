@@ -12,7 +12,7 @@ const makeFight = (duration = 60_000): ReplayFightPayload => ({
     dpsSamples: [{ timeMs: 0, squadDps: 0 }, { timeMs: 30_000, squadDps: 5000 }, { timeMs: 60_000, squadDps: 10_000 }],
     killEvents: [], damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
     sectorOwners: null,
-    ccSamples: null, stripSamples: null,
+    ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null,
 });
 
 describe('SyncedTimeline', () => {
@@ -127,5 +127,77 @@ describe('SyncedTimeline CC and strip lanes', () => {
         // The stale index/samples.length formula would have placed it at
         // (10 / 50) * 1000 = 200, which is measurably different here.
         expect(xs[10]).not.toBeCloseTo((10 / 50) * 1000, 1);
+    });
+});
+
+describe('SyncedTimeline incoming lanes', () => {
+    beforeEach(() => {
+        const initial = (useStatsStore as any).getInitialState();
+        useStatsStore.setState(initial);
+    });
+
+    it('renders a CC-taken sub-lane when samples are present', () => {
+        const fight = makeFight();
+        const { container } = render(<SyncedTimeline fight={{ ...fight, ccInSamples: [0, 5, 2, 0] }} />);
+        expect(container.querySelector('[data-testid="cc-in-lane"]')).not.toBeNull();
+    });
+
+    it('renders a strips-taken sub-lane when samples are present', () => {
+        const fight = makeFight();
+        const { container } = render(<SyncedTimeline fight={{ ...fight, stripInSamples: [1, 0, 4] }} />);
+        expect(container.querySelector('[data-testid="strip-in-lane"]')).not.toBeNull();
+    });
+
+    // The load-bearing case for the replay. The squad series is computed
+    // unconditionally while `by_entity` needs `timeseries: true`, so a fight
+    // routinely has a full outgoing lane and no incoming one at all. Sharing
+    // a recorded signal between them would draw a flat incoming lane reading
+    // "nothing landed on the squad".
+    it('draws the outgoing lane and a not-recorded marker for the incoming one on the same fight', () => {
+        const fight = makeFight();
+        const { container } = render(
+            <SyncedTimeline fight={{ ...fight, ccSamples: [0, 2, 1, 0], ccInSamples: null }} />,
+        );
+        expect(container.querySelector('[data-testid="cc-lane"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="cc-in-lane"]')).toBeNull();
+        expect(container.querySelector('[data-testid="cc-in-lane-not-recorded"]')).not.toBeNull();
+    });
+
+    it('shows a not-recorded affordance for strips taken rather than an empty lane', () => {
+        const fight = makeFight();
+        const { container } = render(<SyncedTimeline fight={{ ...fight, stripSamples: [0, 3] }} />);
+        expect(container.querySelector('[data-testid="strip-in-lane"]')).toBeNull();
+        expect(container.querySelector('[data-testid="strip-in-lane-not-recorded"]')).not.toBeNull();
+    });
+
+    it('hides each incoming lane behind its own layer toggle', () => {
+        useStatsStore.getState().setReplayLayer('ccInLane', false);
+        useStatsStore.getState().setReplayLayer('stripInLane', false);
+        const fight = makeFight();
+        const { container } = render(
+            <SyncedTimeline fight={{ ...fight, ccInSamples: [0, 5], stripInSamples: [1, 2] }} />,
+        );
+        expect(container.querySelector('[data-testid="cc-in-lane"]')).toBeNull();
+        expect(container.querySelector('[data-testid="strip-in-lane"]')).toBeNull();
+        // ...and leaves the outgoing pair alone.
+        expect(container.querySelector('[data-testid="cc-lane-not-recorded"]')).not.toBeNull();
+    });
+
+    // Incoming CC counts every source and folds no pets, so it runs higher
+    // than outgoing by construction. A shared scale would flatten the
+    // outgoing lane; each lane normalizes against its own peak instead.
+    it('normalizes each lane against its own peak, not a shared one', () => {
+        const fight = makeFight();
+        const { container } = render(
+            <SyncedTimeline fight={{ ...fight, ccSamples: [0, 1, 0], ccInSamples: [0, 40, 0] }} />,
+        );
+        const out = container.querySelector('[data-testid="cc-lane"] path')?.getAttribute('d') || '';
+        const inc = container.querySelector('[data-testid="cc-in-lane"] path')?.getAttribute('d') || '';
+        // Both peaks reach their lane's full 10px height: the outgoing lane
+        // stands up from y=114 to y=104, the incoming hangs from y=114 to
+        // y=124. Under a shared scale the outgoing peak would barely leave
+        // its baseline.
+        expect(out).toContain('V 104.0');
+        expect(inc).toContain('V 124.0');
     });
 });

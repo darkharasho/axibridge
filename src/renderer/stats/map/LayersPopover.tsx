@@ -19,7 +19,7 @@ const PHASE_LEGEND: { kind: string; color: string; desc: string }[] = [
     { kind: 'cleanup', color: '#a78bfa', desc: 'Squad stationary / mopping up' },
 ];
 
-const EVENT_TOGGLES: { key: 'phases' | 'rallyRings' | 'targetFocusLines' | 'damagePulses' | 'enemyPulses' | 'ccLane' | 'stripLane'; label: string; title: string }[] = [
+const EVENT_TOGGLES: { key: 'phases' | 'rallyRings' | 'targetFocusLines' | 'damagePulses' | 'enemyPulses' | 'ccLane' | 'stripLane' | 'ccInLane' | 'stripInLane'; label: string; title: string }[] = [
     { key: 'phases', label: 'Fight phases on timeline', title: 'Marks fight phase boundaries on the scrubber timeline — colours show squad behaviour (opening / push / retreat / cleanup)' },
     { key: 'rallyRings', label: 'Rally rings', title: 'Flashes a ring when a downed player rallies back to full health' },
     { key: 'targetFocusLines', label: 'Target-focus lines', title: 'Lines from each player to the target they are currently damaging most' },
@@ -27,6 +27,8 @@ const EVENT_TOGGLES: { key: 'phases' | 'rallyRings' | 'targetFocusLines' | 'dama
     { key: 'enemyPulses', label: 'Enemy pulses', title: 'Also pulse when ENEMY players go down or die (violet / green). Off by default because these usually far outnumber your squad\u2019s own' },
     { key: 'ccLane', label: 'CC lane', title: 'Sub-lane on the timeline showing squad crowd control applied per second' },
     { key: 'stripLane', label: 'Strip lane', title: 'Sub-lane on the timeline showing squad boon strips applied per second' },
+    { key: 'ccInLane', label: 'CC taken lane', title: 'Sub-lane showing crowd control landed ON the squad per second. Scaled independently of the CC lane \u2014 incoming CC counts every source and folds no pets, so it reads higher than outgoing by construction. Needs Include Timeline Arrays and axilog 1.9.0' },
+    { key: 'stripInLane', label: 'Strips taken lane', title: 'Sub-lane showing boons stripped OFF the squad per second. Needs Include Timeline Arrays' },
 ];
 
 const HEATMAP_OPTIONS: { value: 'off' | 'deaths' | 'time' | 'damage-taken'; label: string; title: string }[] = [

@@ -123,3 +123,44 @@ export const readEntitySeries = (
     if (!series) return null;
     return decodeCountSeries(series as NativeSeries);
 };
+
+/**
+ * Sum a per-entity lane across the squad, onto the same 1s grid the squad
+ * lanes use.
+ *
+ * axilog carries no squad-level `strips_taken`/`cc_taken`: the incoming
+ * lanes exist only under `by_entity`. That is not a symmetry oversight —
+ * the squad series is computed unconditionally, while `by_entity` needs
+ * `timeseries: true` — so a caller wanting a squad incoming total has to
+ * fold the roster itself and must accept that the result is absent far
+ * more often than its outgoing counterpart.
+ *
+ * Returns `null` when NO squad entity carries the lane, which covers every
+ * absence that matters: raw timeline arrays switched off, an axilog too old
+ * for the lane, or no native report at all. A squad whose members all
+ * genuinely recorded zero still returns an array — `null` and an all-zero
+ * array are different claims and callers must keep them apart.
+ */
+export const readSquadSumOfEntitySeries = (
+    native: any,
+    entityIds: readonly string[],
+    lane: EntitySeriesLane,
+): number[] | null => {
+    let out: number[] | null = null;
+    for (const id of entityIds) {
+        const series = readEntitySeries(native, id, lane);
+        if (!series) continue;
+        if (out === null) {
+            out = series.slice();
+            continue;
+        }
+        // Rosters are not guaranteed to share a length: a player who joined
+        // late can carry a shorter lane. Grow to the longest rather than
+        // truncating to the first, which would drop the fight's tail.
+        if (series.length > out.length) out.length = series.length;
+        for (let i = 0; i < series.length; i++) out[i] = (out[i] || 0) + series[i];
+    }
+    if (out === null) return null;
+    for (let i = 0; i < out.length; i++) out[i] = out[i] || 0;
+    return out;
+};

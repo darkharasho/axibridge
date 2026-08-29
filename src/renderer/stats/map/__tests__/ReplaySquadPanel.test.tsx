@@ -21,7 +21,7 @@ const mkFight = (members: SquadMemberMovement[]): ReplayFightPayload => ({
     nearestLandmark: null, squadSize: members.length, kills: 0, deaths: 0,
     movementData: { pollingRate: 1000, durationMs: 5000, pixelsPerInch: { x: 1, y: 1 }, members, boonIcons: {}, skillIcons: {}, groundMarkers: [] },
     dpsSamples: [], killEvents: [], damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
-    sectorOwners: null, ccSamples: null, stripSamples: null,
+    sectorOwners: null, ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null,
 });
 
 describe('ReplaySquadPanel', () => {
