@@ -42,9 +42,9 @@ const shared = {
     drilldownData,
     overallUptimePercent: 50,
     timelineScope: 'squad', setTimelineScope: () => {},
-    showIncomingHeatmap: false, setShowIncomingHeatmap: () => {},
-    // StabPerformanceSection alone takes a mode (not the boolean above) —
-    // see task-9-report.md. The boon sections in this file keep the boolean.
+    // All three sections take an overlay mode. The member sets differ
+    // (StabPerformance is party-scoped, the boon sections squad-scoped), but
+    // 'none' is valid in both, so one prop serves this placement test.
     heatmapOverlay: 'none' as const, setHeatmapOverlay: () => {},
     showPartyDeaths: false, setShowPartyDeaths: () => {},
     showPartyDistance: false, setShowPartyDistance: () => {},
@@ -55,17 +55,17 @@ const shared = {
 const drilldownControlRow = () => screen.getByText(DRILLDOWN_TITLE).parentElement as HTMLElement;
 
 describe('drilldown toggles live in the drilldown control row, not the card header', () => {
-    it('Boon Uptime: Squad Damage Heatmap sits beside Clear', () => {
+    it('Boon Uptime: the heatmap overlay toggle sits beside Clear', () => {
         render(<BoonUptimeSection {...shared} />);
         const row = drilldownControlRow();
         expect(within(row).getByRole('button', { name: /clear/i })).toBeInTheDocument();
-        expect(within(row).getByRole('button', { name: /squad damage heatmap/i })).toBeInTheDocument();
+        expect(within(row).getByRole('button', { name: /incoming damage/i })).toBeInTheDocument();
     });
 
-    it('Boon Timeline: Squad Damage Heatmap sits beside Clear', () => {
+    it('Boon Timeline: the heatmap overlay toggle sits beside Clear', () => {
         render(<BoonTimelineSection {...shared} />);
         const row = drilldownControlRow();
-        expect(within(row).getByRole('button', { name: /squad damage heatmap/i })).toBeInTheDocument();
+        expect(within(row).getByRole('button', { name: /incoming damage/i })).toBeInTheDocument();
     });
 
     it('Stab Performance: party overlay toggles sit beside Clear', () => {

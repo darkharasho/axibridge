@@ -10,6 +10,16 @@ import { useStatsSharedContext } from '../StatsViewContext';
 import { useFixedTooltipPosition } from '../ui/StatsViewShared';
 import { FightMetricSection } from './FightMetricSection';
 import type { FightMetricPlayer, FightMetricPoint } from './FightMetricSection';
+import { TIMELINE_NOT_RECORDED_MESSAGE } from './BucketGridTable';
+import {
+    BOON_HEATMAP_DAMAGE_RGB,
+    BOON_HEATMAP_STRIPS_RGB,
+    boonHeatmapAlpha,
+    boonHeatmapOverlayLabel,
+    boonHeatmapOverlayTitle,
+    nextBoonHeatmapOverlay,
+    type BoonHeatmapOverlay,
+} from './boonHeatmapOverlay';
 
 type BoonUptimeBoon = {
     id: string;
@@ -63,12 +73,29 @@ type BoonUptimeSectionProps = {
     selectedFightIndex: number | null;
     setSelectedFightIndex: (value: number | null) => void;
     drilldownTitle: string;
-    drilldownData: Array<{ label: string; value: number; maxValue?: number; incomingDamage?: number; incomingIntensity?: number }>;
+    drilldownData: Array<{
+        label: string;
+        value: number;
+        maxValue?: number;
+        incomingDamage?: number;
+        incomingIntensity?: number;
+        incomingStrips?: number;
+        incomingStripsIntensity?: number;
+    }>;
     overallUptimePercent: number | null;
     showStackCapLine?: boolean;
     subgroupMembers?: Map<number, Array<{ account: string; profession: string; professionList: string[]; fightCount: number }>>;
-    showIncomingHeatmap: boolean;
-    setShowIncomingHeatmap: (value: boolean) => void;
+    heatmapOverlay: BoonHeatmapOverlay;
+    setHeatmapOverlay: (value: BoonHeatmapOverlay) => void;
+    /**
+     * False (not merely falsy) means the strips series was never captured for
+     * this fight — the log predates axilog 1.8.0 or was parsed without raw
+     * timeline arrays. Absent is not zero: the overlay must say so rather
+     * than draw an all-zero band that reads as "nobody was stripped".
+     */
+    incomingStripsRecorded?: boolean;
+    /** Whether the band sums the squad, because the selected row is an aggregate. */
+    incomingStripsScope?: 'player' | 'squad';
 };
 
 const SubgroupMembersTooltip = ({
@@ -161,8 +188,10 @@ export const BoonUptimeSection = ({
     overallUptimePercent: _overallUptimePercent,
     showStackCapLine = false,
     subgroupMembers,
-    showIncomingHeatmap,
-    setShowIncomingHeatmap
+    heatmapOverlay,
+    setHeatmapOverlay,
+    incomingStripsRecorded = false,
+    incomingStripsScope = 'player'
 }: BoonUptimeSectionProps) => {
     const { formatWithCommas, renderProfessionIcon } = useStatsSharedContext();
     const [boonDropdownOpen, setBoonDropdownOpen] = useState(false);
@@ -186,6 +215,9 @@ export const BoonUptimeSection = ({
         : '#f59e0b';
 
     const hasIncomingHeatData = drilldownData.some((entry) => Number(entry?.incomingDamage || 0) > 0);
+    const hasStripsHeatData = drilldownData.some((entry) => Number(entry?.incomingStrips || 0) > 0);
+    const stripsDataAbsent = heatmapOverlay === 'incoming-strips' && !incomingStripsRecorded;
+    const stripsLabel = incomingStripsScope === 'squad' ? 'Squad Incoming Strips' : 'Incoming Strips';
 
     const drilldownHeatData = drilldownData.map((entry) => ({
         ...entry,
@@ -280,15 +312,15 @@ export const BoonUptimeSection = ({
             drilldownExtras={
                 <button
                     type="button"
-                    onClick={() => setShowIncomingHeatmap(!showIncomingHeatmap)}
-                    title="Toggle squad incoming damage intensity heatmap overlay"
+                    onClick={() => setHeatmapOverlay(nextBoonHeatmapOverlay(heatmapOverlay))}
+                    title={boonHeatmapOverlayTitle(heatmapOverlay)}
                     className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
-                        showIncomingHeatmap
+                        heatmapOverlay !== 'none'
                             ? 'text-red-200 hover:text-red-100'
                             : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                     }`}
                 >
-                    Squad Damage Heatmap
+                    {boonHeatmapOverlayLabel(heatmapOverlay)}
                 </button>
             }
             renderTitleExtra={() => (
@@ -401,10 +433,14 @@ export const BoonUptimeSection = ({
             }}
             drilldownTitle={drilldownTitle}
             renderDrilldown={() => (
-                <div className="h-[220px] relative">
+                <div className="h-[220px] relative" data-overlay={heatmapOverlay !== 'none' ? heatmapOverlay : undefined}>
                     {drilldownData.length === 0 ? (
                         <div className="h-full flex items-center justify-center text-xs text-slate-500">
                             No detailed data available for this fight.
+                        </div>
+                    ) : stripsDataAbsent ? (
+                        <div className="h-full flex items-center justify-center text-center text-xs text-[color:var(--text-secondary)] px-6">
+                            {TIMELINE_NOT_RECORDED_MESSAGE}
                         </div>
                     ) : (
                         <ChartContainer width="100%" height="100%">
@@ -431,14 +467,17 @@ export const BoonUptimeSection = ({
                                                             : `${formatWithCommas(Number(d.value || 0), 1)}%`}
                                                     </strong>
                                                 </div>
-                                                {showIncomingHeatmap && hasIncomingHeatData && Number(d.incomingDamage || 0) > 0 && (
+                                                {heatmapOverlay === 'incoming-damage' && hasIncomingHeatData && Number(d.incomingDamage || 0) > 0 && (
                                                     <div className="text-red-300">Squad Incoming Damage: <strong>{formatWithCommas(Number(d.incomingDamage || 0), 0)}</strong></div>
+                                                )}
+                                                {heatmapOverlay === 'incoming-strips' && Number(d.incomingStrips || 0) > 0 && (
+                                                    <div className="text-red-300">{stripsLabel} (5s): <strong>{formatWithCommas(Number(d.incomingStrips || 0), 0)}</strong></div>
                                                 )}
                                             </div>
                                         );
                                     }}
                                 />
-                                {showIncomingHeatmap && hasIncomingHeatData && (
+                                {heatmapOverlay === 'incoming-damage' && hasIncomingHeatData && (
                                     <Bar
                                         yAxisId="incomingHeat"
                                         dataKey="incomingHeatBand"
@@ -448,11 +487,30 @@ export const BoonUptimeSection = ({
                                         stroke="none"
                                         isAnimationActive={false}
                                     >
-                                        {drilldownData.map((entry, index) => {
-                                            const intensity = Math.max(0, Math.min(1, Number(entry?.incomingIntensity || 0)));
-                                            const alpha = 0.06 + (0.52 * intensity);
-                                            return <Cell key={`incoming-heat-${index}`} fill={`rgba(239, 68, 68, ${alpha.toFixed(3)})`} />;
-                                        })}
+                                        {drilldownData.map((entry, index) => (
+                                            <Cell
+                                                key={`incoming-heat-${index}`}
+                                                fill={`rgba(${BOON_HEATMAP_DAMAGE_RGB}, ${boonHeatmapAlpha(Number(entry?.incomingIntensity || 0)).toFixed(3)})`}
+                                            />
+                                        ))}
+                                    </Bar>
+                                )}
+                                {heatmapOverlay === 'incoming-strips' && hasStripsHeatData && (
+                                    <Bar
+                                        yAxisId="incomingHeat"
+                                        dataKey="incomingHeatBand"
+                                        name="Incoming Strips Heat"
+                                        barSize={24}
+                                        fill="rgba(248,113,113,0.35)"
+                                        stroke="none"
+                                        isAnimationActive={false}
+                                    >
+                                        {drilldownData.map((entry, index) => (
+                                            <Cell
+                                                key={`incoming-strips-heat-${index}`}
+                                                fill={`rgba(${BOON_HEATMAP_STRIPS_RGB}, ${boonHeatmapAlpha(Number(entry?.incomingStripsIntensity || 0)).toFixed(3)})`}
+                                            />
+                                        ))}
                                     </Bar>
                                 )}
                                 <Line

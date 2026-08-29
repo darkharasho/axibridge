@@ -173,3 +173,71 @@ export function finalizeControlTimeline(
 ): { fights: ControlFightData[]; recorded: boolean } {
     return { fights: acc.fights, recorded: acc.recorded };
 }
+
+export type IncomingStripsScope = 'player' | 'squad';
+
+export type IncomingStripsResult = {
+    /** One entry per target bucket. All zeros when nothing was captured. */
+    buckets: number[];
+    /** 0..1 per bucket, normalized against this fight's own peak. */
+    intensity: number[];
+    /** False means the series was never captured — say so, don't draw zeros. */
+    recorded: boolean;
+    /**
+     * `player` when `playerKey` names a real squad member in this fight;
+     * `squad` when it does not. The boon charts address rows by keys the
+     * control accumulator never sees — `__all__` and `__subgroup__:N` — and
+     * a per-player lookup for those silently yields an all-zero band that
+     * reads as "nobody was stripped". Summing the squad is the honest answer
+     * for an aggregate row, and the caller labels the band from this.
+     */
+    scope: IncomingStripsScope;
+};
+
+/**
+ * Boons stripped off a player (or the whole squad), re-bucketed from this
+ * module's 5s grid onto whatever interval the caller's chart uses.
+ *
+ * The boon uptime drilldown's bucket interval is user-configurable down to
+ * 1s, finer than CONTROL_BUCKET_MS. Rather than fabricate a distribution
+ * inside a 5s bucket we don't have, each target bucket repeats the 5s value
+ * covering it — so the band's *shape* is right at 5s resolution and its
+ * numbers stay whole counts. Callers label the tooltip "(5s)" to say so.
+ * Rebuilding this at 1s would mean storing the native series at 1s in
+ * `report.json`, five times the numbers in a payload that is already trimmed.
+ */
+export function resolveIncomingStrips(
+    fight: ControlFightData | null | undefined,
+    playerKey: string | null | undefined,
+    targetIntervalMs: number,
+    targetCount: number,
+): IncomingStripsResult {
+    const count = Math.max(0, Math.floor(targetCount));
+    const empty = Array.from({ length: count }, () => 0);
+    if (!fight || !fight.recorded) {
+        return { buckets: empty, intensity: empty.slice(), recorded: false, scope: 'squad' };
+    }
+
+    const entry = playerKey ? fight.players?.[playerKey] : undefined;
+    const scope: IncomingStripsScope = entry ? 'player' : 'squad';
+    let source: number[];
+    if (entry) {
+        source = Array.isArray(entry.stripsIn) ? entry.stripsIn : [];
+    } else {
+        source = Array.from({ length: fight.bucketCount }, () => 0);
+        Object.values(fight.players || {}).forEach((player) => {
+            (player?.stripsIn || []).forEach((value, index) => {
+                source[index] = Number(source[index] || 0) + Number(value || 0);
+            });
+        });
+    }
+
+    const interval = Math.max(1, Number(targetIntervalMs) || CONTROL_BUCKET_MS);
+    const buckets = Array.from({ length: count }, (_, index) => {
+        const sourceIndex = Math.floor((index * interval) / CONTROL_BUCKET_MS);
+        return Number(source[sourceIndex] || 0);
+    });
+    const max = buckets.reduce((best, value) => Math.max(best, value), 0);
+    const intensity = buckets.map((value) => (max > 0 ? Math.max(0, Math.min(1, value / max)) : 0));
+    return { buckets, intensity, recorded: true, scope };
+}
