@@ -6,6 +6,7 @@ const COMMANDER_TAG_URI = `data:image/svg+xml;base64,${btoa(unescape(encodeURICo
 import { hpAt, statusAt, activeBoons, activeSkillsAt, memberSpec } from './partyMemberHelpers';
 import type { MemberStatus } from './partyMemberHelpers';
 import type { SquadMemberMovement } from '../../../shared/movementData';
+import { isReplayCondition } from '../../../shared/replayBuffs';
 
 interface PartyMemberCardProps {
     member: SquadMemberMovement;
@@ -30,12 +31,42 @@ function barColor(status: MemberStatus): string {
     return '#22c55e';
 }
 
+const BuffIcon: React.FC<{
+    id: number;
+    stacks: number;
+    icons: Record<number, { name: string; icon: string }>;
+    borderColor: string;
+}> = ({ id, stacks, icons, borderColor }) => {
+    const icon = icons[id];
+    if (!icon?.icon) return null;
+    return (
+        <div style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
+            <img src={icon.icon} alt={icon.name} title={`${icon.name}${stacks > 1 ? ` ×${stacks}` : ''}`}
+                 width={18} height={18}
+                 style={{ display: 'block', width: 18, height: 18, objectFit: 'contain', borderRadius: 3, border: `1px solid ${borderColor}` }} />
+            {stacks > 1 && (
+                <span style={{
+                    position: 'absolute', bottom: 0, right: 0,
+                    fontSize: 7, fontWeight: 700, lineHeight: '9px',
+                    background: 'rgba(0,0,0,0.8)', color: '#fff',
+                    padding: '0 2px', borderRadius: '2px 0 3px 0',
+                    minWidth: 9, textAlign: 'center', pointerEvents: 'none',
+                }}>
+                    {stacks}
+                </span>
+            )}
+        </div>
+    );
+};
+
 export const PartyMemberCard: React.FC<PartyMemberCardProps> = ({
     member, timeMs, boonIcons, skillIcons, onFollow, isFollowed,
 }) => {
     const hp = useMemo(() => hpAt(member, timeMs), [member, timeMs]);
     const status = useMemo(() => statusAt(member, timeMs), [member, timeMs]);
-    const boons = useMemo(() => activeBoons(member, timeMs), [member, timeMs]);
+    const buffs = useMemo(() => activeBoons(member, timeMs), [member, timeMs]);
+    const boons = useMemo(() => buffs.filter(b => !isReplayCondition(b.id)), [buffs]);
+    const condis = useMemo(() => buffs.filter(b => isReplayCondition(b.id)), [buffs]);
     const skillIds = useMemo(() => activeSkillsAt(member, timeMs), [member, timeMs]);
 
     const spec = memberSpec(member);
@@ -48,25 +79,25 @@ export const PartyMemberCard: React.FC<PartyMemberCardProps> = ({
             onClick={() => onFollow?.(member.account || member.name)}
             style={{
                 display: 'block', width: '100%', textAlign: 'left',
-                padding: '5px 8px', borderRadius: 4, margin: '1px 4px',
+                padding: '4px 7px', borderRadius: 4, margin: '1px 0',
                 background: isFollowed ? 'var(--status-info-bg)' : 'var(--bg-input)',
                 border: `1px solid ${isFollowed ? 'var(--status-info)' : 'transparent'}`,
                 cursor: 'pointer',
             }}
         >
-            {/* Row 1: icon + name + hp */}
+            {/* Row 1: icon + name + hp + cast icon */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                <div style={{ position: 'relative', flexShrink: 0, width: 24, height: 24 }}>
+                <div style={{ position: 'relative', flexShrink: 0, width: 20, height: 20 }}>
                     <img
                         src={getProfessionIconPath(spec) ?? undefined}
                         alt={spec}
-                        width={24}
-                        height={24}
+                        width={20}
+                        height={20}
                         // The class SVGs are not square (Elementalist is 46×76mm)
                         // and only the HTML width/height attributes do not pin an
                         // <img>'s box: a portrait icon renders ~39px tall and
                         // spills out of this 24px slot onto the HP bar below.
-                        style={{ width: 24, height: 24, objectFit: 'contain', borderRadius: '50%', display: 'block' }}
+                        style={{ width: 20, height: 20, objectFit: 'contain', borderRadius: '50%', display: 'block' }}
                     />
                     {member.isCommander && (
                         <img
@@ -90,60 +121,44 @@ export const PartyMemberCard: React.FC<PartyMemberCardProps> = ({
                 <div style={{ fontSize: 11, fontWeight: 700, color: hpColor(hp, status), flexShrink: 0, width: 32, textAlign: 'right' }}>
                     {status === 'dead' ? '—' : `${Math.round(hp)}%`}
                 </div>
+                <div style={{ width: 20, height: 20, flexShrink: 0 }}>
+                    {(() => {
+                        if (status === 'dead') return null;
+                        const icon = skillIcons[skillIds[0]];
+                        if (!icon?.icon) return null;
+                        return (
+                            <img src={icon.icon} alt={icon.name} title={icon.name}
+                                 width={20} height={20}
+                                 style={{ width: 20, height: 20, objectFit: 'contain', borderRadius: 3, border: '1px solid var(--status-info-border)', background: 'var(--status-info-bg)' }} />
+                        );
+                    })()}
+                </div>
             </div>
 
             {/* HP bar */}
-            <div style={{ height: 3, background: 'var(--border-subtle)', borderRadius: 2, marginBottom: 4, overflow: 'hidden' }}>
+            <div style={{ height: 3, background: 'var(--border-subtle)', borderRadius: 2, marginBottom: 3, overflow: 'hidden' }}>
                 <div style={{ width: `${status === 'dead' ? 0 : hp}%`, height: '100%', background: barColor(status), borderRadius: 2 }} />
             </div>
 
-            {/* Row 2: active boons with stack count badge */}
-            {status !== 'dead' && boons.length > 0 && (
-                <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginBottom: 3 }}>
-                    {boons.map(({ id, stacks }) => {
-                        const icon = boonIcons[id];
-                        if (!icon?.icon) return null;
-                        return (
-                            <div key={id} style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
-                                <img src={icon.icon} alt={icon.name} title={`${icon.name}${stacks > 1 ? ` ×${stacks}` : ''}`}
-                                     width={22} height={22}
-                                     style={{ display: 'block', borderRadius: 3, border: '1px solid var(--border-hover)' }} />
-                                {stacks > 1 && (
-                                    <span style={{
-                                        position: 'absolute', bottom: 0, right: 0,
-                                        fontSize: 7, fontWeight: 700, lineHeight: '10px',
-                                        background: 'rgba(0,0,0,0.8)', color: '#fff',
-                                        padding: '0 2px', borderRadius: '2px 0 3px 0',
-                                        minWidth: 10, textAlign: 'center', pointerEvents: 'none',
-                                    }}>
-                                        {stacks}
-                                    </span>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-
-            {/* Row 3: skill cast slot — always reserves 20px so the card height stays stable */}
-            <div style={{ height: 20, display: 'flex', alignItems: 'center' }}>
-                {(() => {
-                    if (status === 'dead') return null;
-                    const id = skillIds[0];
-                    if (!id) return null;
-                    const icon = skillIcons[id];
-                    if (!icon?.icon) return null;
-                    return (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden' }}>
-                            <img src={icon.icon} alt={icon.name} title={icon.name}
-                                 width={18} height={18}
-                                 style={{ flexShrink: 0, borderRadius: 3, border: '1px solid var(--status-info-border)', background: 'var(--status-info-bg)' }} />
-                            <span style={{ fontSize: 9, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {icon.name}
-                            </span>
-                        </div>
-                    );
-                })()}
+            {/* Buff row: boons, a hairline divider, then conditions */}
+            <div data-buff-row style={{ display: 'flex', alignItems: 'center', gap: 3, minHeight: 18, flexWrap: 'wrap' }}>
+                {status !== 'dead' && (
+                    <>
+                        <span data-cluster="boons" style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                            {boons.map(b => (
+                                <BuffIcon key={b.id} id={b.id} stacks={b.stacks} icons={boonIcons} borderColor="var(--border-hover)" />
+                            ))}
+                        </span>
+                        {boons.length > 0 && condis.length > 0 && (
+                            <span data-buff-divider style={{ width: 1, height: 14, background: 'var(--border-default)', flexShrink: 0, margin: '0 1px' }} />
+                        )}
+                        <span data-cluster="condis" style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                            {condis.map(c => (
+                                <BuffIcon key={c.id} id={c.id} stacks={c.stacks} icons={boonIcons} borderColor="rgba(248,113,113,0.55)" />
+                            ))}
+                        </span>
+                    </>
+                )}
             </div>
         </button>
     );

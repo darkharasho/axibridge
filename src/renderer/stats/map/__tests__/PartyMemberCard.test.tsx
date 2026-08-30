@@ -96,3 +96,65 @@ describe('PartyMemberCard', () => {
         expect(document.querySelectorAll('img[alt="Heal by Light"]').length).toBe(0);
     });
 });
+
+const richBuffIcons: Record<number, { name: string; icon: string }> = {
+    743: { name: 'Aegis', icon: 'aegis.png' },
+    725: { name: 'Fury', icon: 'fury.png' },
+    738: { name: 'Vulnerability', icon: 'vuln.png' },
+    727: { name: 'Immobile', icon: 'immob.png' },
+};
+
+describe('PartyMemberCard conditions', () => {
+    it('renders condition icons alongside boons', () => {
+        const m = mkMember({ boonStates: { 743: [[0, 1]], 738: [[0, 12]] } });
+        render(<PartyMemberCard member={m} timeMs={500} boonIcons={richBuffIcons} skillIcons={{}} />);
+        expect(document.querySelectorAll('img[alt="Aegis"]').length).toBe(1);
+        expect(document.querySelectorAll('img[alt="Vulnerability"]').length).toBe(1);
+    });
+
+    it('puts boons before the divider and conditions after it', () => {
+        const m = mkMember({ boonStates: { 743: [[0, 1]], 738: [[0, 12]] } });
+        const { container } = render(<PartyMemberCard member={m} timeMs={500} boonIcons={richBuffIcons} skillIcons={{}} />);
+        const boonCluster = container.querySelector('[data-cluster="boons"]')!;
+        const condiCluster = container.querySelector('[data-cluster="condis"]')!;
+        expect(boonCluster.querySelector('img[alt="Aegis"]')).not.toBeNull();
+        expect(condiCluster.querySelector('img[alt="Vulnerability"]')).not.toBeNull();
+        expect(boonCluster.compareDocumentPosition(condiCluster) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('shows the divider only when both clusters have content', () => {
+        const onlyBoons = mkMember({ boonStates: { 743: [[0, 1]] } });
+        const { container, unmount } = render(<PartyMemberCard member={onlyBoons} timeMs={500} boonIcons={richBuffIcons} skillIcons={{}} />);
+        expect(container.querySelector('[data-buff-divider]')).toBeNull();
+        unmount();
+        const both = mkMember({ boonStates: { 743: [[0, 1]], 727: [[0, 1]] } });
+        const { container: c2 } = render(<PartyMemberCard member={both} timeMs={500} boonIcons={richBuffIcons} skillIcons={{}} />);
+        expect(c2.querySelector('[data-buff-divider]')).not.toBeNull();
+    });
+
+    it('shows stack counts on conditions', () => {
+        const m = mkMember({ boonStates: { 738: [[0, 12]] } });
+        render(<PartyMemberCard member={m} timeMs={500} boonIcons={richBuffIcons} skillIcons={{}} />);
+        expect(screen.getByText('12')).toBeTruthy();
+    });
+
+    it('reserves a stable buff row height with no boons and no conditions', () => {
+        const { container } = render(<PartyMemberCard member={mkMember()} timeMs={0} boonIcons={richBuffIcons} skillIcons={{}} />);
+        const row = container.querySelector('[data-buff-row]') as HTMLElement;
+        expect(row).not.toBeNull();
+        expect(row.style.minHeight).toBe('18px');
+    });
+
+    it('renders the cast as a bare icon with no name string', () => {
+        const m = mkMember({ skillCasts: [{ id: 5536, time: 1000, duration: 500 }] });
+        render(<PartyMemberCard member={m} timeMs={1000} boonIcons={{}} skillIcons={skillIcons} />);
+        expect(document.querySelectorAll('img[alt="Heal by Light"]').length).toBe(1);
+        expect(screen.queryByText('Heal by Light')).toBeNull();
+    });
+
+    it('hides conditions for a dead member', () => {
+        const m = mkMember({ deadRanges: [[0, 0]], boonStates: { 738: [[0, 12]] } });
+        render(<PartyMemberCard member={m} timeMs={500} boonIcons={richBuffIcons} skillIcons={{}} />);
+        expect(document.querySelectorAll('img[alt="Vulnerability"]').length).toBe(0);
+    });
+});
