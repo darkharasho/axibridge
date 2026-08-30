@@ -72,6 +72,19 @@ describe('SyncedTimeline — phases', () => {
         expect(useStatsStore.getState().replayPlayhead.timeMs).toBe(start);
     });
 
+    it('mousedown on a ribbon segment does not start a drag-seek', () => {
+        // The svg's own onMouseDown starts a drag AND immediately scrubs to
+        // the click position; a mousedown that lands on a phase segment must
+        // never reach it. fireEvent.click never dispatches a mousedown, so
+        // this is the only test that would catch a missing
+        // stopPropagation() on the rect's onMouseDown.
+        useStatsStore.getState().setReplayLayer('phases', true);
+        const { container } = render(<SyncedTimeline fight={fightWithPhases()} />);
+        const seg = container.querySelectorAll('[data-phase-chip]')[1] as SVGRectElement;
+        fireEvent.mouseDown(seg);
+        expect(useStatsStore.getState().replayPlayhead.timeMs).toBe(0);
+    });
+
     it('renders no separate chip row below the svg', () => {
         useStatsStore.getState().setReplayLayer('phases', true);
         const { container } = render(<SyncedTimeline fight={fightWithPhases()} />);

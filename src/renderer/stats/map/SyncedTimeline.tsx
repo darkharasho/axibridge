@@ -66,7 +66,7 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
                 className="replay-timeline"
                 viewBox="0 0 1000 120"
                 preserveAspectRatio="none"
-                style={{ width: '100%', height: 92, display: 'block', cursor: 'col-resize', background: 'rgba(8,12,26,0.6)', borderRadius: 6 }}
+                style={{ width: '100%', height: 54, display: 'block', cursor: 'col-resize', background: 'rgba(8,12,26,0.6)', borderRadius: 6 }}
                 onClick={scrubFromEvent}
                 onMouseDown={(e) => { setDragging(true); scrubFromEvent(e); }}
                 onMouseMove={onMouseMove}
