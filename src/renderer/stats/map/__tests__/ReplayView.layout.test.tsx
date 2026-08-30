@@ -111,6 +111,19 @@ describe('ReplayView HUD geometry regressions', () => {
         expect(wrapper.style.minHeight).toBe('');
     });
 
+    /**
+     * Both collapsed rails run their label vertically, so the last glyph lands on
+     * the bottom border-radius. With only a top padding the corner shears its foot
+     * off — the "L" of LAYERS reads as cut out of the bar.
+     */
+    it.each([
+        ['Show layers'],
+        ['Expand squad panel'],
+    ])('pads the %s rail on both ends so the vertical label clears the corner', title => {
+        render(<ReplayView fights={[mkFight()]} />);
+        expect(screen.getByTitle(title).style.padding).toBe('8px 0px');
+    });
+
     it('lets the open layers panel shrink so it scrolls instead of overrunning the legend', () => {
         render(<ReplayView fights={[mkFight()]} />);
         fireEvent.click(screen.getByTitle('Show layers'));

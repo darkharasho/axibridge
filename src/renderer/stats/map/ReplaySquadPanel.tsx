@@ -52,7 +52,10 @@ export const ReplaySquadPanel: React.FC<ReplaySquadPanelProps> = ({ fight, colla
                     borderRadius: 8,
                     borderLeft: '1px solid var(--border-default)',
                     display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    paddingTop: 8, cursor: 'pointer',
+                    // Symmetric padding, not paddingTop alone: the vertical label's
+                    // final glyph otherwise sits flush on the border-radius and its
+                    // foot is sheared off by the corner.
+                    padding: '8px 0', cursor: 'pointer',
                 }}
             >
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>◀</span>
