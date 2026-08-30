@@ -71,3 +71,47 @@ describe('statsStore — replay layers + spotlight', () => {
         expect(useStatsStore.getState().replayLayers.zoneBorders).toBe(true);
     });
 });
+
+describe('statsStore — lanes, party collapse, scale bar', () => {
+    beforeEach(() => {
+        useStatsStore.setState((useStatsStore as any).getInitialState());
+    });
+
+    it('lanes start collapsed', () => {
+        expect(useStatsStore.getState().replayLanesExpanded).toBe(false);
+    });
+
+    it('setReplayLanesExpanded flips the band open and shut', () => {
+        useStatsStore.getState().setReplayLanesExpanded(true);
+        expect(useStatsStore.getState().replayLanesExpanded).toBe(true);
+        useStatsStore.getState().setReplayLanesExpanded(false);
+        expect(useStatsStore.getState().replayLanesExpanded).toBe(false);
+    });
+
+    it('every party starts expanded (empty collapsed set)', () => {
+        expect(useStatsStore.getState().replayCollapsedParties.size).toBe(0);
+    });
+
+    it('toggleReplayPartyCollapsed adds then removes a group', () => {
+        useStatsStore.getState().toggleReplayPartyCollapsed(2);
+        expect(useStatsStore.getState().replayCollapsedParties.has(2)).toBe(true);
+        useStatsStore.getState().toggleReplayPartyCollapsed(2);
+        expect(useStatsStore.getState().replayCollapsedParties.has(2)).toBe(false);
+    });
+
+    it('toggleReplayPartyCollapsed replaces the Set rather than mutating it', () => {
+        const before = useStatsStore.getState().replayCollapsedParties;
+        useStatsStore.getState().toggleReplayPartyCollapsed(1);
+        expect(useStatsStore.getState().replayCollapsedParties).not.toBe(before);
+    });
+
+    it('scaleBar layer defaults on', () => {
+        expect(useStatsStore.getState().replayLayers.scaleBar).toBe(true);
+    });
+
+    it('resetReplayLayers restores scaleBar to on', () => {
+        useStatsStore.getState().setReplayLayer('scaleBar', false);
+        useStatsStore.getState().resetReplayLayers();
+        expect(useStatsStore.getState().replayLayers.scaleBar).toBe(true);
+    });
+});

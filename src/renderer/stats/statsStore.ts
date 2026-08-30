@@ -71,9 +71,18 @@ interface StatsStoreState {
          *  a squad bomb lands on most of the roster at once, so leaving this
          *  on would keep the map permanently ringed. */
         ccTakenMarks: boolean;
+        /** World-units ruler in the map's bottom-left corner. */
+        scaleBar: boolean;
         heatmap: 'off' | 'deaths' | 'time' | 'damage-taken';
     };
     replaySpotlightParty: number | null;
+    /** Whether the CC/strip lanes band under the scrubber is expanded.
+     *  Separate from the ccLane/stripLane layer toggles, which say which
+     *  lanes exist at all. Collapsed by default: the band is a detail view. */
+    replayLanesExpanded: boolean;
+    /** Party groups the user has collapsed in the squad panel. Empty means
+     *  every party is expanded, which is the default. */
+    replayCollapsedParties: Set<number>;
 
     /** Log keys (see statsLogKey) excluded from aggregation. Empty = no slice.
      *  Ephemeral by design: never persisted, dies with the session. */
@@ -105,6 +114,8 @@ interface StatsStoreState {
     setReplayLayer: (key: keyof Omit<StatsStoreState['replayLayers'], 'heatmap'>, value: boolean) => void;
     setReplayHeatmapMode: (mode: StatsStoreState['replayLayers']['heatmap']) => void;
     setReplaySpotlightParty: (party: number | null) => void;
+    setReplayLanesExpanded: (expanded: boolean) => void;
+    toggleReplayPartyCollapsed: (group: number) => void;
     resetReplayLayers: () => void;
 }
 
@@ -142,9 +153,12 @@ const initialState = {
         ccInLane: true,
         stripInLane: true,
         ccTakenMarks: true,
+        scaleBar: true,
         heatmap: 'off' as const,
     },
     replaySpotlightParty: null,
+    replayLanesExpanded: false,
+    replayCollapsedParties: new Set<number>(),
     excludedFightKeys: new Set<string>(),
     fightRoster: [] as FightRosterEntry[],
 };
@@ -204,6 +218,14 @@ export const useStatsStore = create<StatsStoreState>()((set) => ({
                 ? null
                 : Math.min(5, Math.floor(party)),
     }),
+    setReplayLanesExpanded: (expanded) => set({ replayLanesExpanded: expanded }),
+    toggleReplayPartyCollapsed: (group) => set((state) => {
+        // Replace rather than mutate: zustand compares by identity, and a
+        // mutated Set would not re-render the squad panel.
+        const next = new Set(state.replayCollapsedParties);
+        if (next.has(group)) next.delete(group); else next.add(group);
+        return { replayCollapsedParties: next };
+    }),
     resetReplayLayers: () => set(() => ({
         replayLayers: {
             zoneBorders: true,
@@ -213,6 +235,7 @@ export const useStatsStore = create<StatsStoreState>()((set) => ({
             ccLane: true, stripLane: true,
             ccInLane: true, stripInLane: true,
             ccTakenMarks: true,
+            scaleBar: true,
             heatmap: 'off',
         },
         replaySpotlightParty: null,
