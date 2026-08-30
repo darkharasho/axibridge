@@ -93,14 +93,16 @@ export const MemberLayer: React.FC<MemberLayerProps> = ({
             // All sizes are divided by `scale` so they stay a constant pixel
             // size on screen regardless of zoom level.
             const s = scale;
-            const sw = 1 / s;
-            const sw15 = 1.5 / s;
+            const sw = 1 / s;           // 1px stroke
+            const sw15 = 1.5 / s;       // 1.5px stroke
             // iconR is in screen-pixel units (the scale(1/s) counter-transform
             // on the icon group makes it render at exactly iconR*2 px).
             // We shrink it slightly as zoom increases so icons don't crowd
             // the map when zoomed in — from 20px at s=1 to ~14px at s=50.
             const iconR = Math.max(7, 10 - Math.log2(Math.max(1, s)) * 0.5);
-            const ringR = 16 / s;
+            const ringR = 16 / s;        // follow ring radius
+
+            // Base opacity: dead = very dim, down = half, enemies dim slightly, spotlight dim = faint
             const baseOpacity = isDead ? 0.12 : isDown ? 0.45 : dim ? 0.2 : member.isEnemy ? 0.75 : 1;
 
             return (
@@ -117,15 +119,19 @@ export const MemberLayer: React.FC<MemberLayerProps> = ({
                     })}
                     onMouseLeave={onLeave}
                 >
+                    {/* Movement trail — hidden while dead */}
                     {trail.length > 1 && <polyline points={trailStr} fill="none" stroke={color} strokeOpacity={0.2} strokeWidth={sw} strokeDasharray={`${2 / s} ${2 / s}`} />}
                     {recent.length > 1 && <polyline points={recentStr} fill="none" stroke={color} strokeOpacity={0.6} strokeWidth={sw15} />}
+                    {/* Follow ring */}
                     {isFollow && <circle cx={pos[0]} cy={pos[1]} r={ringR} fill="none" stroke="#fbbf24" strokeWidth={sw15} strokeOpacity={0.8} />}
-                    {/* Counter-scaled group so the <image> always has fixed
-                        20x20 local dimensions. Without this, sub-pixel
-                        dimensions at high zoom cause browsers to silently
-                        skip rendering the image. */}
+                    {/* Member icon — rendered in a counter-scaled group so the
+                        <image> element always has fixed 20×20 local dimensions.
+                        Without this, sub-pixel dimensions at high zoom cause
+                        browsers to silently skip rendering the image. */}
                     <g data-member-icon transform={`translate(${pos[0]} ${pos[1]}) scale(${1 / s})`}>
                         {member.isCommander ? (
+                            // Commanders: just the commander tag SVG, no profession icon,
+                            // recoloured to the tag colour they actually ran.
                             <image
                                 href={commanderTagUri(member.tagColor)}
                                 x={-iconR} y={-iconR}
@@ -147,11 +153,11 @@ export const MemberLayer: React.FC<MemberLayerProps> = ({
                                     : <circle cx={0} cy={0} r={iconR} fill="#60a5fa" opacity={0.9} />;
                             })()
                         )}
-                        {/* Overhead squad marker, above the icon so it reads as
-                            an overhead marker does in game and never covers the
-                            profession art or the downed cross. Drawn for
-                            commanders too: a tag says who leads, a marker is a
-                            separate assignment they can also carry. */}
+                        {/* Overhead squad marker (Arrow, Circle, ...), above the
+                            icon so it reads as an overhead marker does in game and
+                            never covers the profession art or the downed cross.
+                            Drawn for commanders too: a tag says who leads, a marker
+                            is a separate assignment they can also carry. */}
                         {member.squadMarker && (
                             <image
                                 href={member.squadMarker.icon}
@@ -163,6 +169,7 @@ export const MemberLayer: React.FC<MemberLayerProps> = ({
                                 <title>{member.squadMarker.label}</title>
                             </image>
                         )}
+                        {/* Downed indicator: orange cross over the icon */}
                         {isDown && !member.isEnemy && (
                             <>
                                 <line x1={-iconR * 0.55} y1={0} x2={iconR * 0.55} y2={0} stroke="#f97316" strokeWidth={sw15 * 1.5 * s} strokeLinecap="round" />
