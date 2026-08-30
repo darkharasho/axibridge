@@ -22,7 +22,7 @@ const mkFight = (over: Partial<ReplayFightPayload>): ReplayFightPayload => ({
     movementData: { pollingRate: 1000, durationMs: 10_000, pixelsPerInch: { x: 1, y: 1 }, members: [], boonIcons: {}, skillIcons: {}, groundMarkers: [] },
     dpsSamples: [], killEvents: [],
     damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
-    sectorOwners: null, ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null,
+    sectorOwners: null, ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null, ccTakenEvents: null,
     ...over,
 });
 
@@ -140,5 +140,99 @@ describe('EventOverlay — extended layers', () => {
         const fight = mkFight({ movementData: { ...mkFight({}).movementData, members: [late] } });
         const { container } = render(<svg><EventOverlay fight={fight} timeMs={1200} scale={1} /></svg>);
         expect(container.querySelector('[data-pulse="down"]')).toBeNull();
+    });
+});
+
+describe('EventOverlay — incoming CC marks', () => {
+    beforeEach(() => {
+        const initial = (useStatsStore as any).getInitialState();
+        useStatsStore.setState(initial);
+    });
+
+    const ccFight = (events: NonNullable<ReplayFightPayload['ccTakenEvents']>) => mkFight({
+        movementData: { ...mkFight({}).movementData, members: [mkMember({ account: 'A.1' })] },
+        ccTakenEvents: events,
+    });
+
+    it('marks a member who took CC in the current second', () => {
+        useStatsStore.getState().setReplayLayer('ccTakenMarks', true);
+        const { container } = render(<svg><EventOverlay fight={ccFight([{ timeMs: 5000, memberKey: 'A.1', count: 2 , kinds: [] }])} timeMs={5400} scale={1} /></svg>);
+        expect(container.querySelector('[data-pulse="cc-taken"]')).not.toBeNull();
+    });
+
+    it('marks CC without being asked, because the layer ships on', () => {
+        // No setReplayLayer call: this asserts the shipped default, which is
+        // the whole reason the marks are discoverable at all.
+        const { container } = render(<svg><EventOverlay fight={ccFight([{ timeMs: 5000, memberKey: 'A.1', count: 2 , kinds: [] }])} timeMs={5400} scale={1} /></svg>);
+        expect(container.querySelector('[data-pulse="cc-taken"]')).not.toBeNull();
+    });
+
+    it('draws nothing once the layer is switched off', () => {
+        useStatsStore.getState().setReplayLayer('ccTakenMarks', false);
+        const { container } = render(<svg><EventOverlay fight={ccFight([{ timeMs: 5000, memberKey: 'A.1', count: 2 , kinds: [] }])} timeMs={5400} scale={1} /></svg>);
+        expect(container.querySelector('[data-pulse="cc-taken"]')).toBeNull();
+    });
+
+    it('does not mark a member whose CC landed outside the playhead window', () => {
+        useStatsStore.getState().setReplayLayer('ccTakenMarks', true);
+        const { container } = render(<svg><EventOverlay fight={ccFight([{ timeMs: 1000, memberKey: 'A.1', count: 2 , kinds: [] }])} timeMs={9000} scale={1} /></svg>);
+        expect(container.querySelector('[data-pulse="cc-taken"]')).toBeNull();
+    });
+
+    it('does not mark ahead of the playhead', () => {
+        useStatsStore.getState().setReplayLayer('ccTakenMarks', true);
+        const { container } = render(<svg><EventOverlay fight={ccFight([{ timeMs: 8000, memberKey: 'A.1', count: 2 , kinds: [] }])} timeMs={5000} scale={1} /></svg>);
+        expect(container.querySelector('[data-pulse="cc-taken"]')).toBeNull();
+    });
+
+    it('draws a heavier ring for a bigger burst of CC in one second', () => {
+        useStatsStore.getState().setReplayLayer('ccTakenMarks', true);
+        const one = render(<svg><EventOverlay fight={ccFight([{ timeMs: 5000, memberKey: 'A.1', count: 1 , kinds: [] }])} timeMs={5000} scale={1} /></svg>);
+        const many = render(<svg><EventOverlay fight={ccFight([{ timeMs: 5000, memberKey: 'A.1', count: 6 , kinds: [] }])} timeMs={5000} scale={1} /></svg>);
+        const width = (r: ReturnType<typeof render>) =>
+            Number(r.container.querySelector('[data-pulse="cc-taken"]')!.getAttribute('stroke-width'));
+        expect(width(many)).toBeGreaterThan(width(one));
+    });
+
+    it('rings the member where they are at the playhead, so the ring frames the icon', () => {
+        // The member icon is drawn at the playhead position. Anchoring the ring
+        // at the moment the CC landed instead leaves it trailing in empty map
+        // behind a moving squad, which is what made these marks unreadable on a
+        // real fight.
+        useStatsStore.getState().setReplayLayer('ccTakenMarks', true);
+        // Real logs poll at 300ms, so a mark's 900ms life spans three samples.
+        const walking = mkMember({
+            account: 'A.1',
+            positions: Array.from({ length: 40 }, (_, i) => [100 + i * 10, 100] as [number, number]),
+        });
+        const fight = mkFight({
+            movementData: { ...mkFight({}).movementData, pollingRate: 300, members: [walking] },
+            ccTakenEvents: [{ timeMs: 5000, memberKey: 'A.1', count: 2 , kinds: [] }],
+        });
+        const { container } = render(<svg><EventOverlay fight={fight} timeMs={5800} scale={1} /></svg>);
+        const ring = container.querySelector('[data-pulse="cc-taken"]')!;
+        // Sample 16 (x=260) is where the CC landed; sample 19 (x=290) is where
+        // the member — and their icon — is by the time the playhead gets here.
+        expect(Number(ring.getAttribute('cx'))).toBe(290);
+    });
+
+    it('draws the ring clear of the 20px member icon it has to frame', () => {
+        // ReplayView renders each member as a 20px-wide icon (iconR 7-10 screen
+        // px). A ring at r=11px sits right on that edge and disappears into the
+        // profession art.
+        useStatsStore.getState().setReplayLayer('ccTakenMarks', true);
+        const { container } = render(<svg><EventOverlay fight={ccFight([{ timeMs: 5000, memberKey: 'A.1', count: 1 , kinds: [] }])} timeMs={5000} scale={1} /></svg>);
+        const ring = container.querySelector('[data-pulse="cc-taken"]')!;
+        expect(Number(ring.getAttribute('r'))).toBeGreaterThanOrEqual(16);
+    });
+
+    it('renders nothing at all when the lane was never recorded', () => {
+        useStatsStore.getState().setReplayLayer('ccTakenMarks', true);
+        const fight = mkFight({
+            movementData: { ...mkFight({}).movementData, members: [mkMember({ account: 'A.1' })] },
+            ccTakenEvents: null,
+        });
+        const { container } = render(<svg><EventOverlay fight={fight} timeMs={5000} scale={1} /></svg>);
+        expect(container.querySelector('[data-pulse="cc-taken"]')).toBeNull();
     });
 });

@@ -67,6 +67,10 @@ interface StatsStoreState {
         ccInLane: boolean;
         /** Squad boon-strips-taken lane. Same availability caveat as `ccInLane`. */
         stripInLane: boolean;
+        /** Per-member incoming-CC rings on the replay canvas. Off by default:
+         *  a squad bomb lands on most of the roster at once, so leaving this
+         *  on would keep the map permanently ringed. */
+        ccTakenMarks: boolean;
         heatmap: 'off' | 'deaths' | 'time' | 'damage-taken';
     };
     replaySpotlightParty: number | null;
@@ -137,6 +141,7 @@ const initialState = {
         stripLane: true,
         ccInLane: true,
         stripInLane: true,
+        ccTakenMarks: true,
         heatmap: 'off' as const,
     },
     replaySpotlightParty: null,
@@ -207,6 +212,7 @@ export const useStatsStore = create<StatsStoreState>()((set) => ({
             rallyRings: false, targetFocusLines: false, damagePulses: false, enemyPulses: false,
             ccLane: true, stripLane: true,
             ccInLane: true, stripInLane: true,
+            ccTakenMarks: true,
             heatmap: 'off',
         },
         replaySpotlightParty: null,

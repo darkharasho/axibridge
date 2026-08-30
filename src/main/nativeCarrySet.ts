@@ -42,6 +42,13 @@
  * because `getEntityBuffStatesPerSource` backs the live boon-generation- and
  * boon-uptime-over-time timelines. `catalogs.buffs` is 2.0 KB.
  *
+ * Attributed incoming CC adds `blocks.cc.taken_events` — the individual rows
+ * behind the `cc_taken` series lane, which the replay draws per-member marks
+ * from. Carried NARROWLY: `blocks.cc`'s `squad` and `by_entity` halves restate
+ * what `blocks.series` already carries, so only the rows are taken. Measured
+ * on a 39-player WvW fight: 908 rows, 57.6 KB raw / 5.7 KB gzipped — small
+ * against `blocks.replay`, which dominates `report.json`.
+ *
  * When a unit migrates, add its path and re-measure.
  */
 export const CARRIED_PATHS = [
@@ -57,6 +64,7 @@ export const CARRIED_PATHS = [
     'blocks.boons',
     'catalogs.buffs',
     'blocks.conditions',
+    'blocks.cc.taken_events',
 ] as const;
 
 export type CarriedPath = (typeof CARRIED_PATHS)[number];

@@ -64,6 +64,8 @@ import {
     saveDpsReportCacheEntry as saveDpsReportCacheEntryFn,
     updateDpsReportCacheDetails as updateDpsReportCacheDetailsFn,
     readCachedDetailsFile as readCachedDetailsFileFn,
+    cachedParserVersionIsStale,
+    MIN_PARSER_VERSION,
     type DpsReportCacheEntry,
 } from './dpsReportCache';
 
@@ -240,8 +242,8 @@ const clearDpsReportCache = (
 ) => clearDpsReportCacheFn(store, getDpsReportCacheDir, getLegacyDpsReportCacheDir, onProgress);
 const invalidateDpsReportCacheEntry = (hash: string, reason: string) => invalidateDpsReportCacheEntryFn(store, hash, reason);
 const loadDpsReportCacheEntry = (hash: string) => loadDpsReportCacheEntryFn(store, hash);
-const saveDpsReportCacheEntry = (hash: string, result: UploadResult, jsonDetails: any | null) => saveDpsReportCacheEntryFn(store, getDpsReportCacheDir, hash, result, jsonDetails);
-const updateDpsReportCacheDetails = (hash: string, jsonDetails: any) => updateDpsReportCacheDetailsFn(store, getDpsReportCacheDir, hash, jsonDetails);
+const saveDpsReportCacheEntry = (hash: string, result: UploadResult, jsonDetails: any | null) => saveDpsReportCacheEntryFn(store, getDpsReportCacheDir, hash, result, jsonDetails, activeParserVersion());
+const updateDpsReportCacheDetails = (hash: string, jsonDetails: any) => updateDpsReportCacheDetailsFn(store, getDpsReportCacheDir, hash, jsonDetails, activeParserVersion());
 
 
 process.env.DIST = path.join(__dirname, '../../')
@@ -264,6 +266,12 @@ const getActiveParser = (): AxilogManager | null => axilogManager;
 
 /** True when a local parse is possible right now. */
 const isLocalParserAvailable = (): boolean => Boolean(axilogManager?.isInstalled());
+
+/**
+ * The installed axilog version, stamped onto every cache entry we write so a
+ * later run can tell whether the parse behind it is still worth serving.
+ */
+const activeParserVersion = (): string | null => getActiveParser()?.getStatus().version ?? null;
 
 // We always parse combat replay (EI v3.24+ only emits the distToCom/stackDist
 // distance scalars when it does; axilog never emits them and axilogParser.ts
@@ -607,19 +615,35 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
     // distToCom/stackDist == 0 — i.e. Closest to Tag stuck at 0. Re-parsing heals
     // those histories. (Independent of the parseCombatReplay retention setting,
     // which only controls whether positions are kept.)
+    //
+    // Same reasoning, one level up: a parse from an axilog older than
+    // MIN_PARSER_VERSION is missing whole series the current build reads, and
+    // no amount of re-reading the cached file will grow them. The details TTL
+    // already retires these within a day, so this only matters in the window
+    // right after an axilog upgrade — which is precisely when a user is
+    // looking for the thing the upgrade added.
     const eiInstalled = isLocalParserAvailable();
     const cachedDetailsLackReplay = eiInstalled
         && cached?.jsonDetails
         && !cached.jsonDetails.combatReplayMetaData;
+    const cachedDetailsFromOldParser = Boolean(
+        eiInstalled
+        && cached?.jsonDetails
+        && cachedParserVersionIsStale(cached.entry)
+    );
     const cachedHasUsableDetails = Boolean(
         cached?.entry?.result
         && cached?.jsonDetails
         && !cached.jsonDetails.error
         && hasUsableFightDetails(cached.jsonDetails)
         && !cachedDetailsLackReplay
+        && !cachedDetailsFromOldParser
     );
     if (cachedDetailsLackReplay) {
         console.log(`[Cache] Cached details for ${filePath} lack combatReplayMetaData; forcing EI re-parse.`);
+    }
+    if (cachedDetailsFromOldParser) {
+        console.log(`[Cache] Cached details for ${filePath} were parsed by axilog ${cached?.entry?.parserVersion ?? 'unknown'} (< ${MIN_PARSER_VERSION}); forcing re-parse.`);
     }
 
     // ─── Local-parser-first path ────────────────────────────────────────────

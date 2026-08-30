@@ -164,3 +164,64 @@ export const readSquadSumOfEntitySeries = (
     for (let i = 0; i < out.length; i++) out[i] = out[i] || 0;
     return out;
 };
+
+/**
+ * One crowd-control application that landed on one squad member, attributed.
+ *
+ * This is the decomposition of the `cc_taken` lane above: the lane counts CC
+ * per second, these are the individual rows that lane sums. Both come from the
+ * same axilog pass, so a spike on the lane and a cluster of these must agree.
+ */
+export interface NativeCcTakenEvent {
+    timeMs: number;
+    /**
+     * Who applied it, or `null` when the caster is not in the roster at all —
+     * a gadget, an environmental source. The row is still kept, because it
+     * happened to a real player.
+     */
+    sourceId: number | null;
+    skillId: number;
+    /**
+     * The EFFECT, not the cause. arcdps substitutes its own generic control
+     * ids for the skill that was cast, so `skillId` almost never names the
+     * ability; the kind is resolved through the skill catalog instead of by
+     * hardcoding ids. `null` when the catalog cannot classify it.
+     */
+    controlKind: string | null;
+    durationMs: number;
+}
+
+/**
+ * Whether axilog's attributed-CC pass ran at all.
+ *
+ * The container's own ABSENCE is the gate signal: `undefined` means the pass
+ * never ran, an empty object means it ran and the squad took no CC. Callers
+ * must not conflate the two — one renders a "not recorded" notice, the other
+ * renders a quiet fight.
+ */
+export const hasCcTakenEvents = (native: any): boolean => {
+    const events = native?.blocks?.cc?.taken_events;
+    return !!events && typeof events === 'object';
+};
+
+/** One squad member's incoming CC, chronological. Empty when they took none. */
+export const readCcTakenEvents = (native: any, entityId: string): NativeCcTakenEvent[] => {
+    const rows = native?.blocks?.cc?.taken_events?.[entityId];
+    if (!Array.isArray(rows)) return [];
+    const skills = native?.catalogs?.skills;
+    const out = rows.map((row: any): NativeCcTakenEvent => {
+        const skillId = Number(row?.skill_id) || 0;
+        const kind = skills?.[String(skillId)]?.control_kind;
+        return {
+            timeMs: Number(row?.time_ms) || 0,
+            sourceId: Number.isFinite(Number(row?.src)) ? Number(row.src) : null,
+            skillId,
+            controlKind: kind ? String(kind) : null,
+            durationMs: Number(row?.duration_ms) || 0,
+        };
+    });
+    // Chronological so consumers can scan in playback order rather than
+    // trusting axilog's emission order.
+    out.sort((a, b) => a.timeMs - b.timeMs);
+    return out;
+};

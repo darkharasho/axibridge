@@ -13,6 +13,7 @@ import { createHash } from 'node:crypto';
 import type { StoreAdapter } from './uploadRetryQueue';
 import type { UploadResult } from './uploader';
 import { applyEiCompatShims } from './axilogParser';
+import { compareVersion, parseVersion } from './versionUtils';
 
 // ─── Extended adapter (needed for store.delete in clearDpsReportCache) ────────
 
@@ -29,6 +30,11 @@ export type DpsReportCacheEntry = {
     detailsPath?: string | null;
     detailsCachedAt?: number | null;
     detailsSchemaVersion?: number | null;
+    /**
+     * The axilog version that produced `detailsPath`, or absent on an entry
+     * written before this was stamped. Read by {@link cachedParserVersionIsStale}.
+     */
+    parserVersion?: string | null;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -45,6 +51,37 @@ export const DPS_REPORT_DETAILS_TTL_MS = 24 * 60 * 60 * 1000;
  *   1 → 2: target combatReplayData.positions now preserved (enemy replay data)
  */
 export const DETAILS_SCHEMA_VERSION = 2;
+
+/**
+ * The oldest axilog whose parse output is still worth serving from cache.
+ *
+ * Distinct from {@link DETAILS_SCHEMA_VERSION}, which tracks OUR pruning
+ * shape; this tracks the parser's. A field the parser never emitted cannot be
+ * pruned back in, so an older parse is stale no matter how our own code moves.
+ *
+ * History:
+ *   1.9.0 — per-entity `cc_taken` / `strips_taken` series. Without them the
+ *           replay's incoming-CC lane and per-player CC marks render empty,
+ *           and nothing in a re-read of the cached file can fill them.
+ */
+export const MIN_PARSER_VERSION = '1.9.0';
+
+/**
+ * Whether a cached entry's details were produced by a parser too old to trust.
+ *
+ * An absent stamp counts as stale: it means the entry predates stamping, so
+ * the producing version is unknowable, and "unknown" includes every version
+ * this check exists to reject. The cost of being wrong is one re-parse; the
+ * cost of guessing fresh is a fight that silently renders without the lanes.
+ * Self-healing either way — the re-parse writes a stamp.
+ */
+export const cachedParserVersionIsStale = (entry: Pick<DpsReportCacheEntry, 'parserVersion'>): boolean => {
+    const stamped = parseVersion(entry?.parserVersion);
+    if (!stamped) return true;
+    const minimum = parseVersion(MIN_PARSER_VERSION);
+    if (!minimum) return false;
+    return compareVersion(stamped, minimum) < 0;
+};
 
 // ─── Pure helpers (no store I/O) ──────────────────────────────────────────────
 
@@ -244,7 +281,8 @@ export const saveDpsReportCacheEntry = async (
     getCacheDir: () => string,
     hash: string,
     result: UploadResult,
-    jsonDetails: any | null
+    jsonDetails: any | null,
+    parserVersion?: string | null
 ) => {
     const cacheDir = getCacheDir();
     try {
@@ -261,6 +299,7 @@ export const saveDpsReportCacheEntry = async (
         detailsPath: null,
         detailsCachedAt: null,
         detailsSchemaVersion: DETAILS_SCHEMA_VERSION,
+        parserVersion: parserVersion ?? null,
     };
 
     if (jsonDetails) {
@@ -284,7 +323,8 @@ export const updateDpsReportCacheDetails = async (
     store: StoreAdapter,
     getCacheDir: () => string,
     hash: string,
-    jsonDetails: any
+    jsonDetails: any,
+    parserVersion?: string | null
 ) => {
     const cacheDir = getCacheDir();
     try {
@@ -303,6 +343,9 @@ export const updateDpsReportCacheDetails = async (
         entry.detailsPath = detailsPath;
         entry.detailsCachedAt = Date.now();
         entry.detailsSchemaVersion = DETAILS_SCHEMA_VERSION;
+        // Follows the details, not the entry: this path replaces the file an
+        // older parser wrote, so the stamp has to move with it.
+        entry.parserVersion = parserVersion ?? null;
         index[hash] = entry;
         saveDpsReportCacheIndex(store, index);
     } catch {

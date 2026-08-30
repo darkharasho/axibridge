@@ -34,6 +34,7 @@ import type { WvwOwner } from '../../../shared/wvwSectors';
 import { SquadOverlay } from './SquadOverlay';
 import { SquadHealthStrip } from './SquadHealthStrip';
 import { LayersPanel } from './LayersPopover';
+import { CcTakenNotice } from './CcTakenNotice';
 import { useHeatmapData } from './hooks/useHeatmapData';
 import { FightPickerBar } from './FightPickerBar';
 import { FightPicker } from './FightPicker';
@@ -349,6 +350,8 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                     Spotlight: Party {spotlightParty} <X size={10} style={{ marginLeft: 4 }} />
                                 </button>
                             )}
+
+                            <CcTakenNotice ccTakenEvents={selectedFight.ccTakenEvents} />
 
                             {layers.squadHealthStrip && (
                                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5 }}>

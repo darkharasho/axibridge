@@ -5,6 +5,17 @@ import { useSquadDerived } from './hooks/useSquadDerived';
 import type { ReplayFightPayload } from './replayTypes';
 import { SERIES_INTERVAL_MS } from '@axiapps/bridge-metrics/nativeSeries';
 
+/**
+ * The two mirrored measures, each drawn as an outgoing lane above its zero
+ * line and an incoming lane below it. `zeroY` is the shared baseline the
+ * `subLane` calls below hang off, so these must stay in step with the y
+ * offsets passed there.
+ */
+const LANE_LABELS = [
+    { id: 'cc', label: 'CC', color: '#f59e0b', zeroY: 114, outKey: 'ccLane', inKey: 'ccInLane' },
+    { id: 'strip', label: 'Strips', color: '#e879f9', zeroY: 142, outKey: 'stripLane', inKey: 'stripInLane' },
+] as const;
+
 interface SyncedTimelineProps {
     fight: ReplayFightPayload;
 }
@@ -145,8 +156,8 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
                         // otherwise. A dashed baseline + muted label keeps
                         // the two states visually distinct on the replay.
                         <g data-testid="cc-lane-not-recorded">
-                            <line x1={0} x2={1000} y1={114} y2={114} stroke="#f59e0b" strokeWidth={1} strokeDasharray="4 3" opacity={0.35} />
-                            <text x={4} y={112} fontSize={7} fill="#f59e0b" opacity={0.6}>CC not recorded</text>
+                            <line x1={0} x2={1000} y1={109} y2={109} stroke="#f59e0b" strokeWidth={1} strokeDasharray="4 3" opacity={0.35} />
+                            <text x={98} y={107} fontSize={7} fill="#f59e0b" opacity={0.6}>not recorded</text>
                         </g>
                     )
                 )}
@@ -165,8 +176,8 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
                         // A log can therefore draw a full CC lane and nothing
                         // here, which is exactly why the two are gated apart.
                         <g data-testid="cc-in-lane-not-recorded">
-                            <line x1={0} x2={1000} y1={114} y2={114} stroke="#f59e0b" strokeWidth={1} strokeDasharray="4 3" opacity={0.2} />
-                            <text x={4} y={122} fontSize={7} fill="#f59e0b" opacity={0.45}>CC taken not recorded</text>
+                            <line x1={0} x2={1000} y1={119} y2={119} stroke="#f59e0b" strokeWidth={1} strokeDasharray="4 3" opacity={0.2} />
+                            <text x={98} y={123} fontSize={7} fill="#f59e0b" opacity={0.45}>not recorded</text>
                         </g>
                     )
                 )}
@@ -179,8 +190,8 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
                         )
                     ) : (
                         <g data-testid="strip-lane-not-recorded">
-                            <line x1={0} x2={1000} y1={142} y2={142} stroke="#e879f9" strokeWidth={1} strokeDasharray="4 3" opacity={0.35} />
-                            <text x={4} y={140} fontSize={7} fill="#e879f9" opacity={0.6}>Strips not recorded</text>
+                            <line x1={0} x2={1000} y1={137} y2={137} stroke="#e879f9" strokeWidth={1} strokeDasharray="4 3" opacity={0.35} />
+                            <text x={98} y={135} fontSize={7} fill="#e879f9" opacity={0.6}>not recorded</text>
                         </g>
                     )
                 )}
@@ -193,11 +204,34 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
                         )
                     ) : (
                         <g data-testid="strip-in-lane-not-recorded">
-                            <line x1={0} x2={1000} y1={142} y2={142} stroke="#e879f9" strokeWidth={1} strokeDasharray="4 3" opacity={0.2} />
-                            <text x={4} y={150} fontSize={7} fill="#e879f9" opacity={0.45}>Strips taken not recorded</text>
+                            <line x1={0} x2={1000} y1={147} y2={147} stroke="#e879f9" strokeWidth={1} strokeDasharray="4 3" opacity={0.2} />
+                            <text x={98} y={151} fontSize={7} fill="#e879f9" opacity={0.45}>not recorded</text>
                         </g>
                     )
                 )}
+                {LANE_LABELS.map(lane => (
+                    (layersState[lane.outKey] || layersState[lane.inKey]) && (
+                        <g key={lane.id}>
+                            {/* The zero line the pair mirrors around. Without it
+                                the two half-height bar sets read as two
+                                unrelated lanes rather than one axis. */}
+                            <line data-testid={`${lane.id}-zero-rule`}
+                                  x1={0} x2={1000} y1={lane.zeroY} y2={lane.zeroY}
+                                  stroke={lane.color} strokeWidth={0.5} opacity={0.3} />
+                            {/* Opaque plate: the bars run to x=0, so a bare
+                                label would sit inside the fight's opening
+                                seconds and be unreadable. */}
+                            <rect x={0} y={lane.zeroY - 6.5} width={92} height={13}
+                                  fill="rgba(8,12,26,0.92)" rx={2} />
+                            <text data-testid={`${lane.id}-lane-label`}
+                                  x={4} y={lane.zeroY + 3.2} fontSize={9}
+                                  fontWeight={600}
+                                  fill={lane.color} opacity={0.95}>
+                                {`${lane.label} \u25B2out \u25BCin`}
+                            </text>
+                        </g>
+                    )
+                ))}
                 <line x1={playheadX} x2={playheadX} y1={0} y2={176} stroke="#fbbf24" strokeWidth={1.5} />
             </svg>
             {layersState.phases && derived.phases.length > 0 && (

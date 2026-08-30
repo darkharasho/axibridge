@@ -182,7 +182,22 @@ gated on their own series rather than on a shared flag.
 On the timeline each measure draws outgoing above and incoming below one
 shared zero line, normalized independently. Independent scaling is
 required, not cosmetic: the two asymmetries above make incoming CC read
-much higher, and a shared axis would flatten the outgoing lane against it.
+much higher, and a shared axis would flatten the outgoing lane against it. Each measure is labelled on its own zero line (`CC ▲out ▼in`,
+`Strips ▲out ▼in`), and the Layers panel carries the matching legend
+plus the scaling caveat — without it a taller bar below the line reads as
+"more happened", which it does not mean.
+
+The same `by_entity` fold also feeds the replay canvas. `ccTakenEvents`
+keeps the per-member attribution the squad sum discards, as a sparse
+`{timeMs, memberKey, count}` list (non-zero buckets only — incoming CC is
+bursty, and `replayFights` is already the largest part of a published
+report). The **CC taken marks** layer rings the players who took CC in the
+current second, weighted by count, drawn as a ring around the member's own
+icon at the playhead so the two stay together while the squad moves. Off by
+default: a squad bomb lands on most of the roster at once. When the layer is
+on and the fight carries no lane at all (`ccTakenEvents` is `null`), the map
+says so on a chip rather than drawing nothing — an empty map is otherwise
+indistinguishable from a fight where no CC landed.
 
 Implementation: `src/renderer/stats/computeControlTimeline.ts`
 (ingestLogControlTimeline / resolveIncomingCc), reading `cc_taken` via

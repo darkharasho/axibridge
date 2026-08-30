@@ -18,6 +18,32 @@ export interface DamageSpikeEvent {
     magnitude: number;
 }
 
+/**
+ * One instant at which one squad member took crowd control.
+ *
+ * Sparse on purpose. Incoming CC is bursty — a bomb lands on a fraction of the
+ * roster for a handful of seconds — so a dense per-member grid would be mostly
+ * zeroes, and `replayFights` is already the largest thing in a published
+ * report. Only moments where something landed are emitted.
+ */
+export interface CcTakenEvent {
+    timeMs: number;
+    /** `account || name`, the same key `EventOverlay` indexes movement members by. */
+    memberKey: string;
+    /** Applications at this exact instant, which the canvas weights the mark by. */
+    count: number;
+    /**
+     * Distinct control kinds, deduped — `stun_or_daze`, `knockback_or_pull`
+     * and friends. Resolved through axilog's skill catalog, never from the
+     * row's own skill id: arcdps substitutes generic control ids for the
+     * ability that was cast, so the id names the effect and loses the cause.
+     *
+     * Empty for a fight parsed before axilog 1.10, whose 1s lane counted CC
+     * without classifying it.
+     */
+    kinds: string[];
+}
+
 export interface RallyEvent {
     timeMs: number;
     memberKey: string;
@@ -71,4 +97,14 @@ export interface ReplayFightPayload {
     ccInSamples: number[] | null;
     /** Squad boons stripped OFF the squad per second, or null if not recorded. Same `timeseries` gate as `ccInSamples`, but available since axilog 1.8.0. */
     stripInSamples: number[] | null;
+    /**
+     * Who took the CC that `ccInSamples` totals, second by second.
+     *
+     * Same source and same availability gate as `ccInSamples` — both are folded
+     * from `by_entity.cc_taken` in one pass — so the two go absent together.
+     * `null` means the lane was never recorded; `[]` means it was recorded and
+     * the squad ate nothing. The replay draws nothing in either case, but only
+     * `null` should read as missing data.
+     */
+    ccTakenEvents: CcTakenEvent[] | null;
 }

@@ -50,12 +50,15 @@ import { classifyPlayerRoles } from './classifyPlayerRoles';
 
 import { buildMovementData, type SquadMemberMovement } from '../../shared/movementData';
 import { getArena, replayCanvas } from '@axiapps/bridge-metrics/nativePositioning';
-import { readSquadSeries, readSquadSumOfEntitySeries } from '@axiapps/bridge-metrics/nativeSeries';
+import {
+    readSquadSeries, readSquadSumOfEntitySeries, readEntitySeries, SERIES_INTERVAL_MS,
+    hasCcTakenEvents, readCcTakenEvents,
+} from '@axiapps/bridge-metrics/nativeSeries';
 import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
 import { resolveMapFromZone, computeFightAvgPosition, buildFightLabelV2 } from '../../shared/mapUtils';
 import { findNearestLandmark } from '../../shared/wvwLandmarks';
 import { TRACKED_REPLAY_BUFF_IDS } from '../../shared/replayBuffs';
-import type { ReplayFightPayload, ReplayDpsSample, ReplayKillEvent, DamageSpikeEvent, RallyEvent, TargetFocusSample } from './map/replayTypes';
+import type { ReplayFightPayload, ReplayDpsSample, ReplayKillEvent, DamageSpikeEvent, RallyEvent, TargetFocusSample, CcTakenEvent } from './map/replayTypes';
 
 function memberKey(p: any): string {
     return String(p?.account || p?.name || '');
@@ -198,9 +201,11 @@ export function buildReplayFightPayload(log: any, fightIndex: number, opts?: { p
     // from the roster here. That fold is why they go absent independently of
     // the two above: `by_entity` is gated on `timeseries`, the squad block
     // is not.
-    const squadIds = squadEntities(nativeReport).map(e => String(e.id));
+    const squad = squadEntities(nativeReport);
+    const squadIds = squad.map(e => String(e.id));
     const ccInSamples = readSquadSumOfEntitySeries(nativeReport, squadIds, 'cc_taken');
     const stripInSamples = readSquadSumOfEntitySeries(nativeReport, squadIds, 'strips_taken');
+    const ccTakenEvents = collectCcTakenEvents(nativeReport, squad);
     const killEvents: ReplayKillEvent[] = collectKillEvents(movement);
     const rallyEvents = computeRallyEvents(movement.members);
     const damageSpikeEvents = computeDamageSpikeEvents(details);
@@ -227,6 +232,7 @@ export function buildReplayFightPayload(log: any, fightIndex: number, opts?: { p
         stripSamples,
         ccInSamples,
         stripInSamples,
+        ccTakenEvents,
         killEvents,
         damageSpikeEvents,
         rallyEvents,
@@ -251,6 +257,73 @@ function computeSquadDpsSamples(details: any): ReplayDpsSample[] {
         samples.push({ timeMs: t * 1000, squadDps: total });
     }
     return samples;
+}
+
+/**
+ * Who ate CC, and exactly when — the sparse "incoming CC" list the replay
+ * canvas draws per-member marks from.
+ *
+ * The squad TOTAL of the same data is `ccInSamples`, so a spike on the
+ * timeline's incoming lane and a cluster of marks on the map are one event
+ * seen two ways.
+ *
+ * Prefers axilog's attributed rows (>=1.10), which stamp each application to
+ * the millisecond and name the control kind. Falls back to folding the 1s
+ * `cc_taken` lane for fights parsed before that — reports are published and
+ * cached, so the old shape has to keep drawing marks rather than blanking.
+ *
+ * Returns `null` only when NEITHER source is present: `null` means never
+ * recorded, `[]` means recorded and nothing landed, and the replay must not
+ * conflate them.
+ */
+function collectCcTakenEvents(nativeReport: any, squad: { id: number; account?: string; character?: string }[]): CcTakenEvent[] | null {
+    // Same key spelling `EventOverlay`'s movement index uses, so a mark can
+    // find the member's position without a second identity map.
+    const keyOf = (e: { account?: string; character?: string }) => e.account || e.character || '';
+
+    if (hasCcTakenEvents(nativeReport)) {
+        const events: CcTakenEvent[] = [];
+        for (const entity of squad) {
+            const memberKey = keyOf(entity);
+            if (!memberKey) continue;
+            // Hits at the identical instant are one thing that happened to
+            // that player: the canvas draws a single ring weighted by `count`,
+            // where stacked rings would only alias.
+            const byInstant = new Map<number, CcTakenEvent>();
+            for (const row of readCcTakenEvents(nativeReport, String(entity.id))) {
+                let mark = byInstant.get(row.timeMs);
+                if (!mark) {
+                    mark = { timeMs: row.timeMs, memberKey, count: 0, kinds: [] };
+                    byInstant.set(row.timeMs, mark);
+                }
+                mark.count += 1;
+                if (row.controlKind && !mark.kinds.includes(row.controlKind)) mark.kinds.push(row.controlKind);
+            }
+            events.push(...byInstant.values());
+        }
+        events.sort((a, b) => a.timeMs - b.timeMs);
+        return events;
+    }
+
+    let recorded = false;
+    const events: CcTakenEvent[] = [];
+    for (const entity of squad) {
+        const series = readEntitySeries(nativeReport, String(entity.id), 'cc_taken');
+        if (!series) continue;
+        recorded = true;
+        const memberKey = keyOf(entity);
+        if (!memberKey) continue;
+        for (let i = 0; i < series.length; i++) {
+            // The lane counts, it does not classify — no kinds to recover.
+            if (series[i] > 0) events.push({ timeMs: i * SERIES_INTERVAL_MS, memberKey, count: series[i], kinds: [] });
+        }
+    }
+    if (!recorded) return null;
+    // Chronological so the overlay's window scan reads in playback order
+    // rather than roster order. Sort is stable, so members stay grouped
+    // within a second.
+    events.sort((a, b) => a.timeMs - b.timeMs);
+    return events;
 }
 
 function collectKillEvents(movement: any): ReplayKillEvent[] {

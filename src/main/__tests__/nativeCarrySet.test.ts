@@ -15,6 +15,7 @@ import {
 } from '@axiapps/bridge-metrics/nativeDamage';
 import { listBoonIds, getBuffMeta, getEntityBuffUptime } from '@axiapps/bridge-metrics/nativeBoons';
 import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
+import { hasCcTakenEvents, readCcTakenEvents } from '@axiapps/bridge-metrics/nativeSeries';
 
 const report = () => ({
     axilog: { schema: '1.0', version: '0.3.5' },
@@ -51,6 +52,38 @@ describe('buildNativeCarrySet', () => {
         // "ran, found nobody" must stay distinguishable from "never parsed".
         const out = buildNativeCarrySet({ ...report(), entities: [] })!;
         expect(out.entities).toEqual([]);
+    });
+});
+
+describe('carry-set — blocks.cc.taken_events (attributed incoming CC)', () => {
+    const ccReport = {
+        axilog: { schema: '1.0' },
+        blocks: {
+            cc: {
+                squad: { applied: 12 },
+                by_entity: { '7': { applied: 3 } },
+                taken_events: { '7': [{ time_ms: 1100, src: 91, skill_id: 23295, duration_ms: 0 }] },
+            },
+        },
+    };
+
+    it('carries the attributed rows the replay draws marks from', () => {
+        const out = buildNativeCarrySet(ccReport) as any;
+        expect(out.blocks.cc.taken_events['7']).toHaveLength(1);
+    });
+
+    it('leaves the rest of blocks.cc behind', () => {
+        // `squad`/`by_entity` are already served by `blocks.series`; carrying
+        // them would duplicate that data inside every published fight.
+        const out = buildNativeCarrySet(ccReport) as any;
+        expect(Object.keys(out.blocks.cc)).toEqual(['taken_events']);
+    });
+
+    it('omits the container entirely when axilog never ran the pass', () => {
+        // Absence is the gate signal the replay reads, so a carry set must not
+        // manufacture an empty object and claim the pass ran.
+        const out = buildNativeCarrySet({ axilog: { schema: '1.0' }, blocks: { cc: { squad: {} } } }) as any;
+        expect(out.blocks?.cc).toBeUndefined();
     });
 });
 
@@ -200,6 +233,16 @@ describe.runIf(binding && fs.existsSync(COMMITTED_FIXTURE))(
             expect(Object.values(skillCatalog).some((v: any) => v?.icon)).toBe(true);
             const buffCatalog: any = (details.native as any)?.catalogs?.buffs ?? {};
             expect(Object.values(buffCatalog).some((v: any) => v?.icon)).toBe(true);
+
+            // Attributed incoming CC — blocks.cc.taken_events. Gated on the
+            // `timeseries` option alone, so on a real parse it must be here,
+            // and every row must classify through catalogs.skills: the
+            // control kind is the whole point, and the ids arcdps emits are
+            // generic effect ids that only the catalog can name.
+            expect(hasCcTakenEvents(details.native)).toBe(true);
+            const ccRows = squad.flatMap((e: any) => readCcTakenEvents(details.native, String(e.id)));
+            expect(ccRows.length).toBeGreaterThan(0);
+            expect(ccRows.every((r: any) => r.controlKind)).toBe(true);
         }, 120_000);
     },
 );

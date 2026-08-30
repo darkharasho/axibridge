@@ -1,7 +1,7 @@
 import * as path from 'path';
 import { describe, expect, it } from 'vitest';
 import { parseFile } from '@axiapps/axilog';
-import { decodeSeries, decodeCountSeries, readSquadSeries, readEntitySeries } from '../nativeSeries';
+import { decodeSeries, decodeCountSeries, readSquadSeries, readEntitySeries, hasCcTakenEvents, readCcTakenEvents } from '../nativeSeries';
 
 describe('decodeSeries', () => {
     it('expands rle pairs into one value per interval', () => {
@@ -110,5 +110,62 @@ describe('readEntitySeries', () => {
 
     it('returns null for an unknown entity', () => {
         expect(readEntitySeries(native, 'nope', 'cc_applied')).toBeNull();
+    });
+});
+
+describe('cc taken events', () => {
+    const report = () => ({
+        catalogs: {
+            skills: {
+                '23295': { name: 'Knockback', control_kind: 'knockback_or_pull' },
+                '23299': { name: 'Daze', control_kind: 'stun_or_daze' },
+                '5491': { name: 'Feast of Corruption' },
+            },
+        },
+        blocks: {
+            cc: {
+                taken_events: {
+                    '7': [
+                        { time_ms: 4200, src: 91, skill_id: 23299, duration_ms: 2000 },
+                        { time_ms: 1100, src: 91, skill_id: 23295, duration_ms: 0 },
+                        { time_ms: 8000, skill_id: 5491, duration_ms: 300 },
+                    ],
+                },
+            },
+        },
+    });
+
+    it('reports the pass never ran when the block is absent', () => {
+        expect(hasCcTakenEvents({ blocks: {} })).toBe(false);
+        expect(hasCcTakenEvents(null)).toBe(false);
+    });
+
+    it('reports the pass ran when it recorded no CC at all', () => {
+        // An empty object means the squad ate nothing, which the replay must
+        // not conflate with "we never looked".
+        expect(hasCcTakenEvents({ blocks: { cc: { taken_events: {} } } })).toBe(true);
+    });
+
+    it('resolves each row control kind through the skill catalog', () => {
+        const rows = readCcTakenEvents(report(), '7');
+        expect(rows.map((r) => r.controlKind)).toEqual([
+            'knockback_or_pull', 'stun_or_daze', null,
+        ]);
+    });
+
+    it('orders rows chronologically regardless of the order axilog emitted', () => {
+        expect(readCcTakenEvents(report(), '7').map((r) => r.timeMs)).toEqual([1100, 4200, 8000]);
+    });
+
+    it('keeps a row whose caster is outside the roster, with a null source', () => {
+        // A gadget or an environmental source has no entity id, but the CC
+        // still landed on a real player and must still be drawn.
+        const rows = readCcTakenEvents(report(), '7');
+        expect(rows[2]).toMatchObject({ skillId: 5491, sourceId: null, durationMs: 300 });
+        expect(rows[0].sourceId).toBe(91);
+    });
+
+    it('returns nothing for an entity that took no CC', () => {
+        expect(readCcTakenEvents(report(), '999')).toEqual([]);
     });
 });

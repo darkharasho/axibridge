@@ -12,7 +12,7 @@ const makeFight = (duration = 60_000): ReplayFightPayload => ({
     dpsSamples: [{ timeMs: 0, squadDps: 0 }, { timeMs: 30_000, squadDps: 5000 }, { timeMs: 60_000, squadDps: 10_000 }],
     killEvents: [], damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
     sectorOwners: null,
-    ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null,
+    ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null, ccTakenEvents: null,
 });
 
 describe('SyncedTimeline', () => {
@@ -199,5 +199,47 @@ describe('SyncedTimeline incoming lanes', () => {
         // its baseline.
         expect(out).toContain('V 104.0');
         expect(inc).toContain('V 124.0');
+    });
+});
+
+describe('SyncedTimeline lane labels', () => {
+    beforeEach(() => {
+        const initial = (useStatsStore as any).getInitialState();
+        useStatsStore.setState(initial);
+    });
+
+    it('labels the CC measure whether or not the lane carries data', () => {
+        // The lanes were previously named only in their not-recorded state, so
+        // a fight WITH data drew an unlabelled coloured path.
+        const withData = render(<SyncedTimeline fight={{ ...makeFight(), ccSamples: [0, 2, 1] }} />);
+        expect(withData.container.querySelector('[data-testid="cc-lane-label"]')).not.toBeNull();
+        const without = render(<SyncedTimeline fight={makeFight()} />);
+        expect(without.container.querySelector('[data-testid="cc-lane-label"]')).not.toBeNull();
+    });
+
+    it('labels the strip measure whether or not the lane carries data', () => {
+        const withData = render(<SyncedTimeline fight={{ ...makeFight(), stripSamples: [0, 2, 1] }} />);
+        expect(withData.container.querySelector('[data-testid="strip-lane-label"]')).not.toBeNull();
+    });
+
+    it('names both directions of a measure so the mirrored bars are readable', () => {
+        const { container } = render(<SyncedTimeline fight={{ ...makeFight(), ccSamples: [1], ccInSamples: [1] }} />);
+        const label = container.querySelector('[data-testid="cc-lane-label"]')!;
+        expect(label.textContent).toMatch(/out/i);
+        expect(label.textContent).toMatch(/in/i);
+    });
+
+    it('draws a zero rule for each measure so up-vs-down has a visible axis', () => {
+        const { container } = render(<SyncedTimeline fight={{ ...makeFight(), ccSamples: [1], ccInSamples: [1] }} />);
+        expect(container.querySelector('[data-testid="cc-zero-rule"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="strip-zero-rule"]')).not.toBeNull();
+    });
+
+    it('drops a measure label entirely when both of its layer toggles are off', () => {
+        useStatsStore.getState().setReplayLayer('ccLane', false);
+        useStatsStore.getState().setReplayLayer('ccInLane', false);
+        const { container } = render(<SyncedTimeline fight={{ ...makeFight(), ccSamples: [1] }} />);
+        expect(container.querySelector('[data-testid="cc-lane-label"]')).toBeNull();
+        expect(container.querySelector('[data-testid="cc-zero-rule"]')).toBeNull();
     });
 });

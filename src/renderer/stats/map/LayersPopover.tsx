@@ -19,7 +19,20 @@ const PHASE_LEGEND: { kind: string; color: string; desc: string }[] = [
     { kind: 'cleanup', color: '#a78bfa', desc: 'Squad stationary / mopping up' },
 ];
 
-const EVENT_TOGGLES: { key: 'phases' | 'rallyRings' | 'targetFocusLines' | 'damagePulses' | 'enemyPulses' | 'ccLane' | 'stripLane' | 'ccInLane' | 'stripInLane'; label: string; title: string }[] = [
+/**
+ * What the four mirrored sub-lanes mean, in the shape {@link PHASE_LEGEND}
+ * already uses. The scaling note is the load-bearing part: the lanes are
+ * normalized per-lane, so a taller bar below the zero line does NOT mean more
+ * happened than above it.
+ */
+const LANE_LEGEND: { dir: string; label: string; color: string; desc: string }[] = [
+    { dir: '\u25B2', label: 'CC out',     color: '#f59e0b', desc: 'CC the squad applied' },
+    { dir: '\u25BC', label: 'CC in',      color: '#f59e0b', desc: 'CC landed on the squad' },
+    { dir: '\u25B2', label: 'Strips out', color: '#e879f9', desc: 'Boons the squad stripped' },
+    { dir: '\u25BC', label: 'Strips in',  color: '#e879f9', desc: 'Boons stripped off the squad' },
+];
+
+const EVENT_TOGGLES: { key: 'phases' | 'rallyRings' | 'targetFocusLines' | 'damagePulses' | 'enemyPulses' | 'ccLane' | 'stripLane' | 'ccInLane' | 'stripInLane' | 'ccTakenMarks'; label: string; title: string }[] = [
     { key: 'phases', label: 'Fight phases on timeline', title: 'Marks fight phase boundaries on the scrubber timeline — colours show squad behaviour (opening / push / retreat / cleanup)' },
     { key: 'rallyRings', label: 'Rally rings', title: 'Flashes a ring when a downed player rallies back to full health' },
     { key: 'targetFocusLines', label: 'Target-focus lines', title: 'Lines from each player to the target they are currently damaging most' },
@@ -29,6 +42,7 @@ const EVENT_TOGGLES: { key: 'phases' | 'rallyRings' | 'targetFocusLines' | 'dama
     { key: 'stripLane', label: 'Strip lane', title: 'Sub-lane on the timeline showing squad boon strips applied per second' },
     { key: 'ccInLane', label: 'CC taken lane', title: 'Sub-lane showing crowd control landed ON the squad per second. Scaled independently of the CC lane \u2014 incoming CC counts every source and folds no pets, so it reads higher than outgoing by construction. Needs Include Timeline Arrays and axilog 1.9.0' },
     { key: 'stripInLane', label: 'Strips taken lane', title: 'Sub-lane showing boons stripped OFF the squad per second. Needs Include Timeline Arrays' },
+    { key: 'ccTakenMarks', label: 'CC taken marks (map)', title: 'Rings the individual players who took crowd control, on the map, for the second it landed in \u2014 ring weight grows with how much CC hit them that second. Same data as the CC taken lane, kept attributed instead of summed, so a lane spike and a cluster of rings are one event seen two ways. Turn off if a squad-wide bomb ringing most of the roster at once is more noise than signal' },
 ];
 
 const HEATMAP_OPTIONS: { value: 'off' | 'deaths' | 'time' | 'damage-taken'; label: string; title: string }[] = [
@@ -117,6 +131,20 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
                                    onChange={e => setReplayLayer(t.key, e.currentTarget.checked)} />
                             <span>{t.label}</span>
                         </label>
+                        {t.key === 'stripInLane' && (layers.ccLane || layers.ccInLane || layers.stripLane || layers.stripInLane) && (
+                            <div style={{ marginLeft: 20, marginBottom: 4 }}>
+                                {LANE_LEGEND.map(l => (
+                                    <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0' }}>
+                                        <span style={{ fontSize: 9, color: l.color, flexShrink: 0, width: 10 }}>{l.dir}</span>
+                                        <span style={{ fontSize: 10, color: l.color, fontWeight: 600, minWidth: 58 }}>{l.label}</span>
+                                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{l.desc}</span>
+                                    </div>
+                                ))}
+                                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.35 }}>
+                                    Each lane is scaled to its own peak, so bar heights are not comparable across the zero line.
+                                </div>
+                            </div>
+                        )}
                         {t.key === 'phases' && layers.phases && (
                             <div style={{ marginLeft: 20, marginBottom: 4 }}>
                                 {PHASE_LEGEND.map(p => (

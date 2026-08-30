@@ -117,3 +117,15 @@ describe('useStatsStore — diagnostics slice', () => {
         expect(useStatsStore.getState().diagnostics).toBeNull();
     });
 });
+
+describe('useStatsStore — replayLayers defaults', () => {
+    it('shows CC taken marks on the map by default', () => {
+        expect(useStatsStore.getState().replayLayers.ccTakenMarks).toBe(true);
+    });
+
+    it('restores CC taken marks to on when the layers are reset', () => {
+        useStatsStore.getState().setReplayLayer('ccTakenMarks', false);
+        useStatsStore.getState().resetReplayLayers();
+        expect(useStatsStore.getState().replayLayers.ccTakenMarks).toBe(true);
+    });
+});
