@@ -126,6 +126,48 @@ describe('ReplayView HUD geometry regressions', () => {
      * horizontal space for it — doing so made the play bar visibly shrink every
      * time the roster was opened.
      */
+    /**
+     * Both cards default to collapsed, so the width rule can never change a
+     * default — all it can do is veto a click. Vetoing one made the Layers rail
+     * a button that visibly did nothing under 1100px, which is what the user hit.
+     */
+    it('still opens the layers panel on click below the 1100px threshold', () => {
+        stubContainerWidth(1000);
+        render(<ReplayView fights={[mkFight()]} />);
+        fireEvent.click(screen.getByTitle('Show layers'));
+        expect(document.querySelector('[data-layers-panel]')).toBeTruthy();
+    });
+
+    it('still opens the squad panel on click below the 900px threshold', () => {
+        stubContainerWidth(800);
+        render(<ReplayView fights={[mkFight()]} />);
+        fireEvent.click(screen.getByTitle('Expand squad panel'));
+        expect(screen.getByText('Cmdr')).toBeTruthy();
+    });
+
+    it('re-applies the narrow-width collapse when the container crosses the threshold again', () => {
+        stubContainerWidth(1000);
+        const { rerender } = render(<ReplayView fights={[mkFight()]} />);
+        fireEvent.click(screen.getByTitle('Show layers'));
+        expect(document.querySelector('[data-layers-panel]')).toBeTruthy();
+
+        act(() => { stubContainerWidth(1400); window.dispatchEvent(new Event('resize')); });
+        rerender(<ReplayView fights={[mkFight()]} />);
+        act(() => { stubContainerWidth(1000); window.dispatchEvent(new Event('resize')); });
+        rerender(<ReplayView fights={[mkFight()]} />);
+        expect(document.querySelector('[data-layers-panel]')).toBeNull();
+    });
+
+    it('keeps the scale bar clear of the follow chips by stacking them in one column', () => {
+        useStatsStore.getState().setReplayFollowTarget('C.1');
+        render(<ReplayView fights={[mkFight()]} />);
+        const scaleBar = screen.getByTestId('scale-bar');
+        const chip = screen.getByText(/C\.1/).closest('button') as HTMLElement;
+        // Same stacking column => neither is absolutely positioned over the other.
+        const column = scaleBar.parentElement as HTMLElement;
+        expect(column.contains(chip)).toBe(true);
+    });
+
     it('keeps the transport the same width whether the squad card is open or collapsed', () => {
         render(<ReplayView fights={[mkFight()]} />);
         const transport = () => document.querySelector('[data-hud="transport"]') as HTMLElement;

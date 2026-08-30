@@ -46,6 +46,22 @@ const chipStyle: React.CSSProperties = {
     cursor: 'pointer',
 };
 
+/**
+ * Narrow containers collapse the floating cards so they never eat the map —
+ * but a deliberate toggle has to win, or the control is simply dead below the
+ * threshold. Both cards already default to collapsed, so the width rule can
+ * never change a default; all it can do is veto a click. Vetoing one made the
+ * Layers rail a button that visibly did nothing under 1100px.
+ *
+ * The override clears whenever the container crosses the threshold again, so a
+ * choice made at a wide size still survives a round trip through a narrow one.
+ */
+function useForcedCollapse(forced: boolean): readonly [boolean, () => void] {
+    const [override, setOverride] = useState(false);
+    useEffect(() => { setOverride(false); }, [forced]);
+    return [forced && !override, useCallback(() => setOverride(true), [])] as const;
+}
+
 export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
     const selectedId = useStatsStore(state => state.selectedReplayFightId);
     const setSelectedReplayFight = useStatsStore(state => state.setSelectedReplayFight);
@@ -115,10 +131,10 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
     // writes back to layersOpen / panelCollapsed, so a choice made at a wide
     // size survives a trip through a narrow one.
     const containerWidth = panelSize[0];
-    const layersForced = containerWidth > 0 && containerWidth < 1100;
-    const squadForced = containerWidth > 0 && containerWidth < 900;
-    const layersEffectivelyOpen = layersOpen && !layersForced;
-    const squadEffectivelyCollapsed = panelCollapsed || squadForced;
+    const [layersForceActive, overrideLayersForce] = useForcedCollapse(containerWidth > 0 && containerWidth < 1100);
+    const [squadForceActive, overrideSquadForce] = useForcedCollapse(containerWidth > 0 && containerWidth < 900);
+    const layersEffectivelyOpen = layersOpen && !layersForceActive;
+    const squadEffectivelyCollapsed = panelCollapsed || squadForceActive;
 
     const { centerOn, attachWheelZoom, attachPanDrag, screenToSvg } = viewport;
     useEffect(() => {
@@ -369,9 +385,9 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                              open layers panel can never blanket the legend below it —
                              each shrinks within the column instead of overrunning it. */}
                         <div style={{
-                            position: 'absolute', top: 8, left: 8, bottom: 86, zIndex: 20,
+                            position: 'absolute', top: 8, left: 8, bottom: aboveTransportBottom(lanesExpanded), zIndex: 20,
                             display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                            alignItems: 'flex-start', gap: 8, pointerEvents: 'none',
+                            alignItems: 'flex-start', gap: 8, pointerEvents: 'none', transition: 'bottom 0.15s',
                         }}>
                             {/* Open: the panel absorbs the column's height deficit and
                                 scrolls internally, so it needs `minHeight: 0`. Collapsed:
@@ -382,7 +398,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                             <div style={layersEffectivelyOpen
                                 ? { display: 'flex', minHeight: 0, pointerEvents: 'auto' }
                                 : { display: 'flex', flexShrink: 0, pointerEvents: 'auto' }}>
-                                <LayersPanel open={layersEffectivelyOpen} onToggle={() => setLayersOpen(v => !v)} />
+                                <LayersPanel open={layersEffectivelyOpen} onToggle={() => { setLayersOpen(v => !v); overrideLayersForce(); }} />
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start', minHeight: 0, pointerEvents: 'auto' }}>
                                 <MapLegend />
@@ -391,6 +407,32 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                         pixelsPerInch={selectedFight.movementData.pixelsPerInch}
                                         scale={viewport.scale}
                                     />
+                                )}
+                                {/* Follow / re-center chips live INSIDE this column rather
+                                    than floating separately: as their own absolute box at
+                                    `left: 44` they painted straight over the scale bar's
+                                    label, which starts at `left: 8`. In the column nothing
+                                    on the left can overlap anything else on the left. */}
+                                {followLabel && (
+                                    <div style={{ display: 'flex', gap: 6 }}>
+                                        {!centeredOnFollow && (
+                                            <button
+                                                type="button"
+                                                title="Re-center on followed player"
+                                                onClick={() => setCenteredOnFollow(true)}
+                                                style={{ ...chipStyle, borderColor: 'var(--status-warning)', color: 'var(--status-warning)' }}
+                                            >
+                                                <Crosshair size={11} style={{ marginRight: 4 }} /> Re-center
+                                            </button>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => setReplayFollowTarget(null)}
+                                            style={{ ...chipStyle, borderColor: 'var(--status-info-border)', color: 'var(--status-info)' }}
+                                        >
+                                            {followLabel} <X size={10} style={{ marginLeft: 4 }} />
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -401,7 +443,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                             <ReplaySquadPanel
                                 fight={selectedFight}
                                 collapsed={squadEffectivelyCollapsed}
-                                onToggle={() => setPanelCollapsed(v => !v)}
+                                onToggle={() => { setPanelCollapsed(v => !v); overrideSquadForce(); }}
                             />
                         </div>
 
@@ -415,34 +457,6 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                             </button>
                         </div>
 
-                        {/* 8. Status chips (follow / re-center / spotlight). `bottom` tracks
-                             the transport's own height so the expanded lanes band can't
-                             strand Re-center underneath it. */}
-                        {followLabel && (
-                            <div style={{
-                                position: 'absolute',
-                                bottom: aboveTransportBottom(lanesExpanded),
-                                left: (layersEffectivelyOpen ? 216 : 28) + 16, zIndex: 10, transition: 'left 0.15s, bottom 0.15s', display: 'flex', gap: 6,
-                            }}>
-                                {!centeredOnFollow && (
-                                    <button
-                                        type="button"
-                                        title="Re-center on followed player"
-                                        onClick={() => setCenteredOnFollow(true)}
-                                        style={{ ...chipStyle, borderColor: 'var(--status-warning)', color: 'var(--status-warning)' }}
-                                    >
-                                        <Crosshair size={11} style={{ marginRight: 4 }} /> Re-center
-                                    </button>
-                                )}
-                                <button
-                                    type="button"
-                                    onClick={() => setReplayFollowTarget(null)}
-                                    style={{ ...chipStyle, borderColor: 'var(--status-info-border)', color: 'var(--status-info)' }}
-                                >
-                                    {followLabel} <X size={10} style={{ marginLeft: 4 }} />
-                                </button>
-                            </div>
-                        )}
                         {spotlightParty !== null && (
                             // top: 42, below the fight identity pill (top: 8, zIndex: 15) so
                             // the pill's opaque background doesn't fully occlude this chip —
@@ -472,7 +486,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                             transport has no reason to reserve width for it. Insetting the
                             transport's right edge on squad-open made the play bar visibly
                             shrink every time the roster was shown. */}
-                        <div data-hud="transport" style={{ position: 'absolute', left: 150, right: 8, bottom: 8, zIndex: 15 }}>
+                        <div data-hud="transport" style={{ position: 'absolute', left: 8, right: 8, bottom: 8, zIndex: 15 }}>
                             <TransportBar fight={selectedFight} />
                         </div>
                     </div>
