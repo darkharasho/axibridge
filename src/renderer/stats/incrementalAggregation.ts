@@ -57,7 +57,7 @@ import {
 import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
 import { resolveMapFromZone, computeFightAvgPosition, buildFightLabelV2 } from '../../shared/mapUtils';
 import { findNearestLandmark } from '../../shared/wvwLandmarks';
-import { TRACKED_REPLAY_BUFF_IDS } from '../../shared/replayBuffs';
+import { TRACKED_REPLAY_STATE_IDS } from '../../shared/replayBuffs';
 import type { ReplayFightPayload, ReplayDpsSample, ReplayKillEvent, DamageSpikeEvent, RallyEvent, TargetFocusSample, CcTakenEvent } from './map/replayTypes';
 
 function memberKey(p: any): string {
@@ -168,7 +168,7 @@ export function buildReplayFightPayload(log: any, fightIndex: number, opts?: { p
 
     const arena = getArena(details);
     const movement = buildMovementData(details, {
-        trackedBuffIds: TRACKED_REPLAY_BUFF_IDS,
+        trackedBuffIds: TRACKED_REPLAY_STATE_IDS,
         localAccount: log?.recordedAccount,
         localName: log?.recordedBy,
         precisePositions: opts?.precisePositions,
