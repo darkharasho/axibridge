@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { SquadHealthStrip } from '../SquadHealthStrip';
+import { ReplaySquadPanel } from '../ReplaySquadPanel';
+import { useStatsStore } from '../../statsStore';
 import type { ReplayFightPayload } from '../replayTypes';
 import type { SquadMemberMovement } from '../../../../shared/movementData';
 
@@ -40,5 +42,13 @@ describe('SquadHealthStrip', () => {
         const { container } = render(<SquadHealthStrip fight={fight} timeMs={1000} />);
         const cell = container.querySelector('[data-hpcell]');
         expect(cell?.getAttribute('data-status')).toBe('dead');
+    });
+
+    it('renders inside the squad panel header when the layer is on', () => {
+        useStatsStore.setState((useStatsStore as any).getInitialState());
+        useStatsStore.getState().setReplayLayer('squadHealthStrip', true);
+        const fight = mkFight([mkMember({ name: 'A', account: 'A.1' })]);
+        const { container } = render(<ReplaySquadPanel fight={fight} collapsed={false} onToggle={() => {}} />);
+        expect(container.querySelectorAll('[data-hpcell]').length).toBe(1);
     });
 });
