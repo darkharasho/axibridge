@@ -75,11 +75,18 @@ if (typeof window !== 'undefined') {
     // responsive HUD collapse) drive it manually in tests via
     // `window.dispatchEvent(new Event('resize'))`; this stub re-invokes the
     // observer callback on that event so those tests can simulate a resize.
+    // `observe()` deliberately does NOT call the callback synchronously —
+    // components typically call `observe()` from inside a commit-phase
+    // effect, and a synchronous callback there would call setState mid-commit
+    // and break React (surfaced as failures across unrelated suites that
+    // merely mount a ResizeObserver-using component). Components that need an
+    // initial measurement should read it directly (e.g. via the ref) rather
+    // than relying on `observe()` firing.
     class ResizeObserverMock {
         constructor(private cb: () => void) {
             window.addEventListener('resize', this.cb);
         }
-        observe() { this.cb(); }
+        observe() {}
         unobserve() {}
         disconnect() { window.removeEventListener('resize', this.cb); }
     }
