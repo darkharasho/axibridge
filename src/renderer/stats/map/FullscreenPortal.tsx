@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 interface FullscreenPortalProps {
@@ -18,16 +18,26 @@ export const FullscreenPortal: React.FC<FullscreenPortalProps> = ({ enabled, onE
         return el;
     });
 
+    // Held in a ref, not a dependency. Callers pass an inline arrow, so a
+    // dependency on `onExit` re-ran this effect on EVERY render of the parent:
+    // the cleanup detached `host` from the document and the effect re-appended
+    // it. React keeps the portal's own nodes, so nothing "remounts" — but a
+    // detached-and-reinserted subtree restarts every CSS entrance animation
+    // (`.app-dropdown` fades 0 -> 1) and relayouts. During a map pan, which
+    // writes the viewport on every mousemove, that strobed the whole HUD.
+    const exitRef = useRef(onExit);
+    exitRef.current = onExit;
+
     useEffect(() => {
         if (!enabled) return;
         document.body.appendChild(host);
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onExit(); };
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') exitRef.current(); };
         window.addEventListener('keydown', onKey);
         return () => {
             window.removeEventListener('keydown', onKey);
             if (host.parentNode) host.parentNode.removeChild(host);
         };
-    }, [enabled, host, onExit]);
+    }, [enabled, host]);
 
     if (!enabled) return <>{children}</>;
     return createPortal(children, host);
