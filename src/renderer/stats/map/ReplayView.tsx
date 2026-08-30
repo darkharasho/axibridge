@@ -373,10 +373,18 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                             display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
                             alignItems: 'flex-start', gap: 8, pointerEvents: 'none',
                         }}>
-                            <div style={{ display: 'flex', minHeight: 0, pointerEvents: 'auto' }}>
+                            {/* Open: the panel absorbs the column's height deficit and
+                                scrolls internally, so it needs `minHeight: 0`. Collapsed:
+                                the 28px rail must NEVER shrink — it has no internal
+                                scroll, so a deficit squashes its box while the vertical
+                                "Layers" label overflows past it, leaving ink that looks
+                                clickable but sits outside the button. */}
+                            <div style={layersEffectivelyOpen
+                                ? { display: 'flex', minHeight: 0, pointerEvents: 'auto' }
+                                : { display: 'flex', flexShrink: 0, pointerEvents: 'auto' }}>
                                 <LayersPanel open={layersEffectivelyOpen} onToggle={() => setLayersOpen(v => !v)} />
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start', pointerEvents: 'auto' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start', minHeight: 0, pointerEvents: 'auto' }}>
                                 <MapLegend />
                                 {layers.scaleBar && (
                                     <ScaleBar
@@ -389,7 +397,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
 
                         {/* 6. Squad, right, stopping above the transport. Native wheel
                              listener stops propagation before the map zoom handler sees it. */}
-                        <div ref={squadPanelRef} style={{ position: 'absolute', top: 8, right: 8, bottom: 86, zIndex: 20, display: 'flex', alignItems: 'stretch' }}>
+                        <div ref={squadPanelRef} data-hud="squad" style={{ position: 'absolute', top: 8, right: 8, bottom: aboveTransportBottom(lanesExpanded), zIndex: 20, display: 'flex', alignItems: 'stretch' }}>
                             <ReplaySquadPanel
                                 fight={selectedFight}
                                 collapsed={squadEffectivelyCollapsed}
@@ -459,7 +467,12 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                         </div>
 
                         {/* 11. Transport, spanning between the legend and the zoom cluster */}
-                        <div style={{ position: 'absolute', left: 150, right: (squadEffectivelyCollapsed ? 28 : 216) + 16, bottom: 8, zIndex: 15 }}>
+                        {/* The squad card stops above the transport (it yields via
+                            `aboveTransportBottom`), so the two never share a row and the
+                            transport has no reason to reserve width for it. Insetting the
+                            transport's right edge on squad-open made the play bar visibly
+                            shrink every time the roster was shown. */}
+                        <div data-hud="transport" style={{ position: 'absolute', left: 150, right: 8, bottom: 8, zIndex: 15 }}>
                             <TransportBar fight={selectedFight} />
                         </div>
                     </div>

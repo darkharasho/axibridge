@@ -90,3 +90,58 @@ describe('ReplayView layout', () => {
         expect(screen.getByText('Cmdr')).toBeTruthy();
     });
 });
+
+describe('ReplayView HUD geometry regressions', () => {
+    beforeEach(() => {
+        useStatsStore.setState((useStatsStore as any).getInitialState());
+        stubContainerWidth(1400);
+    });
+
+    /**
+     * The collapsed rail has no internal scroll, so if the left column runs short
+     * and the rail is allowed to shrink, its box squashes while the vertical
+     * "Layers" label overflows past it — leaving ink that looks clickable but
+     * sits outside the button. It must never shrink.
+     */
+    it('never lets the collapsed layers rail shrink', () => {
+        render(<ReplayView fights={[mkFight()]} />);
+        const rail = screen.getByTitle('Show layers');
+        const wrapper = rail.parentElement as HTMLElement;
+        expect(wrapper.style.flexShrink).toBe('0');
+        expect(wrapper.style.minHeight).toBe('');
+    });
+
+    it('lets the open layers panel shrink so it scrolls instead of overrunning the legend', () => {
+        render(<ReplayView fights={[mkFight()]} />);
+        fireEvent.click(screen.getByTitle('Show layers'));
+        const panel = document.querySelector('[data-layers-panel]') as HTMLElement;
+        const wrapper = panel.parentElement as HTMLElement;
+        expect(wrapper.style.minHeight).toBe('0');
+        expect(wrapper.style.flexShrink).toBe('');
+    });
+
+    /**
+     * The squad card yields to the transport vertically (`aboveTransportBottom`),
+     * so the two never share a row. The transport therefore must not reserve
+     * horizontal space for it — doing so made the play bar visibly shrink every
+     * time the roster was opened.
+     */
+    it('keeps the transport the same width whether the squad card is open or collapsed', () => {
+        render(<ReplayView fights={[mkFight()]} />);
+        const transport = () => document.querySelector('[data-hud="transport"]') as HTMLElement;
+        const collapsedRight = transport().style.right;
+
+        fireEvent.click(screen.getByTitle('Expand squad panel'));
+        expect(screen.getByTitle('Collapse squad panel')).toBeTruthy();
+        expect(transport().style.right).toBe(collapsedRight);
+    });
+
+    it('lifts the squad card clear of the transport when the lanes band expands', () => {
+        render(<ReplayView fights={[mkFight()]} />);
+        const card = () => document.querySelector('[data-hud="squad"]') as HTMLElement;
+        const resting = parseInt(card().style.bottom, 10);
+
+        act(() => { useStatsStore.getState().setReplayLanesExpanded(true); });
+        expect(parseInt(card().style.bottom, 10)).toBeGreaterThan(resting);
+    });
+});
