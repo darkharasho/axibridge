@@ -1,4 +1,5 @@
 import type { SquadMemberMovement } from '../../../shared/movementData';
+import { isReplayCondition } from '../../../shared/replayBuffs';
 
 export type MemberStatus = 'alive' | 'down' | 'dead';
 
@@ -58,4 +59,52 @@ export function activeSkillsAt(member: SquadMemberMovement, timeMs: number): num
 export function memberSpec(member: SquadMemberMovement): string {
     const spec = member.eliteSpec ? String(member.eliteSpec).trim() : '';
     return spec || member.profession;
+}
+
+/** The number of buff slots a card must hold open, split by cluster. */
+export interface BuffRowCapacity {
+    boons: number;
+    condis: number;
+}
+
+/**
+ * The most boons and the most conditions this member ever holds at once.
+ *
+ * A card reserves this many icon slots for the whole replay. Sizing the buff
+ * row to the live count instead makes it wrap to a second line the moment a
+ * member crosses eight icons and snap back when a boon ticks off — which
+ * resizes the card and shunts every card below it, several times a second.
+ *
+ * Events are grouped by timestamp before the peak is sampled: a boon dropping
+ * and another rising in the same tick is not an overlap, and reading between
+ * the two would reserve a slot for a member who never held both.
+ */
+export function maxConcurrentBuffs(member: SquadMemberMovement): BuffRowCapacity {
+    const states = member.boonStates;
+    if (!states) return { boons: 0, condis: 0 };
+
+    const events: { t: number; id: number; stacks: number }[] = [];
+    for (const [idStr, series] of Object.entries(states)) {
+        const id = Number(idStr);
+        for (const [t, stacks] of series) events.push({ t, id, stacks });
+    }
+    events.sort((a, b) => a.t - b.t);
+
+    const up = new Set<number>();
+    let boons = 0, condis = 0, maxBoons = 0, maxCondis = 0;
+    for (let i = 0; i < events.length; ) {
+        const t = events[i].t;
+        while (i < events.length && events[i].t === t) {
+            const { id, stacks } = events[i++];
+            const was = up.has(id);
+            const now = stacks > 0;
+            if (was === now) continue;
+            if (now) up.add(id); else up.delete(id);
+            const delta = now ? 1 : -1;
+            if (isReplayCondition(id)) condis += delta; else boons += delta;
+        }
+        if (boons > maxBoons) maxBoons = boons;
+        if (condis > maxCondis) maxCondis = condis;
+    }
+    return { boons: maxBoons, condis: maxCondis };
 }

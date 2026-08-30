@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hpAt, statusAt, activeBoons, activeSkillsAt, memberSpec } from '../partyMemberHelpers';
+import { hpAt, statusAt, activeBoons, activeSkillsAt, memberSpec, maxConcurrentBuffs } from '../partyMemberHelpers';
 import type { SquadMemberMovement } from '../../../../shared/movementData';
 
 const base: SquadMemberMovement = {
@@ -119,5 +119,51 @@ describe('memberSpec', () => {
     });
     it('stringifies a numeric spec id rather than dropping it', () => {
         expect(memberSpec({ ...base, profession: 'Guardian', eliteSpec: 62 })).toBe('62');
+    });
+});
+
+describe('maxConcurrentBuffs', () => {
+    const mk = (boonStates?: Record<number, [number, number][]>): SquadMemberMovement => ({
+        id: 1, name: 'T', account: 'T.1', profession: 'Guardian', eliteSpec: '',
+        group: 1, isCommander: false, isLocal: false, isEnemy: false, inSquad: true,
+        firstPoll: 0, positions: [], downRanges: [], deadRanges: [], boonStates,
+    });
+
+    it('is zero for a member with no buff states at all', () => {
+        expect(maxConcurrentBuffs(mk())).toEqual({ boons: 0, condis: 0 });
+    });
+
+    it('counts boons and conditions into separate peaks', () => {
+        // 743 Aegis + 717 Protection are boons, 738 Vulnerability is a condition.
+        const m = mk({ 743: [[0, 1]], 717: [[0, 1]], 738: [[0, 5]] });
+        expect(maxConcurrentBuffs(m)).toEqual({ boons: 2, condis: 1 });
+    });
+
+    it('takes the peak across the fight, not the count at any one instant', () => {
+        // Three boons are never up together: Aegis drops before Stability rises.
+        const m = mk({
+            743: [[0, 1], [1000, 0]],
+            717: [[0, 1]],
+            1122: [[2000, 1]],
+        });
+        expect(maxConcurrentBuffs(m).boons).toBe(2);
+    });
+
+    it('does not count an id whose stacks fall back to zero', () => {
+        const m = mk({ 743: [[0, 1], [1000, 0]] });
+        // Peak is still 1 — it WAS up at t=0.
+        expect(maxConcurrentBuffs(m).boons).toBe(1);
+    });
+
+    it('resolves a simultaneous rise and fall exactly, not as an overlap', () => {
+        // At t=1000 Aegis drops and Stability rises in the same tick. The peak
+        // is 1, not 2 — sampling mid-timestamp would report a phantom overlap.
+        const m = mk({ 743: [[0, 1], [1000, 0]], 1122: [[1000, 1]] });
+        expect(maxConcurrentBuffs(m).boons).toBe(1);
+    });
+
+    it('ignores stack-count changes that do not toggle presence', () => {
+        const m = mk({ 738: [[0, 5], [1000, 25], [2000, 12]] });
+        expect(maxConcurrentBuffs(m).condis).toBe(1);
     });
 });
