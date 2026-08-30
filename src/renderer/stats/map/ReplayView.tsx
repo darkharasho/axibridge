@@ -1,21 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pause, Play, Maximize2, Minimize2, Plus, Minus, RotateCcw, X, Crosshair } from 'lucide-react';
+import { Maximize2, Minimize2, Plus, Minus, RotateCcw, X, Crosshair } from 'lucide-react';
 import { useStatsStore } from '../statsStore';
 import { getTileLayers, hasTileData } from '../../../shared/wvwTiles';
-import { normalizeMapNameShort, formatDuration } from '../../../shared/mapUtils';
 import { HeatmapLayer } from './HeatmapLayer';
 import { GroundMarkerLayer } from './GroundMarkerLayer';
 import { SectorOutlineLayer } from './SectorOutlineLayer';
 import { ObjectiveLayer } from './layers/ObjectiveLayer';
 import { SquadOverlay } from './SquadOverlay';
-import { SquadHealthStrip } from './SquadHealthStrip';
 import { LayersPanel } from './LayersPopover';
 import { CcTakenNotice } from './CcTakenNotice';
+import { MapLegend } from './MapLegend';
+import { ScaleBar } from './ScaleBar';
+import { TransportBar } from './TransportBar';
 import { useHeatmapData } from './hooks/useHeatmapData';
 import { FightIdentityPill } from './FightIdentityPill';
 import { FightPicker } from './FightPicker';
 import { ReplaySquadPanel } from './ReplaySquadPanel';
-import { SyncedTimeline } from './SyncedTimeline';
 import { EventOverlay } from './EventOverlay';
 import { FullscreenPortal } from './FullscreenPortal';
 import { useReplayPlayback } from './hooks/useReplayPlayback';
@@ -30,8 +30,6 @@ interface ReplayViewProps {
     fights: ReplayFightPayload[];
     style?: React.CSSProperties;
 }
-
-const SPEEDS = [0.5, 1, 1.5, 2, 4] as const;
 
 const ctrlBtnStyle: React.CSSProperties = {
     width: 26, height: 26, borderRadius: 5,
@@ -109,6 +107,16 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
         ro.observe(el);
         return () => ro.disconnect();
     }, [fullscreen, selectedFight]);
+
+    // Auto-collapse below these widths so the floating cards never eat the
+    // map in the web report's narrower containers. This is DERIVED — it never
+    // writes back to layersOpen / panelCollapsed, so a choice made at a wide
+    // size survives a trip through a narrow one.
+    const containerWidth = panelSize[0];
+    const layersForced = containerWidth > 0 && containerWidth < 1100;
+    const squadForced = containerWidth > 0 && containerWidth < 900;
+    const layersEffectivelyOpen = layersOpen && !layersForced;
+    const squadEffectivelyCollapsed = panelCollapsed || squadForced;
 
     const { centerOn, attachWheelZoom, attachPanDrag, screenToSvg } = viewport;
     useEffect(() => {
@@ -227,151 +235,99 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                 </div>
             ) : (
                 <>
-                    {/* Map area fills everything; squad panel overlays on the right */}
+                    {/* Map area fills everything; every HUD panel floats above it */}
                     <div ref={mapContainerRef} style={{ flex: 1, position: 'relative', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
-                            {/* Fight picker overlay — covers the map area when expanded */}
-                            {!pickerCollapsed && (
-                                <div ref={pickerOverlayRef} style={{
-                                    position: 'absolute', inset: 0, zIndex: 30,
-                                    background: 'rgba(8, 14, 30, 0.88)',
-                                    backdropFilter: 'blur(3px)',
-                                    display: 'flex', flexDirection: 'column',
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-                                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '.05em', textTransform: 'uppercase' }}>
-                                            {fights.length} fight{fights.length !== 1 ? 's' : ''}
-                                        </span>
-                                        <button
-                                            type="button"
-                                            onClick={() => setPickerCollapsed(true)}
-                                            style={{ fontSize: 11, color: 'var(--text-secondary)', padding: '3px 8px', borderRadius: 4, border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', cursor: 'pointer' }}
-                                        >
-                                            ✕ Close
-                                        </button>
-                                    </div>
-                                    <FightPicker fights={fights} onSelect={() => setPickerCollapsed(true)} />
-                                </div>
-                            )}
-                            {/* Floating zoom controls — offset past the layers panel (220px open, 28px collapsed) */}
-                            <div style={{ position: 'absolute', top: 8, left: (layersOpen ? 220 : 28) + 8, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 4, transition: 'left 0.15s' }}>
-                                <button type="button" onClick={() => viewport.zoomIn()} title="Zoom in" style={ctrlBtnStyle}><Plus size={12} /></button>
-                                <button type="button" onClick={() => viewport.zoomOut()} title="Zoom out" style={ctrlBtnStyle}><Minus size={12} /></button>
-                                <button type="button" onClick={() => viewport.resetViewport()} title="Reset zoom" style={ctrlBtnStyle}><RotateCcw size={12} /></button>
-                                <button type="button" onClick={() => setFullscreen(v => !v)} title="Fullscreen" style={ctrlBtnStyle}>
-                                    {fullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-                                </button>
-                            </div>
-
-                            {/* Floating fight identity pill, centred at the top of the map */}
-                            <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 15 }}>
-                                <FightIdentityPill fights={fights} onOpenPicker={() => setPickerCollapsed(false)} />
-                            </div>
-
-                            {/* Status chips floating on the map */}
-                            {followLabel && (
-                                <div style={{ position: 'absolute', bottom: 10, left: (layersOpen ? 220 : 28) + 10, zIndex: 10, transition: 'left 0.15s', display: 'flex', gap: 6 }}>
-                                    {!centeredOnFollow && (
-                                        <button
-                                            type="button"
-                                            title="Re-center on followed player"
-                                            onClick={() => setCenteredOnFollow(true)}
-                                            style={{ ...chipStyle, borderColor: 'var(--status-warning)', color: 'var(--status-warning)' }}
-                                        >
-                                            <Crosshair size={11} style={{ marginRight: 4 }} /> Re-center
-                                        </button>
-                                    )}
-                                    <button
-                                        type="button"
-                                        onClick={() => setReplayFollowTarget(null)}
-                                        style={{ ...chipStyle, borderColor: 'var(--status-info-border)', color: 'var(--status-info)' }}
-                                    >
-                                        {followLabel} <X size={10} style={{ marginLeft: 4 }} />
-                                    </button>
-                                </div>
-                            )}
-                            {spotlightParty !== null && (
-                                <button
-                                    type="button"
-                                    onClick={() => setReplaySpotlightParty(null)}
-                                    style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 10, ...chipStyle, borderColor: 'var(--status-warning)', color: 'var(--status-warning)' }}
-                                >
-                                    Spotlight: Party {spotlightParty} <X size={10} style={{ marginLeft: 4 }} />
-                                </button>
-                            )}
-
-                            <CcTakenNotice ccTakenEvents={selectedFight.ccTakenEvents} />
-
-                            {layers.squadHealthStrip && (
-                                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5 }}>
-                                    <SquadHealthStrip fight={selectedFight} timeMs={playhead.timeMs} />
-                                </div>
-                            )}
-
-                            <svg
-                                className="replay-canvas"
-                                viewBox={`0 0 ${mapWidth} ${mapHeight}`}
-                                preserveAspectRatio="xMidYMid slice"
-                                onClick={onCanvasClick}
-                                style={{ width: '100%', height: '100%', background: '#0c1224', cursor: 'grab', display: 'block' }}
-                            >
-                                <g transform={`translate(${viewport.tx} ${viewport.ty}) scale(${viewport.scale})`}>
-                                    {selectedFight.mapKey && hasTileData(selectedFight.mapKey)
-                                        ? getTileLayers(selectedFight.mapKey, mapWidth, mapHeight, viewport, panelSize[0], panelSize[1], (typeof window !== 'undefined' && window.devicePixelRatio) || 1).map(layer => (
-                                            <g key={layer.zoom}>
-                                                {layer.tiles.map(t => (
-                                                    <image key={t.url} href={t.url} x={t.x} y={t.y} width={t.width} height={t.height} preserveAspectRatio="none" />
-                                                ))}
-                                            </g>
-                                        ))
-                                        : selectedFight.mapImageUrl && (
-                                            <image href={selectedFight.mapImageUrl} x={0} y={0} width={mapWidth} height={mapHeight} />
-                                        )
-                                    }
-                                    {layers.zoneBorders && selectedFight.mapKey && (
-                                        <SectorOutlineLayer
-                                            mapKey={selectedFight.mapKey}
-                                            mapWidth={mapWidth}
-                                            mapHeight={mapHeight}
-                                            scale={viewport.scale}
-                                            sectorOwners={selectedFight.sectorOwners}
-                                        />
-                                    )}
-                                    <HeatmapLayer raster={heatmap} mapWidth={mapWidth} mapHeight={mapHeight} mode={layers.heatmap} />
-                                    {/* Under the member icons on purpose — a
-                                        rally marker is exactly where everyone
-                                        will be standing. */}
-                                    <GroundMarkerLayer
-                                        markers={selectedFight.movementData.groundMarkers}
-                                        timeMs={playhead.timeMs}
-                                        scale={viewport.scale}
-                                    />
-                                    <ObjectiveLayer
+                        {/* 1. Full-bleed canvas */}
+                        <svg
+                            className="replay-canvas"
+                            viewBox={`0 0 ${mapWidth} ${mapHeight}`}
+                            preserveAspectRatio="xMidYMid slice"
+                            onClick={onCanvasClick}
+                            style={{ width: '100%', height: '100%', background: '#0c1224', cursor: 'grab', display: 'block' }}
+                        >
+                            <g transform={`translate(${viewport.tx} ${viewport.ty}) scale(${viewport.scale})`}>
+                                {selectedFight.mapKey && hasTileData(selectedFight.mapKey)
+                                    ? getTileLayers(selectedFight.mapKey, mapWidth, mapHeight, viewport, panelSize[0], panelSize[1], (typeof window !== 'undefined' && window.devicePixelRatio) || 1).map(layer => (
+                                        <g key={layer.zoom}>
+                                            {layer.tiles.map(t => (
+                                                <image key={t.url} href={t.url} x={t.x} y={t.y} width={t.width} height={t.height} preserveAspectRatio="none" />
+                                            ))}
+                                        </g>
+                                    ))
+                                    : selectedFight.mapImageUrl && (
+                                        <image href={selectedFight.mapImageUrl} x={0} y={0} width={mapWidth} height={mapHeight} />
+                                    )
+                                }
+                                {layers.zoneBorders && selectedFight.mapKey && (
+                                    <SectorOutlineLayer
                                         mapKey={selectedFight.mapKey}
+                                        mapWidth={mapWidth}
+                                        mapHeight={mapHeight}
+                                        scale={viewport.scale}
                                         sectorOwners={selectedFight.sectorOwners}
                                     />
-                                    <MemberLayer
-                                        members={selectedFight.movementData.members}
-                                        pollFrac={pollFrac}
-                                        pollIndex={pollIndex}
-                                        timeMs={playhead.timeMs}
-                                        scale={viewport.scale}
-                                        spotlightParty={spotlightParty}
-                                        followKey={followMember ? (followMember.account || followMember.name) : null}
-                                        onHover={(info) => {
-                                            const rect = mapContainerRef.current?.getBoundingClientRect();
-                                            if (!rect) return;
-                                            setTooltip({
-                                                name: info.name, account: info.account, status: info.status,
-                                                x: info.clientX - rect.left, y: info.clientY - rect.top,
-                                            });
-                                        }}
-                                        onLeave={() => setTooltip(null)}
-                                    />
-                                    <SquadOverlay fight={selectedFight} timeMs={playhead.timeMs} scale={viewport.scale} />
-                                    <EventOverlay fight={selectedFight} timeMs={playhead.timeMs} scale={viewport.scale} />
-                                </g>
-                            </svg>
-                        {/* Member hover tooltip */}
+                                )}
+                                <HeatmapLayer raster={heatmap} mapWidth={mapWidth} mapHeight={mapHeight} mode={layers.heatmap} />
+                                {/* Under the member icons on purpose — a
+                                    rally marker is exactly where everyone
+                                    will be standing. */}
+                                <GroundMarkerLayer
+                                    markers={selectedFight.movementData.groundMarkers}
+                                    timeMs={playhead.timeMs}
+                                    scale={viewport.scale}
+                                />
+                                <ObjectiveLayer
+                                    mapKey={selectedFight.mapKey}
+                                    sectorOwners={selectedFight.sectorOwners}
+                                />
+                                <MemberLayer
+                                    members={selectedFight.movementData.members}
+                                    pollFrac={pollFrac}
+                                    pollIndex={pollIndex}
+                                    timeMs={playhead.timeMs}
+                                    scale={viewport.scale}
+                                    spotlightParty={spotlightParty}
+                                    followKey={followMember ? (followMember.account || followMember.name) : null}
+                                    onHover={(info) => {
+                                        const rect = mapContainerRef.current?.getBoundingClientRect();
+                                        if (!rect) return;
+                                        setTooltip({
+                                            name: info.name, account: info.account, status: info.status,
+                                            x: info.clientX - rect.left, y: info.clientY - rect.top,
+                                        });
+                                    }}
+                                    onLeave={() => setTooltip(null)}
+                                />
+                                <SquadOverlay fight={selectedFight} timeMs={playhead.timeMs} scale={viewport.scale} />
+                                <EventOverlay fight={selectedFight} timeMs={playhead.timeMs} scale={viewport.scale} />
+                            </g>
+                        </svg>
+
+                        {/* 2. Fight picker overlay — covers the map area when expanded */}
+                        {!pickerCollapsed && (
+                            <div ref={pickerOverlayRef} style={{
+                                position: 'absolute', inset: 0, zIndex: 30,
+                                background: 'rgba(8, 14, 30, 0.88)',
+                                backdropFilter: 'blur(3px)',
+                                display: 'flex', flexDirection: 'column',
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+                                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '.05em', textTransform: 'uppercase' }}>
+                                        {fights.length} fight{fights.length !== 1 ? 's' : ''}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPickerCollapsed(true)}
+                                        style={{ fontSize: 11, color: 'var(--text-secondary)', padding: '3px 8px', borderRadius: 4, border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', cursor: 'pointer' }}
+                                    >
+                                        ✕ Close
+                                    </button>
+                                </div>
+                                <FightPicker fights={fights} onSelect={() => setPickerCollapsed(true)} />
+                            </div>
+                        )}
+
+                        {/* 3. Member hover tooltip */}
                         {tooltip && (
                             <div style={{
                                 position: 'absolute',
@@ -401,61 +357,87 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                 )}
                             </div>
                         )}
-                        {/* Layers panel — overlays on the left */}
-                        <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, zIndex: 20, display: 'flex', alignItems: 'stretch' }}>
-                            <LayersPanel open={layersOpen} onToggle={() => setLayersOpen(v => !v)} />
+
+                        {/* 4. Fight identity, centred */}
+                        <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 15 }}>
+                            <FightIdentityPill fights={fights} onOpenPicker={() => setPickerCollapsed(false)} />
                         </div>
-                        {/* Squad panel — overlays on the right of the map. Native wheel listener
-                             stops propagation before the map zoom handler can see the event. */}
-                        <div ref={squadPanelRef} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, zIndex: 20, display: 'flex', alignItems: 'stretch' }}>
+
+                        {/* 5. Layers, top-left */}
+                        <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 20, display: 'flex', maxHeight: 'calc(100% - 90px)' }}>
+                            <LayersPanel open={layersEffectivelyOpen} onToggle={() => setLayersOpen(v => !v)} />
+                        </div>
+
+                        {/* 6. Squad, right, stopping above the transport. Native wheel
+                             listener stops propagation before the map zoom handler sees it. */}
+                        <div ref={squadPanelRef} style={{ position: 'absolute', top: 8, right: 8, bottom: 86, zIndex: 20, display: 'flex', alignItems: 'stretch' }}>
                             <ReplaySquadPanel
                                 fight={selectedFight}
-                                collapsed={panelCollapsed}
+                                collapsed={squadEffectivelyCollapsed}
                                 onToggle={() => setPanelCollapsed(v => !v)}
                             />
                         </div>
-                    </div>
 
-                    <SyncedTimeline fight={selectedFight} />
-
-                    {/* Controls bar */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: 'var(--bg-elevated)', borderTop: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-                        <button
-                            type="button"
-                            aria-label={playhead.playing ? 'Pause' : 'Play'}
-                            onClick={() => setReplayPlayhead({ playing: !playhead.playing })}
-                            style={{
-                                width: 28, height: 28, borderRadius: 6, flexShrink: 0,
-                                background: 'var(--bg-input)', border: '1px solid var(--border-default)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                color: 'var(--text-secondary)', cursor: 'pointer',
-                            }}
-                        >
-                            {playhead.playing ? <Pause size={14} /> : <Play size={14} />}
-                        </button>
-                        <div style={{ display: 'flex', gap: 2 }}>
-                            {SPEEDS.map(s => (
-                                <button
-                                    key={s}
-                                    type="button"
-                                    onClick={() => setReplayPlayhead({ speed: s })}
-                                    style={{
-                                        padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 600,
-                                        background: playhead.speed === s ? 'var(--status-info-bg)' : 'var(--bg-input)',
-                                        border: `1px solid ${playhead.speed === s ? 'var(--status-info-border)' : 'var(--border-subtle)'}`,
-                                        color: playhead.speed === s ? 'var(--status-info)' : 'var(--text-muted)',
-                                        cursor: 'pointer',
-                                    }}
-                                >
-                                    {s}×
-                                </button>
-                            ))}
+                        {/* 7. Zoom cluster, right of centre, left of the squad card */}
+                        <div style={{ position: 'absolute', top: 8, right: (squadEffectivelyCollapsed ? 28 : 216) + 16, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 4, transition: 'right 0.15s' }}>
+                            <button type="button" onClick={() => viewport.zoomIn()} title="Zoom in" style={ctrlBtnStyle}><Plus size={12} /></button>
+                            <button type="button" onClick={() => viewport.zoomOut()} title="Zoom out" style={ctrlBtnStyle}><Minus size={12} /></button>
+                            <button type="button" onClick={() => viewport.resetViewport()} title="Reset zoom" style={ctrlBtnStyle}><RotateCcw size={12} /></button>
+                            <button type="button" onClick={() => setFullscreen(v => !v)} title="Fullscreen" style={ctrlBtnStyle}>
+                                {fullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                            </button>
                         </div>
-                        <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
-                            {formatDuration(playhead.timeMs)} / {formatDuration(durationMs)}
-                        </span>
-                        <div style={{ flex: 1 }} />
-                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{normalizeMapNameShort(selectedFight.label)}</span>
+
+                        {/* 8. Legend + scale bar, bottom-left above the transport */}
+                        <div style={{ position: 'absolute', left: 8, bottom: 86, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+                            <MapLegend />
+                            {layers.scaleBar && (
+                                <ScaleBar
+                                    pixelsPerInch={selectedFight.movementData.pixelsPerInch}
+                                    scale={viewport.scale}
+                                />
+                            )}
+                        </div>
+
+                        {/* 9. Status chips (follow / re-center / spotlight) */}
+                        {followLabel && (
+                            <div style={{ position: 'absolute', bottom: 96, left: (layersEffectivelyOpen ? 216 : 28) + 16, zIndex: 10, transition: 'left 0.15s', display: 'flex', gap: 6 }}>
+                                {!centeredOnFollow && (
+                                    <button
+                                        type="button"
+                                        title="Re-center on followed player"
+                                        onClick={() => setCenteredOnFollow(true)}
+                                        style={{ ...chipStyle, borderColor: 'var(--status-warning)', color: 'var(--status-warning)' }}
+                                    >
+                                        <Crosshair size={11} style={{ marginRight: 4 }} /> Re-center
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => setReplayFollowTarget(null)}
+                                    style={{ ...chipStyle, borderColor: 'var(--status-info-border)', color: 'var(--status-info)' }}
+                                >
+                                    {followLabel} <X size={10} style={{ marginLeft: 4 }} />
+                                </button>
+                            </div>
+                        )}
+                        {spotlightParty !== null && (
+                            <button
+                                type="button"
+                                onClick={() => setReplaySpotlightParty(null)}
+                                style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 10, ...chipStyle, borderColor: 'var(--status-warning)', color: 'var(--status-warning)' }}
+                            >
+                                Spotlight: Party {spotlightParty} <X size={10} style={{ marginLeft: 4 }} />
+                            </button>
+                        )}
+
+                        {/* 10. CC-taken notice */}
+                        <CcTakenNotice ccTakenEvents={selectedFight.ccTakenEvents} />
+
+                        {/* 11. Transport, spanning between the legend and the zoom cluster */}
+                        <div style={{ position: 'absolute', left: 150, right: (squadEffectivelyCollapsed ? 28 : 216) + 16, bottom: 8, zIndex: 15 }}>
+                            <TransportBar fight={selectedFight} />
+                        </div>
                     </div>
                 </>
             )}

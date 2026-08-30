@@ -70,10 +70,18 @@ if (typeof window !== 'undefined') {
         });
     }
 
+    // jsdom has no layout engine, so ResizeObserver never fires on real size
+    // changes. Components that read a live container width (e.g. ReplayView's
+    // responsive HUD collapse) drive it manually in tests via
+    // `window.dispatchEvent(new Event('resize'))`; this stub re-invokes the
+    // observer callback on that event so those tests can simulate a resize.
     class ResizeObserverMock {
-        observe() {}
+        constructor(private cb: () => void) {
+            window.addEventListener('resize', this.cb);
+        }
+        observe() { this.cb(); }
         unobserve() {}
-        disconnect() {}
+        disconnect() { window.removeEventListener('resize', this.cb); }
     }
 
     if (!('ResizeObserver' in window)) {
