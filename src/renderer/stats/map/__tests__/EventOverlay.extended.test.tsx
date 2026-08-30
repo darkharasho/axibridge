@@ -236,3 +236,47 @@ describe('EventOverlay — incoming CC marks', () => {
         expect(container.querySelector('[data-pulse="cc-taken"]')).toBeNull();
     });
 });
+
+describe('EventOverlay — CC marks coloured by control kind', () => {
+    beforeEach(() => {
+        useStatsStore.setState((useStatsStore as any).getInitialState());
+    });
+
+    const ring = (kinds: string[]) => {
+        const fight = mkFight({
+            movementData: { ...mkFight({}).movementData, members: [mkMember({ account: 'A.1' })] },
+            ccTakenEvents: [{ timeMs: 5000, memberKey: 'A.1', count: 1, kinds }],
+        });
+        const { container } = render(<svg><EventOverlay fight={fight} timeMs={5000} scale={1} /></svg>);
+        return container.querySelector('[data-pulse="cc-taken"]')!;
+    };
+
+    it('draws a displacement in its own colour', () => {
+        expect(ring(['knockback_or_pull']).getAttribute('stroke')).toBe('#22d3ee');
+        expect(ring(['knockback_or_pull']).getAttribute('data-cc-family')).toBe('displacement');
+    });
+
+    it('draws a fear in its own colour', () => {
+        expect(ring(['fear']).getAttribute('stroke')).toBe('#ec4899');
+        expect(ring(['fear']).getAttribute('data-cc-family')).toBe('fear');
+    });
+
+    it('draws a lockdown in the familiar amber', () => {
+        expect(ring(['stun_or_daze']).getAttribute('stroke')).toBe('#f59e0b');
+        expect(ring(['stun_or_daze']).getAttribute('data-cc-family')).toBe('lockdown');
+    });
+
+    /** The one that actually happens: a bomb lands stun and knockback together. */
+    it('lets displacement win a mixed instant', () => {
+        expect(ring(['stun_or_daze', 'knockback_or_pull']).getAttribute('stroke')).toBe('#22d3ee');
+    });
+
+    /**
+     * Fights parsed before axilog 1.10, and every already-published report,
+     * carry `kinds: []`. Those marks must look exactly as they always have.
+     */
+    it('keeps an unclassified mark amber and unlabelled', () => {
+        expect(ring([]).getAttribute('stroke')).toBe('#f59e0b');
+        expect(ring([]).getAttribute('data-cc-family')).toBeNull();
+    });
+});

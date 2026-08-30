@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStatsStore } from '../statsStore';
+import { CC_FAMILY_COLOR, CC_UNCLASSIFIED_COLOR } from './ccKinds';
 
 type Glyph = 'ring' | 'cross' | 'ring-dot' | 'ring-skull' | 'blur' | 'tag' | 'marker';
 
@@ -59,8 +60,15 @@ const MapLegendInner: React.FC<{ style?: React.CSSProperties }> = ({ style }) =>
     const layers = useStatsStore(state => state.replayLayers);
 
     const rows: LegendRow[] = [
+        // Three rows, not one: the marks are coloured by what the CC did.
+        // Amber leads because it is both the lockdown family and the colour an
+        // unclassified mark falls back to, so it is the one a reader meets first.
         ...(layers.ccTakenMarks
-            ? [{ key: 'cc', label: 'CC taken', color: '#f59e0b', glyph: 'ring' as const }]
+            ? [
+                { key: 'cc', label: 'CC taken', color: CC_UNCLASSIFIED_COLOR, glyph: 'ring' as const },
+                { key: 'cc-displacement', label: 'CC: displaced', color: CC_FAMILY_COLOR.displacement, glyph: 'ring' as const },
+                { key: 'cc-fear', label: 'CC: feared', color: CC_FAMILY_COLOR.fear, glyph: 'ring' as const },
+            ]
             : []),
         ...ALWAYS,
         ...(layers.rallyRings

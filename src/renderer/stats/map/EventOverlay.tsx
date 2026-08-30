@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useStatsStore } from '../statsStore';
 import type { ReplayFightPayload } from './replayTypes';
 import { positionAtTime, type SquadMemberMovement } from '../../../shared/movementData';
+import { ccMarkFamily, CC_FAMILY_COLOR, CC_UNCLASSIFIED_COLOR, type CcFamily } from './ccKinds';
 
 interface EventOverlayProps {
     fight: ReplayFightPayload;
@@ -95,7 +96,7 @@ function collectRallyPulses(fight: ReplayFightPayload, timeMs: number, index: Ma
     return pulses;
 }
 
-interface CcMark { x: number; y: number; ageMs: number; count: number; key: string; }
+interface CcMark { x: number; y: number; ageMs: number; count: number; key: string; family: CcFamily | null; }
 
 /**
  * Rings on the members who took CC in the second the playhead is sitting in.
@@ -119,7 +120,9 @@ function collectCcTakenMarks(fight: ReplayFightPayload, timeMs: number, index: M
         // — but soft CC does not stop a push, and on a real fight the ring then
         // trailed up to a second of travel behind the player it was accusing.
         const pos = positionAt(m, timeMs, pollingRate);
-        if (pos) marks.push({ x: pos[0], y: pos[1], ageMs: age, count: e.count, key: `${e.timeMs}-${e.memberKey}` });
+        // `kinds` is empty for anything parsed before axilog 1.10, which
+        // resolves to a null family and the amber these marks have always been.
+        if (pos) marks.push({ x: pos[0], y: pos[1], ageMs: age, count: e.count, key: `${e.timeMs}-${e.memberKey}`, family: ccMarkFamily(e.kinds ?? []) });
     }
     return marks;
 }
@@ -212,10 +215,15 @@ export const EventOverlay: React.FC<EventOverlayProps> = ({ fight, timeMs, scale
                 // indistinguishable from the profession art, and the marks read
                 // as simply absent.
                 const weight = Math.min(5, 1.5 + mk.count * 0.7);
+                // Colour says what the CC did — displacement / fear / lockdown.
+                // Not which SKILL did it: arcdps hands out generic control ids,
+                // and it fuses knockback with pull under one of them, so "was I
+                // pulled" is not answerable from this row. See ccKinds.ts.
                 return (
                     <circle key={`cc-${mk.key}`} data-pulse="cc-taken"
+                        data-cc-family={mk.family ?? undefined}
                         cx={mk.x} cy={mk.y} r={18 / s}
-                        fill="none" stroke="#f59e0b"
+                        fill="none" stroke={mk.family ? CC_FAMILY_COLOR[mk.family] : CC_UNCLASSIFIED_COLOR}
                         strokeOpacity={0.95 * (1 - progress * 0.6)}
                         strokeDasharray={`${3.5 / s} ${2.5 / s}`}
                         strokeWidth={weight / s} />

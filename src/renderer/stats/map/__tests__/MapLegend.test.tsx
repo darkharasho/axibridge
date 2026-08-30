@@ -27,6 +27,29 @@ describe('MapLegend', () => {
         expect(screen.queryByText(/cc taken/i)).toBeNull();
     });
 
+    it('explains each CC colour the map can draw', () => {
+        render(<MapLegend />);   // ccTakenMarks defaults true
+        expect(screen.getByText(/displaced/i)).toBeTruthy();
+        expect(screen.getByText(/feared/i)).toBeTruthy();
+    });
+
+    it('drops every CC row together when ccTakenMarks is off', () => {
+        useStatsStore.getState().setReplayLayer('ccTakenMarks', false);
+        const { container } = render(<MapLegend />);
+        expect(container.querySelectorAll('[data-legend-row^="cc"]').length).toBe(0);
+    });
+
+    /** Each row's swatch must be the colour EventOverlay actually strokes,
+     *  or the legend teaches the wrong thing — which it has done before. */
+    it('draws each CC swatch in the colour the overlay uses', () => {
+        const { container } = render(<MapLegend />);
+        const strokeOf = (key: string) =>
+            container.querySelector(`[data-legend-row="${key}"] circle`)!.getAttribute('stroke');
+        expect(strokeOf('cc')).toBe('#f59e0b');
+        expect(strokeOf('cc-displacement')).toBe('#22d3ee');
+        expect(strokeOf('cc-fear')).toBe('#ec4899');
+    });
+
     it('drops the rallied row when rallyRings is off', () => {
         render(<MapLegend />);   // rallyRings defaults false
         expect(screen.queryByText(/rallied/i)).toBeNull();
