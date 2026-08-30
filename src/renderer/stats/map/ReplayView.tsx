@@ -2,13 +2,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Pause, Play, Maximize2, Minimize2, Plus, Minus, RotateCcw, X, Crosshair } from 'lucide-react';
 import { useStatsStore } from '../statsStore';
 import { getTileLayers, hasTileData } from '../../../shared/wvwTiles';
-import { WVW_LANDMARKS } from '../../../shared/wvwLandmarks';
 import { normalizeMapNameShort, formatDuration } from '../../../shared/mapUtils';
 import { HeatmapLayer } from './HeatmapLayer';
 import { GroundMarkerLayer } from './GroundMarkerLayer';
-import { SectorOutlineLayer, OWNER_COLORS } from './SectorOutlineLayer';
-import { sectorIdAt } from '../../../shared/sectorLookup';
-import type { WvwOwner } from '../../../shared/wvwSectors';
+import { SectorOutlineLayer } from './SectorOutlineLayer';
+import { ObjectiveLayer } from './layers/ObjectiveLayer';
 import { SquadOverlay } from './SquadOverlay';
 import { SquadHealthStrip } from './SquadHealthStrip';
 import { LayersPanel } from './LayersPopover';
@@ -150,21 +148,6 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
         ? playhead.timeMs / selectedFight.movementData.pollingRate
         : 0;
     const pollIndex = Math.floor(pollFrac);
-
-    // Owner of each landmark's containing sector — colours the objective
-    // marker + label like the in-game map. Empty when ownership is unknown.
-    const landmarkOwners = useMemo(() => {
-        const out: Record<string, Exclude<WvwOwner, 'Neutral'>> = {};
-        const mapKey = selectedFight?.mapKey;
-        const owners = selectedFight?.sectorOwners;
-        if (!mapKey || !owners) return out;
-        for (const lm of WVW_LANDMARKS[mapKey] ?? []) {
-            const sectorId = sectorIdAt(mapKey, lm.x, lm.y);
-            const owner = sectorId !== undefined ? owners[sectorId] : undefined;
-            if (owner && owner !== 'Neutral') out[lm.name] = owner;
-        }
-        return out;
-    }, [selectedFight?.mapKey, selectedFight?.sectorOwners]);
 
     const followMember = useMemo(() => {
         if (!selectedFight) return null;
@@ -359,17 +342,10 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                         timeMs={playhead.timeMs}
                                         scale={viewport.scale}
                                     />
-                                    {selectedFight.mapKey && (WVW_LANDMARKS[selectedFight.mapKey] ?? []).map(lm => {
-                                        const owner = landmarkOwners[lm.name];
-                                        const ownerColor = owner ? OWNER_COLORS[owner] : null;
-                                        return (
-                                            <g key={lm.name} opacity={ownerColor ? 1 : 0.7}>
-                                                <circle cx={lm.x} cy={lm.y} r={6} fill={ownerColor ?? 'rgba(15,23,42,0.6)'} stroke="rgba(0,0,0,0.9)" strokeWidth={2.5} />
-                                                <circle cx={lm.x} cy={lm.y} r={6} fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth={1} />
-                                                <text x={lm.x + 8} y={lm.y + 3} fontSize={9} fill={ownerColor ?? 'white'} stroke="black" strokeWidth={2.5} paintOrder="stroke" strokeLinejoin="round">{lm.name}</text>
-                                            </g>
-                                        );
-                                    })}
+                                    <ObjectiveLayer
+                                        mapKey={selectedFight.mapKey}
+                                        sectorOwners={selectedFight.sectorOwners}
+                                    />
                                     <MemberLayer
                                         members={selectedFight.movementData.members}
                                         pollFrac={pollFrac}

@@ -39,8 +39,8 @@ export const SectorOutlineLayer: React.FC<SectorOutlineLayerProps> = ({ mapKey, 
 
     if (!scaled.length) return null;
 
-    // 2× the target width, clipped to the interior → ~2 screen px inner-aligned.
-    const strokeWidth = 4 / scale;
+    // 1.6 screen px inner-aligned (2x the target, clipped to the interior).
+    const strokeWidth = 3.2 / scale;
 
     return (
         <g>
@@ -61,7 +61,7 @@ export const SectorOutlineLayer: React.FC<SectorOutlineLayerProps> = ({ mapKey, 
                         points={sec.points}
                         fill="none"
                         stroke={color}
-                        strokeOpacity={0.9}
+                        strokeOpacity={0.45}
                         strokeWidth={strokeWidth}
                         strokeLinejoin="round"
                         clipPath={`url(#${clipPrefix}-sec-${sec.id})`}

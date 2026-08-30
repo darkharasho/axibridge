@@ -55,9 +55,9 @@ describe('SectorOutlineLayer', () => {
         expect(first(doubled)[1]).toBeCloseTo(first(base)[1] * 2, 1);
     });
 
-    it('keeps stroke width at ~2 screen px regardless of zoom (2× width, clipped)', () => {
+    it('keeps stroke width at ~1.6 screen px regardless of zoom (2× width, clipped)', () => {
         const { container } = renderLayer({ scale: 4 });
         const poly = container.querySelector('polygon[data-sector-id="999"]');
-        expect(Number(poly?.getAttribute('stroke-width'))).toBeCloseTo(4 / 4, 5);
+        expect(Number(poly?.getAttribute('stroke-width'))).toBeCloseTo(3.2 / 4, 5);
     });
 });
