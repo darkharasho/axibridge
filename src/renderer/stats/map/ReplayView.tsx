@@ -12,7 +12,7 @@ import { SquadHealthStrip } from './SquadHealthStrip';
 import { LayersPanel } from './LayersPopover';
 import { CcTakenNotice } from './CcTakenNotice';
 import { useHeatmapData } from './hooks/useHeatmapData';
-import { FightPickerBar } from './FightPickerBar';
+import { FightIdentityPill } from './FightIdentityPill';
 import { FightPicker } from './FightPicker';
 import { ReplaySquadPanel } from './ReplaySquadPanel';
 import { SyncedTimeline } from './SyncedTimeline';
@@ -214,8 +214,6 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
 
     const body = (
         <div className="replay-view" style={{ display: 'flex', flexDirection: 'column', height: '100%', ...style }}>
-            <FightPickerBar fights={fights} collapsed={pickerCollapsed} onToggle={() => setPickerCollapsed(v => !v)} />
-
             {!selectedFight ? (
                 <div style={{
                     flex: 1,
@@ -262,6 +260,11 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                 <button type="button" onClick={() => setFullscreen(v => !v)} title="Fullscreen" style={ctrlBtnStyle}>
                                     {fullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
                                 </button>
+                            </div>
+
+                            {/* Floating fight identity pill, centred at the top of the map */}
+                            <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 15 }}>
+                                <FightIdentityPill fights={fights} onOpenPicker={() => setPickerCollapsed(false)} />
                             </div>
 
                             {/* Status chips floating on the map */}
