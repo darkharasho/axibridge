@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useRef } from 'react';
 import { useStatsStore } from '../statsStore';
-import { formatDuration } from '../../../shared/mapUtils';
 import { useSquadDerived } from './hooks/useSquadDerived';
 import type { ReplayFightPayload } from './replayTypes';
 
@@ -61,11 +60,7 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
     const playheadX = fight.durationMs > 0 ? (timeMs / fight.durationMs) * 1000 : 0;
 
     return (
-        <div className="replay-timeline-wrap" style={{ padding: '0 8px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, opacity: 0.8, padding: '4px 0' }}>
-                <span>Squad DPS (peak {maxDps.toLocaleString()})</span>
-                <span>{formatDuration(timeMs)} / {formatDuration(fight.durationMs)}</span>
-            </div>
+        <div className="replay-timeline-wrap" style={{ padding: 0 }}>
             <svg
                 ref={svgRef}
                 className="replay-timeline"
@@ -78,6 +73,7 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
                 onMouseUp={() => setDragging(false)}
                 onMouseLeave={() => setDragging(false)}
             >
+                <title>{`Squad DPS — peak ${maxDps.toLocaleString()}`}</title>
                 {layersState.phases && derived.phases.map((p, i) => {
                     const x1 = (p.startMs / fight.durationMs) * 1000;
                     const x2 = (p.endMs / fight.durationMs) * 1000;

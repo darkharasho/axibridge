@@ -21,11 +21,6 @@ describe('SyncedTimeline', () => {
         useStatsStore.setState(initial);
     });
 
-    it('renders the duration and current time', () => {
-        const { getByText } = render(<SyncedTimeline fight={makeFight(90_000)} />);
-        expect(getByText('0:00 / 1:30')).toBeTruthy();
-    });
-
     it('clicking 50% across scrubs to midpoint', () => {
         const fight = makeFight(60_000);
         const { container } = render(<SyncedTimeline fight={fight} />);
