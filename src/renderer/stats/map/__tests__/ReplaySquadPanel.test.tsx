@@ -131,11 +131,12 @@ describe('ReplaySquadPanel party collapse and spotlight', () => {
         expect(useStatsStore.getState().replaySpotlightParty).toBeNull();
     });
 
-    it('the crosshair button sets the spotlight party', () => {
+    it('the crosshair button sets the spotlight party without collapsing it', () => {
         const fight = mkFight([mkMember({ name: 'A', group: 1 })]);
         render(<ReplaySquadPanel fight={fight} collapsed={false} onToggle={() => {}} />);
         fireEvent.click(screen.getByTitle('Spotlight Party 1'));
         expect(useStatsStore.getState().replaySpotlightParty).toBe(1);
+        expect(screen.getByText('A')).toBeTruthy();
     });
 
     it('the crosshair button clears an active spotlight and reports aria-pressed', () => {
@@ -180,5 +181,12 @@ describe('ReplaySquadPanel party collapse and spotlight', () => {
         const { container } = render(<ReplaySquadPanel fight={fight} collapsed={false} onToggle={() => {}} />);
         const panel = container.firstElementChild as HTMLElement;
         expect(panel.style.background).not.toBe('');
+    });
+
+    it('the collapsed rail button also sets an explicit opaque background', () => {
+        const fight = mkFight([mkMember()]);
+        const { container } = render(<ReplaySquadPanel fight={fight} collapsed={true} onToggle={() => {}} />);
+        const rail = container.firstElementChild as HTMLElement;
+        expect(rail.style.background).not.toBe('');
     });
 });
