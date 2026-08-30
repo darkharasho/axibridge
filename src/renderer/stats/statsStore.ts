@@ -31,7 +31,7 @@ export interface FightRosterEntry {
     enemyClassCounts?: Record<string, number>;
 }
 
-interface StatsStoreState {
+export interface StatsStoreState {
     result: any | null;
     inputsHash: string | null;
     progress: AggregationProgressState;

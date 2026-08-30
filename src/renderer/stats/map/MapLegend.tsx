@@ -55,7 +55,7 @@ const Swatch: React.FC<{ glyph: Glyph; color: string }> = ({ glyph, color }) => 
  * away inside the layers panel. Ownership colours are deliberately absent —
  * a sector tint explains itself, a violet ring does not.
  */
-export const MapLegend: React.FC<{ style?: React.CSSProperties }> = ({ style }) => {
+const MapLegendInner: React.FC<{ style?: React.CSSProperties }> = ({ style }) => {
     const layers = useStatsStore(state => state.replayLayers);
 
     const rows: LegendRow[] = [
@@ -95,5 +95,10 @@ export const MapLegend: React.FC<{ style?: React.CSSProperties }> = ({ style }) 
         </div>
     );
 };
+
+/** Memoised so a map pan (which re-renders ReplayView every mouse event)
+ *  doesn't re-render this panel — see the note in ReplaySquadPanel.tsx. */
+export const MapLegend = React.memo(MapLegendInner);
+MapLegend.displayName = 'MapLegend';
 
 export default MapLegend;

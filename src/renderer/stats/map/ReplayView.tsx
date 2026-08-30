@@ -2,11 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Maximize2, Minimize2, Plus, Minus, RotateCcw, X, Crosshair } from 'lucide-react';
 import { useStatsStore } from '../statsStore';
 import { getTileLayers, hasTileData } from '../../../shared/wvwTiles';
-import { HeatmapLayer } from './HeatmapLayer';
-import { GroundMarkerLayer } from './GroundMarkerLayer';
-import { SectorOutlineLayer } from './SectorOutlineLayer';
-import { ObjectiveLayer } from './layers/ObjectiveLayer';
-import { SquadOverlay } from './SquadOverlay';
 import { LayersPanel } from './LayersPopover';
 import { CcTakenNotice } from './CcTakenNotice';
 import { aboveTransportBottom } from './replayLayoutConstants';
@@ -17,13 +12,14 @@ import { useHeatmapData } from './hooks/useHeatmapData';
 import { FightIdentityPill } from './FightIdentityPill';
 import { FightPicker } from './FightPicker';
 import { ReplaySquadPanel } from './ReplaySquadPanel';
-import { EventOverlay } from './EventOverlay';
 import { FullscreenPortal } from './FullscreenPortal';
 import { useReplayPlayback } from './hooks/useReplayPlayback';
 import { useReplayViewport } from './hooks/useReplayViewport';
 import { useMovementData } from './hooks/useMovementData';
 import { pickDefaultFightId, findClosestMember } from './replaySelectors';
-import { MemberLayer, sampleAt } from './layers/MemberLayer';
+import { sampleAt } from './layers/MemberLayer';
+import { ReplayMapContent } from './ReplayMapContent';
+import type { MemberHoverInfo } from './layers/MemberLayer';
 import type { ReplayFightPayload } from './replayTypes';
 import type { SquadMemberMovement } from '../../../shared/movementData';
 
@@ -135,6 +131,23 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
     const [squadForceActive, overrideSquadForce] = useForcedCollapse(containerWidth > 0 && containerWidth < 900);
     const layersEffectivelyOpen = layersOpen && !layersForceActive;
     const squadEffectivelyCollapsed = panelCollapsed || squadForceActive;
+
+    // Stable identities: a pan writes the viewport to the store on every mouse
+    // event, so ReplayView re-renders continuously while dragging. The HUD
+    // panels are React.memo'd to sit that out, which only works if the
+    // callbacks they receive don't change identity on every render.
+    const toggleLayers = useCallback(() => { setLayersOpen(v => !v); overrideLayersForce(); }, [overrideLayersForce]);
+    const toggleSquad = useCallback(() => { setPanelCollapsed(v => !v); overrideSquadForce(); }, [overrideSquadForce]);
+    const openPicker = useCallback(() => setPickerCollapsed(false), []);
+    const onMemberHover = useCallback((info: MemberHoverInfo) => {
+        const rect = mapContainerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        setTooltip({
+            name: info.name, account: info.account, status: info.status,
+            x: info.clientX - rect.left, y: info.clientY - rect.top,
+        });
+    }, []);
+    const onMemberLeave = useCallback(() => setTooltip(null), []);
 
     const { centerOn, attachWheelZoom, attachPanDrag, screenToSvg } = viewport;
     useEffect(() => {
@@ -276,48 +289,21 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                         <image href={selectedFight.mapImageUrl} x={0} y={0} width={mapWidth} height={mapHeight} />
                                     )
                                 }
-                                {layers.zoneBorders && selectedFight.mapKey && (
-                                    <SectorOutlineLayer
-                                        mapKey={selectedFight.mapKey}
-                                        mapWidth={mapWidth}
-                                        mapHeight={mapHeight}
-                                        scale={viewport.scale}
-                                        sectorOwners={selectedFight.sectorOwners}
-                                    />
-                                )}
-                                <HeatmapLayer raster={heatmap} mapWidth={mapWidth} mapHeight={mapHeight} mode={layers.heatmap} />
-                                {/* Under the member icons on purpose — a
-                                    rally marker is exactly where everyone
-                                    will be standing. */}
-                                <GroundMarkerLayer
-                                    markers={selectedFight.movementData.groundMarkers}
-                                    timeMs={playhead.timeMs}
+                                <ReplayMapContent
+                                    fight={selectedFight}
+                                    layers={layers}
+                                    heatmap={heatmap}
+                                    mapWidth={mapWidth}
+                                    mapHeight={mapHeight}
                                     scale={viewport.scale}
-                                />
-                                <ObjectiveLayer
-                                    mapKey={selectedFight.mapKey}
-                                    sectorOwners={selectedFight.sectorOwners}
-                                />
-                                <MemberLayer
-                                    members={selectedFight.movementData.members}
                                     pollFrac={pollFrac}
                                     pollIndex={pollIndex}
                                     timeMs={playhead.timeMs}
-                                    scale={viewport.scale}
                                     spotlightParty={spotlightParty}
                                     followKey={followMember ? (followMember.account || followMember.name) : null}
-                                    onHover={(info) => {
-                                        const rect = mapContainerRef.current?.getBoundingClientRect();
-                                        if (!rect) return;
-                                        setTooltip({
-                                            name: info.name, account: info.account, status: info.status,
-                                            x: info.clientX - rect.left, y: info.clientY - rect.top,
-                                        });
-                                    }}
-                                    onLeave={() => setTooltip(null)}
+                                    onHover={onMemberHover}
+                                    onLeave={onMemberLeave}
                                 />
-                                <SquadOverlay fight={selectedFight} timeMs={playhead.timeMs} scale={viewport.scale} />
-                                <EventOverlay fight={selectedFight} timeMs={playhead.timeMs} scale={viewport.scale} />
                             </g>
                         </svg>
 
@@ -378,7 +364,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
 
                         {/* 4. Fight identity, centred */}
                         <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 15 }}>
-                            <FightIdentityPill fights={fights} onOpenPicker={() => setPickerCollapsed(false)} />
+                            <FightIdentityPill fights={fights} onOpenPicker={openPicker} />
                         </div>
 
                         {/* 5. Layers + legend/scale, merged into one left column so an
@@ -398,7 +384,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                             <div style={layersEffectivelyOpen
                                 ? { display: 'flex', minHeight: 0, pointerEvents: 'auto' }
                                 : { display: 'flex', flexShrink: 0, pointerEvents: 'auto' }}>
-                                <LayersPanel open={layersEffectivelyOpen} onToggle={() => { setLayersOpen(v => !v); overrideLayersForce(); }} />
+                                <LayersPanel open={layersEffectivelyOpen} onToggle={toggleLayers} />
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start', minHeight: 0, pointerEvents: 'auto' }}>
                                 <MapLegend />
@@ -443,7 +429,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                             <ReplaySquadPanel
                                 fight={selectedFight}
                                 collapsed={squadEffectivelyCollapsed}
-                                onToggle={() => { setPanelCollapsed(v => !v); overrideSquadForce(); }}
+                                onToggle={toggleSquad}
                             />
                         </div>
 

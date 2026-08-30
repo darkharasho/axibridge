@@ -24,7 +24,7 @@ export interface TransportBarProps {
  * platform. An explicit `background` keeps it opaque everywhere while
  * still picking up the glass-theme override where that class applies.
  */
-export const TransportBar: React.FC<TransportBarProps> = ({ fight, style }) => {
+const TransportBarInner: React.FC<TransportBarProps> = ({ fight, style }) => {
     const playhead = useStatsStore(state => state.replayPlayhead);
     const setReplayPlayhead = useStatsStore(state => state.setReplayPlayhead);
     const lanesExpanded = useStatsStore(state => state.replayLanesExpanded);
@@ -116,5 +116,11 @@ export const TransportBar: React.FC<TransportBarProps> = ({ fight, style }) => {
         </div>
     );
 };
+
+
+/** Memoised so a map pan (which re-renders ReplayView every mouse event)
+ *  doesn't re-render this panel — see the note in ReplaySquadPanel.tsx. */
+export const TransportBar = React.memo(TransportBarInner);
+TransportBar.displayName = 'TransportBar';
 
 export default TransportBar;

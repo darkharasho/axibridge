@@ -31,7 +31,7 @@ const stepBtn = (disabled: boolean): React.CSSProperties => ({
  * matching every other floating surface in this codebase (e.g.
  * ColumnFilterDropdown.tsx, PublishWebhookPopover.tsx).
  */
-export const FightIdentityPill: React.FC<FightIdentityPillProps> = ({ fights, onOpenPicker }) => {
+const FightIdentityPillInner: React.FC<FightIdentityPillProps> = ({ fights, onOpenPicker }) => {
     const selectedId = useStatsStore(state => state.selectedReplayFightId);
     const setSelectedReplayFight = useStatsStore(state => state.setSelectedReplayFight);
 
@@ -101,5 +101,11 @@ export const FightIdentityPill: React.FC<FightIdentityPillProps> = ({ fights, on
         </div>
     );
 };
+
+
+/** Memoised so a map pan (which re-renders ReplayView every mouse event)
+ *  doesn't re-render this panel — see the note in ReplaySquadPanel.tsx. */
+export const FightIdentityPill = React.memo(FightIdentityPillInner);
+FightIdentityPill.displayName = 'FightIdentityPill';
 
 export default FightIdentityPill;

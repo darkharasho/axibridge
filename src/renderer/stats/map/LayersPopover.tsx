@@ -84,7 +84,7 @@ interface LayersPanelProps {
     onToggle: () => void;
 }
 
-export const LayersPanel: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
+const LayersPanelInner: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
     const layers = useStatsStore(state => state.replayLayers);
     const setReplayLayer = useStatsStore(state => state.setReplayLayer);
     const setReplayHeatmapMode = useStatsStore(state => state.setReplayHeatmapMode);
@@ -182,5 +182,11 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
         </div>
     );
 };
+
+
+/** Memoised so a map pan (which re-renders ReplayView every mouse event)
+ *  doesn't re-render this panel — see the note in ReplaySquadPanel.tsx. */
+export const LayersPanel = React.memo(LayersPanelInner);
+LayersPanel.displayName = 'LayersPanel';
 
 export default LayersPanel;
