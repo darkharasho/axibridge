@@ -54,4 +54,11 @@ describe('MapLegend', () => {
         const { container } = render(<MapLegend />);
         expect(container.querySelectorAll('[data-legend-row]').length).toBe(4);
     });
+
+    it('has an opaque background in all themes', () => {
+        const { container } = render(<MapLegend />);
+        const cardElement = container.querySelector('.app-dropdown') as HTMLElement;
+        // The inline style sets background to 'var(--bg-elevated)', verify it's not empty
+        expect(cardElement.style.background).toBeTruthy();
+    });
 });

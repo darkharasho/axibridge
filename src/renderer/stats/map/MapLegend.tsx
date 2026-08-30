@@ -66,6 +66,7 @@ export const MapLegend: React.FC<{ style?: React.CSSProperties }> = ({ style }) 
             style={{
                 width: 132, padding: '6px 8px', borderRadius: 8,
                 border: '1px solid var(--border-default)',
+                background: 'var(--bg-elevated)',
                 display: 'flex', flexDirection: 'column', gap: 3,
                 ...style,
             }}
