@@ -83,8 +83,21 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
                     const x2 = (p.endMs / fight.durationMs) * 1000;
                     return (
                         <rect key={`ph-${i}`}
-                            x={x1} y={0} width={Math.max(0, x2 - x1)} height={8}
-                            fill={phaseColor[p.kind]} opacity={0.35} />
+                            data-phase-chip
+                            data-start-ms={p.startMs}
+                            x={x1} y={0} width={Math.max(0, x2 - x1)} height={10}
+                            fill={phaseColor[p.kind]} opacity={0.45}
+                            style={{ cursor: 'pointer' }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                                // Beat the svg-wide scrub handler: a click on a
+                                // phase segment means "jump to this phase",
+                                // not "scrub to where I clicked".
+                                e.stopPropagation();
+                                setReplayPlayhead({ timeMs: p.startMs });
+                            }}>
+                            <title>{`${p.kind} — ${phaseDesc[p.kind]}`}</title>
+                        </rect>
                     );
                 })}
                 <path d={pathData} style={{ fill: 'var(--accent-bg-strong)', stroke: 'var(--brand-primary)' }} strokeWidth={1} />
@@ -98,31 +111,6 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
                 ))}
                 <line x1={playheadX} x2={playheadX} y1={0} y2={120} stroke="#fbbf24" strokeWidth={1.5} />
             </svg>
-            {layersState.phases && derived.phases.length > 0 && (
-                <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
-                    {derived.phases.map((p, i) => (
-                        <button
-                            key={`${p.startMs}-${i}`}
-                            type="button"
-                            data-phase-chip
-                            data-start-ms={p.startMs}
-                            title={phaseDesc[p.kind]}
-                            onClick={() => setReplayPlayhead({ timeMs: p.startMs })}
-                            style={{
-                                padding: '2px 6px',
-                                fontSize: 10,
-                                borderRadius: 3,
-                                background: `${phaseColor[p.kind]}22`,
-                                color: phaseColor[p.kind],
-                                border: `1px solid ${phaseColor[p.kind]}55`,
-                                cursor: 'pointer',
-                            }}
-                        >
-                            {p.kind} · {(p.startMs / 1000).toFixed(0)}s
-                        </button>
-                    ))}
-                </div>
-            )}
         </div>
     );
 };

@@ -16,18 +16,37 @@ const mkMember = (o: Partial<SquadMemberMovement>): SquadMemberMovement => ({
     downRanges: [], deadRanges: [], ...o,
 });
 
-const mkFight = (): ReplayFightPayload => ({
-    fightId: 'sp1', fightIndex: 0, label: 'x', timestampMs: 0, durationMs: 10_000,
-    mapKey: null, mapImageUrl: null, mapSize: [600, 600], avgPosition: null,
-    nearestLandmark: null, squadSize: 1, kills: 0, deaths: 0,
-    movementData: {
-        pollingRate: 1000, durationMs: 10_000, pixelsPerInch: { x: 1, y: 1 },
-        members: [mkMember({ deadRanges: [[6000, 10_000]] })], boonIcons: {}, skillIcons: {}, groundMarkers: [],
-    },
-    dpsSamples: [{ timeMs: 0, squadDps: 0 }, { timeMs: 5000, squadDps: 1000 }, { timeMs: 10_000, squadDps: 0 }],
-    killEvents: [], damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
-    sectorOwners: null, ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null, ccTakenEvents: null,
-});
+/**
+ * A 20s fight with a moving squad and a mid-fight death, so
+ * `useSquadDerived` produces at least an opening, a push and a retreat
+ * phase — enough for the ribbon-segment tests to exercise more than one
+ * `data-phase-chip` rect.
+ */
+const fightWithPhases = (): ReplayFightPayload => {
+    const moving: [number, number][] = Array.from({ length: 21 }, (_, i) =>
+        (i <= 9 ? [100, 100] : [100 + (i - 9) * 60, 100]) as [number, number]);
+    const stationary: [number, number][] = Array.from({ length: 21 }, () => [100, 100] as [number, number]);
+    return {
+        fightId: 'sp1', fightIndex: 0, label: 'x', timestampMs: 0, durationMs: 20_000,
+        mapKey: null, mapImageUrl: null, mapSize: [600, 600], avgPosition: null,
+        nearestLandmark: null, squadSize: 2, kills: 0, deaths: 0,
+        movementData: {
+            pollingRate: 1000, durationMs: 20_000, pixelsPerInch: { x: 1, y: 1 },
+            members: [
+                mkMember({ positions: moving, deadRanges: [[15_000, 20_000]] }),
+                mkMember({ name: 'B', account: 'B', positions: stationary }),
+            ],
+            boonIcons: {}, skillIcons: {}, groundMarkers: [],
+        },
+        dpsSamples: [
+            { timeMs: 0, squadDps: 0 }, { timeMs: 5000, squadDps: 2000 },
+            { timeMs: 10_000, squadDps: 4000 }, { timeMs: 15_000, squadDps: 1000 },
+            { timeMs: 20_000, squadDps: 0 },
+        ],
+        killEvents: [], damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
+        sectorOwners: null, ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null, ccTakenEvents: null,
+    };
+};
 
 describe('SyncedTimeline — phases', () => {
     beforeEach(() => {
@@ -36,25 +55,32 @@ describe('SyncedTimeline — phases', () => {
         __clearSquadDerivedCache();
     });
 
-    it('does not render phase chips when phases toggle is off', () => {
-        const { container } = render(<SyncedTimeline fight={mkFight()} />);
-        expect(container.querySelector('[data-phase-chip]')).toBeNull();
+    it('renders one clickable ribbon segment per phase', () => {
+        useStatsStore.getState().setReplayLayer('phases', true);
+        const { container } = render(<SyncedTimeline fight={fightWithPhases()} />);
+        const segs = container.querySelectorAll('[data-phase-chip]');
+        expect(segs.length).toBeGreaterThan(0);
+        expect(segs[0].tagName.toLowerCase()).toBe('rect');
     });
 
-    it('renders at least one phase chip when phases toggle is on', () => {
+    it('clicking a ribbon segment scrubs to that phase start', () => {
         useStatsStore.getState().setReplayLayer('phases', true);
-        const { container } = render(<SyncedTimeline fight={mkFight()} />);
-        expect(container.querySelector('[data-phase-chip]')).not.toBeNull();
+        const { container } = render(<SyncedTimeline fight={fightWithPhases()} />);
+        const seg = container.querySelectorAll('[data-phase-chip]')[1] as SVGRectElement;
+        const start = Number(seg.getAttribute('data-start-ms'));
+        fireEvent.click(seg);
+        expect(useStatsStore.getState().replayPlayhead.timeMs).toBe(start);
     });
 
-    it('clicking a phase chip scrubs to its startMs', () => {
+    it('renders no separate chip row below the svg', () => {
         useStatsStore.getState().setReplayLayer('phases', true);
-        const { container } = render(<SyncedTimeline fight={mkFight()} />);
-        const chips = container.querySelectorAll('[data-phase-chip]');
-        expect(chips.length).toBeGreaterThan(0);
-        const last = chips[chips.length - 1] as HTMLElement;
-        const startMs = Number(last.getAttribute('data-start-ms'));
-        fireEvent.click(last);
-        expect(useStatsStore.getState().replayPlayhead.timeMs).toBe(startMs);
+        const { container } = render(<SyncedTimeline fight={fightWithPhases()} />);
+        expect(container.querySelectorAll('button[data-phase-chip]').length).toBe(0);
+    });
+
+    it('renders no phase segments when the phases layer is off', () => {
+        useStatsStore.getState().setReplayLayer('phases', false);
+        const { container } = render(<SyncedTimeline fight={fightWithPhases()} />);
+        expect(container.querySelectorAll('[data-phase-chip]').length).toBe(0);
     });
 });
