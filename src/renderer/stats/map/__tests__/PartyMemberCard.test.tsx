@@ -145,7 +145,7 @@ describe('PartyMemberCard conditions', () => {
         expect(row.style.minHeight).toBe('18px');
     });
 
-    it('renders the cast as a bare icon with no name string', () => {
+    it('renders the cast as a bare icon with no name string when not followed', () => {
         const m = mkMember({ skillCasts: [{ id: 5536, time: 1000, duration: 500 }] });
         render(<PartyMemberCard member={m} timeMs={1000} boonIcons={{}} skillIcons={skillIcons} />);
         expect(document.querySelectorAll('img[alt="Heal by Light"]').length).toBe(1);
@@ -156,5 +156,46 @@ describe('PartyMemberCard conditions', () => {
         const m = mkMember({ deadRanges: [[0, 0]], boonStates: { 738: [[0, 12]] } });
         render(<PartyMemberCard member={m} timeMs={500} boonIcons={richBuffIcons} skillIcons={{}} />);
         expect(document.querySelectorAll('img[alt="Vulnerability"]').length).toBe(0);
+    });
+    /** The followed card is the one the user is reading, so it is the only one
+     *  that can afford a line of prose. Every other card keeps the bare icon —
+     *  50 name lines would double the roster's height. */
+    describe('cast name on the followed card', () => {
+        const casting = (o = {}) => mkMember({ skillCasts: [{ id: 5536, time: 1000, duration: 500 }], ...o });
+
+        it('spells out the current cast when the card is followed', () => {
+            render(<PartyMemberCard member={casting()} timeMs={1000} boonIcons={{}} skillIcons={skillIcons} isFollowed />);
+            expect(screen.getByText('Heal by Light')).toBeTruthy();
+        });
+
+        it('keeps the name off every card that is not followed', () => {
+            const { container } = render(<PartyMemberCard member={casting()} timeMs={1000} boonIcons={{}} skillIcons={skillIcons} />);
+            expect(container.querySelector('[data-cast-name]')).toBeNull();
+        });
+
+        it('shows nothing while the followed player is between casts', () => {
+            const m = casting({ skillCasts: [{ id: 5536, time: 9000, duration: 500 }] });
+            const { container } = render(<PartyMemberCard member={m} timeMs={1000} boonIcons={{}} skillIcons={skillIcons} isFollowed />);
+            expect(container.querySelector('[data-cast-name]')).toBeNull();
+        });
+
+        it('shows nothing for a followed player who is dead', () => {
+            const m = casting({ deadRanges: [[0, 0]] });
+            const { container } = render(<PartyMemberCard member={m} timeMs={1000} boonIcons={{}} skillIcons={skillIcons} isFollowed />);
+            expect(container.querySelector('[data-cast-name]')).toBeNull();
+        });
+
+        it('shows nothing when the cast id has no entry in the icon catalog', () => {
+            const m = casting({ skillCasts: [{ id: 99999, time: 1000, duration: 500 }] });
+            const { container } = render(<PartyMemberCard member={m} timeMs={1000} boonIcons={{}} skillIcons={skillIcons} isFollowed />);
+            expect(container.querySelector('[data-cast-name]')).toBeNull();
+        });
+
+        it('truncates rather than wrapping — the panel cannot widen', () => {
+            const { container } = render(<PartyMemberCard member={casting()} timeMs={1000} boonIcons={{}} skillIcons={skillIcons} isFollowed />);
+            const line = container.querySelector('[data-cast-name]') as HTMLElement;
+            expect(line.style.whiteSpace).toBe('nowrap');
+            expect(line.style.textOverflow).toBe('ellipsis');
+        });
     });
 });

@@ -70,6 +70,11 @@ export const PartyMemberCard: React.FC<PartyMemberCardProps> = ({
     const skillIds = useMemo(() => activeSkillsAt(member, timeMs), [member, timeMs]);
 
     const spec = memberSpec(member);
+    // Same catalog lookup the cast icon does, so the two can never disagree
+    // about which skill is being shown.
+    const castName = isFollowed && status !== 'dead'
+        ? skillIcons[skillIds[0]]?.name || null
+        : null;
     const statusSuffix = status === 'down' ? ' · DOWN' : status === 'dead' ? ' · DEAD' : '';
     const statusColor = status === 'down' ? 'var(--status-warning)' : status === 'dead' ? 'var(--status-error)' : 'var(--text-secondary)';
 
@@ -139,6 +144,22 @@ export const PartyMemberCard: React.FC<PartyMemberCardProps> = ({
             <div style={{ height: 3, background: 'var(--border-subtle)', borderRadius: 2, marginBottom: 3, overflow: 'hidden' }}>
                 <div style={{ width: `${status === 'dead' ? 0 : hp}%`, height: '100%', background: barColor(status), borderRadius: 2 }} />
             </div>
+
+            {/* The cast icon above carries its name only in a title tooltip, which
+                costs a hover to read. The followed card spells it out instead —
+                and only the followed card: one player is followed at a time, so
+                this adds a line to one card rather than to all fifty. No
+                placeholder when idle, or a followed player's card would twitch
+                a row taller and shorter between every cast. */}
+            {castName && (
+                <div data-cast-name style={{
+                    fontSize: 9, lineHeight: '11px', marginBottom: 3,
+                    color: 'var(--status-info)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                    {castName}
+                </div>
+            )}
 
             {/* Buff row: boons, a hairline divider, then conditions */}
             <div data-buff-row style={{ display: 'flex', alignItems: 'center', gap: 3, minHeight: 18, flexWrap: 'wrap' }}>
