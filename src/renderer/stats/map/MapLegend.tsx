@@ -1,7 +1,7 @@
 import React from 'react';
 import { useStatsStore } from '../statsStore';
 
-type Glyph = 'ring' | 'cross' | 'ring-dot' | 'blur' | 'tag' | 'marker';
+type Glyph = 'ring' | 'cross' | 'ring-dot' | 'ring-skull' | 'blur' | 'tag' | 'marker';
 
 interface LegendRow {
     key: string;
@@ -13,7 +13,12 @@ interface LegendRow {
 /** Marks that are drawn unconditionally, so their rows are unconditional too. */
 const ALWAYS: LegendRow[] = [
     { key: 'downed',    label: 'Downed',    color: '#f97316', glyph: 'cross' },
-    { key: 'killed',    label: 'Killed',    color: '#a78bfa', glyph: 'ring-dot' },
+    // Matches EventOverlay's `data-pulse="death"` mark: a red expanding ring
+    // with a skull glyph for an allied death. Was mislabelled "Killed" in
+    // violet, which is actually the colour of an ENEMY going down
+    // (`data-pulse="down-enemy"`) — the legend taught the opposite of what
+    // the map draws.
+    { key: 'killed',    label: 'Death',     color: '#ef4444', glyph: 'ring-skull' },
     { key: 'commander', label: 'Commander', color: '#fbbf24', glyph: 'tag' },
     { key: 'enemy',     label: 'Enemy',     color: '#ef4444', glyph: 'marker' },
 ];
@@ -31,6 +36,12 @@ const Swatch: React.FC<{ glyph: Glyph; color: string }> = ({ glyph, color }) => 
             <>
                 <circle cx={6.5} cy={6.5} r={5} fill="none" stroke={color} strokeWidth={1.2} />
                 <circle cx={6.5} cy={6.5} r={2} fill={color} />
+            </>
+        )}
+        {glyph === 'ring-skull' && (
+            <>
+                <circle cx={6.5} cy={6.5} r={5} fill="none" stroke={color} strokeWidth={1.4} />
+                <text x={6.5} y={9} textAnchor="middle" fontSize={7} fill={color}>☠</text>
             </>
         )}
         {glyph === 'blur' && <circle cx={6.5} cy={6.5} r={5} fill={color} opacity={0.4} />}

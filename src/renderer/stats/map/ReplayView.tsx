@@ -9,6 +9,7 @@ import { ObjectiveLayer } from './layers/ObjectiveLayer';
 import { SquadOverlay } from './SquadOverlay';
 import { LayersPanel } from './LayersPopover';
 import { CcTakenNotice } from './CcTakenNotice';
+import { aboveTransportBottom } from './replayLayoutConstants';
 import { MapLegend } from './MapLegend';
 import { ScaleBar } from './ScaleBar';
 import { TransportBar } from './TransportBar';
@@ -56,6 +57,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
     const layers = useStatsStore(state => state.replayLayers);
     const spotlightParty = useStatsStore(state => state.replaySpotlightParty);
     const setReplaySpotlightParty = useStatsStore(state => state.setReplaySpotlightParty);
+    const lanesExpanded = useStatsStore(state => state.replayLanesExpanded);
 
     const [fullscreen, setFullscreen] = useState(false);
     const [pickerCollapsed, setPickerCollapsed] = useState(true);
@@ -363,9 +365,26 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                             <FightIdentityPill fights={fights} onOpenPicker={() => setPickerCollapsed(false)} />
                         </div>
 
-                        {/* 5. Layers, top-left */}
-                        <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 20, display: 'flex', maxHeight: 'calc(100% - 90px)' }}>
-                            <LayersPanel open={layersEffectivelyOpen} onToggle={() => setLayersOpen(v => !v)} />
+                        {/* 5. Layers + legend/scale, merged into one left column so an
+                             open layers panel can never blanket the legend below it —
+                             each shrinks within the column instead of overrunning it. */}
+                        <div style={{
+                            position: 'absolute', top: 8, left: 8, bottom: 86, zIndex: 20,
+                            display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                            alignItems: 'flex-start', gap: 8, pointerEvents: 'none',
+                        }}>
+                            <div style={{ display: 'flex', minHeight: 0, pointerEvents: 'auto' }}>
+                                <LayersPanel open={layersEffectivelyOpen} onToggle={() => setLayersOpen(v => !v)} />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start', pointerEvents: 'auto' }}>
+                                <MapLegend />
+                                {layers.scaleBar && (
+                                    <ScaleBar
+                                        pixelsPerInch={selectedFight.movementData.pixelsPerInch}
+                                        scale={viewport.scale}
+                                    />
+                                )}
+                            </div>
                         </div>
 
                         {/* 6. Squad, right, stopping above the transport. Native wheel
@@ -388,20 +407,15 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                             </button>
                         </div>
 
-                        {/* 8. Legend + scale bar, bottom-left above the transport */}
-                        <div style={{ position: 'absolute', left: 8, bottom: 86, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
-                            <MapLegend />
-                            {layers.scaleBar && (
-                                <ScaleBar
-                                    pixelsPerInch={selectedFight.movementData.pixelsPerInch}
-                                    scale={viewport.scale}
-                                />
-                            )}
-                        </div>
-
-                        {/* 9. Status chips (follow / re-center / spotlight) */}
+                        {/* 8. Status chips (follow / re-center / spotlight). `bottom` tracks
+                             the transport's own height so the expanded lanes band can't
+                             strand Re-center underneath it. */}
                         {followLabel && (
-                            <div style={{ position: 'absolute', bottom: 96, left: (layersEffectivelyOpen ? 216 : 28) + 16, zIndex: 10, transition: 'left 0.15s', display: 'flex', gap: 6 }}>
+                            <div style={{
+                                position: 'absolute',
+                                bottom: aboveTransportBottom(lanesExpanded),
+                                left: (layersEffectivelyOpen ? 216 : 28) + 16, zIndex: 10, transition: 'left 0.15s, bottom 0.15s', display: 'flex', gap: 6,
+                            }}>
                                 {!centeredOnFollow && (
                                     <button
                                         type="button"
@@ -422,17 +436,27 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                             </div>
                         )}
                         {spotlightParty !== null && (
+                            // top: 42, below the fight identity pill (top: 8, zIndex: 15) so
+                            // the pill's opaque background doesn't fully occlude this chip —
+                            // it's the only way to clear a spotlight from the map side.
                             <button
                                 type="button"
                                 onClick={() => setReplaySpotlightParty(null)}
-                                style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 10, ...chipStyle, borderColor: 'var(--status-warning)', color: 'var(--status-warning)' }}
+                                style={{ position: 'absolute', top: 42, left: '50%', transform: 'translateX(-50%)', zIndex: 10, ...chipStyle, borderColor: 'var(--status-warning)', color: 'var(--status-warning)' }}
                             >
                                 Spotlight: Party {spotlightParty} <X size={10} style={{ marginLeft: 4 }} />
                             </button>
                         )}
 
-                        {/* 10. CC-taken notice */}
-                        <CcTakenNotice ccTakenEvents={selectedFight.ccTakenEvents} />
+                        {/* 10. CC-taken notice, bottom-centre above the transport. Positioned
+                             here (not by the component itself) like every other floating
+                             child, so it clears the transport's expanded lanes band too. */}
+                        <div style={{
+                            position: 'absolute', bottom: aboveTransportBottom(lanesExpanded), left: '50%',
+                            transform: 'translateX(-50%)', zIndex: 20, transition: 'bottom 0.15s',
+                        }}>
+                            <CcTakenNotice ccTakenEvents={selectedFight.ccTakenEvents} />
+                        </div>
 
                         {/* 11. Transport, spanning between the legend and the zoom cluster */}
                         <div style={{ position: 'absolute', left: 150, right: (squadEffectivelyCollapsed ? 28 : 216) + 16, bottom: 8, zIndex: 15 }}>

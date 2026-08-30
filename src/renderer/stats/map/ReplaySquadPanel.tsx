@@ -51,7 +51,6 @@ export const ReplaySquadPanel: React.FC<ReplaySquadPanelProps> = ({ fight, colla
                     background: 'var(--bg-elevated)',
                     borderRadius: 8,
                     borderLeft: '1px solid var(--border-default)',
-                    border: 'none',
                     display: 'flex', flexDirection: 'column', alignItems: 'center',
                     paddingTop: 8, cursor: 'pointer',
                 }}

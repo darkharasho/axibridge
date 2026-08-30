@@ -16,11 +16,50 @@ const LANE_LABELS = [
     { id: 'strip', label: 'Strips', color: '#e879f9', zeroY: 38, outKey: 'stripLane', inKey: 'stripInLane' },
 ] as const;
 
+/**
+ * The lane-name gutter, split out of `TimelineLanes` so `TransportBar` can
+ * place it in its own grid cell (row 2, column 1 — the same column the
+ * play/speed/clock cluster occupies in row 1), leaving the plotting `<svg>`
+ * free to fill column 2 exactly like `SyncedTimeline` above it. Sharing that
+ * column is what keeps the two timelines' 1000-unit x-axes aligned.
+ */
+export const TimelineLaneGutter: React.FC = () => {
+    const layersState = useStatsStore(state => state.replayLayers);
+    return (
+        <div style={{ width: GUTTER_PX, flexShrink: 0, position: 'relative', height: '100%' }}>
+            {LANE_LABELS.map(lane => (
+                (layersState[lane.outKey] || layersState[lane.inKey]) && (
+                    <span
+                        key={lane.id}
+                        data-testid={`${lane.id}-lane-label`}
+                        title="Each lane is scaled to its own peak, so bar heights are not comparable across the zero line."
+                        style={{
+                            position: 'absolute', left: 2,
+                            top: `${(lane.zeroY / 52) * 100}%`, transform: 'translateY(-50%)',
+                            fontSize: 9, fontWeight: 600, color: lane.color, whiteSpace: 'nowrap',
+                        }}
+                    >
+                        {`${lane.label} ▲out ▼in`}
+                    </span>
+                )
+            ))}
+        </div>
+    );
+};
+
 export interface TimelineLanesProps {
     fight: ReplayFightPayload;
+    /**
+     * Suppresses the internal label gutter so the `<svg>` can fill its grid
+     * cell exactly — `TransportBar` renders `TimelineLaneGutter` separately
+     * in that case. Defaults to false so existing standalone usage (and its
+     * tests) keeps drawing its own gutter, matching the pre-grid layout.
+     */
+    hideGutter?: boolean;
 }
 
-export const TimelineLanes: React.FC<TimelineLanesProps> = ({ fight }) => {
+export const TimelineLanes: React.FC<TimelineLanesProps> = ({ fight, hideGutter = false }) => {
+    const timeMs = useStatsStore(state => state.replayPlayhead.timeMs);
     const layersState = useStatsStore(state => state.replayLayers);
 
     /**
@@ -53,33 +92,23 @@ export const TimelineLanes: React.FC<TimelineLanesProps> = ({ fight }) => {
     const stripPath = useMemo(() => subLane(fight.stripSamples, 28, 10), [subLane, fight.stripSamples]);
     const stripInPath = useMemo(() => subLane(fight.stripInSamples, 38, 10, true), [subLane, fight.stripInSamples]);
 
+    // Same x derivation as SyncedTimeline's scrubber playhead — timeMs /
+    // durationMs, not index / samples.length — so a line drawn here lands at
+    // the identical x as the one above it in the grid's shared column.
+    const playheadX = fight.durationMs > 0 ? (timeMs / fight.durationMs) * 1000 : 0;
+
     return (
-        <div style={{ display: 'flex', alignItems: 'stretch', gap: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'stretch', gap: 0, height: '100%' }}>
             {/* Gutter, outside the plotting area. The old in-SVG label plate
-                sat on top of the bars and hid the fight's opening seconds. */}
-            <div style={{ width: GUTTER_PX, flexShrink: 0, position: 'relative' }}>
-                {LANE_LABELS.map(lane => (
-                    (layersState[lane.outKey] || layersState[lane.inKey]) && (
-                        <span
-                            key={lane.id}
-                            data-testid={`${lane.id}-lane-label`}
-                            title="Each lane is scaled to its own peak, so bar heights are not comparable across the zero line."
-                            style={{
-                                position: 'absolute', left: 2,
-                                top: `${(lane.zeroY / 52) * 100}%`, transform: 'translateY(-50%)',
-                                fontSize: 9, fontWeight: 600, color: lane.color, whiteSpace: 'nowrap',
-                            }}
-                        >
-                            {`${lane.label} ▲out ▼in`}
-                        </span>
-                    )
-                ))}
-            </div>
+                sat on top of the bars and hid the fight's opening seconds.
+                Omitted when `hideGutter` — TransportBar renders it separately
+                so the svg below can fill its grid cell exactly. */}
+            {!hideGutter && <TimelineLaneGutter />}
             <svg
                 data-testid="timeline-lanes"
                 viewBox="0 0 1000 52"
                 preserveAspectRatio="none"
-                style={{ flex: 1, height: 52, display: 'block', background: 'rgba(8,12,26,0.6)', borderRadius: 6 }}
+                style={{ flex: 1, width: '100%', height: 52, display: 'block', background: 'rgba(8,12,26,0.6)', borderRadius: 6 }}
             >
                 {layersState.ccLane && (
                     fight.ccSamples?.length ? (
@@ -159,6 +188,9 @@ export const TimelineLanes: React.FC<TimelineLanesProps> = ({ fight }) => {
                               stroke={lane.color} strokeWidth={0.5} opacity={0.3} />
                     )
                 ))}
+                <line data-testid="lanes-playhead"
+                      x1={playheadX} x2={playheadX} y1={0} y2={52}
+                      stroke="#fbbf24" strokeWidth={1.5} />
             </svg>
         </div>
     );

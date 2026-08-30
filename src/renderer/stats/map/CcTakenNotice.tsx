@@ -32,8 +32,7 @@ export const CcTakenNotice: React.FC<CcTakenNoticeProps> = ({ ccTakenEvents }) =
         <div
             title="Per-player incoming CC comes from the native per-entity cc_taken lane, which needs Include Timeline Arrays enabled and axilog 1.9.0 or newer. Re-parse this log to fill it in."
             style={{
-                position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)',
-                zIndex: 10, pointerEvents: 'auto',
+                pointerEvents: 'auto',
                 fontSize: 11, padding: '3px 8px', borderRadius: 4,
                 border: '1px solid var(--status-warning)', color: 'var(--status-warning)',
                 background: 'var(--bg-elevated)', whiteSpace: 'nowrap',

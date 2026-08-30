@@ -50,6 +50,21 @@ describe('TimelineLanes', () => {
         expect(container.querySelector('[data-testid="cc-lane-not-recorded"]')).toBeNull();
     });
 
+    it('renders the strip lane when samples are present', () => {
+        const { container } = render(<TimelineLanes fight={makeFight({ stripSamples: [0, 3, 1, 0] })} />);
+        expect(container.querySelector('[data-testid="strip-lane"]')).not.toBeNull();
+    });
+
+    it('drops the strip lane when the stripLane toggle is off, even with samples present', () => {
+        // Regression guard: swapping `layersState.stripLane` for
+        // `layersState.stripInLane` at the strip-lane gate would still pass
+        // every other test in this suite while silently ignoring this toggle.
+        useStatsStore.getState().setReplayLayer('stripLane', false);
+        const { container } = render(<TimelineLanes fight={makeFight({ stripSamples: [0, 3, 1] })} />);
+        expect(container.querySelector('[data-testid="strip-lane"]')).toBeNull();
+        expect(container.querySelector('[data-testid="strip-lane-not-recorded"]')).toBeNull();
+    });
+
     it('draws the zero rule for a measure whose lanes are on', () => {
         const { container } = render(<TimelineLanes fight={makeFight()} />);
         expect(container.querySelector('[data-testid="cc-zero-rule"]')).not.toBeNull();

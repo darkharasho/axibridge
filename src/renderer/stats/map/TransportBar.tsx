@@ -3,7 +3,7 @@ import { Pause, Play, ChevronUp, ChevronDown } from 'lucide-react';
 import { useStatsStore } from '../statsStore';
 import { formatDuration } from '../../../shared/mapUtils';
 import { SyncedTimeline } from './SyncedTimeline';
-import { TimelineLanes } from './TimelineLanes';
+import { TimelineLanes, TimelineLaneGutter } from './TimelineLanes';
 import type { ReplayFightPayload } from './replayTypes';
 
 const SPEEDS = [0.5, 1, 1.5, 2, 4] as const;
@@ -31,10 +31,19 @@ export const TransportBar: React.FC<TransportBarProps> = ({ fight, style }) => {
     const setReplayLanesExpanded = useStatsStore(state => state.setReplayLanesExpanded);
 
     return (
+        // A CSS grid, not a flex column, so `SyncedTimeline` (row 1, column 2)
+        // and `TimelineLanes` (row 2, column 2) occupy the *identical* column
+        // width. Before this, the scrubber sat in a `flex: 1` slot starting
+        // after the play/speed/clock cluster while the lanes svg started
+        // after its own separate fixed-width gutter — two independently sized
+        // 1000-unit axes that drifted ~190px apart. Sharing a grid column
+        // makes the drift structurally impossible rather than something to
+        // keep in sync by hand.
         <div
             className="app-dropdown"
             style={{
-                display: 'flex', flexDirection: 'column', gap: 4,
+                display: 'grid', gridTemplateColumns: 'auto 1fr',
+                rowGap: 4, columnGap: 8,
                 padding: '5px 8px', borderRadius: 10,
                 border: '1px solid var(--border-default)',
                 background: 'var(--bg-elevated)',
@@ -76,9 +85,6 @@ export const TransportBar: React.FC<TransportBarProps> = ({ fight, style }) => {
                 <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
                     {formatDuration(playhead.timeMs)} / {formatDuration(fight.durationMs)}
                 </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <SyncedTimeline fight={fight} />
-                </div>
                 <button
                     type="button"
                     title={lanesExpanded ? 'Hide CC and strip lanes' : 'Show CC and strip lanes'}
@@ -96,7 +102,17 @@ export const TransportBar: React.FC<TransportBarProps> = ({ fight, style }) => {
                     {lanesExpanded ? <ChevronDown size={11} /> : <ChevronUp size={11} />} Lanes
                 </button>
             </div>
-            {lanesExpanded && <TimelineLanes fight={fight} />}
+            <div style={{ minWidth: 0 }}>
+                <SyncedTimeline fight={fight} />
+            </div>
+            {lanesExpanded && (
+                <>
+                    <TimelineLaneGutter />
+                    <div style={{ minWidth: 0 }}>
+                        <TimelineLanes fight={fight} hideGutter />
+                    </div>
+                </>
+            )}
         </div>
     );
 };

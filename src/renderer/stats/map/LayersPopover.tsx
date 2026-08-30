@@ -95,11 +95,12 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
                 type="button"
                 title="Show layers"
                 onClick={onToggle}
+                className="app-dropdown"
                 style={{
                     width: 28, flexShrink: 0,
                     background: 'var(--bg-elevated)',
+                    borderRadius: 8,
                     borderRight: '1px solid var(--border-default)',
-                    border: 'none',
                     display: 'flex', flexDirection: 'column', alignItems: 'center',
                     paddingTop: 8, cursor: 'pointer',
                 }}

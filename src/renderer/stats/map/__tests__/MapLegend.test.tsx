@@ -11,7 +11,7 @@ describe('MapLegend', () => {
     it('always shows the marks that are always drawn', () => {
         render(<MapLegend />);
         expect(screen.getByText(/downed/i)).toBeTruthy();
-        expect(screen.getByText(/killed/i)).toBeTruthy();
+        expect(screen.getByText(/^death$/i)).toBeTruthy();
         expect(screen.getByText(/commander/i)).toBeTruthy();
         expect(screen.getByText(/enemy/i)).toBeTruthy();
     });
