@@ -1,8 +1,9 @@
 import React from 'react';
 import { useStatsStore } from '../statsStore';
 
-const MAP_TOGGLES: { key: 'zoneBorders'; label: string; title: string }[] = [
+const MAP_TOGGLES: { key: 'zoneBorders' | 'scaleBar'; label: string; title: string }[] = [
     { key: 'zoneBorders', label: 'Zone borders', title: 'Outlines each map sector in its owning team\'s colour (neutral when ownership is unknown)' },
+    { key: 'scaleBar', label: 'Scale bar', title: 'A ruler in the map\'s bottom-left corner showing how many game units a given screen width covers at the current zoom' },
 ];
 
 const SQUAD_TOGGLES: { key: 'centroidSpread' | 'tagRangeRings' | 'squadHealthStrip' | 'partyHulls'; label: string; title: string }[] = [
@@ -12,37 +13,21 @@ const SQUAD_TOGGLES: { key: 'centroidSpread' | 'tagRangeRings' | 'squadHealthStr
     { key: 'partyHulls', label: 'Per-party hulls', title: 'Convex hull outline around each sub-party, helping visualise how spread out individual groups are' },
 ];
 
-const PHASE_LEGEND: { kind: string; color: string; desc: string }[] = [
-    { kind: 'opening', color: '#60a5fa', desc: 'First ~10 s, no deaths yet' },
-    { kind: 'push',    color: '#22c55e', desc: 'Squad advancing, no recent deaths' },
-    { kind: 'retreat', color: '#ef4444', desc: 'Squad taking deaths (any movement)' },
-    { kind: 'cleanup', color: '#a78bfa', desc: 'Squad stationary / mopping up' },
-];
+type Accent = 'cc' | 'strip' | undefined;
 
-/**
- * What the four mirrored sub-lanes mean, in the shape {@link PHASE_LEGEND}
- * already uses. The scaling note is the load-bearing part: the lanes are
- * normalized per-lane, so a taller bar below the zero line does NOT mean more
- * happened than above it.
- */
-const LANE_LEGEND: { dir: string; label: string; color: string; desc: string }[] = [
-    { dir: '\u25B2', label: 'CC out',     color: '#f59e0b', desc: 'CC the squad applied' },
-    { dir: '\u25BC', label: 'CC in',      color: '#f59e0b', desc: 'CC landed on the squad' },
-    { dir: '\u25B2', label: 'Strips out', color: '#e879f9', desc: 'Boons the squad stripped' },
-    { dir: '\u25BC', label: 'Strips in',  color: '#e879f9', desc: 'Boons stripped off the squad' },
-];
+const LANE_NORMALIZATION_NOTE = ' Each lane is scaled to its own peak, so bar heights are not comparable across the zero line.';
 
-const EVENT_TOGGLES: { key: 'phases' | 'rallyRings' | 'targetFocusLines' | 'damagePulses' | 'enemyPulses' | 'ccLane' | 'stripLane' | 'ccInLane' | 'stripInLane' | 'ccTakenMarks'; label: string; title: string }[] = [
+const EVENT_TOGGLES: { key: 'phases' | 'rallyRings' | 'targetFocusLines' | 'damagePulses' | 'enemyPulses' | 'ccLane' | 'stripLane' | 'ccInLane' | 'stripInLane' | 'ccTakenMarks'; label: string; title: string; accent?: Accent }[] = [
     { key: 'phases', label: 'Fight phases on timeline', title: 'Marks fight phase boundaries on the scrubber timeline — colours show squad behaviour (opening / push / retreat / cleanup)' },
     { key: 'rallyRings', label: 'Rally rings', title: 'Flashes a ring when a downed player rallies back to full health' },
     { key: 'targetFocusLines', label: 'Target-focus lines', title: 'Lines from each player to the target they are currently damaging most' },
     { key: 'damagePulses', label: 'Damage pulses', title: 'Animated pulses radiating from players when they deal significant burst damage' },
-    { key: 'enemyPulses', label: 'Enemy pulses', title: 'Also pulse when ENEMY players go down or die (violet / green). Off by default because these usually far outnumber your squad\u2019s own' },
-    { key: 'ccLane', label: 'CC lane', title: 'Sub-lane on the timeline showing squad crowd control applied per second' },
-    { key: 'stripLane', label: 'Strip lane', title: 'Sub-lane on the timeline showing squad boon strips applied per second' },
-    { key: 'ccInLane', label: 'CC taken lane', title: 'Sub-lane showing crowd control landed ON the squad per second. Scaled independently of the CC lane \u2014 incoming CC counts every source and folds no pets, so it reads higher than outgoing by construction. Needs Include Timeline Arrays and axilog 1.9.0' },
-    { key: 'stripInLane', label: 'Strips taken lane', title: 'Sub-lane showing boons stripped OFF the squad per second. Needs Include Timeline Arrays' },
-    { key: 'ccTakenMarks', label: 'CC taken marks (map)', title: 'Rings the individual players who took crowd control, on the map, for the second it landed in \u2014 ring weight grows with how much CC hit them that second. Same data as the CC taken lane, kept attributed instead of summed, so a lane spike and a cluster of rings are one event seen two ways. Turn off if a squad-wide bomb ringing most of the roster at once is more noise than signal' },
+    { key: 'enemyPulses', label: 'Enemy pulses', title: 'Also pulse when ENEMY players go down or die (violet / green). Off by default because these usually far outnumber your squad’s own' },
+    { key: 'ccLane', label: 'CC lane', title: `Sub-lane on the timeline showing squad crowd control applied per second.${LANE_NORMALIZATION_NOTE}`, accent: 'cc' },
+    { key: 'stripLane', label: 'Strip lane', title: `Sub-lane on the timeline showing squad boon strips applied per second.${LANE_NORMALIZATION_NOTE}`, accent: 'strip' },
+    { key: 'ccInLane', label: 'CC taken lane', title: `Sub-lane showing crowd control landed ON the squad per second. Scaled independently of the CC lane — incoming CC counts every source and folds no pets, so it reads higher than outgoing by construction. Needs Include Timeline Arrays and axilog 1.9.0.${LANE_NORMALIZATION_NOTE}`, accent: 'cc' },
+    { key: 'stripInLane', label: 'Strips taken lane', title: `Sub-lane showing boons stripped OFF the squad per second. Needs Include Timeline Arrays.${LANE_NORMALIZATION_NOTE}`, accent: 'strip' },
+    { key: 'ccTakenMarks', label: 'CC taken marks (map)', title: 'Rings the individual players who took crowd control, on the map, for the second it landed in — ring weight grows with how much CC hit them that second. Same data as the CC taken lane, kept attributed instead of summed, so a lane spike and a cluster of rings are one event seen two ways. Turn off if a squad-wide bomb ringing most of the roster at once is more noise than signal', accent: 'cc' },
 ];
 
 const HEATMAP_OPTIONS: { value: 'off' | 'deaths' | 'time' | 'damage-taken'; label: string; title: string }[] = [
@@ -51,6 +36,48 @@ const HEATMAP_OPTIONS: { value: 'off' | 'deaths' | 'time' | 'damage-taken'; labe
     { value: 'time', label: 'Time spent', title: 'Heatmap showing which areas of the map were occupied for the longest time' },
     { value: 'damage-taken', label: 'Damage taken', title: 'Heatmap showing where the squad received the most incoming damage' },
 ];
+
+const ACCENT_COLOR: Record<'cc' | 'strip', string> = { cc: '#f59e0b', strip: '#e879f9' };
+
+/** Chips wrap instead of stacking, so twenty toggles fit a 216px card. */
+const Chip: React.FC<{
+    checked: boolean;
+    label: string;
+    title: string;
+    accent: Accent;
+    onChange: (v: boolean) => void;
+}> = ({ checked, label, title, accent, onChange }) => {
+    const color = accent ? ACCENT_COLOR[accent] : 'var(--status-info)';
+    return (
+        <label
+            title={title}
+            data-accent={accent}
+            style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '2px 7px', borderRadius: 12, cursor: 'pointer',
+                fontSize: 10, lineHeight: '15px',
+                background: checked ? `${color}22` : 'var(--bg-input)',
+                border: `1px solid ${checked ? color : 'var(--border-subtle)'}`,
+                color: checked ? color : 'var(--text-muted)',
+            }}
+        >
+            {/* Kept as a real checkbox rather than aria-pressed so screen
+                readers and getByRole('checkbox') both still work. */}
+            <input
+                type="checkbox"
+                checked={checked}
+                onChange={e => onChange(e.currentTarget.checked)}
+                style={{
+                    position: 'absolute', width: 1, height: 1,
+                    opacity: 0, pointerEvents: 'none', margin: 0,
+                }}
+            />
+            <span>{label}</span>
+        </label>
+    );
+};
+
+const chipRow: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 4 };
 
 interface LayersPanelProps {
     open: boolean;
@@ -86,10 +113,10 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
     }
 
     return (
-        <div style={{
-            width: 220, flexShrink: 0,
+        <div data-layers-panel className="app-dropdown" style={{
+            width: 216, maxHeight: '100%',
             background: 'var(--bg-elevated)',
-            borderRight: '1px solid var(--border-default)',
+            borderRadius: 10, border: '1px solid var(--border-default)',
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
         }}>
             <div style={{ padding: '7px 10px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
@@ -103,61 +130,40 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
                     ◀
                 </button>
             </div>
-            <div style={{ overflowY: 'auto', flex: 1, padding: '8px 10px' }}>
+            <div className="replay-scroll" style={{ overflowY: 'auto', flex: 1, padding: '8px 10px' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>Map</div>
-                {MAP_TOGGLES.map(t => (
-                    <label key={t.key} title={t.title} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--text-primary)', padding: '3px 0', cursor: 'pointer' }}>
-                        <input type="checkbox"
-                               checked={layers[t.key]}
-                               onChange={e => setReplayLayer(t.key, e.currentTarget.checked)} />
-                        <span>{t.label}</span>
-                    </label>
-                ))}
+                <div style={chipRow}>
+                    {MAP_TOGGLES.map(t => (
+                        <Chip key={t.key}
+                              checked={layers[t.key]}
+                              label={t.label}
+                              title={t.title}
+                              accent={undefined}
+                              onChange={v => setReplayLayer(t.key, v)} />
+                    ))}
+                </div>
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 12, marginBottom: 6 }}>Squad overlay</div>
-                {SQUAD_TOGGLES.map(t => (
-                    <label key={t.key} title={t.title} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--text-primary)', padding: '3px 0', cursor: 'pointer' }}>
-                        <input type="checkbox"
-                               checked={layers[t.key]}
-                               onChange={e => setReplayLayer(t.key, e.currentTarget.checked)} />
-                        <span>{t.label}</span>
-                    </label>
-                ))}
+                <div style={chipRow}>
+                    {SQUAD_TOGGLES.map(t => (
+                        <Chip key={t.key}
+                              checked={layers[t.key]}
+                              label={t.label}
+                              title={t.title}
+                              accent={undefined}
+                              onChange={v => setReplayLayer(t.key, v)} />
+                    ))}
+                </div>
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 12, marginBottom: 6 }}>Events</div>
-                {EVENT_TOGGLES.map(t => (
-                    <React.Fragment key={t.key}>
-                        <label title={t.title} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--text-primary)', padding: '3px 0', cursor: 'pointer' }}>
-                            <input type="checkbox"
-                                   checked={layers[t.key]}
-                                   onChange={e => setReplayLayer(t.key, e.currentTarget.checked)} />
-                            <span>{t.label}</span>
-                        </label>
-                        {t.key === 'stripInLane' && (layers.ccLane || layers.ccInLane || layers.stripLane || layers.stripInLane) && (
-                            <div style={{ marginLeft: 20, marginBottom: 4 }}>
-                                {LANE_LEGEND.map(l => (
-                                    <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0' }}>
-                                        <span style={{ fontSize: 9, color: l.color, flexShrink: 0, width: 10 }}>{l.dir}</span>
-                                        <span style={{ fontSize: 10, color: l.color, fontWeight: 600, minWidth: 58 }}>{l.label}</span>
-                                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{l.desc}</span>
-                                    </div>
-                                ))}
-                                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.35 }}>
-                                    Each lane is scaled to its own peak, so bar heights are not comparable across the zero line.
-                                </div>
-                            </div>
-                        )}
-                        {t.key === 'phases' && layers.phases && (
-                            <div style={{ marginLeft: 20, marginBottom: 4 }}>
-                                {PHASE_LEGEND.map(p => (
-                                    <div key={p.kind} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0' }}>
-                                        <span style={{ width: 10, height: 10, borderRadius: 2, background: p.color, flexShrink: 0, display: 'inline-block' }} />
-                                        <span style={{ fontSize: 10, color: p.color, fontWeight: 600, minWidth: 46 }}>{p.kind}</span>
-                                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{p.desc}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </React.Fragment>
-                ))}
+                <div style={chipRow}>
+                    {EVENT_TOGGLES.map(t => (
+                        <Chip key={t.key}
+                              checked={layers[t.key]}
+                              label={t.label}
+                              title={t.title}
+                              accent={t.accent}
+                              onChange={v => setReplayLayer(t.key, v)} />
+                    ))}
+                </div>
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 12, marginBottom: 6 }}>Heatmap</div>
                 {HEATMAP_OPTIONS.map(opt => (
                     <label key={opt.value} title={opt.title} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--text-primary)', padding: '3px 0', cursor: 'pointer' }}>

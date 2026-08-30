@@ -62,4 +62,49 @@ describe('LayersPanel', () => {
         fireEvent.click(checkbox);
         expect(useStatsStore.getState().replayLayers.stripLane).toBe(false);
     });
+
+    it('renders the Scale bar toggle checked by default and toggles the store', () => {
+        render(<Wrapper />);
+        fireEvent.click(screen.getByTitle(/show layers/i));
+        const checkbox = screen.getByRole('checkbox', { name: /scale bar/i });
+        expect((checkbox as HTMLInputElement).checked).toBe(true);
+        fireEvent.click(checkbox);
+        expect(useStatsStore.getState().replayLayers.scaleBar).toBe(false);
+    });
+
+    it('no longer renders the inline phase legend', () => {
+        render(<Wrapper />);
+        fireEvent.click(screen.getByTitle(/show layers/i));
+        fireEvent.click(screen.getByRole('checkbox', { name: /fight phases/i }));
+        expect(screen.queryByText(/first ~10 s, no deaths yet/i)).toBeNull();
+    });
+
+    it('no longer renders the inline lane legend', () => {
+        render(<Wrapper />);
+        fireEvent.click(screen.getByTitle(/show layers/i));
+        expect(screen.queryByText(/scaled to its own peak/i)).toBeNull();
+    });
+
+    it('colour-codes the CC lane chip amber and the strip chip fuchsia', () => {
+        render(<Wrapper />);
+        fireEvent.click(screen.getByTitle(/show layers/i));
+        const cc = screen.getByRole('checkbox', { name: /cc lane/i }).closest('label')!;
+        const strip = screen.getByRole('checkbox', { name: /strip lane/i }).closest('label')!;
+        expect(cc.getAttribute('data-accent')).toBe('cc');
+        expect(strip.getAttribute('data-accent')).toBe('strip');
+    });
+
+    it('is 216px wide when open', () => {
+        const { container } = render(<Wrapper />);
+        fireEvent.click(screen.getByTitle(/show layers/i));
+        const panel = container.querySelector('[data-layers-panel]') as HTMLElement;
+        expect(panel.style.width).toBe('216px');
+    });
+
+    it('has a non-empty background so it reads opaque over the map', () => {
+        const { container } = render(<Wrapper />);
+        fireEvent.click(screen.getByTitle(/show layers/i));
+        const panel = container.querySelector('[data-layers-panel]') as HTMLElement;
+        expect(panel.style.background).not.toBe('');
+    });
 });
