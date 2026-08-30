@@ -3,6 +3,10 @@ import { SlidersHorizontal } from 'lucide-react';
 import { useStatsStore } from '../statsStore';
 import { renderProfessionIcon } from '../ui/StatsViewShared';
 
+/** Bucket key for fights nobody tagged up on. Not a legal character name, so it
+ *  cannot collide with a real commander. */
+const UNTAGGED = ' untagged';
+
 const formatClock = (timestamp: number) => {
     if (!Number.isFinite(timestamp) || timestamp <= 0) return '--:--';
     try {
@@ -94,9 +98,38 @@ export const FightSliceTray = ({ onClose }: { onClose: () => void }) => {
     // display order flips — ordinals below still count from the oldest fight.
     const visible = useMemo(() => {
         const needle = query.trim().toLowerCase();
-        const matched = needle ? roster.filter((f) => f.label.toLowerCase().includes(needle)) : roster;
+        // The commander name is matched alongside the label so the box that
+        // narrows the list can reach a commander the same way it reaches a map.
+        const matched = needle
+            ? roster.filter((f) => (
+                f.label.toLowerCase().includes(needle)
+                || (f.commander || '').toLowerCase().includes(needle)
+            ))
+            : roster;
         return [...matched].reverse();
     }, [roster, query]);
+
+    // Buckets are minted from the WHOLE roster, not `visible`: the option list
+    // must not shuffle out from under the pointer as the text filter narrows.
+    // Untagged fights get their own bucket, listed last, and only when they
+    // exist. A roster with fewer than two buckets is not a filter — one
+    // commander, or a sidecar published before `commander` existed — so the
+    // control hides rather than offering a single no-op choice.
+    const commanderOptions = useMemo(() => {
+        const counts = new Map<string, number>();
+        roster.forEach((f) => {
+            const key = f.commander || UNTAGGED;
+            counts.set(key, (counts.get(key) || 0) + 1);
+        });
+        const named = [...counts.entries()]
+            .filter(([key]) => key !== UNTAGGED)
+            .sort((a, b) => a[0].localeCompare(b[0]));
+        const untagged = counts.get(UNTAGGED);
+        return [
+            ...named.map(([name, count]) => ({ value: name, label: `${name} (${count})` })),
+            ...(untagged ? [{ value: UNTAGGED, label: `No commander (${untagged})` }] : []),
+        ];
+    }, [roster]);
 
     // Ordinals come from the chronological roster, not the reversed/filtered
     // view, so a fight keeps the same number however the list is ordered.
@@ -152,6 +185,43 @@ export const FightSliceTray = ({ onClose }: { onClose: () => void }) => {
                 >
                     Wins only
                 </button>
+                <button
+                    type="button"
+                    className="slice-mini"
+                    onClick={() => {
+                        // `isWin` is tri-state — an unscored fight stays
+                        // undefined and the card shows neither Win nor Loss. This
+                        // includes what it names and nothing else, so an
+                        // undecided fight is dropped rather than counted a loss.
+                        const isLoss = (f: { isWin?: boolean }) => f.isWin === false;
+                        setFightsExcluded(visible.filter((f) => !isLoss(f)).map((f) => f.id), true);
+                        setFightsExcluded(visible.filter(isLoss).map((f) => f.id), false);
+                    }}
+                >
+                    Losses only
+                </button>
+                {commanderOptions.length > 1 && (
+                    <select
+                        aria-label="Commander"
+                        value=""
+                        onChange={(e) => {
+                            const picked = e.target.value;
+                            if (!picked) return;
+                            // One click replaces the selection outright, the same
+                            // way Wins only does — the checkboxes below stay live
+                            // for anyone who wants to hand-tune afterwards.
+                            const match = (f: { commander?: string }) => (f.commander || UNTAGGED) === picked;
+                            setFightsExcluded(visible.filter((f) => !match(f)).map((f) => f.id), true);
+                            setFightsExcluded(visible.filter(match).map((f) => f.id), false);
+                        }}
+                        className="slice-mini"
+                    >
+                        <option value="">Commander</option>
+                        {commanderOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                    </select>
+                )}
                 <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
@@ -186,6 +256,11 @@ export const FightSliceTray = ({ onClose }: { onClose: () => void }) => {
                                 {ordinal ? `F${ordinal} · ` : ''}{formatClock(fight.timestamp)} · {fight.duration}
                                 {fight.isWin === true ? ' · Win' : fight.isWin === false ? ' · Loss' : ''}
                             </span>
+                            {fight.commander && (
+                                <span className="block text-[10px] truncate text-[color:var(--text-secondary)]" title={`Commander: ${fight.commander}`}>
+                                    &#9733; {fight.commander}
+                                </span>
+                            )}
                             <span className="mt-1 flex flex-wrap items-center gap-1.5">
                                 {Object.entries(fight.enemyClassCounts || {})
                                     .sort((a, b) => b[1] - a[1])

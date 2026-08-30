@@ -29,6 +29,11 @@ export interface FightRosterEntry {
     duration: string;
     isWin?: boolean;
     enemyClassCounts?: Record<string, number>;
+    /** Character name of the player who led this fight, when someone tagged up.
+     *  Drives the slicer's commander filter. Optional on purpose: a sidecar
+     *  published before this field existed carries none, and the filter hides
+     *  itself rather than guessing. */
+    commander?: string;
 }
 
 export interface StatsStoreState {

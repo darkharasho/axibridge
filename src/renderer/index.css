@@ -1549,6 +1549,18 @@ body.web-report #top-players .mvp-gold-icon-badge {
   color: var(--text-secondary);
 }
 
+/* The commander picker is a real <select>, and Chromium on Linux paints the
+   native option popup from the control's own background. Under the glass
+   palettes --bg-card-inner is rgba(255, 255, 255, 0.05) and blur does not
+   apply to an OS-drawn popup, so the option list would render see-through and
+   unreadable. Same rule as .app-dropdown above: a floating surface gets an
+   opaque fill. Only the options are pinned — the control itself keeps the
+   translucent .slice-mini treatment so it still matches the buttons beside it. */
+.slice-mini option {
+  background-color: #1b2030;
+  color: var(--text-primary);
+}
+
 /* Fight slice cards: the checkbox fills the card so the whole card is the hit
    target, but it stays a real <input type="checkbox"> for keyboard and screen
    readers. The visible state is the badge below plus the card's own border. */

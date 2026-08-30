@@ -92,6 +92,7 @@ import { ReplaySection } from './stats/sections/ReplaySection';
 import type { TagDistanceDeathFightSummary } from './stats/computeTagDistanceDeaths';
 import { StatsHeader } from './stats/ui/StatsHeader';
 import { FightSliceTray, FightSliceBanner } from './stats/components/FightSliceTray';
+import { toFightRosterEntries } from './stats/slice/toFightRosterEntries';
 import { WebUploadBanner } from './stats/ui/WebUploadBanner';
 import { DevMockBanner } from './stats/ui/DevMockBanner';
 import { prefetchIconUrls, renderProfessionIcon as renderProfessionIconShared } from './stats/ui/StatsViewShared';
@@ -4330,14 +4331,7 @@ type SpikeFight = {
     useEffect(() => {
         if (embedded) return;
         mergeFightRoster(
-            fightCompByFight.map((fight: any) => ({
-                id: String(fight.id),
-                label: String(fight.fullLabel || fight.mapName || fight.label || ''),
-                timestamp: Number(fight.timestamp || 0),
-                duration: String(fight.duration || ''),
-                isWin: fight.isWin,
-                enemyClassCounts: fight.enemyClassCounts,
-            })),
+            toFightRosterEntries(fightCompByFight),
             logs.map((log, index) => statsLogKey(log, index)),
         );
     }, [embedded, fightCompByFight, logs, mergeFightRoster]);

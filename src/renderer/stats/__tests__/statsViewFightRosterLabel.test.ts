@@ -33,15 +33,20 @@ describe('StatsView fight roster label wiring', () => {
         expect(memoBody).toContain('fullLabel: match?.fullLabel');
     });
 
-    it('prefers fullLabel, then mapName, then the ordinal label, when merging the roster', () => {
+    // The label precedence itself moved out of this file into
+    // `slice/toFightRosterEntries.ts`, where `toFightRosterEntries.test.ts`
+    // pins it by behaviour rather than by source text. All this pin still owes
+    // is that StatsView keeps delegating to that projection — if the mapping is
+    // ever inlined back here, the behavioural pin would silently stop covering
+    // what ships.
+    it('builds the roster through the shared projection rather than an inline mapping', () => {
         const anchor = source.indexOf('const mergeFightRoster = useStatsStore((s) => s.mergeFightRoster);');
         expect(anchor).toBeGreaterThan(-1);
         const effectEnd = source.indexOf('mergeFightRoster]);', anchor);
         expect(effectEnd).toBeGreaterThan(anchor);
         const effectBlock = source.slice(anchor, effectEnd);
 
-        expect(effectBlock).toContain(
-            "label: String(fight.fullLabel || fight.mapName || fight.label || '')"
-        );
+        expect(effectBlock).toContain('toFightRosterEntries(fightCompByFight)');
+        expect(source).toContain("from './stats/slice/toFightRosterEntries'");
     });
 });
