@@ -14,7 +14,11 @@ const ZERO_GUILD_ID = '00000000-0000-0000-0000-000000000000';
 export const extractSquadGuilds = (details: any): string[] | undefined => {
     const players: any[] = Array.isArray(details?.players) ? details.players : [];
     const counts = new Map<string, number>();
-    for (const player of partitionSquadPlayers(players).squadPrimaries) {
+    // Roster semantics, not fighting strength: a squadmate who sat the fight
+    // out is still flying the guild's tag, so the idle half is folded back in
+    // (see `partitionSquadPlayers`).
+    const { squadPrimaries, idleSquadPrimaries } = partitionSquadPlayers(players);
+    for (const player of [...squadPrimaries, ...idleSquadPrimaries]) {
         const guildId = typeof player?.guildID === 'string' ? player.guildID.toUpperCase() : '';
         if (!guildId || guildId === ZERO_GUILD_ID) continue;
         counts.set(guildId, (counts.get(guildId) ?? 0) + 1);

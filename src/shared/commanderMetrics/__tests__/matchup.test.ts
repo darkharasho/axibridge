@@ -64,7 +64,9 @@ describe('computeMatchup distinct-player counts', () => {
       notInSquad: false,
       teamID: 50,
       combatReplayData: { dead: [] },
-      statsAll: [{}],
+      // Non-zero so the entry reads as combat-active: squadCount excludes
+      // members with a wholly zero stat surface (see partitionSquadPlayers).
+      statsAll: [{ totalDamageCount: 1 }],
       activeTimes: [1000],
       ...overrides,
     };
@@ -127,7 +129,7 @@ describe('computeMatchup inTagBubbleAtEngage', () => {
   // account, so the dedupe is the Set — arcdps duplicate `players[]` entries
   // cannot inflate it the way they could on the EI path.
   function mkPlayer(account: string): any {
-    return { account, notInSquad: false, teamID: 50, statsAll: [{}], activeTimes: [1000] };
+    return { account, notInSquad: false, teamID: 50, statsAll: [{ totalDamageCount: 1 }], activeTimes: [1000] };
   }
   // Engage is sampled at t = min(2, duration) = 2s; the track must cover it.
   const trackAt = (key: string, x: number, y: number) => ({

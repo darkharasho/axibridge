@@ -24,7 +24,13 @@ const ALLOWLIST: DivergenceAllowlist = {
 describe('unit 1 oracle — roster & identity', () => {
     it('agrees on the squad roster', () => {
         const { ei, native } = oracleFixture();
-        const eiSquad = partitionSquadPlayers(ei.players).squadPrimaries
+        // Roster, not fighting strength: `squadEntities` is every squad
+        // member the parser saw, so the EI side has to put back the members
+        // `partitionSquadPlayers` files as combat-inactive. Comparing only
+        // `squadPrimaries` would flag the one member who sat this fight out
+        // as a parser divergence, which it is not.
+        const { squadPrimaries, idleSquadPrimaries } = partitionSquadPlayers(ei.players);
+        const eiSquad = [...squadPrimaries, ...idleSquadPrimaries]
             .map((p: any) => p.account)
             .sort();
         const nativeSquad = squadEntities(native).map((e) => e.account!).sort();

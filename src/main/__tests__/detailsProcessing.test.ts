@@ -344,9 +344,11 @@ describe('buildDashboardSummaryFromDetails', () => {
     });
 
     it('excludes notInSquad players from squadCount', () => {
+        // dpsAll marks both as combat-active; squadCount excludes players
+        // who did nothing at all, which is not what this test is about.
         const players = [
-            { notInSquad: false, defenses: [{}] },
-            { notInSquad: true, defenses: [{}] },
+            { notInSquad: false, defenses: [{}], dpsAll: [{ damage: 10 }] },
+            { notInSquad: true, defenses: [{}], dpsAll: [{ damage: 10 }] },
         ];
         const summary = buildDashboardSummaryFromDetails({ players, targets: [] });
         expect(summary.squadCount).toBe(1);
@@ -468,7 +470,7 @@ describe('buildDashboardSummaryFromDetails', () => {
             players: [
                 { account: 'Dup.1234', name: 'Char A', profession: 'Specter', notInSquad: false, activeTimes: [45000], defenses: [{ downCount: 1, deadCount: 1 }] },
                 { account: 'Dup.1234', name: 'Char A', profession: 'Daredevil', notInSquad: false, activeTimes: [15000], defenses: [{ downCount: 0, deadCount: 1 }] },
-                { account: 'Solo.5678', name: 'Char B', profession: 'Guardian', notInSquad: false, activeTimes: [60000], defenses: [{ downCount: 0, deadCount: 0 }] }
+                { account: 'Solo.5678', name: 'Char B', profession: 'Guardian', notInSquad: false, activeTimes: [60000], defenses: [{ downCount: 0, deadCount: 0 }], dpsAll: [{ damage: 500 }] }
             ],
             targets: []
         });
@@ -480,19 +482,19 @@ describe('buildDashboardSummaryFromDetails', () => {
     it('reports 43 (+4) for a Log-21-shaped roster (43 people across 51 squad entries)', () => {
         const players: any[] = [];
         for (let i = 0; i < 40; i++) {
-            players.push({ account: `Member.${1000 + i}`, name: `Squaddie ${i}`, profession: 'Guardian', notInSquad: false, activeTimes: [60000], defenses: [{ downCount: 0, deadCount: 0 }] });
+            players.push({ account: `Member.${1000 + i}`, name: `Squaddie ${i}`, profession: 'Guardian', notInSquad: false, activeTimes: [60000], defenses: [{ downCount: 0, deadCount: 0 }], dpsAll: [{ damage: 500 }] });
         }
         for (let i = 0; i < 5; i++) {
-            players.push({ account: 'Dash.8715', name: 'Celeana S', profession: 'Thief', notInSquad: false, activeTimes: [5000 + i], defenses: [{ downCount: 0, deadCount: 0 }] });
+            players.push({ account: 'Dash.8715', name: 'Celeana S', profession: 'Thief', notInSquad: false, activeTimes: [5000 + i], defenses: [{ downCount: 0, deadCount: 0 }], dpsAll: [{ damage: 500 }] });
         }
         for (let i = 0; i < 3; i++) {
-            players.push({ account: 'Tangella.4031', name: 'Tanggella', profession: 'Ranger', notInSquad: false, activeTimes: [10000 + i], defenses: [{ downCount: 0, deadCount: 0 }] });
+            players.push({ account: 'Tangella.4031', name: 'Tanggella', profession: 'Ranger', notInSquad: false, activeTimes: [10000 + i], defenses: [{ downCount: 0, deadCount: 0 }], dpsAll: [{ damage: 500 }] });
         }
         for (let i = 0; i < 3; i++) {
-            players.push({ account: 'Ayumi Anime.1426', name: 'Bàe Suzy', profession: 'Ranger', notInSquad: false, activeTimes: [12000 + i], defenses: [{ downCount: 0, deadCount: 0 }] });
+            players.push({ account: 'Ayumi Anime.1426', name: 'Bàe Suzy', profession: 'Ranger', notInSquad: false, activeTimes: [12000 + i], defenses: [{ downCount: 0, deadCount: 0 }], dpsAll: [{ damage: 500 }] });
         }
         for (let i = 0; i < 4; i++) {
-            players.push({ account: `Pug.${2000 + i}`, name: `Pug ${i}`, profession: 'Necromancer', notInSquad: true, activeTimes: [60000], defenses: [{ downCount: 0, deadCount: 0 }] });
+            players.push({ account: `Pug.${2000 + i}`, name: `Pug ${i}`, profession: 'Necromancer', notInSquad: true, activeTimes: [60000], defenses: [{ downCount: 0, deadCount: 0 }], dpsAll: [{ damage: 500 }] });
         }
         const summary = buildDashboardSummaryFromDetails({ players, targets: [] });
         expect(summary.squadCount).toBe(43);
