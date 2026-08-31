@@ -41,9 +41,34 @@ describe('sampleAt', () => {
     it('clamps past the last sample', () => {
         expect(sampleAt(mkMember({ positions: [[0, 0], [10, 20]] }), 9)).toEqual([10, 20]);
     });
+
+    it('treats pollFrac as ABSOLUTE and subtracts the member\'s own firstPoll', () => {
+        // A member who joined 100 polls into the fight has positions[0] at
+        // absolute poll 100. Without the subtraction the icon is drawn from
+        // positions[100] — wherever they were 30s later — which is the
+        // off-by-N `SquadMemberMovement.firstPoll` exists to prevent, and
+        // which `replaySelectors.sampleAt` already avoids for hit-testing.
+        const m = mkMember({ firstPoll: 100, positions: [[0, 0], [10, 20]] });
+        expect(sampleAt(m, 100)).toEqual([0, 0]);
+        expect(sampleAt(m, 100.5)).toEqual([5, 10]);
+    });
+
+    it('clamps to the first sample before the member joined', () => {
+        const m = mkMember({ firstPoll: 100, positions: [[0, 0], [10, 20]] });
+        expect(sampleAt(m, 20)).toEqual([0, 0]);
+    });
 });
 
 describe('MemberLayer', () => {
+    it('slices trails relative to the member\'s own firstPoll', () => {
+        // Same off-by-N as `sampleAt`: the trail must end at the member's
+        // CURRENT sample, not at absolute index `pollIndex`.
+        const m = mkMember({ firstPoll: 10, positions: [[0, 0], [1, 1], [2, 2], [3, 3]] });
+        const { container } = renderLayer([m], { pollFrac: 11, pollIndex: 11 });
+        const trail = container.querySelector('polyline');
+        expect(trail?.getAttribute('points')).toBe('0,0 1,1');
+    });
+
     it('renders one group per member', () => {
         const { container } = renderLayer([mkMember({ name: 'A' }), mkMember({ name: 'B' })]);
         expect(container.querySelectorAll('[data-member-id]').length).toBe(2);

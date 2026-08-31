@@ -30,13 +30,25 @@ function inAnyRange(ranges: [number, number][], timeMs: number): boolean {
     return ranges.some(([start, end]) => timeMs >= start && timeMs < end);
 }
 
-/** Linearly interpolate between the two bracketing position samples for smooth movement. */
+/**
+ * Linearly interpolate between the two bracketing position samples for smooth
+ * movement.
+ *
+ * `pollFrac` is ABSOLUTE (polls since the fight started); `positions[0]` sits
+ * at the member's own `firstPoll`, so that offset has to come off first — see
+ * `SquadMemberMovement.firstPoll`, and `replaySelectors.sampleAt`, which
+ * already does this for hit-testing. Without it a member who joined 128 polls
+ * in was drawn wherever they stood ~38s later, while the down/death circles
+ * (which go through `positionAtTime`, and do subtract it) stayed correct — so
+ * icon and circle disagreed, which reads as the marks lagging the players.
+ */
 export function sampleAt(member: SquadMemberMovement, pollFrac: number): [number, number] | null {
     const { positions } = member;
     if (!positions.length) return null;
-    const lo = Math.max(0, Math.min(Math.floor(pollFrac), positions.length - 1));
-    const t = pollFrac - Math.floor(pollFrac);
-    if (t === 0 || lo >= positions.length - 1) return positions[lo];
+    const rel = pollFrac - (member.firstPoll || 0);
+    const lo = Math.max(0, Math.min(Math.floor(rel), positions.length - 1));
+    const t = rel - Math.floor(rel);
+    if (t <= 0 || lo >= positions.length - 1) return positions[lo];
     const a = positions[lo];
     const b = positions[lo + 1];
     return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
@@ -84,8 +96,11 @@ export const MemberLayer: React.FC<MemberLayerProps> = ({
             const isDead = inAnyRange(member.deadRanges, timeMs);
             const isDown = !isDead && inAnyRange(member.downRanges, timeMs);
             const dim = spotlightParty !== null && !member.isEnemy && member.group !== spotlightParty;
-            const trail = isDead ? [] : member.positions.slice(Math.max(0, pollIndex - 20), pollIndex + 1);
-            const recent = isDead ? [] : member.positions.slice(Math.max(0, pollIndex - 5), pollIndex + 1);
+            // `pollIndex` is absolute; slice the member's own array relative
+            // to their `firstPoll`, the same correction `sampleAt` makes.
+            const relIndex = pollIndex - (member.firstPoll || 0);
+            const trail = isDead || relIndex < 0 ? [] : member.positions.slice(Math.max(0, relIndex - 20), relIndex + 1);
+            const recent = isDead || relIndex < 0 ? [] : member.positions.slice(Math.max(0, relIndex - 5), relIndex + 1);
             const trailStr = trail.map(p => `${p[0]},${p[1]}`).join(' ');
             const recentStr = recent.map(p => `${p[0]},${p[1]}`).join(' ');
             const color = member.isEnemy ? '#ef4444' : member.isCommander ? '#fbbf24' : '#60a5fa';
