@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
     createBoonTimelineAccumulator,
     ingestLogBoonTimeline,
@@ -7,12 +9,18 @@ import {
     mergeBoonTimelineFrame,
 } from '../../computeBoonTimeline';
 import { encodeState, decodeState } from '../stateCodec';
-import fixture1 from '../../../../../test-fixtures/native/20260117-175120.json';
-import fixture2 from '../../../../../test-fixtures/native/20260117-180135.json';
-import fixture3 from '../../../../../test-fixtures/native/20260117-180259.json';
 import { buildFrameLabelSeed, resolveFrameFightLabels } from '../frameLabels';
 
-const LOGS = [fixture1, fixture2, fixture3].map((details, i) => ({
+/**
+ * Read at runtime rather than `import`ed: a static import of these fixtures
+ * gives `tsc --noEmit` a multi-megabyte structural literal to infer, and
+ * enough files doing it push `npm run typecheck` past its 8 GB heap.
+ */
+const fixture = (name: string) => JSON.parse(
+    readFileSync(resolve(process.cwd(), `test-fixtures/native/${name}.json`), 'utf8'),
+);
+
+const LOGS = ['20260117-175120', '20260117-180135', '20260117-180259'].map(fixture).map((details, i) => ({
     id: `log-${i}`,
     filePath: `test-${i}.zevtc`,
     details,

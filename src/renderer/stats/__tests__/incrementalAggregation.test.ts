@@ -1,11 +1,21 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { IncrementalAggregator, computeStatsSync } from '../incrementalAggregation';
-import fixture1 from '../../../../test-fixtures/boon/20260117-175120.json';
-import fixture2 from '../../../../test-fixtures/boon/20260117-180135.json';
-import fixture3 from '../../../../test-fixtures/boon/20260117-180259.json';
+/**
+ * Read at runtime rather than `import`ed: a static import of these fixtures
+ * gives `tsc --noEmit` a multi-megabyte structural literal to infer, and
+ * enough files doing it push `npm run typecheck` past its 8 GB heap.
+ */
+const fixture = (dir: string, name: string) => JSON.parse(
+    readFileSync(resolve(process.cwd(), `test-fixtures/${dir}/${name}.json`), 'utf8'),
+);
+const fixture1 = fixture('boon', '20260117-175120');
+const fixture2 = fixture('boon', '20260117-180135');
+const fixture3 = fixture('boon', '20260117-180259');
 // Fixture with actual squad deaths + commander replay positions, so
 // tagDistanceDeaths produces a non-empty events array.
-import fixtureDeaths from '../../../../test-fixtures/dmg-mit/20260205-191132.json';
+const fixtureDeaths = fixture('dmg-mit', '20260205-191132');
 
 const makeLogs = (...fixtures: any[]) =>
     fixtures.map((f, i) => ({
