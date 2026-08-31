@@ -40,6 +40,7 @@ import { PlayerBreakdownSection } from './stats/sections/PlayerBreakdownSection'
 import { DamageBreakdownSection } from './stats/sections/DamageBreakdownSection';
 import { BoonTimelineSection } from './stats/sections/BoonTimelineSection';
 import { BoonUptimeSection } from './stats/sections/BoonUptimeSection';
+import { computeBoonUptimePercentByPlayer } from './stats/utils/boonUptimeAggregate';
 import type { BoonHeatmapOverlay } from './stats/sections/boonHeatmapOverlay';
 import { resolveIncomingStrips, resolveIncomingCc, CONTROL_BUCKET_MS } from './stats/computeControlTimeline';
 import { OffenseSection } from './stats/sections/OffenseSection';
@@ -3763,9 +3764,15 @@ type SpikeFight = {
                 });
                 const total = averagedBuckets.reduce((sum: number, value: number) => sum + value, 0);
                 const peak = averagedBuckets.reduce((best: number, value: number) => Math.max(best, value), 0);
+                // Averaged over the whole subgroup, so a member with no entry
+                // for this boon counts as zero rather than dropping out.
+                const weightedMs = members.reduce((sum: number, account: string) => (
+                    sum + Math.max(0, Number(baseValues?.[account]?.weightedMs || 0))
+                ), 0) / members.length;
                 values[`${boonUptimeSubgroupKeyPrefix}${subgroupId}`] = {
                     total,
                     peak,
+                    weightedMs,
                     buckets: averagedBuckets
                 };
             });
@@ -3792,11 +3799,15 @@ type SpikeFight = {
                     logs: 0,
                     total: 0,
                     peak: 0,
+                    weightedMs: 0,
+                    attendedMs: 0,
                     entryType: 'subgroup' as const,
                     subgroupId
                 };
                 current.logs += 1;
                 current.total += Math.max(0, Number(value?.total || 0));
+                current.weightedMs += Math.max(0, Number(value?.weightedMs || 0));
+                current.attendedMs += Math.max(0, Number(fight?.durationMs || 0));
                 current.peak = Math.max(current.peak, Math.max(0, Number(value?.peak || 0)));
                 subgroups.set(subgroupId, current);
             });
@@ -3845,42 +3856,15 @@ type SpikeFight = {
         });
         return result;
     }, [safeStats.squadCompByFight]);
-    const boonUptimePercentByPlayer = useMemo(() => {
-        const map = new Map<string, number>();
-        const players = [
+    const boonUptimePercentByPlayer = useMemo(() => computeBoonUptimePercentByPlayer({
+        players: [
             ...(Array.isArray(activeBoonUptime?.players) ? activeBoonUptime.players : []),
             ...boonUptimeSubgroupEntries
-        ];
-        const fights = boonUptimeFightsWithSubgroups;
-        if (!players.length || !fights.length) return map;
-        const totalSamplesAllFights = fights.reduce((sum: number, fight: any) => {
-            const bucketCount = Math.max(
-                Math.ceil(Math.max(0, Number(fight?.durationMs || 0)) / (activeBoonUptime?.intervalMs || 5000)),
-                1
-            );
-            return sum + bucketCount;
-        }, 0);
-        if (totalSamplesAllFights <= 0) return map;
-        players.forEach((player: any) => {
-            const key = String(player?.key || '');
-            if (!key || key === '__all__') return;
-            let activeSamples = 0;
-            fights.forEach((fight: any) => {
-                const playerValue = fight?.values?.[key];
-                const buckets = Array.isArray(playerValue?.buckets) ? playerValue.buckets : [];
-                const bucketCount = Math.max(
-                    buckets.length,
-                    Math.ceil(Math.max(0, Number(fight?.durationMs || 0)) / (activeBoonUptime?.intervalMs || 5000)),
-                    1
-                );
-                for (let index = 0; index < bucketCount; index += 1) {
-                    if (Math.max(0, Number(buckets[index] || 0)) > 0) activeSamples += 1;
-                }
-            });
-            map.set(key, (activeSamples / totalSamplesAllFights) * 100);
-        });
-        return map;
-    }, [activeBoonUptime, boonUptimeFightsWithSubgroups, boonUptimeSubgroupEntries]);
+        ],
+        fights: boonUptimeFightsWithSubgroups,
+        stacking: Boolean(activeBoonUptime?.stacking),
+        intervalMs: Number(activeBoonUptime?.intervalMs || 5000),
+    }), [activeBoonUptime, boonUptimeFightsWithSubgroups, boonUptimeSubgroupEntries]);
     const boonUptimePlayers = useMemo(() => {
         const sourcePlayers = Array.isArray(activeBoonUptime?.players) ? activeBoonUptime.players : [];
         const players = [

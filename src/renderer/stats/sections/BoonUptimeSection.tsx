@@ -268,9 +268,10 @@ export const BoonUptimeSection = ({
             profession: p.profession,
             professionList: p.professionList,
             logs: p.logs,
-            value: showStackCapLine
-                ? Number(p.total / Math.max(1, p.logs))
-                : Number(p.uptimePercent || 0),
+            // `uptimePercent` carries a mean stack count for intensity boons
+            // and a percentage otherwise -- both are already per attended
+            // fight, so there is nothing left to divide here.
+            value: Number(p.uptimePercent || 0),
             peakFightLabel: '',
         })),
     }];
@@ -295,9 +296,7 @@ export const BoonUptimeSection = ({
         profession: selectedPlayer.profession,
         professionList: selectedPlayer.professionList,
         logs: selectedPlayer.logs,
-        value: showStackCapLine
-            ? Number(selectedPlayer.total / Math.max(1, selectedPlayer.logs))
-            : Number(selectedPlayer.uptimePercent || 0),
+        value: Number(selectedPlayer.uptimePercent || 0),
         peakFightLabel: '',
     } : null;
 

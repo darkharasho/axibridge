@@ -14,11 +14,28 @@ export type UptimePlayer = {
     logs: number;
     total: number;
     peak: number;
+    /** Summed `UptimeFightValue.weightedMs` across the fights below. */
+    weightedMs: number;
+    /**
+     * Milliseconds of fight the player was actually in the squad for, summed
+     * over the session. This is the only correct denominator for an overall
+     * uptime: `logs` counts only fights where the boon was present, and the
+     * session's total duration punishes anyone who showed up late.
+     */
+    attendedMs: number;
 };
 type UptimeFightValue = {
     total: number;
     peak: number;
     buckets: number[];
+    /**
+     * Exact time-weighted coverage in milliseconds: boon-milliseconds for a
+     * duration boon, stack-milliseconds for an intensity one. `buckets` is a
+     * rendering grid whose last cell is short whenever the fight does not
+     * divide evenly by the interval, so aggregate uptime must come from this
+     * against the fight duration -- not from the bucket mean.
+     */
+    weightedMs: number;
 };
 type UptimeFight = {
     id: string;
@@ -41,6 +58,12 @@ export type UptimeBucket = {
 
 export interface BoonUptimeTimelineAccumulator {
     boonBuckets: Map<string, UptimeBucket>;
+    /**
+     * Attendance is boon-independent, so it is tracked once per fight rather
+     * than per boon bucket -- a player present for a fight in which they never
+     * received the boon still has to land in that boon's denominator.
+     */
+    attendedMsByPlayer: Map<string, number>;
     defaultBoonIntervalMs: number;
     defaultStackingIntervalMs: number;
     logIndex: number;
@@ -102,36 +125,100 @@ const normalizeBucketStackValue = (rawValue: number, stacking: boolean, stackCap
     if (!stacking) return safe > 0 ? 1 : 0;
     return Math.max(0, Math.min(stackCap, Math.round(safe)));
 };
+/**
+ * Collapse the per-source state timelines into one step function of total
+ * stacks over `[0, endMs)`, as half-open segments.
+ *
+ * The sources have to be merged before normalization, not after: a duration
+ * boon held by two sources at once is still one stack of uptime, and an
+ * intensity boon's stack cap applies to the sum.
+ */
+type StackSegment = { start: number; end: number; value: number };
+const mergeStateSegments = (statesPerSource: Record<string, any>, endMs: number): StackSegment[] => {
+    if (!statesPerSource || typeof statesPerSource !== 'object' || endMs <= 0) return [];
+    const series = Object.values(statesPerSource)
+        .map((states: any) => normalizeStatePairs(states))
+        .filter((states) => states.length > 0);
+    if (series.length === 0) return [];
+
+    const boundaries = new Set<number>([0]);
+    series.forEach((states) => states.forEach(([time]) => {
+        if (time > 0 && time < endMs) boundaries.add(time);
+    }));
+    const times = Array.from(boundaries).sort((a, b) => a - b);
+
+    const cursor = series.map(() => 0);
+    const current = series.map(() => 0);
+    const segments: StackSegment[] = [];
+    for (let i = 0; i < times.length; i += 1) {
+        const start = times[i];
+        for (let s = 0; s < series.length; s += 1) {
+            while (cursor[s] < series[s].length && series[s][cursor[s]][0] <= start) {
+                current[s] = Math.max(0, Number(series[s][cursor[s]][1] || 0));
+                cursor[s] += 1;
+            }
+        }
+        const end = i + 1 < times.length ? times[i + 1] : endMs;
+        if (end > start) {
+            segments.push({ start, end, value: current.reduce((sum, value) => sum + value, 0) });
+        }
+    }
+    return segments;
+};
+
+/**
+ * Integrate the merged timeline over each bucket rather than sampling it at
+ * the bucket's leading edge. The sampled reading was systematically low --
+ * axilog opens every state list with `[0, 0]`, so bucket 0 always read empty
+ * and no player could exceed (bucketCount - 1) / bucketCount.
+ */
 const sampleStackTimeline = (
     statesPerSource: Record<string, any>,
     bucketCount: number,
     stacking: boolean,
     boonName: string,
-    intervalMs: number
+    intervalMs: number,
+    durationMs: number
 ) => {
     const buckets = Array.from({ length: bucketCount }, () => 0);
-    if (!statesPerSource || typeof statesPerSource !== 'object' || bucketCount <= 0) return buckets;
-    Object.values(statesPerSource).forEach((states: any) => {
-        const normalized = normalizeStatePairs(states);
-        if (normalized.length === 0) return;
-        let stateIndex = 0;
-        let currentValue = 0;
-        for (let bucketIndex = 0; bucketIndex < bucketCount; bucketIndex += 1) {
-            const sampleTime = bucketIndex * intervalMs;
-            while (stateIndex < normalized.length && normalized[stateIndex][0] <= sampleTime) {
-                currentValue = Math.max(0, Number(normalized[stateIndex][1] || 0));
-                stateIndex += 1;
-            }
-            buckets[bucketIndex] += Math.max(0, Number(currentValue || 0));
+    if (bucketCount <= 0) return { buckets, weightedMs: 0 };
+    const endMs = Math.max(0, durationMs);
+    const segments = mergeStateSegments(statesPerSource, endMs);
+    if (segments.length === 0) return { buckets, weightedMs: 0 };
+
+    const stackCap = resolveBoonStackCap(boonName, stacking);
+    let weightedMs = 0;
+    segments.forEach(({ start, end, value }) => {
+        const normalized = normalizeBucketStackValue(value, stacking, stackCap);
+        if (normalized <= 0) return;
+        weightedMs += (end - start) * normalized;
+        const firstBucket = Math.min(bucketCount - 1, Math.floor(start / intervalMs));
+        for (let bucketIndex = firstBucket; bucketIndex < bucketCount; bucketIndex += 1) {
+            const bucketStart = bucketIndex * intervalMs;
+            if (bucketStart >= end) break;
+            const overlap = Math.min(end, bucketStart + intervalMs) - Math.max(start, bucketStart);
+            if (overlap > 0) buckets[bucketIndex] += overlap * normalized;
         }
     });
-    const stackCap = resolveBoonStackCap(boonName, stacking);
-    return buckets.map((value) => normalizeBucketStackValue(value, stacking, stackCap));
+
+    // Each bucket is expressed as a share of its own span so the heatmap reads
+    // 0..1 (or 0..cap); the final bucket is short on a fight that does not
+    // divide evenly, and dividing by the full interval would flatten it.
+    return {
+        buckets: buckets.map((value, index) => {
+            const span = Math.min(intervalMs, endMs - index * intervalMs);
+            return span > 0 ? roundBucket(value / span) : 0;
+        }),
+        weightedMs,
+    };
 };
-const createFightValue = (buckets: number[]): UptimeFightValue => {
+
+/** Buckets are now fractional; three decimals is well under a rendered pixel. */
+const roundBucket = (value: number) => Math.round(value * 1000) / 1000;
+const createFightValue = (buckets: number[], weightedMs: number): UptimeFightValue => {
     const total = buckets.reduce((sum, value) => sum + Math.max(0, Number(value || 0)), 0);
     const peak = buckets.reduce((best, value) => Math.max(best, Math.max(0, Number(value || 0))), 0);
-    return { total, peak, buckets };
+    return { total, peak, buckets, weightedMs: Math.max(0, Number(weightedMs || 0)) };
 };
 
 export function createBoonUptimeTimelineAccumulator(
@@ -139,6 +226,7 @@ export function createBoonUptimeTimelineAccumulator(
 ): BoonUptimeTimelineAccumulator {
     return {
         boonBuckets: new Map<string, UptimeBucket>(),
+        attendedMsByPlayer: new Map<string, number>(),
         defaultBoonIntervalMs: settings?.boonBucketIntervalMs ?? 5000,
         defaultStackingIntervalMs: settings?.stackingBoonBucketIntervalMs ?? 5000,
         logIndex: 0
@@ -163,10 +251,19 @@ export function ingestLogBoonUptimeTimeline(log: any, acc: BoonUptimeTimelineAcc
     const fightValuesByBoon = new Map<string, Map<string, UptimeFightValue>>();
     const fightPlayerSeenByBoon = new Map<string, Set<string>>();
 
+    const attendedThisFight = new Set<string>();
+
     members.forEach((entity) => {
         const account = String(entity.account || entity.character || 'Unknown');
         const key = account;
         const profession = getEntityProfession(entity) || 'Unknown';
+
+        // Once per player per fight: axilog emits one entity per agent
+        // instance, so a player who reconnected appears twice in `members`.
+        if (!attendedThisFight.has(key)) {
+            attendedThisFight.add(key);
+            acc.attendedMsByPlayer.set(key, (acc.attendedMsByPlayer.get(key) || 0) + durationMs);
+        }
 
         listBoonIds(details).forEach((boonIdNum) => {
             const meta = getBuffMeta(details, boonIdNum);
@@ -187,10 +284,10 @@ export function ingestLogBoonUptimeTimeline(log: any, acc: BoonUptimeTimelineAcc
             );
             const intervalMs = boonBucket.intervalMs;
             const boonBucketCount = Math.max(1, Math.ceil(Math.max(1, durationMs) / intervalMs));
-            const buckets = sampleStackTimeline(
-                statesPerSource, boonBucketCount, meta.stacking, meta.name, intervalMs,
+            const { buckets, weightedMs } = sampleStackTimeline(
+                statesPerSource, boonBucketCount, meta.stacking, meta.name, intervalMs, durationMs,
             );
-            const fightValue = createFightValue(buckets);
+            const fightValue = createFightValue(buckets, weightedMs);
             if (fightValue.total <= 0 && fightValue.peak <= 0) return;
 
             const playerEntry = boonBucket.players.get(key) || {
@@ -201,7 +298,9 @@ export function ingestLogBoonUptimeTimeline(log: any, acc: BoonUptimeTimelineAcc
                 professionList: profession && profession !== 'Unknown' ? [profession] : [],
                 logs: 0,
                 total: 0,
-                peak: 0
+                peak: 0,
+                weightedMs: 0,
+                attendedMs: 0
             };
             if (profession && profession !== 'Unknown' && !playerEntry.professionList.includes(profession)) {
                 playerEntry.professionList.push(profession);
@@ -216,6 +315,7 @@ export function ingestLogBoonUptimeTimeline(log: any, acc: BoonUptimeTimelineAcc
                 fightPlayerSeenByBoon.set(boonId, seen);
             }
             playerEntry.total += fightValue.total;
+            playerEntry.weightedMs += fightValue.weightedMs;
             playerEntry.peak = Math.max(playerEntry.peak, fightValue.peak);
             boonBucket.players.set(key, playerEntry);
             const fightValues = fightValuesByBoon.get(boonId) || new Map<string, UptimeFightValue>();
@@ -233,6 +333,7 @@ export function ingestLogBoonUptimeTimeline(log: any, acc: BoonUptimeTimelineAcc
             values[playerKey] = {
                 total: Number(fightValue.total || 0),
                 peak: Number(fightValue.peak || 0),
+                weightedMs: Number(fightValue.weightedMs || 0),
                 buckets: Array.isArray(fightValue.buckets)
                     ? fightValue.buckets.map((entry: any) => Number(entry || 0))
                     : []
@@ -260,7 +361,12 @@ export function finalizeBoonUptimeTimeline(acc: BoonUptimeTimelineAccumulator): 
             icon: bucket.icon,
             stacking: bucket.stacking,
             intervalMs: bucket.intervalMs,
-            players: Array.from(bucket.players.values()).sort((a, b) => {
+            players: Array.from(bucket.players.values())
+                .map((player) => ({
+                    ...player,
+                    attendedMs: acc.attendedMsByPlayer.get(player.key) || 0,
+                }))
+                .sort((a, b) => {
                 const peakDiff = Number(b.peak || 0) - Number(a.peak || 0);
                 if (peakDiff !== 0) return peakDiff;
                 const totalDiff = Number(b.total || 0) - Number(a.total || 0);
@@ -298,13 +404,14 @@ export function computeBoonUptimeTimeline(
 
 export interface BoonUptimeFrame {
     boonBuckets: Map<string, UptimeBucket>;
+    attendedMsByPlayer: Map<string, number>;
 }
 
 export function extractBoonUptimeFrame(acc: BoonUptimeTimelineAccumulator): BoonUptimeFrame {
     if (acc.logIndex !== 1) {
         throw new Error(`extractBoonUptimeFrame expects exactly one log, got ${acc.logIndex}`);
     }
-    return { boonBuckets: acc.boonBuckets };
+    return { boonBuckets: acc.boonBuckets, attendedMsByPlayer: acc.attendedMsByPlayer };
 }
 
 /**
@@ -329,6 +436,9 @@ export function mergeBoonUptimeFrame(target: BoonUptimeTimelineAccumulator, fram
         });
     });
     target.logIndex += 1;
+    frame.attendedMsByPlayer.forEach((attendedMs, key) => {
+        target.attendedMsByPlayer.set(key, (target.attendedMsByPlayer.get(key) || 0) + attendedMs);
+    });
     frame.boonBuckets.forEach((sourceBucket, boonId) => {
         let bucket = target.boonBuckets.get(boonId);
         if (!bucket) {
@@ -360,6 +470,7 @@ export function mergeBoonUptimeFrame(target: BoonUptimeTimelineAccumulator, fram
             }
             existing.logs += sourcePlayer.logs;
             existing.total += sourcePlayer.total;
+            existing.weightedMs += sourcePlayer.weightedMs;
             existing.peak = Math.max(existing.peak, sourcePlayer.peak);
             sourcePlayer.professionList.forEach((profession) => {
                 if (!existing.professionList.includes(profession)) existing.professionList.push(profession);

@@ -107,7 +107,12 @@ export const computeBoonMetrics = (
     } else if (category === 'squadBuffs') {
         denom = safeDiv(squadSupported - numFights, numFights, 1);
     } else if (category === 'totalBuffs') {
-        denom = squadSupported || 1;
+        // Total covers self plus squad, so its recipient count is the whole
+        // squad -- self included, hence no `- numFights` here. It must be the
+        // *per-fight average* like the two above: `squadSupported` is a
+        // cumulative player-fight count, and dividing by it raw shrank the
+        // column by a factor of numFights.
+        denom = safeDiv(squadSupported, numFights, 1);
     }
 
     let uptimeRaw = 0;
