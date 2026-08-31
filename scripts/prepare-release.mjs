@@ -30,6 +30,12 @@ const run = (command, commandArgs, options = {}) => {
     }
 };
 
+const capture = (command, commandArgs) => {
+    const result = spawnSync(command, commandArgs, { encoding: 'utf8' });
+    if (result.status !== 0) return '';
+    return (result.stdout || '').trim();
+};
+
 const bumpVersion = (current, type) => {
     const match = current.match(/^(\d+)\.(\d+)\.(\d+)/);
     if (!match) {
@@ -60,6 +66,17 @@ const nextVersion = bumpType ? bumpVersion(currentVersion, bumpType) : currentVe
 const tagName = `v${nextVersion}`;
 
 try {
+    // Fail before doing any work if the tag is already taken — re-running a
+    // release otherwise dies halfway through, after the bump has been pushed.
+    if (capture(gitCmd, ['tag', '--list', tagName])) {
+        console.error(`Tag ${tagName} already exists locally. Delete it or pick another version.`);
+        process.exit(1);
+    }
+    if (capture(gitCmd, ['ls-remote', '--tags', 'origin', tagName])) {
+        console.error(`Tag ${tagName} already exists on origin. Pick another version.`);
+        process.exit(1);
+    }
+
     // Quick local validation (typecheck + lint); full test suite runs in CI
     run(npmCmd, ['run', 'validate']);
 
@@ -88,8 +105,17 @@ try {
     run(gitCmd, ['commit', '-m', `chore: release ${tagName}`]);
     run(gitCmd, ['push']);
 
-    // Tag and push tag
+    // Tag and push tag — only after the bump is committed, so the tag points at
+    // a commit whose package.json actually carries `nextVersion`.
     run(gitCmd, ['tag', tagName]);
+
+    const taggedVersion = JSON.parse(capture(gitCmd, ['show', `${tagName}:package.json`]) || '{}').version;
+    if (taggedVersion !== nextVersion) {
+        run(gitCmd, ['tag', '-d', tagName]);
+        console.error(`Tag ${tagName} would point at package.json version ${taggedVersion}, expected ${nextVersion}. Tag removed; nothing pushed.`);
+        process.exit(1);
+    }
+
     run(gitCmd, ['push', 'origin', tagName]);
 
     console.log(`\nRelease ${tagName} prepared and tag pushed.`);

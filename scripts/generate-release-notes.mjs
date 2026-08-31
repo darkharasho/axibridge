@@ -264,33 +264,10 @@ const finalNotes = `# Release Notes\n\n${newSection.trim()}\n`;
 fs.writeFileSync(releaseNotesPath, finalNotes, 'utf8');
 console.log(`Release notes written to ${releaseNotesPath}`);
 
-// Release notes are written automatically — no interactive approval gate.
-
-try {
-    const status = exec('git status --porcelain');
-    if (status.split('\n').some((line) => line.includes('RELEASE_NOTES.md'))) {
-        exec('git add RELEASE_NOTES.md');
-        exec(`git commit -m "Update release notes v${version}"`);
-        exec('git push');
-        console.log('Committed and pushed RELEASE_NOTES.md.');
-    } else {
-        console.log('RELEASE_NOTES.md unchanged. Skipping commit.');
-    }
-} catch (err) {
-    console.error(`Failed to commit/push RELEASE_NOTES.md:`, err?.message || err);
-    process.exit(1);
-}
-
-try {
-    const existingTags = exec('git tag').split('\n').map((tag) => tag.trim()).filter(Boolean);
-    if (existingTags.includes(nextTag)) {
-        console.log(`Tag ${nextTag} already exists. Skipping tag creation.`);
-    } else {
-        exec(`git tag ${nextTag}`);
-        exec(`git push origin ${nextTag}`);
-        console.log(`Created and pushed tag ${nextTag}.`);
-    }
-} catch (err) {
-    console.error(`Failed to create/push tag ${nextTag}:`, err?.message || err);
-    process.exit(1);
-}
+// This script only WRITES the notes. It deliberately does not commit, push, or
+// tag: it used to do all three, and because it ran before the caller had
+// committed the version bump, `git tag v<next>` landed on the notes commit —
+// where package.json still held the OLD version. Release builds then produced
+// artifacts named for the new version but stamped with the previous one.
+// Committing and tagging belong to the release drivers (prepare-release.mjs,
+// build-github.mjs), which know when the bump is actually on disk and pushed.

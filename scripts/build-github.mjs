@@ -38,6 +38,12 @@ const run = (command, commandArgs, options = {}) => {
     }
 };
 
+const capture = (command, commandArgs) => {
+    const result = spawnSync(command, commandArgs, { encoding: 'utf8' });
+    if (result.status !== 0) return '';
+    return (result.stdout || '').trim();
+};
+
 const getDistWebStatus = () => {
     const result = spawnSync(gitCmd, ['status', '--porcelain', 'dist-web'], { encoding: 'utf8' });
     if (result.status !== 0) return '';
@@ -117,7 +123,30 @@ try {
 
     if (!skipReleaseNotes) {
         run(npmCmd, ['run', 'generate:release-notes']);
+
+        // generate:release-notes only writes the file; committing it is ours.
+        if (capture(gitCmd, ['status', '--porcelain', 'RELEASE_NOTES.md'])) {
+            run(gitCmd, ['add', 'RELEASE_NOTES.md']);
+            run(gitCmd, ['commit', '-m', `Update release notes v${packageJson.version}`]);
+            run(gitCmd, ['push']);
+        }
     }
+
+    // Tag here rather than inside the notes generator, so the tag always lands
+    // on a commit whose package.json holds the version being released.
+    const tagName = `v${packageJson.version}`;
+    if (capture(gitCmd, ['tag', '--list', tagName])) {
+        console.log(`Tag ${tagName} already exists. Skipping tag creation.`);
+    } else {
+        run(gitCmd, ['tag', tagName]);
+        const taggedVersion = JSON.parse(capture(gitCmd, ['show', `${tagName}:package.json`]) || '{}').version;
+        if (taggedVersion !== packageJson.version) {
+            run(gitCmd, ['tag', '-d', tagName]);
+            throw new Error(`Tag ${tagName} would point at package.json version ${taggedVersion}, expected ${packageJson.version}. Tag removed; nothing pushed.`);
+        }
+        run(gitCmd, ['push', 'origin', tagName]);
+    }
+
     run(npmCmd, ['run', 'build']);
     run(process.execPath, ['scripts/commit-web-dist.mjs']);
     run(process.execPath, ['scripts/run-electron-builder.mjs']);
