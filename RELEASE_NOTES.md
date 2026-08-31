@@ -1,33 +1,11 @@
 # Release Notes
 
-Version v3.4.0 — August 30, 2026
-
-## Slice a Report by Commander
-
-The fight slicer has a new **Commander** dropdown. Pick a name and the report
-narrows to just that commander's fights — one click, no hunting through
-checkboxes. Handy when two or three people tagged over the course of a raid and
-you want to see how each run actually went.
-
-Every fight card now shows who was leading it, and the filter box searches
-commander names as well as maps and landmarks. Fights nobody tagged on get their
-own "No commander" entry at the bottom of the list.
-
-This works in published web reports too, not just the app.
-
-NOTE: Reports published before this version don't carry commander names, so the
-dropdown won't appear on them. Re-publish to pick it up.
-
-## Losses Only
-
-There's a **Losses only** button next to Wins only now. It does what you'd
-expect.
-
-NOTE: It keeps fights that actually scored as a loss. A handful of fights can't
-be called either way, and those get left out of both buttons rather than being
-lumped in with the losses.
+Version v3.4.1 — August 30, 2026
 
 ## Fixes
 
-- The commander dropdown's list is readable on the glass themes instead of
-  showing through to whatever's behind it.
+- Scrubbing the replay timeline no longer drags the map along with it. The play bar, squad roster and legend all float on top of the map, and a press on any of them was arming the map's pan gesture at the same time — so the whole map slid around while you were trying to find a moment in the fight. Only presses that land on the map itself pan it now.
+
+NOTE: if you have someone selected to follow, the camera still moves as you scrub. That's the follow camera tracking them through the fight, not the map being dragged.
+
+- Fixed pan and zoom silently doing nothing on some fights. Whether the mouse controls got wired up at all depended on the map's dimensions, so a fight on a map of one particular size came up frozen.
