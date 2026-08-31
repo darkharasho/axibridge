@@ -150,11 +150,17 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
     const onMemberLeave = useCallback(() => setTooltip(null), []);
 
     const { centerOn, attachWheelZoom, attachPanDrag, screenToSvg } = viewport;
+    // Both attach effects depend on `selectedFight` like the panelSize observer
+    // does: the container only mounts once a fight is picked, so the first run
+    // sees a null ref. Without that dep the listeners would silently never
+    // attach whenever the fight's map size happens to match the fallback the
+    // viewport was built with (which is what keeps `attachPanDrag`'s identity
+    // stable across the selection).
     useEffect(() => {
         const el = mapContainerRef.current;
         if (!el) return;
         return attachWheelZoom(el);
-    }, [attachWheelZoom, fullscreen]);
+    }, [attachWheelZoom, fullscreen, selectedFight]);
     useEffect(() => {
         const el = mapContainerRef.current;
         if (!el) return;
@@ -163,8 +169,11 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
             // Panning while following: detach auto-center so the map stays where the
             // user dragged it. A recenter button lets them re-lock.
             if (d && followMemberRef.current) setCenteredOnFollow(false);
-        });
-    }, [attachPanDrag, fullscreen]);
+        // Only a press that lands on the map itself pans it. The HUD panels are
+        // children of this container, so dragging the timeline scrubber used to
+        // slide the map underneath it too.
+        }, { originSelector: '.replay-canvas' });
+    }, [attachPanDrag, fullscreen, selectedFight]);
     useEffect(() => {
         const el = squadPanelRef.current;
         if (!el) return;

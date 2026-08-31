@@ -65,7 +65,19 @@ export function useReplayViewport({ mapWidth, mapHeight, containerWidth, contain
         ];
     }, [mapWidth, mapHeight]);
 
-    const attachPanDrag = useCallback((el: Element, onDragChange?: (dragging: boolean) => void): (() => void) => {
+    /**
+     * `originSelector` gates which presses may start a pan. Every HUD panel
+     * (transport bar, squad roster, legend) floats *inside* the map container
+     * this listener is attached to, so without a gate a mousedown on the
+     * timeline scrubber bubbles up and drags the map along with the playhead.
+     * The gate is a whitelist on purpose — a new overlay is excluded by
+     * default rather than needing to remember to opt out.
+     */
+    const attachPanDrag = useCallback((
+        el: Element,
+        onDragChange?: (dragging: boolean) => void,
+        opts?: { originSelector?: string },
+    ): (() => void) => {
         let lastX = 0, lastY = 0;
         let active = false;
         let moved = false;
@@ -74,6 +86,11 @@ export function useReplayViewport({ mapWidth, mapHeight, containerWidth, contain
         const onMouseDown = (e: Event) => {
             const me = e as MouseEvent;
             if (me.button !== 0) return;
+            const origin = opts?.originSelector;
+            if (origin) {
+                const target = me.target as Element | null;
+                if (!target?.closest?.(origin)) return;
+            }
             active = true;
             moved = false;
             lastX = me.clientX;

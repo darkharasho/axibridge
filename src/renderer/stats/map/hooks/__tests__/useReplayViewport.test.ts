@@ -72,6 +72,70 @@ describe('useReplayViewport', () => {
         expect(result.current.scale).toBeLessThanOrEqual(50);
     });
 
+    describe('attachPanDrag originSelector', () => {
+        /** Container with a map canvas and a HUD panel floating above it. */
+        const mkTree = () => {
+            const container = document.createElement('div');
+            vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+                left: 0, top: 0, width: 600, height: 600,
+                right: 600, bottom: 600, x: 0, y: 0, toJSON: () => {},
+            } as DOMRect);
+            const canvas = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            canvas.setAttribute('class', 'replay-canvas');
+            const hud = document.createElement('div');
+            const hudChild = document.createElement('button');
+            hud.appendChild(hudChild);
+            container.append(canvas, hud);
+            document.body.appendChild(container);
+            return { container, canvas, hudChild };
+        };
+
+        const drag = (origin: Element) => {
+            fireEvent.mouseDown(origin, { button: 0, clientX: 100, clientY: 100 });
+            fireEvent.mouseMove(window, { clientX: 200, clientY: 160 });
+            fireEvent.mouseUp(window);
+        };
+
+        it('pans when the press starts inside the selector', () => {
+            const { result } = renderHook(() => useReplayViewport({ mapWidth: 600, mapHeight: 600, containerWidth: 600, containerHeight: 600 }));
+            const { container, canvas } = mkTree();
+            let cleanup: (() => void) | undefined;
+            act(() => { cleanup = result.current.attachPanDrag(container, undefined, { originSelector: '.replay-canvas' }); });
+
+            act(() => drag(canvas));
+
+            expect(useStatsStore.getState().replayViewport.tx).not.toBe(0);
+            cleanup?.();
+        });
+
+        it('ignores a press that starts on an overlay outside the selector', () => {
+            const { result } = renderHook(() => useReplayViewport({ mapWidth: 600, mapHeight: 600, containerWidth: 600, containerHeight: 600 }));
+            const { container, hudChild } = mkTree();
+            const onDragChange = vi.fn();
+            let cleanup: (() => void) | undefined;
+            act(() => { cleanup = result.current.attachPanDrag(container, onDragChange, { originSelector: '.replay-canvas' }); });
+
+            act(() => drag(hudChild));
+
+            expect(useStatsStore.getState().replayViewport.tx).toBe(0);
+            expect(useStatsStore.getState().replayViewport.ty).toBe(0);
+            expect(onDragChange).not.toHaveBeenCalled();
+            cleanup?.();
+        });
+
+        it('pans from anywhere when no selector is given', () => {
+            const { result } = renderHook(() => useReplayViewport({ mapWidth: 600, mapHeight: 600, containerWidth: 600, containerHeight: 600 }));
+            const { container, hudChild } = mkTree();
+            let cleanup: (() => void) | undefined;
+            act(() => { cleanup = result.current.attachPanDrag(container); });
+
+            act(() => drag(hudChild));
+
+            expect(useStatsStore.getState().replayViewport.tx).not.toBe(0);
+            cleanup?.();
+        });
+    });
+
     it('attachWheelZoom zooms in toward cursor on scroll up', () => {
         const { result } = renderHook(() => useReplayViewport({ mapWidth: 600, mapHeight: 600, containerWidth: 600, containerHeight: 600 }));
 
