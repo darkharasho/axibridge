@@ -29,12 +29,26 @@
  * carry.
  *
  * axilog's `anonymizeFile` would rewrite character names too, and was tried
- * first — but it CHANGES THE PARSE. Giving every player agent a name promotes
- * the ones arcdps recorded nameless (allies out of render range) into full
- * roster entries: on 20260117-175120 the entity count goes 135 -> 156,
- * friendly players 17 -> 38, and `players[]` 22 -> 43. A fixture whose roster
- * is an artifact of its own anonymization is worse than no fixture, so it is
- * deliberately not used here.
+ * first — but it CHANGES THE PARSE, so it is deliberately not used here. On
+ * 20260117-175120 it moved the entity count 135 -> 156, friendly players
+ * 17 -> 38, and `players[]` 22 -> 43.
+ *
+ * That divergence was originally read as "anonymization promotes the agents
+ * arcdps recorded nameless (allies out of render range) into full roster
+ * entries". It was the opposite: the 38 was right and the 17 was the bug.
+ * arcdps anonymises non-squad friendlies by replacing `character` with the
+ * elite-spec label ("Druid", "Scrapper"), and axilog's `dedupe_players` fell
+ * back to `character` when `account` was blank — so every pug sharing a spec
+ * collapsed into one person, capping the ally roster at *distinct specs
+ * present*. Giving every agent a unique fake name simply defeated that
+ * collapse. Fixed upstream in axilog 1.10.2 (the friendly dedupe now falls
+ * back to instid, GW2EI's own non-squad rule), and this script now produces
+ * 43 `players[]` on that log with no anonymization at all — the same number,
+ * and matching a GW2EI 3.21 CLI oracle on all eight logs.
+ *
+ * The original conclusion still holds for the reason it was written, though:
+ * a fixture whose roster is an artifact of its own anonymization is worse
+ * than no fixture.
  */
 import fs from 'node:fs';
 import path from 'node:path';
