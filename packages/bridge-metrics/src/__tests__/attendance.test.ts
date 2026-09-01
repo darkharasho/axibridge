@@ -12,6 +12,19 @@ const report = (id: string, accounts: string[]) => ({
   }
 });
 
+const reportWithSpecs = (
+  id: string,
+  rows: { account: string; classTimes?: { profession: string; timeMs: number }[] }[]
+) => ({
+  meta: { id, dateStart: `2026-02-0${id}T01:00:00Z` },
+  stats: {
+    attendanceData: rows.map((r, i) => ({
+      account: r.account, combatTimeMs: 1000 * (i + 1), squadTimeMs: 5000 * (i + 1),
+      ...(r.classTimes ? { classTimes: r.classTimes } : {})
+    }))
+  }
+});
+
 describe('buildAttendanceRaid', () => {
   it('projects id + dateStart + de-duped attendees with engagement times', () => {
     const raid = buildAttendanceRaid(report('1', ['A.1', 'B.2', 'A.1']));
@@ -26,6 +39,23 @@ describe('buildAttendanceRaid', () => {
   it('returns null when there is no id or no attendees', () => {
     expect(buildAttendanceRaid({ meta: {}, stats: { attendanceData: [] } })).toBeNull();
     expect(buildAttendanceRaid({ meta: { id: 'x' }, stats: {} })).toBeNull();
+  });
+  it('carries professions played from classTimes (order kept, deduped, Unknown/empty dropped, omitted when absent)', () => {
+    const raid = buildAttendanceRaid(reportWithSpecs('1', [
+      {
+        account: 'A.1',
+        classTimes: [
+          { profession: 'Firebrand', timeMs: 5000 },
+          { profession: 'Scrapper', timeMs: 2000 },
+          { profession: 'Firebrand', timeMs: 1000 },
+          { profession: 'Unknown', timeMs: 900 },
+          { profession: '', timeMs: 800 }
+        ]
+      },
+      { account: 'B.2' }
+    ]));
+    expect(raid!.attendees[0].professions).toEqual(['Firebrand', 'Scrapper']);
+    expect('professions' in raid!.attendees[1]).toBe(false);
   });
 });
 
@@ -71,7 +101,7 @@ describe('updateAttendanceForPublish', () => {
     // current ('3') + backfilled '1' and '2', sorted date desc
     expect(file.raids.map((r) => r.id)).toEqual(['3', '2', '1']);
   });
-  it('does not call loadLocalReport for ids already present, and skips ids with no local copy', () => {
+  it('keeps present raids as-is when the local copy adds no professions, and skips ids with no local copy', () => {
     const file = updateAttendanceForPublish({
       existingRaids: [buildAttendanceRaid(report('1', ['A.1']))!],
       currentReport: report('2', ['B.2']),
@@ -80,8 +110,39 @@ describe('updateAttendanceForPublish', () => {
       loadLocalReport: (id) => (id === '9' ? null : report(id, ['Z.9']))
     });
     expect(file.raids.map((r) => r.id)).toEqual(['2', '1']) // '9' skipped (no local), '1' kept from existing
-    // '1' kept its original single attendee (loadLocalReport NOT consulted for present ids)
+    // '1' kept its original attendee: the local copy has no classTimes, so no upgrade happens
     expect(file.raids.find((r) => r.id === '1')!.attendees.map((a) => a.account)).toEqual(['A.1'])
+  });
+  it('upgrades present pre-professions raids from local copies that supply classTimes', () => {
+    const file = updateAttendanceForPublish({
+      existingRaids: [buildAttendanceRaid(report('1', ['A.1']))!], // no professions
+      currentReport: report('2', ['B.2']),
+      validIds: ['1', '2'],
+      generatedAt: 'now',
+      loadLocalReport: (id) =>
+        id === '1'
+          ? reportWithSpecs('1', [
+              { account: 'A.1', classTimes: [{ profession: 'Vindicator', timeMs: 100 }] }
+            ])
+          : null
+    });
+    expect(file.raids.find((r) => r.id === '1')!.attendees[0].professions).toEqual(['Vindicator']);
+  });
+  it('leaves raids that already carry professions untouched (loadLocalReport not consulted)', () => {
+    const withSpecs = buildAttendanceRaid(
+      reportWithSpecs('1', [{ account: 'A.1', classTimes: [{ profession: 'Druid', timeMs: 50 }] }])
+    )!;
+    const file = updateAttendanceForPublish({
+      existingRaids: [withSpecs],
+      currentReport: report('2', ['B.2']),
+      validIds: ['1', '2'],
+      generatedAt: 'now',
+      loadLocalReport: (id) => {
+        if (id === '1') throw new Error('must not reload raids that already have professions');
+        return null;
+      }
+    });
+    expect(file.raids.find((r) => r.id === '1')!.attendees[0].professions).toEqual(['Druid']);
   });
 });
 

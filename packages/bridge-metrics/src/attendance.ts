@@ -9,6 +9,10 @@ export interface AttendanceAttendee {
     account: string;
     combatTimeMs: number;
     squadTimeMs: number;
+    /** Elite specs / professions played this raid, playtime-desc (classTimes
+     *  order). Omitted when unknown — additive v1 field, older consumers
+     *  ignore it. */
+    professions?: string[];
 }
 export interface AttendanceRaid {
     id: string;
@@ -37,10 +41,19 @@ export const buildAttendanceRaid = (payload: RollupReportPayload): AttendanceRai
         const account = normalizeAccountName(String(r?.account || '').trim());
         if (!account || seen.has(account)) continue;
         seen.add(account);
+        const professions: string[] = [];
+        const seenProf = new Set<string>();
+        for (const ct of Array.isArray(r?.classTimes) ? r.classTimes : []) {
+            const prof = String(ct?.profession || '').trim();
+            if (!prof || prof === 'Unknown' || seenProf.has(prof)) continue;
+            seenProf.add(prof);
+            professions.push(prof);
+        }
         attendees.push({
             account,
             combatTimeMs: Number(r?.combatTimeMs || 0),
-            squadTimeMs: Number(r?.squadTimeMs || 0)
+            squadTimeMs: Number(r?.squadTimeMs || 0),
+            ...(professions.length ? { professions } : {})
         });
     }
     if (attendees.length === 0) return null;
@@ -68,13 +81,19 @@ export const updateAttendanceForPublish = (options: {
     const validIdSet = new Set(validIds.map((id) => String(id || '').trim()).filter(Boolean));
     // Backfill raids published before attendance.json existed from local report
     // copies, so the first publish reconstructs the full history (mirrors rollup).
+    // Also upgrade pre-professions raids in place when the local copy can supply
+    // classTimes; raids that already carry professions are never reloaded.
     if (loadLocalReport) {
+        const hasProfessions = (raid: AttendanceRaid): boolean =>
+            raid.attendees.some((a) => (a.professions?.length ?? 0) > 0);
         for (const id of validIdSet) {
-            if (byId.has(id)) continue;
+            const existing = byId.get(id);
+            if (existing && hasProfessions(existing)) continue;
             const localReport = loadLocalReport(id);
             if (!localReport) continue;
             const raid = buildAttendanceRaid(localReport);
-            if (raid) byId.set(raid.id, raid);
+            if (!raid) continue;
+            if (!existing || hasProfessions(raid)) byId.set(raid.id, raid);
         }
     }
     const raids = Array.from(byId.entries())
