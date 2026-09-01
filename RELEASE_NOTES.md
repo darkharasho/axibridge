@@ -1,11 +1,7 @@
 # Release Notes
 
-Version v3.4.4 — August 31, 2026
+Version v3.4.5 — August 31, 2026
 
 ## Fixes
-- Squad averages now exclude combat-inactive squad members. You’ll see slightly different numbers for new data.
-- NOTE: This applies to new uploads; existing reports won’t be retroactively changed.
 
-## QoL Improvements
-- Tests now read large fixtures at runtime to avoid heap issues during type checks. No impact on how you use the app.
-- Bump @axiapps/axilog to 1.10.2 and regenerate native fixtures. Internal update, no user-facing changes.
+- **Boon Uptime was showing 0.0% for subgroup rows.** Any report or session published before v3.4.3 rendered every boon as 0.0 on subgroup rows, while individual player rows looked fine right next to them. The fallback that rebuilds coverage for older reports was only triggering when attendance was zero, but synthesized subgroup rows always have positive attendance and just lack the newer coverage data — so they never hit the fallback. Subgroup rows now show correct boon uptime again.
