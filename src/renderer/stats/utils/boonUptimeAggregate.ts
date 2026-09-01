@@ -54,7 +54,17 @@ export const computeBoonUptimePercentByPlayer = (
 
         let attendedMs = Math.max(0, Number(player?.attendedMs || 0));
         let weightedMs = Math.max(0, Number(player?.weightedMs || 0));
-        if (attendedMs <= 0) {
+        // Zero coverage has to trigger the fallback as well as zero
+        // attendance. The subgroup rows are synthesized by `StatsView`, not
+        // read off the report: their attendance is summed from fight
+        // durations and so is always positive, while their coverage is
+        // averaged from the member entries in `fight.values` -- absent in any
+        // report published before `weightedMs` existed. Gating on attendance
+        // alone skipped the fallback for exactly those rows, and every
+        // subgroup rendered 0.0 beside correct player rows. A row whose
+        // coverage is genuinely zero rebuilds to zero here too, so the wider
+        // condition costs a grid walk and changes no honest value.
+        if (attendedMs <= 0 || weightedMs <= 0) {
             const legacy = legacyCoverage(key, Array.isArray(fights) ? fights : [], intervalMs);
             attendedMs = legacy.attendedMs;
             weightedMs = legacy.weightedMs;

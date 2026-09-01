@@ -51,6 +51,28 @@ describe('computeBoonUptimePercentByPlayer', () => {
         expect(map.get('Latecomer.2222')).toBe(100);
     });
 
+    /**
+     * Subgroup rows are synthesized in `StatsView` rather than read off the
+     * report: their `attendedMs` is summed from fight durations, so it is
+     * always positive, while their `weightedMs` is averaged from the member
+     * entries in `fight.values` -- a field a report published before
+     * `weightedMs` existed does not carry. Gating the legacy fallback on
+     * attendance alone therefore skipped it for exactly these rows and every
+     * subgroup rendered 0.0 while the player rows beside them were correct.
+     */
+    it('falls back for a synthesized row that has attendance but no coverage', () => {
+        const map = computeBoonUptimePercentByPlayer({
+            players: [{ key: '__subgroup__:1', weightedMs: 0, attendedMs: 20_000 }],
+            fights: [
+                { durationMs: 10_000, values: { '__subgroup__:1': { buckets: [1, 0] } } },
+                { durationMs: 10_000, values: { '__subgroup__:1': { buckets: [1, 0] } } },
+            ],
+            stacking: false,
+            intervalMs: 5000,
+        });
+        expect(map.get('__subgroup__:1')).toBe(50);
+    });
+
     it('omits a player with no attendance at all rather than scoring them zero', () => {
         const map = computeBoonUptimePercentByPlayer({
             players: [{ key: 'Ghost.3333' }, { key: '__all__' }],
