@@ -601,6 +601,28 @@ body.glassmorphic .stats-view .bucket-grid__pin {
     background: rgb(21, 25, 34);
 }
 
+/* Header row of a vertically-scrolling bucket grid. Only applied when the
+   grid is actually capped: sticking to the nearest scroll ancestor when
+   there is no cap would float the timestamps over the whole page instead. */
+.stats-view .bucket-grid__head {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: var(--bg-card);
+    background-clip: padding-box;
+}
+
+body.glass-surfaces .stats-view .bucket-grid__head,
+body.glassmorphic .stats-view .bucket-grid__head {
+    background: rgb(21, 25, 34);
+}
+
+/* The top-left cell is sticky in both axes, so it has to paint over the
+   row-header column, which is sticky in one and sits later in the DOM. */
+.stats-view .bucket-grid__pin.bucket-grid__head {
+    z-index: 4;
+}
+
 body.web-report .stats-sections>[data-section-visible="true"]+[data-section-visible="true"] {
     margin-top: 1.5rem;
 }

@@ -7,6 +7,11 @@ const rows: BucketGridRow[] = [
     { key: 'b', displayName: 'Bob', group: 2, profession: 'Scourge', buckets: [0, 2, 0] },
 ];
 
+/** One row past the cap threshold — the smallest roster that must scroll. */
+const bigRoster: BucketGridRow[] = Array.from({ length: 13 }, (_, i) => ({
+    key: `p${i}`, displayName: `Player ${i}`, group: 1, buckets: [i, 0, 0],
+}));
+
 const renderGrid = (extra: Partial<React.ComponentProps<typeof BucketGridTable>> = {}) =>
     render(
         <BucketGridTable
@@ -131,5 +136,46 @@ describe('FightPicker', () => {
         const select = container.querySelector('select');
         expect(select).not.toBeNull();
         expect(select?.className).toContain('fight-diff-select');
+    });
+    it('caps its height and sticks the header once the roster outgrows the cap', () => {
+        const { container } = render(
+            <BucketGridTable
+                rows={bigRoster}
+                bucketCount={3}
+                bucketMs={5000}
+                accent="#e879f9"
+                recorded
+            />,
+        );
+        const scroller = container.querySelector('div');
+        expect(scroller?.className).toContain('overflow-y-auto');
+        expect((scroller as HTMLElement).style.maxHeight).toBe('30rem');
+        // Without the sticky header the timestamps scroll away, leaving the
+        // reader with a wall of numbers and no time axis.
+        expect(container.querySelector('thead th')?.className).toContain('bucket-grid__head');
+    });
+
+    it('leaves a roster that fits below the cap uncapped and unstuck', () => {
+        const { container } = renderGrid();
+        const scroller = container.querySelector('div');
+        expect(scroller?.className).not.toContain('overflow-y-auto');
+        expect((scroller as HTMLElement).style.maxHeight).toBe('');
+        expect(container.querySelector('thead th')?.className).not.toContain('bucket-grid__head');
+    });
+
+    it('never caps when the section turns capHeight off, however long the roster', () => {
+        const { container } = render(
+            <BucketGridTable
+                rows={bigRoster}
+                bucketCount={3}
+                bucketMs={5000}
+                accent="#e879f9"
+                recorded
+                capHeight={false}
+            />,
+        );
+        const scroller = container.querySelector('div');
+        expect(scroller?.className).not.toContain('overflow-y-auto');
+        expect((scroller as HTMLElement).style.maxHeight).toBe('');
     });
 });

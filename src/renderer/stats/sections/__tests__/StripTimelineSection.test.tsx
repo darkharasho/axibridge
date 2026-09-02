@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { StripTimelineSection } from '../StripTimelineSection';
 
@@ -8,6 +8,27 @@ const fights = [{
         a: { group: 1, displayName: 'Alice', cc: [0, 0], stripsOut: [3, 0], stripsIn: [0, 7] },
     },
 }];
+
+// The expand control reads the shared stats context, which throws without a
+// provider. Mocking it keeps these tests rendering the section bare, and the
+// mutable `expandState` lets a test render the expanded variant.
+const expandState: { expandedSection: string | null } = { expandedSection: null };
+const expandCalls: string[] = [];
+const closeCalls: string[] = [];
+vi.mock('../../StatsViewContext', () => ({
+    useStatsSharedContext: () => ({
+        expandedSection: expandState.expandedSection,
+        expandedSectionClosing: false,
+        openExpandedSection: (id: string) => { expandCalls.push(id); },
+        closeExpandedSection: () => { closeCalls.push('close'); },
+    }),
+}));
+
+beforeEach(() => {
+    expandState.expandedSection = null;
+    expandCalls.length = 0;
+    closeCalls.length = 0;
+});
 
 describe('StripTimelineSection', () => {
     it('shows outgoing strips by default', () => {
@@ -66,5 +87,20 @@ describe('StripTimelineSection', () => {
         const { container } = render(<StripTimelineSection fights={[] as any} recorded selectedFightId={null} />);
         expect(screen.getByText(/predates axilog 1.8.0/)).toBeTruthy();
         expect(container.querySelectorAll('[data-bucket-cell]')).toHaveLength(0);
+    });
+
+    it('opens itself by its taxonomy id when the expand control is clicked', () => {
+        render(<StripTimelineSection fights={fights as any} recorded selectedFightId="f1" />);
+        fireEvent.click(screen.getByRole('button', { name: 'Expand Strip Timeline' }));
+        // The id has to match statsTaxonomy.ts — the expand state is keyed on it,
+        // and a mismatch expands nothing while dimming the whole page.
+        expect(expandCalls).toEqual(['strip-timeline']);
+    });
+
+    it('renders as a modal pane offering a close control while expanded', () => {
+        expandState.expandedSection = 'strip-timeline';
+        const { container } = render(<StripTimelineSection fights={fights as any} recorded selectedFightId="f1" />);
+        expect(container.firstElementChild?.className).toContain('modal-pane');
+        expect(screen.getByRole('button', { name: 'Close Strip Timeline' })).toBeTruthy();
     });
 });

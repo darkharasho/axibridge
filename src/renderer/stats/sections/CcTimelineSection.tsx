@@ -1,7 +1,15 @@
 import React, { useMemo, useState } from 'react';
+import { Hand, Maximize2, X } from 'lucide-react';
 import { BucketGridTable, FightPicker, TIMELINE_NOT_RECORDED_MESSAGE, type BucketGridRow } from './BucketGridTable';
 import { renderProfessionIcon } from '../ui/StatsViewShared';
 import { CONTROL_BUCKET_MS, type ControlFightData } from '../computeControlTimeline';
+import { useStatsSharedContext } from '../StatsViewContext';
+
+/** Shared by the header icon and the grid shading so the two read as one section. */
+const CC_ACCENT = '#f59e0b';
+
+/** Matches the taxonomy id in `statsTaxonomy.ts`, which is what the expand state keys on. */
+const SECTION_ID = 'cc-timeline';
 
 interface CcTimelineSectionProps {
     fights: ControlFightData[];
@@ -22,6 +30,8 @@ interface CcTimelineSectionProps {
 export const CcTimelineSection: React.FC<CcTimelineSectionProps> = ({
     fights, recorded, selectedFightId,
 }) => {
+    const { expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection } = useStatsSharedContext();
+    const isExpanded = expandedSection === SECTION_ID;
     const [internalFightId, setInternalFightId] = useState<string | null>(selectedFightId);
 
     const resolvedFightId = internalFightId;
@@ -51,21 +61,45 @@ export const CcTimelineSection: React.FC<CcTimelineSectionProps> = ({
     const effectiveRecorded = fight ? fight.recorded : (recorded && fights.length > 0);
 
     return (
-        <>
-            {fights.length > 1 && (
-                <div className="flex items-center gap-2 mb-2">
+        <div
+            className={isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 p-4 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}
+            style={isExpanded ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
+        >
+            {/* Title row, subtitle, controls — the same shape every other stats
+                section uses, so this reads as one of them rather than as a bare
+                table dropped into the page. */}
+            <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                <Hand className="w-4 h-4 shrink-0" style={{ color: CC_ACCENT }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>CC Timeline</h3>
+                <span className="ml-auto">
                     <FightPicker fights={fights} selectedId={fight?.id} onChange={setInternalFightId} />
-                </div>
-            )}
+                </span>
+                <button
+                    type="button"
+                    onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(SECTION_ID))}
+                    className="flex items-center justify-center w-[26px] h-[26px]"
+                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
+                    aria-label={isExpanded ? 'Close CC Timeline' : 'Expand CC Timeline'}
+                    title={isExpanded ? 'Close' : 'Expand'}
+                >
+                    {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
+                </button>
+            </div>
+            <div className="text-[10px] mb-3 ml-6" style={{ color: 'var(--text-secondary)' }}>
+                Outgoing crowd control per player, in {CONTROL_BUCKET_MS / 1000}s buckets
+                <span className="mx-1.5 opacity-50">|</span>cell shade is intensity against this fight&apos;s peak
+                <span className="mx-1.5 opacity-50">|</span>incoming CC lives in Defense Detailed
+            </div>
             <BucketGridTable
                 rows={rows}
                 bucketCount={fight?.bucketCount || 0}
                 bucketMs={CONTROL_BUCKET_MS}
-                accent="#f59e0b"
+                accent={CC_ACCENT}
                 renderIcon={(profession) => renderProfessionIcon(profession, undefined, 'w-[15px] h-[15px]')}
                 recorded={effectiveRecorded}
                 notRecordedMessage={TIMELINE_NOT_RECORDED_MESSAGE}
+                capHeight={!isExpanded}
             />
-        </>
+        </div>
     );
 };

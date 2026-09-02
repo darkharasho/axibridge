@@ -7,6 +7,7 @@ const player = (group: number, displayName: string, stripsIn: number[], ccIn: nu
 
 const fight = (overrides: Partial<ControlFightData> = {}): ControlFightData => ({
     id: 'C:\\logs\\Fight.zevtc',
+    label: 'Eternal Battlegrounds (0:15)',
     bucketCount: 3,
     durationMs: 15000,
     recorded: true,

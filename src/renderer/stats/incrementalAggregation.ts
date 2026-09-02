@@ -1861,6 +1861,13 @@ export class IncrementalAggregator {
         (frame.incomingDamageEntries || []).forEach((entry: any) => {
             applyLabel(entry, 'fightId', labels.fightId);
         });
+        // The CC/strip timeline picker label. Same zone chain as
+        // `healEffectivenessResults` above, so it reuses `labels.fullLabel`:
+        // null when the log named a real zone (the baked label is already
+        // ordinal-free), the re-numbered `Fight ${n} (m:ss)` when it did not.
+        (frame.controlTimeline?.fights || []).forEach((fight: any) => {
+            applyLabel(fight, 'label', labels.fullLabel);
+        });
     }
 
     private hasDetailedRoster(log: any): boolean {

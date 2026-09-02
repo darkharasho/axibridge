@@ -14,6 +14,7 @@
 
 import { readEntitySeries } from '@axiapps/bridge-metrics';
 import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
+import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 
 export const CONTROL_BUCKET_MS = 5000;
 const NATIVE_INTERVAL_MS = 1000;
@@ -49,6 +50,15 @@ export type ControlPlayerData = {
 
 export type ControlFightData = {
     id: string;
+    /**
+     * Human fight label — `"Eternal: Bay (2:31)"` — built by the same
+     * `buildFightLabelV2` every other fight picker in the app uses. Built
+     * here rather than in the section because the web report has no log
+     * details at render time, so the zone and average position it derives
+     * from are gone by then. Absent on a `report.json` written before this
+     * field existed; the picker falls back to the log filename there.
+     */
+    label: string;
     bucketCount: number;
     durationMs: number;
     players: Record<string, ControlPlayerData>;
@@ -121,6 +131,11 @@ export function ingestLogControlTimeline(log: any, acc: ControlTimelineAccumulat
     const durationMs = Math.max(0, Number(details?.durationMS || 0));
     if (durationMs <= 0) return;
     const bucketCount = Math.max(1, Math.ceil(durationMs / CONTROL_BUCKET_MS));
+    const label = buildFightLabelV2({
+        zone: details.fightName || log?.fightName || `Fight ${acc.fights.length + 1}`,
+        durationMs,
+        avgPosition: computeFightAvgPosition(details),
+    });
 
     const native = details?.native ?? {};
     // Series are keyed by native entity id; the EI player rows are keyed by
@@ -177,7 +192,7 @@ export function ingestLogControlTimeline(log: any, acc: ControlTimelineAccumulat
 
     if (sawLane) acc.recorded = true;
     acc.fights.push({
-        id: fightId, bucketCount, durationMs, players: playersOut,
+        id: fightId, label, bucketCount, durationMs, players: playersOut,
         recorded: sawLane, ccInRecorded: sawCcIn,
     });
 }

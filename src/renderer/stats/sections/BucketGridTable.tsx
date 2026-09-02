@@ -32,14 +32,24 @@ export const TIMELINE_NOT_RECORDED_MESSAGE = timelineNotRecordedMessage('1.8.0')
 /** The `cc_taken` lane, which shipped one release later. */
 export const TIMELINE_CC_TAKEN_NOT_RECORDED_MESSAGE = timelineNotRecordedMessage('1.9.0');
 
-export type TimelinePickerFight = { id: string; durationMs: number };
+export type TimelinePickerFight = { id: string; durationMs: number; label?: string };
 
-/** `fight.id` is a raw file path; strip directories and extension for a readable option label. */
+/**
+ * `F1 - Eternal: Bay (2:31)` — the `shortLabel - fullLabel` shape every other
+ * fight picker in the app uses, so this one reads the same as Fight
+ * Comparison and All Damage rather than as a list of raw log filenames.
+ *
+ * `fight.label` is absent on a `report.json` written before the control
+ * timeline carried one; the fallback derives a name from `fight.id`, which is
+ * a raw file path, by stripping directories and the extension.
+ */
 export const fightPickerLabel = (fight: TimelinePickerFight, index: number) => {
+    const ordinal = `F${index + 1}`;
+    if (fight.label) return `${ordinal} - ${fight.label}`;
     const raw = String(fight.id || '');
     const file = raw.replace(/\\/g, '/').split('/').pop() || raw;
     const name = file.replace(/\.(zevtc|evtc)(\.json)?$/i, '') || `Fight ${index + 1}`;
-    return `${name} (${formatDurationMs(fight.durationMs)})`;
+    return `${ordinal} - ${name} (${formatDurationMs(fight.durationMs)})`;
 };
 
 export interface FightPickerProps<T extends TimelinePickerFight> {
@@ -94,6 +104,13 @@ export interface BucketGridTableProps {
     notRecordedMessage?: string;
     /** False means the series was never captured — render the message, not zeros. */
     recorded: boolean;
+    /**
+     * Cap the grid's height and scroll past the cap, rather than letting a
+     * 40-player squad run a full screen tall and push the next section off
+     * the page. Sections turn this off when expanded, where the height is
+     * the whole point of expanding.
+     */
+    capHeight?: boolean;
 }
 
 const fmtBucketLabel = (i: number, bucketMs: number) => {
@@ -125,12 +142,21 @@ const withAlpha = (color: string, alpha: number) => {
  */
 const ALPHA_FLOOR = 0.1;
 
+/**
+ * Row count above which a capped grid scrolls instead of growing, and the cap
+ * it grows to. Both match the other roster tables (On Tag Review, Squad
+ * Distance to Tag) so a squad-sized grid takes the same vertical bite here as
+ * it does there.
+ */
+const SCROLL_ROW_THRESHOLD = 12;
+const CAPPED_MAX_HEIGHT = '30rem';
+
 /** Column widths, in px. Fed to <colgroup> — see the note at the table. */
 const NAME_COL_PX = 172;
 const CELL_PX = 26;
 
 export const BucketGridTable: React.FC<BucketGridTableProps> = ({
-    rows, bucketCount, bucketMs, accent, renderIcon, notRecordedMessage, recorded,
+    rows, bucketCount, bucketMs, accent, renderIcon, notRecordedMessage, recorded, capHeight = true,
 }) => {
     const max = useMemo(
         () => rows.reduce((m, r) => r.buckets.reduce((rm, v) => Math.max(rm, v), m), 0),
@@ -143,9 +169,16 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
 
     const stride = labelStride(bucketMs);
     const cols = Array.from({ length: bucketCount }, (_, i) => i);
+    // The header only sticks when the grid is the thing scrolling. Sticking it
+    // unconditionally would pin it to whatever scrolls outside instead.
+    const scrolls = capHeight && rows.length > SCROLL_ROW_THRESHOLD;
+    const headClass = scrolls ? ' bucket-grid__head' : '';
 
     return (
-        <div className="overflow-x-auto">
+        <div
+            className={`overflow-x-auto${scrolls ? ' overflow-y-auto' : ''}`}
+            style={scrolls ? { maxHeight: CAPPED_MAX_HEIGHT } : undefined}
+        >
             <table
                 className="text-xs border-separate border-spacing-0"
                 style={{ tableLayout: 'fixed', width: NAME_COL_PX + bucketCount * CELL_PX }}
@@ -159,7 +192,7 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
                 </colgroup>
                 <thead>
                     <tr>
-                        <th scope="col" className="bucket-grid__pin text-left pr-3 pb-1.5 border-b border-white/5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-secondary)]">Player</th>
+                        <th scope="col" className={`bucket-grid__pin${headClass} text-left pr-3 pb-1.5 border-b border-white/5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-secondary)]`}>Player</th>
                         {cols.map(i => {
                             const tick = i > 0 && i % stride === 0;
                             return (
@@ -170,7 +203,7 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
                                     // left edge sits exactly on its column's tick line.
                                     // Centring puts the text half a cell to the right of
                                     // the moment it names.
-                                    className={`pb-1.5 text-left text-[9px] font-semibold tabular-nums whitespace-nowrap text-[color:var(--text-secondary)] border-b border-white/5 ${tick ? 'border-l border-white/10' : ''}`}
+                                    className={`${headClass} pb-1.5 text-left text-[9px] font-semibold tabular-nums whitespace-nowrap text-[color:var(--text-secondary)] border-b border-white/5 ${tick ? 'border-l border-white/10' : ''}`}
                                 >
                                     {i % stride === 0 ? fmtBucketLabel(i, bucketMs) : ''}
                                 </th>

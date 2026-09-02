@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { Trophy, Shield, ShieldAlert, ShieldOff, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target, Route, Waves, Flame, Crosshair, ArrowUpDown, Eraser, Play, LayoutGrid } from 'lucide-react';
+import { Trophy, Shield, ShieldAlert, ShieldOff, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target, Route, Waves, Flame, Crosshair, ArrowUpDown, Eraser, Play, LayoutGrid, Hand } from 'lucide-react';
 import { CommanderTagIcon } from '../ui/CommanderTagIcon';
 import { SupportPlusIcon } from '../ui/SupportPlusIcon';
 import { Gw2ApmIcon } from '../ui/Gw2ApmIcon';
@@ -62,7 +62,7 @@ export const STATS_CATEGORIES: readonly StatsCategory[] = [
         keywords: ['damage', 'dps', 'attack'],
         sections: [
             { id: 'offense-detailed', label: 'Offense Detailed', icon: Swords, description: 'Full offensive stat table per player: damage, down contribution, CC, crits.', keywords: ['down contribution', 'cc', 'interrupts', 'critical', 'kills'] },
-            { id: 'cc-timeline', label: 'CC Timeline', icon: Zap, description: 'Outgoing crowd control per player over the course of each fight.', keywords: ['cc over time', 'control timeline', 'cc timing', 'when cc'] },
+            { id: 'cc-timeline', label: 'CC Timeline', icon: Hand, description: 'Outgoing crowd control per player over the course of each fight.', keywords: ['cc over time', 'control timeline', 'cc timing', 'when cc'] },
             { id: 'damage-breakdown', label: 'Damage Breakdown', icon: BarChart3, description: 'Damage split by type and target.', keywords: ['power', 'condition damage'] },
             { id: 'all-damage', label: 'All Damage', icon: Flame, description: 'Total damage view including all sources.', keywords: ['total damage'] },
             { id: 'spike-damage', label: 'Spike Damage', icon: Zap, description: 'Burst windows — who contributes when it matters.', keywords: ['burst', 'spike'] },
