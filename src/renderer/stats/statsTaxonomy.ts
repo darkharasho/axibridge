@@ -77,6 +77,7 @@ export const STATS_CATEGORIES: readonly StatsCategory[] = [
         sections: [
             { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield, description: 'Full defensive stat table: damage taken, downs, deaths, dodges.', keywords: ['damage taken', 'deaths', 'downs', 'dodges'] },
             { id: 'incoming-strike-damage', label: 'Incoming Strike Damage', icon: ShieldAlert, description: 'Incoming pressure over time and per player.', keywords: ['pressure', 'focused'] },
+            { id: 'enemy-attention', label: 'Enemy Attention', icon: Crosshair, description: 'Who the enemy actually aimed their casts at, and who they focused before a down.', keywords: ['focus', 'focused', 'targeted', 'aimed at', 'attention', 'threat', 'who gets hit'] },
             { id: 'incoming-damage-modifiers', label: 'Incoming Modifiers', icon: ShieldOff, description: 'Incoming damage modifier uptimes.', keywords: ['damage reduction'] },
             { id: 'defense-mitigation', label: 'Damage Mitigation', icon: Gw2DamMitIcon, description: 'Blocks, evades, misses, invulns — avoided damage totals.', keywords: ['blocked', 'evaded', 'mitigated', 'avoided'] },
         ],

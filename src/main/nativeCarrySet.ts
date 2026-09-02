@@ -49,6 +49,16 @@
  * on a 39-player WvW fight: 908 rows, 57.6 KB raw / 5.7 KB gzipped — small
  * against `blocks.replay`, which dominates `report.json`.
  *
+ * Enemy attention adds `blocks.focus` — the enemy cast-start census behind the
+ * Enemy Attention section. It cannot be measured on `wvw-small.anon.zevtc` like
+ * every path above it, because that fixture is arcdps build `20260114` and
+ * predates the census entirely (axilog omits the block there). Measured
+ * instead across 72 sampled post-rework logs from a real arcdps folder: the
+ * LARGEST was 19.6 KB raw / 2.8 KB gzipped, on a 50-player fight with 1,616
+ * aimed casts across 227 distinct enemy skills — against a 41.7 MB native
+ * report for that same fight. Its `skills[]` ids resolve through
+ * `catalogs.skills`, already carried above for unit 4.
+ *
  * When a unit migrates, add its path and re-measure.
  */
 export const CARRIED_PATHS = [
@@ -65,6 +75,7 @@ export const CARRIED_PATHS = [
     'catalogs.buffs',
     'blocks.conditions',
     'blocks.cc.taken_events',
+    'blocks.focus',
 ] as const;
 
 export type CarriedPath = (typeof CARRIED_PATHS)[number];

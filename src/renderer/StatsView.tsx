@@ -84,6 +84,8 @@ import { SquadDamageComparisonSection } from './stats/sections/SquadDamageCompar
 import { SquadKillPressureSection } from './stats/sections/SquadKillPressureSection';
 import { SquadTagDistanceDeathsSection } from './stats/sections/SquadTagDistanceDeathsSection';
 import { SquadDistanceToTagSection } from './stats/sections/SquadDistanceToTagSection';
+import { EnemyAttentionSection } from './stats/sections/EnemyAttentionSection';
+import { EMPTY_ENEMY_ATTENTION, type EnemyAttentionResult } from './stats/computeEnemyAttention';
 import { SquadDistanceToTagVisualSection } from './stats/sections/SquadDistanceToTagVisualSection';
 import { OnTagReviewSection } from './stats/sections/OnTagReviewSection';
 import type { DistanceToTagResult } from './stats/computeDistanceToTag';
@@ -176,6 +178,7 @@ const ORDERED_SECTION_IDS = [
     'on-tag-review',
     'squad-distance-to-tag',
     'squad-distance-to-tag-visual',
+    'enemy-attention',
     'attendance-ledger',
     'squad-comp-fight',
     'fight-comp',
@@ -828,6 +831,11 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     const distanceToTagResult: DistanceToTagResult = useMemo(() => {
         const v = (safeStats as any)?.distanceToTag;
         return v && Array.isArray(v.rows) ? v : { rows: [], commanderCount: 0 };
+    }, [safeStats]);
+
+    const enemyAttentionResult: EnemyAttentionResult = useMemo(() => {
+        const v = (safeStats as any)?.enemyAttention;
+        return v && Array.isArray(v.rows) ? v : EMPTY_ENEMY_ATTENTION;
     }, [safeStats]);
 
     const onTagReviewResult: OnTagReviewResult = useMemo(() => {
@@ -5197,6 +5205,9 @@ type SpikeFight = {
                                 spikeDrilldownDeathIndices={incomingStrikeDrilldown.deathIndices}
                                 spikeFightSkillRows={incomingStrikeFightSkillRows}
                                 spikeFightSkillTitle="Incoming Skill Damage (Selected Fight)"
+                            /> },
+                            { id: 'enemy-attention', element: <EnemyAttentionSection
+                                result={enemyAttentionResult}
                             /> },
                             { id: 'incoming-damage-modifiers', element: <DamageModifiersSection
                                 search={incomingDamageModSearch}

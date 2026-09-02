@@ -55,6 +55,45 @@ describe('buildNativeCarrySet', () => {
     });
 });
 
+describe('carry-set — blocks.focus (enemy attention)', () => {
+    const focusReport = {
+        axilog: { schema: '1.0' },
+        encounter: { build: '20260816' },
+        blocks: {
+            focus: {
+                squad_size: 10,
+                total_casts: 100,
+                total_minion_casts: 4,
+                pre_down_window_ms: 3000,
+                skills: [{ skill: 10219, casts_at_squad: 9, hits: 12, damage_total: 4200 }],
+                by_entity: { '7': { casts_drawn: 30, focus_index: 3, downs: 1, pre_down_casts: 5 } },
+            },
+        },
+    };
+
+    it('carries the block the Enemy Attention section reads', () => {
+        const out = buildNativeCarrySet(focusReport) as any;
+        expect(out.blocks.focus.by_entity['7'].casts_drawn).toBe(30);
+        expect(out.blocks.focus.total_minion_casts).toBe(4);
+        // `skills[]` ids resolve through `catalogs.skills`, already carried.
+        expect(out.blocks.focus.skills).toHaveLength(1);
+    });
+
+    it('carries `encounter`, which is what the era guard reads', () => {
+        // `isFocusMeasurable` reads `encounter.build`, not `coverage.focus`:
+        // axilog only began reporting `unsupported` for a pre-rework log in
+        // 1.12.0. Losing `encounter` from the carry set would silently make
+        // every fight read as unmeasurable.
+        const out = buildNativeCarrySet(focusReport) as any;
+        expect(out.encounter.build).toBe('20260816');
+    });
+
+    it('omits the block when axilog omitted it, rather than inventing an empty one', () => {
+        const out = buildNativeCarrySet({ axilog: { schema: '1.0' }, blocks: {} }) as any;
+        expect(out.blocks?.focus).toBeUndefined();
+    });
+});
+
 describe('carry-set — blocks.cc.taken_events (attributed incoming CC)', () => {
     const ccReport = {
         axilog: { schema: '1.0' },

@@ -20,3 +20,4 @@ export * from './nativeSeries';
 export * from './nativeDamage';
 export * from './nativeBoons';
 export * from './nativeConditions';
+export * from './nativeFocus';

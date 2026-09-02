@@ -27,6 +27,7 @@ import { ingestLogCommanderStats, mergeCommanderStatsInto } from './computeComma
 import { ingestLogFightDiffMode } from './computeFightDiffMode';
 import { ingestLogTagDistanceDeaths } from './computeTagDistanceDeaths';
 import { ingestLogDistanceToTag, finalizeDistanceToTag, type DistanceToTagResult } from './computeDistanceToTag';
+import { ingestLogEnemyAttention, finalizeEnemyAttention, type EnemyAttentionIngest, type EnemyAttentionResult } from './computeEnemyAttention';
 import { ingestLogOnTagReview, finalizeOnTagReview, type OnTagReviewResult } from './computeOnTagReview';
 import { ingestLogHealEffectiveness } from './computeHealEffectivenessData';
 
@@ -398,6 +399,16 @@ interface StoredDistanceToTagContrib {
     contributions: any; // DistanceContribution[]
 }
 
+// Stored per-valid-log slices from ingestLogEnemyAttention. Unlike the arrays
+// around it this one keeps a row for a log that produced NO contributions:
+// `measurable: false` is the fact that a pre-rework fight could not be
+// measured, and dropping those entries would erase the distinction between
+// "the enemy ignored this squad" and "this log cannot say".
+interface StoredEnemyAttentionIngest {
+    timestamp: number;
+    ingest: EnemyAttentionIngest;
+}
+
 // Stored per-valid-log contributions from ingestLogOnTagReview
 interface StoredOnTagReviewContrib {
     timestamp: number;
@@ -629,6 +640,7 @@ export class IncrementalAggregator {
     private healEffectivenessResults: StoredHealEffectiveness[] = [];
     private tagDistanceDeathsResults: StoredTagDistanceDeaths[] = [];
     private distanceToTagContribs: StoredDistanceToTagContrib[] = [];
+    private enemyAttentionIngests: StoredEnemyAttentionIngest[] = [];
     private onTagReviewContribs: StoredOnTagReviewContrib[] = [];
     private incomingDamageEntries: StoredIncomingDamageEntry[] = [];
     private squadCompEntries: StoredSquadComp[] = [];
@@ -828,6 +840,12 @@ export class IncrementalAggregator {
             contributions: ingestLogDistanceToTag(log, idx),
         });
 
+        // Enemy attention (who the other side aimed at)
+        this.enemyAttentionIngests.push({
+            timestamp,
+            ingest: ingestLogEnemyAttention(log, idx),
+        });
+
         // On Tag Review (per-player death classification)
         this.onTagReviewContribs.push({
             timestamp,
@@ -991,6 +1009,7 @@ export class IncrementalAggregator {
             healEffectivenessResults: this.healEffectivenessResults,
             tagDistanceDeathsResults: this.tagDistanceDeathsResults,
             distanceToTagContribs: this.distanceToTagContribs,
+            enemyAttentionIngests: this.enemyAttentionIngests,
             onTagReviewContribs: this.onTagReviewContribs,
             incomingDamageEntries: this.incomingDamageEntries,
             squadCompEntries: this.squadCompEntries,
@@ -1040,6 +1059,7 @@ export class IncrementalAggregator {
         appendIndexed(this.healEffectivenessResults, frame.healEffectivenessResults);
         appendIndexed(this.tagDistanceDeathsResults, frame.tagDistanceDeathsResults);
         appendIndexed(this.distanceToTagContribs, frame.distanceToTagContribs);
+        appendIndexed(this.enemyAttentionIngests, frame.enemyAttentionIngests);
         appendIndexed(this.onTagReviewContribs, frame.onTagReviewContribs);
         appendIndexed(this.incomingDamageEntries, frame.incomingDamageEntries);
         appendIndexed(this.squadCompEntries, frame.squadCompEntries);
@@ -1213,6 +1233,12 @@ export class IncrementalAggregator {
         // Distance to tag — finalize from all collected contributions
         const distanceToTag: DistanceToTagResult = finalizeDistanceToTag(
             this.distanceToTagContribs.flatMap(s => s.contributions || [])
+        );
+
+        // Enemy attention — pooled over the measurable fights only; the
+        // unmeasurable ones are carried through as a count, not as zeros.
+        const enemyAttention: EnemyAttentionResult = finalizeEnemyAttention(
+            this.enemyAttentionIngests.map(s => s.ingest).filter(Boolean)
         );
 
         // On Tag Review — sort by timestamp so Off-Tag ranges list chronologically
@@ -1785,6 +1811,7 @@ export class IncrementalAggregator {
             healEffectiveness,
             tagDistanceDeaths,
             distanceToTag,
+            enemyAttention,
             onTagReview,
             specialTables,
             topStatsPerSecond,
@@ -1854,6 +1881,9 @@ export class IncrementalAggregator {
         });
         (frame.distanceToTagContribs || []).forEach((stored: any) => {
             (stored?.contributions || []).forEach((c: any) => applyLabel(c, 'fightId', labels.filePathFightId));
+        });
+        (frame.enemyAttentionIngests || []).forEach((stored: any) => {
+            (stored?.ingest?.contributions || []).forEach((c: any) => applyLabel(c, 'fightId', labels.filePathFightId));
         });
         (frame.onTagReviewContribs || []).forEach((stored: any) => {
             (stored?.contributions || []).forEach((c: any) => applyLabel(c, 'fightId', labels.filePathFightId));
