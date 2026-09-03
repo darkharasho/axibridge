@@ -1,5 +1,6 @@
 import { getEntityProfession, squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
 import { focusFairShare, getFocusLog, isFocusMeasurable } from '@axiapps/bridge-metrics/nativeFocus';
+import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
 
 /**
  * Enemy attention — which squad members the other side actually aimed at.
@@ -90,25 +91,38 @@ export const EMPTY_ENEMY_ATTENTION: EnemyAttentionResult = {
 export type EnemyAttentionIngest = {
     measurable: boolean;
     preDownWindowMs: number;
+    /**
+     * Human fight label — `"Eternal: Bay (2:31)"` — for the per-fight Pin
+     * Pressure table. Built here rather than in the section because the web
+     * report has no log details left at render time, so the zone and average
+     * position it derives from are gone by then. Empty when the log named no
+     * zone; the section falls back to the fight id.
+     */
+    label: string;
     contributions: EnemyAttentionContribution[];
 };
 
 export const ingestLogEnemyAttention = (log: any, fightIndex: number): EnemyAttentionIngest => {
     const details = log?.details;
     const fightId = log?.filePath || `fight-${fightIndex}`;
+    const label = buildFightLabelV2({
+        zone: details?.fightName || log?.fightName || `Fight ${fightIndex + 1}`,
+        durationMs: Math.max(0, Number(details?.durationMS || 0)),
+        avgPosition: computeFightAvgPosition(details),
+    });
 
     // Asked before the block is read: on axilog 1.11.0 a pre-rework log still
     // carries a fully zeroed roster, and treating it as data would report
     // "nobody was focused" for a fight that cannot answer the question.
     if (!isFocusMeasurable(details)) {
-        return { measurable: false, preDownWindowMs: 0, contributions: [] };
+        return { measurable: false, preDownWindowMs: 0, label, contributions: [] };
     }
     const focus = getFocusLog(details);
-    if (!focus) return { measurable: false, preDownWindowMs: 0, contributions: [] };
+    if (!focus) return { measurable: false, preDownWindowMs: 0, label, contributions: [] };
 
     const squad = squadEntities(details?.native ?? {});
     if (squad.length === 0) {
-        return { measurable: true, preDownWindowMs: focus.preDownWindowMs, contributions: [] };
+        return { measurable: true, preDownWindowMs: focus.preDownWindowMs, label, contributions: [] };
     }
 
     const commander = squad.find((e: any) => {
@@ -137,7 +151,7 @@ export const ingestLogEnemyAttention = (log: any, fightIndex: number): EnemyAtte
             fairShare,
         });
     }
-    return { measurable: true, preDownWindowMs: focus.preDownWindowMs, contributions };
+    return { measurable: true, preDownWindowMs: focus.preDownWindowMs, label, contributions };
 };
 
 export const finalizeEnemyAttention = (ingests: EnemyAttentionIngest[]): EnemyAttentionResult => {

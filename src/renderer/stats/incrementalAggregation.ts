@@ -28,6 +28,7 @@ import { ingestLogFightDiffMode } from './computeFightDiffMode';
 import { ingestLogTagDistanceDeaths } from './computeTagDistanceDeaths';
 import { ingestLogDistanceToTag, finalizeDistanceToTag, type DistanceToTagResult } from './computeDistanceToTag';
 import { ingestLogEnemyAttention, finalizeEnemyAttention, type EnemyAttentionIngest, type EnemyAttentionResult } from './computeEnemyAttention';
+import { finalizePinPressure, type PinPressureResult } from './computePinPressure';
 import { ingestLogOnTagReview, finalizeOnTagReview, type OnTagReviewResult } from './computeOnTagReview';
 import { ingestLogHealEffectiveness } from './computeHealEffectivenessData';
 
@@ -1237,8 +1238,20 @@ export class IncrementalAggregator {
 
         // Enemy attention — pooled over the measurable fights only; the
         // unmeasurable ones are carried through as a count, not as zeros.
-        const enemyAttention: EnemyAttentionResult = finalizeEnemyAttention(
-            this.enemyAttentionIngests.map(s => s.ingest).filter(Boolean)
+        const enemyAttentionSlices = this.enemyAttentionIngests
+            .map(s => s.ingest)
+            .filter(Boolean);
+        const enemyAttention: EnemyAttentionResult = finalizeEnemyAttention(enemyAttentionSlices);
+
+        // Pin pressure reads the SAME per-fight slices rather than re-walking the
+        // logs: everything it needs (the tag's downs and pre-down casts, and the
+        // squad's) is already on those contributions, and a second ingest pass
+        // could only drift from this one.
+        const pinPressure: PinPressureResult = finalizePinPressure(
+            [...this.enemyAttentionIngests]
+                .sort((a, b) => a.timestamp - b.timestamp)
+                .map(s => s.ingest)
+                .filter(Boolean)
         );
 
         // On Tag Review — sort by timestamp so Off-Tag ranges list chronologically
@@ -1812,6 +1825,7 @@ export class IncrementalAggregator {
             tagDistanceDeaths,
             distanceToTag,
             enemyAttention,
+            pinPressure,
             onTagReview,
             specialTables,
             topStatsPerSecond,
@@ -1884,6 +1898,9 @@ export class IncrementalAggregator {
         });
         (frame.enemyAttentionIngests || []).forEach((stored: any) => {
             (stored?.ingest?.contributions || []).forEach((c: any) => applyLabel(c, 'fightId', labels.filePathFightId));
+            // The Pin Pressure row label. Same zone chain as the CC/strip
+            // timeline picker below, so it reuses `labels.fullLabel`.
+            applyLabel(stored?.ingest, 'label', labels.fullLabel);
         });
         (frame.onTagReviewContribs || []).forEach((stored: any) => {
             (stored?.contributions || []).forEach((c: any) => applyLabel(c, 'fightId', labels.filePathFightId));

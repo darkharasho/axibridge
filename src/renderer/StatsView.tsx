@@ -86,6 +86,8 @@ import { SquadTagDistanceDeathsSection } from './stats/sections/SquadTagDistance
 import { SquadDistanceToTagSection } from './stats/sections/SquadDistanceToTagSection';
 import { EnemyAttentionSection } from './stats/sections/EnemyAttentionSection';
 import { EMPTY_ENEMY_ATTENTION, type EnemyAttentionResult } from './stats/computeEnemyAttention';
+import { PinPressureSection } from './stats/sections/PinPressureSection';
+import { EMPTY_PIN_PRESSURE, type PinPressureResult } from './stats/computePinPressure';
 import { SquadDistanceToTagVisualSection } from './stats/sections/SquadDistanceToTagVisualSection';
 import { OnTagReviewSection } from './stats/sections/OnTagReviewSection';
 import type { DistanceToTagResult } from './stats/computeDistanceToTag';
@@ -171,6 +173,7 @@ const ORDERED_SECTION_IDS = [
     'commander-target-conversion',
     'commander-tag-movement',
     'commander-tag-death-response',
+    'commander-pin-pressure',
     'squad-damage-comparison',
     'squad-kill-pressure',
     'heal-effectiveness',
@@ -836,6 +839,11 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     const enemyAttentionResult: EnemyAttentionResult = useMemo(() => {
         const v = (safeStats as any)?.enemyAttention;
         return v && Array.isArray(v.rows) ? v : EMPTY_ENEMY_ATTENTION;
+    }, [safeStats]);
+
+    const pinPressureResult: PinPressureResult = useMemo(() => {
+        const v = (safeStats as any)?.pinPressure;
+        return v && Array.isArray(v.fights) ? v : EMPTY_PIN_PRESSURE;
     }, [safeStats]);
 
     const onTagReviewResult: OnTagReviewResult = useMemo(() => {
@@ -5428,6 +5436,9 @@ type SpikeFight = {
                             /> },
                             { id: 'commander-tag-death-response', element: <CommanderTagDeathResponseSection
                                 commanderStats={commanderStats}
+                            /> },
+                            { id: 'commander-pin-pressure', element: <PinPressureSection
+                                result={pinPressureResult}
                             /> },
                         ])}
 

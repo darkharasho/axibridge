@@ -31,7 +31,7 @@ const EXPECTED_SECTION_IDS = [
     'squad-tag-distance-deaths', 'squad-kill-pressure', 'squad-damage-comparison',
     // commander
     'commander-stats', 'commander-push-timing', 'commander-target-conversion',
-    'commander-tag-movement', 'commander-tag-death-response',
+    'commander-tag-movement', 'commander-tag-death-response', 'commander-pin-pressure',
     // players
     'player-breakdown', 'player-comparison', 'apm-stats', 'skill-usage',
     'sigil-relic-uptime', 'special-buffs',

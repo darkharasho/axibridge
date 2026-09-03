@@ -131,6 +131,7 @@ export const STATS_CATEGORIES: readonly StatsCategory[] = [
             { id: 'commander-target-conversion', label: 'Target Conversion', icon: Target, description: 'Called targets converted into downs and kills.', keywords: ['calls', 'target calls'] },
             { id: 'commander-tag-movement', label: 'Tag Movement', icon: Route, description: 'Movement patterns of the tag across fights.', keywords: ['kiting', 'pathing'] },
             { id: 'commander-tag-death-response', label: 'Tag Death Response', icon: Skull, description: 'What the squad did when the tag went down.', keywords: ['tag died', 'response'] },
+            { id: 'commander-pin-pressure', label: 'Pin Pressure', icon: Crosshair, description: 'Whether enemy casts converged on the tag before it went down, against the squad\u2019s own rate.', keywords: ['pin snipe', 'pin sniping', 'sniped', 'focused the tag', 'tag focus', 'converged', 'hunted'] },
         ],
     },
     {

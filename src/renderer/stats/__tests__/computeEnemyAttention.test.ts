@@ -156,8 +156,8 @@ describe('finalizeEnemyAttention', () => {
 
     it('is empty, not measured-as-zero, when nothing loaded can be measured', () => {
         const r = finalizeEnemyAttention([
-            { measurable: false, preDownWindowMs: 0, contributions: [] },
-            { measurable: false, preDownWindowMs: 0, contributions: [] },
+            { measurable: false, preDownWindowMs: 0, label: '', contributions: [] },
+            { measurable: false, preDownWindowMs: 0, label: '', contributions: [] },
         ]);
         expect(r.rows).toHaveLength(0);
         expect(r.measuredFightCount).toBe(0);
