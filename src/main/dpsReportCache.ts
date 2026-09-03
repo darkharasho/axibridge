@@ -63,8 +63,12 @@ export const DETAILS_SCHEMA_VERSION = 2;
  *   1.9.0 — per-entity `cc_taken` / `strips_taken` series. Without them the
  *           replay's incoming-CC lane and per-player CC marks render empty,
  *           and nothing in a re-read of the cached file can fill them.
+ *  1.12.0 — `blocks.focus.casts_drawn_minions`. 1.11.0 discarded enemy casts
+ *           aimed at squad minions, so Enemy Attention's "At Minions" column
+ *           reads a flat "—" off an older cache — indistinguishable from the
+ *           enemy genuinely never having aimed at a pet.
  */
-export const MIN_PARSER_VERSION = '1.9.0';
+export const MIN_PARSER_VERSION = '1.12.0';
 
 /**
  * Whether a cached entry's details were produced by a parser too old to trust.

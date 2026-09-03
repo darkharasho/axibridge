@@ -36,9 +36,16 @@ describe('cachedParserVersionIsStale', () => {
         expect(cachedParserVersionIsStale({ parserVersion: '1.8.2' })).toBe(true);
     });
 
+    it('treats the version before the current minimum as stale', () => {
+        // 1.11.0 discarded enemy casts aimed at squad minions, so Enemy
+        // Attention's "At Minions" column would read a flat "—" off its cache
+        // and look like the enemy simply never aimed at a pet.
+        expect(cachedParserVersionIsStale({ parserVersion: '1.11.0' })).toBe(true);
+    });
+
     it('keeps a parse from the minimum version or newer', () => {
         expect(cachedParserVersionIsStale({ parserVersion: MIN_PARSER_VERSION })).toBe(false);
-        expect(cachedParserVersionIsStale({ parserVersion: '1.10.0' })).toBe(false);
+        expect(cachedParserVersionIsStale({ parserVersion: '1.12.1' })).toBe(false);
         expect(cachedParserVersionIsStale({ parserVersion: '2.0.0' })).toBe(false);
     });
 
@@ -57,8 +64,10 @@ describe('parser version stamping', () => {
 
     it('stamps the producing parser version when an entry is written', async () => {
         const store = makeStore();
-        await saveDpsReportCacheEntry(store, () => tmpDir, 'h1', { permalink: 'p' } as any, { players: [] }, '1.9.0');
-        expect(store.data[DPS_REPORT_CACHE_KEY].h1.parserVersion).toBe('1.9.0');
+        // Stamped with the current minimum rather than a literal, so raising
+        // MIN_PARSER_VERSION cannot silently turn this into a stale-entry test.
+        await saveDpsReportCacheEntry(store, () => tmpDir, 'h1', { permalink: 'p' } as any, { players: [] }, MIN_PARSER_VERSION);
+        expect(store.data[DPS_REPORT_CACHE_KEY].h1.parserVersion).toBe(MIN_PARSER_VERSION);
         expect(cachedParserVersionIsStale(store.data[DPS_REPORT_CACHE_KEY].h1)).toBe(false);
     });
 
