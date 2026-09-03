@@ -1602,7 +1602,7 @@ export function ReportApp() {
                                 Back to Reports
                             </a>
                         </div>
-                        <nav className="px-3 pb-6 space-y-2 text-sm overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
+                        <nav className="flex-1 min-h-0 px-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] space-y-2 text-sm overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
                             {navGroups.map((group) => {
                                 const GroupIcon = group.icon;
                                 const isActive = group.id === activeGroup;
@@ -1903,7 +1903,7 @@ export function ReportApp() {
                         {legalNoticePane}
                     </div>
                 </div>
-                <div className={`fixed bottom-4 left-4 right-4 z-30 mobile-action-bar ${isNarrowViewport ? '' : 'hidden'}`}>
+                <div className={`fixed bottom-4 left-4 right-4 z-10 mobile-action-bar transition-[opacity,transform] duration-200 ${isNarrowViewport ? '' : 'hidden'} ${tocOpen ? 'opacity-0 translate-y-6 pointer-events-none' : 'opacity-100 translate-y-0'}`} aria-hidden={tocOpen}>
                     {/* Icon-over-label, each item flex-1 min-w-0. A row of four
                         side-by-side icon+label pills needs 387px of the 337px
                         available at 393px wide, and every label is a single
