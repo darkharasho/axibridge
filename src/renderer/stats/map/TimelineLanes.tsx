@@ -3,62 +3,77 @@ import { useStatsStore } from '../statsStore';
 import { SERIES_INTERVAL_MS } from '@axiapps/bridge-metrics/nativeSeries';
 import type { ReplayFightPayload } from './replayTypes';
 
-const GUTTER_PX = 92;
+/** The overlay's own coordinate height, in px, matching `TIMELINE_HEIGHT_PX`. */
+export const LANES_VIEW_H = 44;
 
 /**
  * The two mirrored measures, each drawn as an outgoing lane above its zero
- * line and an incoming lane below it. `zeroY` is the shared baseline the
- * `subLane` calls below hang off, so these must stay in step with the y
- * offsets passed there.
+ * line and an incoming lane below it.
+ *
+ * `zeroY` and `reach` are in the overlay's 44-unit y space, which is 1:1 with
+ * rendered pixels — the svg is exactly `LANES_VIEW_H` tall. They are chosen so
+ * CC's incoming half and Strips' outgoing half cannot collide at full
+ * deflection: CC occupies 4–26 and Strips 26–42.
  */
-const LANE_LABELS = [
-    { id: 'cc', label: 'CC', color: '#f59e0b', zeroY: 14, outKey: 'ccLane', inKey: 'ccInLane' },
-    { id: 'strip', label: 'Strips', color: '#e879f9', zeroY: 38, outKey: 'stripLane', inKey: 'stripInLane' },
+export const LANE_BANDS = [
+    { id: 'cc', label: 'CC', color: '#f59e0b', zeroY: 15, reach: 11, outKey: 'ccLane', inKey: 'ccInLane' },
+    { id: 'strip', label: 'Strips', color: '#e879f9', zeroY: 34, reach: 8, outKey: 'stripLane', inKey: 'stripInLane' },
 ] as const;
 
 /**
- * The lane-name gutter, split out of `TimelineLanes` so `TransportBar` can
- * place it in its own grid cell (row 2, column 1 — the same column the
- * play/speed/clock cluster occupies in row 1), leaving the plotting `<svg>`
- * free to fill column 2 exactly like `SyncedTimeline` above it. Sharing that
- * column is what keeps the two timelines' 1000-unit x-axes aligned.
+ * The lane names, as HTML rather than svg `<text>`.
+ *
+ * The overlay svg is stretched horizontally (`preserveAspectRatio="none"` over
+ * a 1000-unit box), which squashes any text drawn inside it. These sit in the
+ * plot's own corners instead, out of the bars' way: CC deflects downward from
+ * y=15 and Strips upward from y=34, so the top and bottom edges are the two
+ * places nothing is ever drawn.
  */
-export const TimelineLaneGutter: React.FC = () => {
+export const TimelineLaneLabels: React.FC = () => {
     const layersState = useStatsStore(state => state.replayLayers);
     return (
-        <div style={{ width: GUTTER_PX, flexShrink: 0, position: 'relative', height: '100%' }}>
-            {LANE_LABELS.map(lane => (
+        <>
+            {LANE_BANDS.map((lane, i) => (
                 (layersState[lane.outKey] || layersState[lane.inKey]) && (
                     <span
                         key={lane.id}
                         data-testid={`${lane.id}-lane-label`}
-                        title="Each lane is scaled to its own peak, so bar heights are not comparable across the zero line."
+                        title="Outgoing above the line, incoming below. Each lane is scaled to its own peak, so bar heights are not comparable across the zero line."
                         style={{
-                            position: 'absolute', left: 2,
-                            top: `${(lane.zeroY / 52) * 100}%`, transform: 'translateY(-50%)',
-                            fontSize: 9, fontWeight: 600, color: lane.color, whiteSpace: 'nowrap',
+                            position: 'absolute', left: 4, ...(i === 0 ? { top: 0 } : { bottom: 0 }),
+                            fontSize: 8, fontWeight: 700, color: lane.color, letterSpacing: '.02em',
+                            pointerEvents: 'none', textShadow: '0 0 3px #0b0f1a, 0 0 3px #0b0f1a',
                         }}
                     >
-                        {`${lane.label} ▲out ▼in`}
+                        {lane.label}
                     </span>
                 )
             ))}
-        </div>
+        </>
     );
 };
 
-export interface TimelineLanesProps {
+export interface TimelineLaneOverlayProps {
     fight: ReplayFightPayload;
-    /**
-     * Suppresses the internal label gutter so the `<svg>` can fill its grid
-     * cell exactly — `TransportBar` renders `TimelineLaneGutter` separately
-     * in that case. Defaults to false so existing standalone usage (and its
-     * tests) keeps drawing its own gutter, matching the pre-grid layout.
-     */
-    hideGutter?: boolean;
 }
 
-export const TimelineLanes: React.FC<TimelineLanesProps> = ({ fight, hideGutter = false }) => {
+/**
+ * The CC and strip lanes, drawn *on top of* the scrubber rather than beneath
+ * it.
+ *
+ * This used to be a second chart in a second grid row, which meant two
+ * independently sized 1000-unit x-axes that could drift apart (they once did,
+ * by ~190px) and a 92px label gutter whose width was subtracted from both.
+ * Superimposing removes the whole class of problem: this svg is absolutely
+ * positioned over `SyncedTimeline`'s, inset 0, with the identical
+ * `viewBox` width and `preserveAspectRatio="none"`, so the two share one
+ * horizontal axis by construction. There is nothing left to keep in sync.
+ *
+ * `pointerEvents: 'none'` is what makes it an overlay rather than an
+ * obstruction — clicks and drags land on the scrubber underneath, so covering
+ * the plot costs no scrub surface.
+ */
+export const TimelineLaneOverlay: React.FC<TimelineLaneOverlayProps> = ({ fight }) => {
     const timeMs = useStatsStore(state => state.replayPlayhead.timeMs);
     const layersState = useStatsStore(state => state.replayLayers);
 
@@ -67,7 +82,7 @@ export const TimelineLanes: React.FC<TimelineLanesProps> = ({ fight, hideGutter 
      * DPS y-axis: squad DPS runs in the hundreds of thousands and CC counts in
      * single digits, so a shared axis flattens the counts onto the baseline.
      */
-    const subLane = useCallback((samples: number[] | null, top: number, height: number, invert = false) => {
+    const subLane = useCallback((samples: number[] | null, zeroY: number, reach: number, invert = false) => {
         if (!samples || samples.length === 0 || fight.durationMs <= 0) return '';
         const max = Math.max(1, ...samples);
         // These are native squad series stamped at SERIES_INTERVAL_MS (1s)
@@ -76,124 +91,118 @@ export const TimelineLanes: React.FC<TimelineLanesProps> = ({ fight, hideGutter 
         // `timeMs / fight.durationMs`, like the scrubber does, keeps this
         // lane aligned instead of drifting by `index / samples.length`.
         const stepPx = (SERIES_INTERVAL_MS / fight.durationMs) * 1000;
-        // `invert` hangs the bars downward from `top` instead of standing them
-        // up from the baseline. The max is per-lane on purpose: incoming CC
-        // counts every source and folds no pets, so a shared scale would
+        // `invert` hangs the bars downward from the zero line instead of
+        // standing them up from it. The max is per-lane on purpose: incoming
+        // CC counts every source and folds no pets, so a shared scale would
         // flatten the outgoing lane against a much taller incoming one.
-        const baseline = invert ? top : top + height;
-        const reach = (v: number) => (invert ? baseline + (v / max) * height : baseline - (v / max) * height);
+        const reachY = (v: number) => (invert ? zeroY + (v / max) * reach : zeroY - (v / max) * reach);
         return samples
-            .map((v, i) => `M ${(i * stepPx).toFixed(1)},${baseline} V ${reach(v).toFixed(1)}`)
+            .map((v, i) => `M ${(i * stepPx).toFixed(1)},${zeroY} V ${reachY(v).toFixed(1)}`)
             .join(' ');
     }, [fight.durationMs]);
 
-    const ccPath = useMemo(() => subLane(fight.ccSamples, 4, 10), [subLane, fight.ccSamples]);
-    const ccInPath = useMemo(() => subLane(fight.ccInSamples, 14, 10, true), [subLane, fight.ccInSamples]);
-    const stripPath = useMemo(() => subLane(fight.stripSamples, 28, 10), [subLane, fight.stripSamples]);
-    const stripInPath = useMemo(() => subLane(fight.stripInSamples, 38, 10, true), [subLane, fight.stripInSamples]);
+    const [cc, strip] = LANE_BANDS;
+    const ccPath = useMemo(() => subLane(fight.ccSamples, cc.zeroY, cc.reach), [subLane, fight.ccSamples, cc]);
+    const ccInPath = useMemo(() => subLane(fight.ccInSamples, cc.zeroY, cc.reach, true), [subLane, fight.ccInSamples, cc]);
+    const stripPath = useMemo(() => subLane(fight.stripSamples, strip.zeroY, strip.reach), [subLane, fight.stripSamples, strip]);
+    const stripInPath = useMemo(() => subLane(fight.stripInSamples, strip.zeroY, strip.reach, true), [subLane, fight.stripInSamples, strip]);
 
     // Same x derivation as SyncedTimeline's scrubber playhead — timeMs /
-    // durationMs, not index / samples.length — so a line drawn here lands at
-    // the identical x as the one above it in the grid's shared column.
+    // durationMs, not index / samples.length — so this line lands at the
+    // identical x as the one in the svg underneath.
     const playheadX = fight.durationMs > 0 ? (timeMs / fight.durationMs) * 1000 : 0;
 
     return (
-        <div style={{ display: 'flex', alignItems: 'stretch', gap: 0, height: '100%' }}>
-            {/* Gutter, outside the plotting area. The old in-SVG label plate
-                sat on top of the bars and hid the fight's opening seconds.
-                Omitted when `hideGutter` — TransportBar renders it separately
-                so the svg below can fill its grid cell exactly. */}
-            {!hideGutter && <TimelineLaneGutter />}
-            <svg
-                data-testid="timeline-lanes"
-                viewBox="0 0 1000 52"
-                preserveAspectRatio="none"
-                style={{ flex: 1, width: '100%', height: 52, display: 'block', background: 'rgba(8,12,26,0.6)', borderRadius: 6 }}
-            >
-                {layersState.ccLane && (
-                    fight.ccSamples?.length ? (
-                        ccPath && (
-                            <g data-testid="cc-lane">
-                                <path d={ccPath} stroke="#f59e0b" strokeWidth={2} fill="none" opacity={0.85} />
-                            </g>
-                        )
-                    ) : (
-                        // `null` (or a degenerate empty lane) means "never
-                        // captured" — log predates axilog 1.8.0, or was parsed
-                        // without raw timeline arrays. Pixel-identical to a
-                        // genuinely all-zero series otherwise. A dashed
-                        // baseline keeps the two states distinct.
-                        <g data-testid="cc-lane-not-recorded">
-                            <line x1={0} x2={1000} y1={9} y2={9} stroke="#f59e0b" strokeWidth={1} strokeDasharray="4 3" opacity={0.35} />
-                            <text x={6} y={7} fontSize={7} fill="#f59e0b" opacity={0.6}>not recorded</text>
+        <svg
+            data-testid="timeline-lanes"
+            viewBox={`0 0 1000 ${LANES_VIEW_H}`}
+            preserveAspectRatio="none"
+            style={{
+                position: 'absolute', inset: 0, width: '100%', height: '100%',
+                display: 'block', pointerEvents: 'none',
+            }}
+        >
+            {LANE_BANDS.map(lane => (
+                (layersState[lane.outKey] || layersState[lane.inKey]) && (
+                    // The zero line the pair mirrors around. Without it the
+                    // two half-height bar sets read as two unrelated lanes
+                    // rather than one axis.
+                    <line key={lane.id}
+                          data-testid={`${lane.id}-zero-rule`}
+                          x1={0} x2={1000} y1={lane.zeroY} y2={lane.zeroY}
+                          stroke={lane.color} strokeWidth={0.5} opacity={0.3} />
+                )
+            ))}
+            {layersState.ccLane && (
+                fight.ccSamples?.length ? (
+                    ccPath && (
+                        <g data-testid="cc-lane">
+                            <path d={ccPath} stroke={cc.color} strokeWidth={2} fill="none" opacity={0.85} />
                         </g>
                     )
-                )}
-                {layersState.ccInLane && (
-                    fight.ccInSamples?.length ? (
-                        ccInPath && (
-                            <g data-testid="cc-in-lane">
-                                <path d={ccInPath} stroke="#f59e0b" strokeWidth={2} fill="none" opacity={0.45} />
-                            </g>
-                        )
-                    ) : (
-                        // Absent here means something narrower than for the
-                        // outgoing lane above: axilog has no squad-level
-                        // incoming series, so this is folded from `by_entity`,
-                        // which needs raw timeline arrays AND axilog 1.9.0. A
-                        // log can draw a full CC lane and nothing here, which
-                        // is exactly why the two are gated apart.
-                        <g data-testid="cc-in-lane-not-recorded">
-                            <line x1={0} x2={1000} y1={19} y2={19} stroke="#f59e0b" strokeWidth={1} strokeDasharray="4 3" opacity={0.2} />
-                            <text x={6} y={23} fontSize={7} fill="#f59e0b" opacity={0.45}>not recorded</text>
+                ) : (
+                    // `null` (or a degenerate empty lane) means "never
+                    // captured" — log predates axilog 1.8.0, or was parsed
+                    // without raw timeline arrays. Pixel-identical to a
+                    // genuinely all-zero series otherwise. A dashed
+                    // baseline keeps the two states distinct.
+                    <g data-testid="cc-lane-not-recorded">
+                        <line x1={0} x2={1000} y1={cc.zeroY} y2={cc.zeroY} stroke={cc.color} strokeWidth={1} strokeDasharray="4 3" opacity={0.35} />
+                        <text x={6} y={cc.zeroY - 2} fontSize={7} fill={cc.color} opacity={0.6}>not recorded</text>
+                    </g>
+                )
+            )}
+            {layersState.ccInLane && (
+                fight.ccInSamples?.length ? (
+                    ccInPath && (
+                        <g data-testid="cc-in-lane">
+                            <path d={ccInPath} stroke={cc.color} strokeWidth={2} fill="none" opacity={0.45} />
                         </g>
                     )
-                )}
-                {layersState.stripLane && (
-                    fight.stripSamples?.length ? (
-                        stripPath && (
-                            <g data-testid="strip-lane">
-                                <path d={stripPath} stroke="#e879f9" strokeWidth={2} fill="none" opacity={0.85} />
-                            </g>
-                        )
-                    ) : (
-                        <g data-testid="strip-lane-not-recorded">
-                            <line x1={0} x2={1000} y1={33} y2={33} stroke="#e879f9" strokeWidth={1} strokeDasharray="4 3" opacity={0.35} />
-                            <text x={6} y={31} fontSize={7} fill="#e879f9" opacity={0.6}>not recorded</text>
+                ) : (
+                    // Absent here means something narrower than for the
+                    // outgoing lane above: axilog has no squad-level
+                    // incoming series, so this is folded from `by_entity`,
+                    // which needs raw timeline arrays AND axilog 1.9.0. A
+                    // log can draw a full CC lane and nothing here, which
+                    // is exactly why the two are gated apart.
+                    <g data-testid="cc-in-lane-not-recorded">
+                        <line x1={0} x2={1000} y1={cc.zeroY + 6} y2={cc.zeroY + 6} stroke={cc.color} strokeWidth={1} strokeDasharray="4 3" opacity={0.2} />
+                    </g>
+                )
+            )}
+            {layersState.stripLane && (
+                fight.stripSamples?.length ? (
+                    stripPath && (
+                        <g data-testid="strip-lane">
+                            <path d={stripPath} stroke={strip.color} strokeWidth={2} fill="none" opacity={0.85} />
                         </g>
                     )
-                )}
-                {layersState.stripInLane && (
-                    fight.stripInSamples?.length ? (
-                        stripInPath && (
-                            <g data-testid="strip-in-lane">
-                                <path d={stripInPath} stroke="#e879f9" strokeWidth={2} fill="none" opacity={0.45} />
-                            </g>
-                        )
-                    ) : (
-                        <g data-testid="strip-in-lane-not-recorded">
-                            <line x1={0} x2={1000} y1={43} y2={43} stroke="#e879f9" strokeWidth={1} strokeDasharray="4 3" opacity={0.2} />
-                            <text x={6} y={47} fontSize={7} fill="#e879f9" opacity={0.45}>not recorded</text>
+                ) : (
+                    <g data-testid="strip-lane-not-recorded">
+                        <line x1={0} x2={1000} y1={strip.zeroY} y2={strip.zeroY} stroke={strip.color} strokeWidth={1} strokeDasharray="4 3" opacity={0.35} />
+                        <text x={6} y={strip.zeroY - 2} fontSize={7} fill={strip.color} opacity={0.6}>not recorded</text>
+                    </g>
+                )
+            )}
+            {layersState.stripInLane && (
+                fight.stripInSamples?.length ? (
+                    stripInPath && (
+                        <g data-testid="strip-in-lane">
+                            <path d={stripInPath} stroke={strip.color} strokeWidth={2} fill="none" opacity={0.45} />
                         </g>
                     )
-                )}
-                {LANE_LABELS.map(lane => (
-                    (layersState[lane.outKey] || layersState[lane.inKey]) && (
-                        // The zero line the pair mirrors around. Without it the
-                        // two half-height bar sets read as two unrelated lanes
-                        // rather than one axis.
-                        <line key={lane.id}
-                              data-testid={`${lane.id}-zero-rule`}
-                              x1={0} x2={1000} y1={lane.zeroY} y2={lane.zeroY}
-                              stroke={lane.color} strokeWidth={0.5} opacity={0.3} />
-                    )
-                ))}
-                <line data-testid="lanes-playhead"
-                      x1={playheadX} x2={playheadX} y1={0} y2={52}
-                      stroke="#fbbf24" strokeWidth={1.5} />
-            </svg>
-        </div>
+                ) : (
+                    <g data-testid="strip-in-lane-not-recorded">
+                        <line x1={0} x2={1000} y1={strip.zeroY + 5} y2={strip.zeroY + 5} stroke={strip.color} strokeWidth={1} strokeDasharray="4 3" opacity={0.2} />
+                    </g>
+                )
+            )}
+            <line data-testid="lanes-playhead"
+                  x1={playheadX} x2={playheadX} y1={0} y2={LANES_VIEW_H}
+                  stroke="#fbbf24" strokeWidth={1.5} />
+        </svg>
     );
 };
 
-export default TimelineLanes;
+export default TimelineLaneOverlay;

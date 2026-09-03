@@ -60,7 +60,7 @@ import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
 import { resolveMapFromZone, computeFightAvgPosition, buildFightLabelV2 } from '../../shared/mapUtils';
 import { findNearestLandmark } from '../../shared/wvwLandmarks';
 import { TRACKED_REPLAY_STATE_IDS } from '../../shared/replayBuffs';
-import type { ReplayFightPayload, ReplayDpsSample, ReplayKillEvent, DamageSpikeEvent, RallyEvent, TargetFocusSample, CcTakenEvent } from './map/replayTypes';
+import type { ReplayFightPayload, ReplayDpsSample, ReplayKillEvent, DamageSpikeEvent, RallyEvent, TargetFocusSample, CcTakenEvent, ReplayTickRate } from './map/replayTypes';
 
 function memberKey(p: any): string {
     return String(p?.account || p?.name || '');
@@ -208,6 +208,7 @@ export function buildReplayFightPayload(log: any, fightIndex: number, opts?: { p
     const ccInSamples = readSquadSumOfEntitySeries(nativeReport, squadIds, 'cc_taken');
     const stripInSamples = readSquadSumOfEntitySeries(nativeReport, squadIds, 'strips_taken');
     const ccTakenEvents = collectCcTakenEvents(nativeReport, squad);
+    const tickRate = readTickRate(nativeReport);
     const killEvents: ReplayKillEvent[] = collectKillEvents(movement);
     const rallyEvents = computeRallyEvents(movement.members);
     const damageSpikeEvents = computeDamageSpikeEvents(details);
@@ -235,11 +236,38 @@ export function buildReplayFightPayload(log: any, fightIndex: number, opts?: { p
         ccInSamples,
         stripInSamples,
         ccTakenEvents,
+        tickRate,
         killEvents,
         damageSpikeEvents,
         rallyEvents,
         targetFocusSamples,
     };
+}
+
+/**
+ * Server tick rate for the replay's readout, straight off `encounter`.
+ *
+ * Not routed through `bridge-metrics/nativeSeries` like the CC and strip
+ * lanes: those read `blocks.series`, a per-entity/per-squad structure, while
+ * this is a flat scalar block on the encounter with no roster dimension.
+ *
+ * `per_second` is rounded to 0.1 here rather than at render. The full
+ * float carries ~15 significant digits per sample and a long fight is ~780
+ * samples, all of which would otherwise be serialized verbatim into
+ * `report.json` for a number displayed to one decimal.
+ */
+function readTickRate(nativeReport: any): ReplayTickRate | null {
+    const raw = nativeReport?.encounter?.tick_rate;
+    if (!raw || typeof raw !== 'object') return null;
+    const avg = Number(raw.avg);
+    const min = Number(raw.min);
+    if (!Number.isFinite(avg) || !Number.isFinite(min)) return null;
+    if (!Array.isArray(raw.per_second) || raw.per_second.length === 0) return null;
+    const perSecond = raw.per_second.map((v: unknown) => {
+        const n = Number(v);
+        return Number.isFinite(n) && n > 0 ? Math.round(n * 10) / 10 : 0;
+    });
+    return { avg, min, perSecond };
 }
 
 function computeSquadDpsSamples(details: any): ReplayDpsSample[] {

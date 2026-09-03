@@ -262,4 +262,58 @@ describe('buildReplayFightPayload', () => {
             expect(payload?.stripInSamples).toBeNull();
         });
     });
+    /**
+     * No committed fixture under `test-fixtures/native/` carries a
+     * `tick_rate` block — all eight predate it — so this is the only coverage
+     * the reader gets. Shapes here are taken from real logs probed out of the
+     * arcdps folder (avg 25.006 / min 16.46 / 142 samples on a 141s fight).
+     */
+    describe('tick rate', () => {
+        const withTickRate = (tickRate: any) => ({
+            ...basicFight,
+            details: {
+                ...basicFight.details,
+                native: { ...(basicFight.details as any).native, encounter: {
+                    ...((basicFight.details as any).native?.encounter ?? {}), tick_rate: tickRate,
+                } },
+            },
+        });
+
+        it('carries avg, min and the per-second series off encounter', () => {
+            const payload = buildReplayFightPayload(withTickRate({
+                avg: 25.006, min: 16.46, per_second: [0, 25.72, 25.25, 16.46],
+            }), 0);
+            expect(payload?.tickRate).toEqual({
+                avg: 25.006, min: 16.46, perSecond: [0, 25.7, 25.3, 16.5],
+            });
+        });
+
+        it('rounds the series to 0.1 so a long fight does not bloat report.json', () => {
+            // A 781s fight is 781 samples; at full float precision that is
+            // ~14KB of JSON for a number rendered to one decimal.
+            const payload = buildReplayFightPayload(withTickRate({
+                avg: 25, min: 24, per_second: [0, 24.987654321987],
+            }), 0);
+            expect(payload?.tickRate?.perSecond).toEqual([0, 25]);
+        });
+
+        it('preserves zero buckets rather than dropping them', () => {
+            // A zero is an unsampled second and must stay at its index, or
+            // every later sample shifts earlier in time. `tickRateAt` is what
+            // decides not to *display* it.
+            const payload = buildReplayFightPayload(withTickRate({
+                avg: 25, min: 24, per_second: [0, 25, 0, 24],
+            }), 0);
+            expect(payload?.tickRate?.perSecond).toEqual([0, 25, 0, 24]);
+        });
+
+        it('reports null when the log carried too few CBTS_TICK events for the block', () => {
+            expect(buildReplayFightPayload(basicFight, 0)?.tickRate).toBeNull();
+        });
+
+        it('reports null for a malformed block rather than a half-built readout', () => {
+            expect(buildReplayFightPayload(withTickRate({ avg: 25, min: 24 }), 0)?.tickRate).toBeNull();
+            expect(buildReplayFightPayload(withTickRate({ avg: 25, min: 24, per_second: [] }), 0)?.tickRate).toBeNull();
+        });
+    });
 });

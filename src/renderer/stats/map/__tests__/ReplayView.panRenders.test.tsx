@@ -48,7 +48,7 @@ const mkFight = (): ReplayFightPayload => ({
     dpsSamples: [{ timeMs: 0, squadDps: 0 }], killEvents: [], damageSpikeEvents: [],
     rallyEvents: [], targetFocusSamples: [],
     sectorOwners: null, ccSamples: null, stripSamples: null, ccInSamples: null,
-    stripInSamples: null, ccTakenEvents: null,
+    stripInSamples: null, ccTakenEvents: null, tickRate: null,
 });
 
 Object.defineProperty(HTMLElement.prototype, 'getBoundingClientRect', {

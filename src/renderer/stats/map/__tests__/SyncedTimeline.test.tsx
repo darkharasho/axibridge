@@ -12,7 +12,7 @@ const makeFight = (duration = 60_000): ReplayFightPayload => ({
     dpsSamples: [{ timeMs: 0, squadDps: 0 }, { timeMs: 30_000, squadDps: 5000 }, { timeMs: 60_000, squadDps: 10_000 }],
     killEvents: [], damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
     sectorOwners: null,
-    ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null, ccTakenEvents: null,
+    ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null, ccTakenEvents: null, tickRate: null,
 });
 
 describe('SyncedTimeline', () => {

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 import { SyncedTimeline } from '../SyncedTimeline';
-import { TimelineLanes } from '../TimelineLanes';
+import { TimelineLaneOverlay } from '../TimelineLanes';
 import { useStatsStore } from '../../statsStore';
 import type { ReplayFightPayload } from '../replayTypes';
 
@@ -12,7 +12,7 @@ const makeFight = (over: Partial<ReplayFightPayload> = {}): ReplayFightPayload =
     movementData: { pollingRate: 300, durationMs: 90_000, pixelsPerInch: { x: 1, y: 1 }, members: [], boonIcons: {}, skillIcons: {}, groundMarkers: [] },
     dpsSamples: [{ timeMs: 0, squadDps: 0 }, { timeMs: 90_000, squadDps: 5000 }],
     killEvents: [], damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
-    sectorOwners: null, ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null, ccTakenEvents: null,
+    sectorOwners: null, ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null, ccTakenEvents: null, tickRate: null,
     ...over,
 });
 
@@ -35,7 +35,7 @@ describe('scrubber and lanes share one x-axis', () => {
         useStatsStore.getState().setReplayPlayhead({ timeMs: 37_000 });
 
         const scrubber = render(<SyncedTimeline fight={fight} />);
-        const lanes = render(<TimelineLanes fight={fight} />);
+        const lanes = render(<TimelineLaneOverlay fight={fight} />);
 
         const scrubberPlayhead = scrubber.container.querySelector('[data-testid="scrubber-playhead"]') as SVGLineElement;
         const lanesPlayhead = lanes.container.querySelector('[data-testid="lanes-playhead"]') as SVGLineElement;
@@ -55,7 +55,7 @@ describe('scrubber and lanes share one x-axis', () => {
         useStatsStore.getState().setReplayPlayhead({ timeMs: 12_345 });
 
         const scrubber = render(<SyncedTimeline fight={fight} />);
-        const lanes = render(<TimelineLanes fight={fight} />);
+        const lanes = render(<TimelineLaneOverlay fight={fight} />);
 
         const scrubberX = Number(scrubber.container.querySelector('[data-testid="scrubber-playhead"]')!.getAttribute('x1'));
         const lanesX = Number(lanes.container.querySelector('[data-testid="lanes-playhead"]')!.getAttribute('x1'));

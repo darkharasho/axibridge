@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MapLegend } from '../MapLegend';
 import { useStatsStore } from '../../statsStore';
 
@@ -83,5 +83,23 @@ describe('MapLegend', () => {
         const cardElement = container.querySelector('.app-dropdown') as HTMLElement;
         // The inline style sets background to 'var(--bg-elevated)', verify it's not empty
         expect(cardElement.style.background).toBeTruthy();
+    });
+
+    // Expanded by default: the legend is what the marks mean, which a reader
+    // needs before they need anything else.
+    it('starts expanded', () => {
+        const { container } = render(<MapLegend />);
+        expect(container.querySelectorAll('[data-legend-row]').length).toBeGreaterThan(0);
+    });
+
+    it('collapses to the header strip and back', () => {
+        const { container } = render(<MapLegend />);
+        fireEvent.click(screen.getByTestId('legend-toggle'));
+        expect(container.querySelectorAll('[data-legend-row]').length).toBe(0);
+        // The one word that says what the panel is has to survive the collapse,
+        // or the strip is an unlabelled button floating over the map.
+        expect(screen.getByText(/on the map/i)).toBeTruthy();
+        fireEvent.click(screen.getByTestId('legend-toggle'));
+        expect(container.querySelectorAll('[data-legend-row]').length).toBeGreaterThan(0);
     });
 });

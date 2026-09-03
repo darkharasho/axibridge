@@ -69,7 +69,6 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
     const layers = useStatsStore(state => state.replayLayers);
     const spotlightParty = useStatsStore(state => state.replaySpotlightParty);
     const setReplaySpotlightParty = useStatsStore(state => state.setReplaySpotlightParty);
-    const lanesExpanded = useStatsStore(state => state.replayLanesExpanded);
 
     const [fullscreen, setFullscreen] = useState(false);
     const [pickerCollapsed, setPickerCollapsed] = useState(true);
@@ -244,13 +243,42 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
         if (hit && !hit.isEnemy) setReplayFollowTarget(hit.account || hit.name);
     }, [selectedFight, pollIndex, screenToSvg, setReplayFollowTarget]);
 
+    /**
+     * Playback keys. These are the whole reason the transport has no
+     * rewind/forward buttons: stepping is a keyboard gesture everywhere else
+     * a scrubber exists, and two more buttons in column 1 would have cost
+     * chart width for something the arrow keys already do.
+     *
+     * The editable-target guard matters more now than it did when this only
+     * bound space: arrows are load-bearing inside the search palette and any
+     * text field, and swallowing them there would break typing.
+     */
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
-            if (e.key === ' ' && selectedFight) {
+            if (!selectedFight) return;
+            const target = e.target as HTMLElement | null;
+            if (target && (target.isContentEditable
+                || target.tagName === 'INPUT'
+                || target.tagName === 'TEXTAREA'
+                || target.tagName === 'SELECT')) return;
+
+            const { replayPlayhead } = useStatsStore.getState();
+            if (e.key === ' ') {
                 e.preventDefault();
-                const { replayPlayhead } = useStatsStore.getState();
                 setReplayPlayhead({ playing: !replayPlayhead.playing });
+                return;
             }
+            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+            e.preventDefault();
+            // Shift steps one movement poll — the finest grain the replay
+            // actually has, since positions are sampled on that grid.
+            const step = e.shiftKey
+                ? (selectedFight.movementData.pollingRate || 300)
+                : 1000;
+            const delta = e.key === 'ArrowLeft' ? -step : step;
+            setReplayPlayhead({
+                timeMs: Math.max(0, Math.min(selectedFight.durationMs, replayPlayhead.timeMs + delta)),
+            });
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
@@ -380,7 +408,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                              open layers panel can never blanket the legend below it —
                              each shrinks within the column instead of overrunning it. */}
                         <div style={{
-                            position: 'absolute', top: 8, left: 8, bottom: aboveTransportBottom(lanesExpanded), zIndex: 20,
+                            position: 'absolute', top: 8, left: 8, bottom: aboveTransportBottom(), zIndex: 20,
                             display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
                             alignItems: 'flex-start', gap: 8, pointerEvents: 'none', transition: 'bottom 0.15s',
                         }}>
@@ -434,7 +462,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
 
                         {/* 6. Squad, right, stopping above the transport. Native wheel
                              listener stops propagation before the map zoom handler sees it. */}
-                        <div ref={squadPanelRef} data-hud="squad" style={{ position: 'absolute', top: 8, right: 8, bottom: aboveTransportBottom(lanesExpanded), zIndex: 20, display: 'flex', alignItems: 'stretch' }}>
+                        <div ref={squadPanelRef} data-hud="squad" style={{ position: 'absolute', top: 8, right: 8, bottom: aboveTransportBottom(), zIndex: 20, display: 'flex', alignItems: 'stretch' }}>
                             <ReplaySquadPanel
                                 fight={selectedFight}
                                 collapsed={squadEffectivelyCollapsed}
@@ -467,9 +495,9 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
 
                         {/* 10. CC-taken notice, bottom-centre above the transport. Positioned
                              here (not by the component itself) like every other floating
-                             child, so it clears the transport's expanded lanes band too. */}
+                             child, so one constant governs everything that clears it. */}
                         <div style={{
-                            position: 'absolute', bottom: aboveTransportBottom(lanesExpanded), left: '50%',
+                            position: 'absolute', bottom: aboveTransportBottom(), left: '50%',
                             transform: 'translateX(-50%)', zIndex: 20, transition: 'bottom 0.15s',
                         }}>
                             <CcTakenNotice ccTakenEvents={selectedFight.ccTakenEvents} />
@@ -481,7 +509,12 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                             transport has no reason to reserve width for it. Insetting the
                             transport's right edge on squad-open made the play bar visibly
                             shrink every time the roster was shown. */}
-                        <div data-hud="transport" style={{ position: 'absolute', left: 8, right: 8, bottom: 8, zIndex: 15 }}>
+                        {/* Above the side columns (z 20), not below them. The bar itself
+                            never overlaps them — they stop at `aboveTransportBottom()` —
+                            but the speed ladder opens upward out of the bar and into that
+                            band, and at z 15 it came out underneath the scale bar and the
+                            follow chips. */}
+                        <div data-hud="transport" style={{ position: 'absolute', left: 8, right: 8, bottom: 8, zIndex: 25 }}>
                             <TransportBar fight={selectedFight} />
                         </div>
                     </div>

@@ -22,7 +22,7 @@ const mkFight = (over: Partial<ReplayFightPayload>): ReplayFightPayload => ({
     movementData: { pollingRate: 1000, durationMs: 10_000, pixelsPerInch: { x: 1, y: 1 }, members: [], boonIcons: {}, skillIcons: {}, groundMarkers: [] },
     dpsSamples: [], killEvents: [],
     damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
-    sectorOwners: null, ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null, ccTakenEvents: null,
+    sectorOwners: null, ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null, ccTakenEvents: null, tickRate: null,
     ...over,
 });
 
@@ -230,7 +230,7 @@ describe('EventOverlay — incoming CC marks', () => {
         useStatsStore.getState().setReplayLayer('ccTakenMarks', true);
         const fight = mkFight({
             movementData: { ...mkFight({}).movementData, members: [mkMember({ account: 'A.1' })] },
-            ccTakenEvents: null,
+            ccTakenEvents: null, tickRate: null,
         });
         const { container } = render(<svg><EventOverlay fight={fight} timeMs={5000} scale={1} /></svg>);
         expect(container.querySelector('[data-pulse="cc-taken"]')).toBeNull();

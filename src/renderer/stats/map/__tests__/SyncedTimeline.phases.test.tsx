@@ -44,7 +44,7 @@ const fightWithPhases = (): ReplayFightPayload => {
             { timeMs: 20_000, squadDps: 0 },
         ],
         killEvents: [], damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
-        sectorOwners: null, ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null, ccTakenEvents: null,
+        sectorOwners: null, ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null, ccTakenEvents: null, tickRate: null,
     };
 };
 

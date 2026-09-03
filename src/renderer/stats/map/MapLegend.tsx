@@ -1,4 +1,5 @@
 import React from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useStatsStore } from '../statsStore';
 import { CC_FAMILY_COLOR, CC_UNCLASSIFIED_COLOR } from './ccKinds';
 
@@ -58,6 +59,8 @@ const Swatch: React.FC<{ glyph: Glyph; color: string }> = ({ glyph, color }) => 
  */
 const MapLegendInner: React.FC<{ style?: React.CSSProperties }> = ({ style }) => {
     const layers = useStatsStore(state => state.replayLayers);
+    const expanded = useStatsStore(state => state.replayLegendExpanded);
+    const setExpanded = useStatsStore(state => state.setReplayLegendExpanded);
 
     const rows: LegendRow[] = [
         // Three rows, not one: the marks are coloured by what the CC did.
@@ -90,10 +93,27 @@ const MapLegendInner: React.FC<{ style?: React.CSSProperties }> = ({ style }) =>
                 ...style,
             }}
         >
-            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+            {/* The header is the control. A separate collapse rail like the
+                layers panel's would cost more width than the legend's four
+                rows are worth, and collapsing to a bare icon would drop the
+                one word that says what the panel is. */}
+            <button
+                type="button"
+                data-testid="legend-toggle"
+                aria-expanded={expanded}
+                title={expanded ? 'Hide the legend' : 'Show what the marks on the map mean'}
+                onClick={() => setExpanded(!expanded)}
+                style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
+                    padding: 0, background: 'none', border: 'none', cursor: 'pointer',
+                    fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase',
+                    color: 'var(--text-muted)',
+                }}
+            >
                 On the map
-            </div>
-            {rows.map(row => (
+                {expanded ? <ChevronDown size={11} /> : <ChevronUp size={11} />}
+            </button>
+            {expanded && rows.map(row => (
                 <div key={row.key} data-legend-row={row.key}
                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Swatch glyph={row.glyph} color={row.color} />

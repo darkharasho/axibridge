@@ -55,6 +55,23 @@ export interface TargetFocusSample {
     targetIndex: number;
 }
 
+/**
+ * Server tick rate over the fight, from arcdps `CBTS_TICK`.
+ *
+ * Nominal is 25 Hz. Present only when axilog saw at least two tick events, so
+ * this is `null` on plenty of otherwise-complete logs. See `tickRate.ts` for
+ * why `avg` is not worth showing and why a `0` in `perSecond` means
+ * "unsampled second", not "server stopped".
+ */
+export interface ReplayTickRate {
+    /** Mean across the fight. Effectively always ~25.0 — kept for completeness, not display. */
+    avg: number;
+    /** Lowest sampled second, ignoring unsampled buckets. This is the comparable number. */
+    min: number;
+    /** One sample per second, rounded to 0.1 to keep it cheap in `report.json`. `0` = unsampled. */
+    perSecond: number[];
+}
+
 export interface ReplayFightPayload {
     fightId: string;
     fightIndex: number;
@@ -107,4 +124,13 @@ export interface ReplayFightPayload {
      * `null` should read as missing data.
      */
     ccTakenEvents: CcTakenEvent[] | null;
+    /**
+     * Server tick rate per second, or null when the log carried too few
+     * `CBTS_TICK` events for axilog to emit the block.
+     *
+     * Surfaced because WvW skill lag makes two fights not strictly
+     * comparable: a squad that looks slow to react at 16 tick was not
+     * necessarily slow. Read at the playhead in `TransportBar`.
+     */
+    tickRate: ReplayTickRate | null;
 }

@@ -3,11 +3,24 @@ import { useStatsStore } from '../statsStore';
 import { useSquadDerived } from './hooks/useSquadDerived';
 import type { ReplayFightPayload } from './replayTypes';
 
+/**
+ * Rendered height of the scrubber, and therefore of the whole transport row.
+ * The lane overlay matches it exactly (`LANES_VIEW_H`), so this is the single
+ * number that sets how much vertical space the bar takes from the map.
+ */
+export const TIMELINE_HEIGHT_PX = 44;
+
 interface SyncedTimelineProps {
     fight: ReplayFightPayload;
+    /**
+     * True when the CC/strip overlay is drawn on top. The DPS series then
+     * gives up its fill and reads as a stroked line: behind two lanes of bars
+     * a translucent wash disappears entirely, while a line still traces.
+     */
+    lanesOverlaid?: boolean;
 }
 
-export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
+export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight, lanesOverlaid = false }) => {
     const timeMs = useStatsStore(state => state.replayPlayhead.timeMs);
     const setReplayPlayhead = useStatsStore(state => state.setReplayPlayhead);
     const layersState = useStatsStore(state => state.replayLayers);
@@ -66,7 +79,7 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
                 className="replay-timeline"
                 viewBox="0 0 1000 120"
                 preserveAspectRatio="none"
-                style={{ width: '100%', height: 54, display: 'block', cursor: 'col-resize', background: 'rgba(8,12,26,0.6)', borderRadius: 6 }}
+                style={{ width: '100%', height: TIMELINE_HEIGHT_PX, display: 'block', cursor: 'col-resize', background: 'rgba(8,12,26,0.6)', borderRadius: 6 }}
                 onClick={scrubFromEvent}
                 onMouseDown={(e) => { setDragging(true); scrubFromEvent(e); }}
                 onMouseMove={onMouseMove}
@@ -96,7 +109,20 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight }) => {
                         </rect>
                     );
                 })}
-                <path d={pathData} style={{ fill: 'var(--accent-bg-strong)', stroke: 'var(--brand-primary)' }} strokeWidth={1} />
+                {/* `vectorEffect` keeps the stroke an honest 1.5px: the box is
+                    stretched anisotropically (1000 units wide, 120 tall, drawn
+                    at ~900x44), so an ordinary stroke width is squashed with
+                    it and thins to near nothing under the lane bars. */}
+                <path
+                    data-testid="dps-series"
+                    d={pathData}
+                    style={{
+                        fill: lanesOverlaid ? 'transparent' : 'var(--accent-bg-strong)',
+                        stroke: 'var(--brand-primary)',
+                        vectorEffect: 'non-scaling-stroke',
+                    }}
+                    strokeWidth={lanesOverlaid ? 1.5 : 1}
+                />
                 {enemyKillMarks.map((m, i) => (
                     <line key={`k-${i}`} x1={(m.timeMs / fight.durationMs) * 1000} x2={(m.timeMs / fight.durationMs) * 1000}
                           y1={0} y2={12} stroke="#22c55e" strokeWidth={2} />

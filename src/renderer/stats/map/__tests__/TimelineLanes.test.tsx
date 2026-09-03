@@ -1,8 +1,21 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import React from 'react';
 import { render } from '@testing-library/react';
-import { TimelineLanes } from '../TimelineLanes';
+import { TimelineLaneOverlay, TimelineLaneLabels } from '../TimelineLanes';
 import { useStatsStore } from '../../statsStore';
 import type { ReplayFightPayload } from '../replayTypes';
+
+/**
+ * The overlay and its labels are separate components — the labels are HTML so
+ * the stretched svg can't squash them — but they are always rendered together
+ * over the plot, so the tests exercise them together.
+ */
+const TimelineLanes: React.FC<{ fight: ReplayFightPayload }> = ({ fight }) => (
+    <>
+        <TimelineLaneOverlay fight={fight} />
+        <TimelineLaneLabels />
+    </>
+);
 
 const makeFight = (over: Partial<ReplayFightPayload> = {}): ReplayFightPayload => ({
     fightId: 'x', fightIndex: 0, label: 'x', timestampMs: 0, durationMs: 60_000,
@@ -10,7 +23,7 @@ const makeFight = (over: Partial<ReplayFightPayload> = {}): ReplayFightPayload =
     nearestLandmark: null, squadSize: 20, kills: 0, deaths: 0,
     movementData: { pollingRate: 300, durationMs: 60_000, pixelsPerInch: { x: 1, y: 1 }, members: [], boonIcons: {}, skillIcons: {}, groundMarkers: [] },
     dpsSamples: [], killEvents: [], damageSpikeEvents: [], rallyEvents: [], targetFocusSamples: [],
-    sectorOwners: null, ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null, ccTakenEvents: null,
+    sectorOwners: null, ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null, ccTakenEvents: null, tickRate: null,
     ...over,
 });
 
@@ -71,7 +84,10 @@ describe('TimelineLanes', () => {
         expect(container.querySelector('[data-testid="strip-zero-rule"]')).not.toBeNull();
     });
 
-    it('puts the lane labels in an HTML gutter, not inside the plotting SVG', () => {
+    it('keeps the lane labels out of the plotting SVG', () => {
+        // They ride in the plot's corners as HTML. Drawn as svg <text> they
+        // would be squashed by the overlay's `preserveAspectRatio="none"`
+        // stretch across a 1000-unit box.
         const { container } = render(<TimelineLanes fight={makeFight()} />);
         const label = container.querySelector('[data-testid="cc-lane-label"]')!;
         expect(label).not.toBeNull();
@@ -113,12 +129,12 @@ describe('TimelineLanes geometry', () => {
         );
         const out = container.querySelector('[data-testid="cc-lane"] path')?.getAttribute('d') || '';
         const inc = container.querySelector('[data-testid="cc-in-lane"] path')?.getAttribute('d') || '';
-        // Both peaks reach their lane's full 10px height: the outgoing lane
-        // stands up from y=14 to y=4, the incoming hangs from y=14 to
-        // y=24. Under a shared scale the outgoing peak would barely leave
+        // Both peaks reach their lane's full 11px reach: the outgoing lane
+        // stands up from y=15 to y=4, the incoming hangs from y=15 to
+        // y=26. Under a shared scale the outgoing peak would barely leave
         // its baseline.
         expect(out).toContain('V 4.0');
-        expect(inc).toContain('V 24.0');
+        expect(inc).toContain('V 26.0');
     });
 });
 
@@ -189,11 +205,16 @@ describe('TimelineLanes lane labels', () => {
         expect(withData.container.querySelector('[data-testid="strip-lane-label"]')).not.toBeNull();
     });
 
-    it('names both directions of a measure so the mirrored bars are readable', () => {
+    it('explains the mirror somewhere, now that the label itself is just a name', () => {
+        // The label used to read "CC ▲out ▼in", and that legend set the width
+        // of a 92px gutter which was subtracted from the chart on every
+        // fight forever. The words moved to the tooltip; the direction cue
+        // has to survive somewhere or the mirrored bars are unreadable.
         const { container } = render(<TimelineLanes fight={makeFight({ ccSamples: [1], ccInSamples: [1] })} />);
         const label = container.querySelector('[data-testid="cc-lane-label"]')!;
-        expect(label.textContent).toMatch(/out/i);
-        expect(label.textContent).toMatch(/in/i);
+        expect(label.textContent).toBe('CC');
+        expect(label.getAttribute('title')).toMatch(/outgoing above/i);
+        expect(label.getAttribute('title')).toMatch(/incoming below/i);
     });
 
     it('drops a measure label entirely when both of its layer toggles are off', () => {

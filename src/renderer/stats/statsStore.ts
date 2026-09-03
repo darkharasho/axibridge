@@ -85,6 +85,11 @@ export interface StatsStoreState {
      *  Separate from the ccLane/stripLane layer toggles, which say which
      *  lanes exist at all. Collapsed by default: the band is a detail view. */
     replayLanesExpanded: boolean;
+    /** Whether the map legend shows its rows or just its header strip.
+     *  Expanded by default, unlike the lanes band: the legend is what the
+     *  marks on the map mean, which a reader needs before they need anything
+     *  else. Collapsing is for someone who already knows. */
+    replayLegendExpanded: boolean;
     /** Party groups the user has collapsed in the squad panel. Empty means
      *  every party is expanded, which is the default. */
     replayCollapsedParties: Set<number>;
@@ -120,6 +125,7 @@ export interface StatsStoreState {
     setReplayHeatmapMode: (mode: StatsStoreState['replayLayers']['heatmap']) => void;
     setReplaySpotlightParty: (party: number | null) => void;
     setReplayLanesExpanded: (expanded: boolean) => void;
+    setReplayLegendExpanded: (expanded: boolean) => void;
     toggleReplayPartyCollapsed: (group: number) => void;
     resetReplayLayers: () => void;
 }
@@ -163,6 +169,7 @@ const initialState = {
     },
     replaySpotlightParty: null,
     replayLanesExpanded: false,
+    replayLegendExpanded: true,
     replayCollapsedParties: new Set<number>(),
     excludedFightKeys: new Set<string>(),
     fightRoster: [] as FightRosterEntry[],
@@ -224,6 +231,7 @@ export const useStatsStore = create<StatsStoreState>()((set) => ({
                 : Math.min(5, Math.floor(party)),
     }),
     setReplayLanesExpanded: (expanded) => set({ replayLanesExpanded: expanded }),
+    setReplayLegendExpanded: (expanded) => set({ replayLegendExpanded: expanded }),
     toggleReplayPartyCollapsed: (group) => set((state) => {
         // Replace rather than mutate: zustand compares by identity, and a
         // mutated Set would not re-render the squad panel.

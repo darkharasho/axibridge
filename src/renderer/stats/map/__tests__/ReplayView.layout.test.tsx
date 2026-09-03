@@ -20,7 +20,7 @@ const mkFight = (): ReplayFightPayload => ({
     movementData: { pollingRate: 1000, durationMs: 60_000, pixelsPerInch: { x: 1, y: 1 }, members: [mkMember()], boonIcons: {}, skillIcons: {}, groundMarkers: [] },
     dpsSamples: [{ timeMs: 0, squadDps: 0 }], killEvents: [], damageSpikeEvents: [],
     rallyEvents: [], targetFocusSamples: [],
-    sectorOwners: null, ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null, ccTakenEvents: null,
+    sectorOwners: null, ccSamples: null, stripSamples: null, ccInSamples: null, stripInSamples: null, ccTakenEvents: null, tickRate: null,
 });
 
 /** jsdom reports 0x0 for everything; stub the observed width the HUD reads. */
@@ -191,12 +191,34 @@ describe('ReplayView HUD geometry regressions', () => {
         expect(transport().style.right).toBe(collapsedRight);
     });
 
-    it('lifts the squad card clear of the transport when the lanes band expands', () => {
+    /**
+     * This used to assert the opposite — that the card *lifted* when the lanes
+     * band expanded, because the band was a second row that made the transport
+     * taller. The lanes are an overlay on the scrubber now, so the transport's
+     * height is constant and every HUD child that clears it holds still.
+     */
+    /**
+     * The transport bar never overlaps the side columns — they stop at
+     * `aboveTransportBottom()`. Its speed ladder does: it opens upward out of
+     * the bar and into that band, and it inherits the bar's stacking context,
+     * so the bar has to outrank the columns or the ladder opens underneath the
+     * scale bar and the follow chips.
+     */
+    it('stacks the transport above the side HUD columns so its popovers clear them', () => {
+        render(<ReplayView fights={[mkFight()]} />);
+        const transportZ = parseInt((document.querySelector('[data-hud="transport"]') as HTMLElement).style.zIndex, 10);
+        const squadZ = parseInt((document.querySelector('[data-hud="squad"]') as HTMLElement).style.zIndex, 10);
+        const legendZ = parseInt((screen.getByText(/on the map/i).closest('[style*="z-index"]') as HTMLElement).style.zIndex, 10);
+        expect(transportZ).toBeGreaterThan(squadZ);
+        expect(transportZ).toBeGreaterThan(legendZ);
+    });
+
+    it('holds the squad card still when the lanes are toggled', () => {
         render(<ReplayView fights={[mkFight()]} />);
         const card = () => document.querySelector('[data-hud="squad"]') as HTMLElement;
         const resting = parseInt(card().style.bottom, 10);
 
         act(() => { useStatsStore.getState().setReplayLanesExpanded(true); });
-        expect(parseInt(card().style.bottom, 10)).toBeGreaterThan(resting);
+        expect(parseInt(card().style.bottom, 10)).toBe(resting);
     });
 });
