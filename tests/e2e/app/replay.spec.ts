@@ -50,9 +50,13 @@ test.describe('Replay smoke test (RPLY-001)', () => {
         await page.mouse.move(900, 500);
 
         // The fight picker starts collapsed (`pickerCollapsed` defaults to true in
-        // ReplayView) and the bar only offers the toggle — the listbox is not in the
-        // DOM until it is expanded. Selecting a card collapses it again.
-        await page.getByRole('button', { name: /Show all fights/i }).click();
+        // ReplayView), so the listbox is not in the DOM until the identity pill is
+        // asked to open it. Located by title, not by role+name: the pill's opener
+        // shows the fight it is on, so its accessible name is that label
+        // ("Fight A · 1:00 · 20 · 1 of 3") and `title` is only an accname fallback
+        // for an element with no content. Matching on the title text as a name
+        // silently matched nothing and clicked until the test timed out.
+        await page.getByTitle('Show all fights').click();
 
         // The FightPicker listbox should be visible
         const listbox = page.getByRole('listbox');

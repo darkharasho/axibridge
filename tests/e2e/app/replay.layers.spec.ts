@@ -48,9 +48,13 @@ async function navigateToReplayCanvas(page: Page) {
     await page.mouse.move(900, 500);
 
     // The fight picker starts collapsed (`pickerCollapsed` defaults to true in
-    // ReplayView) and the bar only offers the toggle — the listbox is not in the
-    // DOM until it is expanded. Selecting a card collapses it again.
-    await page.getByRole('button', { name: /Show all fights/i }).click();
+    // ReplayView), so the listbox is not in the DOM until the identity pill is
+    // asked to open it. Located by title, not by role+name: the pill's opener
+    // shows the fight it is on, so its accessible name is that label
+    // ("Fight A · 1:00 · 20 · 1 of 3") and `title` is only an accname fallback
+    // for an element with no content. Matching on the title text as a name
+    // silently matched nothing and clicked until the test timed out.
+    await page.getByTitle('Show all fights').click();
 
     // Select the first fight card
     const firstCard = page.getByRole('option').first();
@@ -59,6 +63,22 @@ async function navigateToReplayCanvas(page: Page) {
 
     // Wait for the replay canvas to appear
     await expect(page.locator('svg.replay-canvas')).toBeVisible({ timeout: 5_000 });
+}
+
+/**
+ * Turn a layer on by its chip.
+ *
+ * `.check()` on the input cannot work here and never will: `LayerToggle`
+ * renders a real checkbox (so screen readers and `getByRole('checkbox')` keep
+ * working) but sizes it 1x1 at `opacity: 0, pointerEvents: 'none'` inside the
+ * styled `<label>` that is the actual chip. Playwright aims at the input and
+ * reports the label's own text as intercepting the click — which is the
+ * markup working as designed, not a defect. Click the chip like a person
+ * does, then assert the input agreed.
+ */
+async function enableLayer(page: Page, label: string) {
+    await page.getByText(label, { exact: true }).click();
+    await expect(page.getByLabel(label)).toBeChecked({ timeout: 3_000 });
 }
 
 // ── Tests ──────────────────────────────────────────────────────────────────────
@@ -72,7 +92,7 @@ test.describe('Replay layer toggles (RPLY-002)', () => {
         await page.getByTitle('Show layers').click();
 
         // Toggle "Centroid + spread ring"
-        await page.getByLabel('Centroid + spread ring').check();
+        await enableLayer(page, 'Centroid + spread ring');
 
         // The centroid overlay should be present in the SVG
         await expect(page.locator('[data-overlay="centroid"]')).toBeVisible({ timeout: 3_000 });
@@ -85,7 +105,7 @@ test.describe('Replay layer toggles (RPLY-002)', () => {
         await page.getByTitle('Show layers').click();
 
         // Toggle "Tag range rings"
-        await page.getByLabel('Tag range rings (600 / 1200)').check();
+        await enableLayer(page, 'Tag range rings (600 / 1200)');
 
         await expect(page.locator('[data-overlay="tag-rings"]')).toBeVisible({ timeout: 3_000 });
     });
@@ -97,8 +117,12 @@ test.describe('Replay layer toggles (RPLY-002)', () => {
         await page.getByTitle('Show layers').click();
 
         // Toggle "Squad health strip"
-        await page.getByLabel('Squad health strip').check();
+        await enableLayer(page, 'Squad health strip');
 
+        // The strip used to be an absolute overlay across the top of the map. It
+        // is banded above the roster it summarises now, so it only mounts once
+        // the squad panel is open — the layer toggle alone renders nothing.
+        await page.getByTitle('Expand squad panel').click();
         await expect(page.locator('.replay-health-strip')).toBeVisible({ timeout: 3_000 });
     });
 
@@ -119,10 +143,11 @@ test.describe('Replay layer toggles (RPLY-002)', () => {
      * Was "All-parties panel, spotlight button, and spotlight dismiss".
      *
      * Neither the "All-parties panel" layer toggle nor `.replay-party-panel`
-     * exists in the renderer any more, so the original test could not pass. The
-     * spotlight itself survived that removal and is now driven from the squad
-     * panel's "Party N" headings instead, which is what these two tests cover:
-     * the grouping, and the spotlight round trip through the new control.
+     * exists in the renderer any more, so the original test could not pass.
+     * The spotlight itself survived that removal. It now lives on a crosshair
+     * button beside each "Party N" heading in the squad panel — the heading row
+     * itself took over collapse/expand, being the more frequent action. These
+     * two tests cover the grouping, and the spotlight round trip.
      */
     test('RPLY-002-e: squad panel opens and groups members by party', async ({ page }) => {
         await setupReplayPage(page);
@@ -131,31 +156,38 @@ test.describe('Replay layer toggles (RPLY-002)', () => {
         // The squad panel starts collapsed (`panelCollapsed` defaults to true).
         await page.getByTitle('Expand squad panel').click();
 
-        const header = page.getByText(/Squad · \d+ members/);
+        // Header is a bare count now ("Squad · 12"); it never said "members".
+        const header = page.getByText(/Squad · \d+$/);
         await expect(header).toBeVisible({ timeout: 3_000 });
 
-        // Members are bucketed under "Party N" headings.
-        await expect(page.getByText(/^Party \d+$/).first()).toBeVisible({ timeout: 3_000 });
+        // Members are bucketed under "Party N" headings, which carry a member
+        // count in a trailing span — so the name does not end at the number.
+        await expect(page.getByRole('button', { name: /^Party \d+/ }).first()).toBeVisible({ timeout: 3_000 });
     });
 
-    test('RPLY-002-f: party heading toggles the spotlight on and the chip dismisses it', async ({ page }) => {
+    test('RPLY-002-f: the party crosshair toggles the spotlight on and the chip dismisses it', async ({ page }) => {
         await setupReplayPage(page);
         await navigateToReplayCanvas(page);
 
         await page.getByTitle('Expand squad panel').click();
 
-        // The heading is the only control that turns the spotlight on.
-        const heading = page.getByRole('button', { name: /^Party \d+$/ }).first();
-        await expect(heading).toBeVisible({ timeout: 3_000 });
-        await heading.click();
+        // The crosshair beside the heading is the spotlight control; the heading
+        // row itself collapses the party. Only the crosshair is aria-pressed.
+        // Located by `aria-pressed`, not by title: the title flips to "Clear
+        // spotlight on Party N" the moment it is pressed, so a title locator
+        // stops resolving on exactly the assertion that matters. The crosshair
+        // is the only pressable button in the panel.
+        const crosshair = page.locator('[data-hud="squad"] button[aria-pressed]').first();
+        await expect(crosshair).toBeVisible({ timeout: 3_000 });
+        await crosshair.click();
 
         const chip = page.getByRole('button', { name: /^Spotlight: Party \d+/ });
         await expect(chip).toBeVisible({ timeout: 3_000 });
-        await expect(heading).toHaveAttribute('aria-pressed', 'true');
+        await expect(crosshair).toHaveAttribute('aria-pressed', 'true');
 
         // The chip clears it.
         await chip.click();
         await expect(chip).toBeHidden({ timeout: 3_000 });
-        await expect(heading).toHaveAttribute('aria-pressed', 'false');
+        await expect(crosshair).toHaveAttribute('aria-pressed', 'false');
     });
 });

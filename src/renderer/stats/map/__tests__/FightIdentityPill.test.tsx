@@ -73,6 +73,22 @@ describe('FightIdentityPill', () => {
         expect(onOpenPicker).toHaveBeenCalledOnce();
     });
 
+    /**
+     * The E2E specs open the picker through this button, and they used to reach
+     * for it by role+name with the title text as the name. That matched nothing:
+     * the opener has content, so its accessible name is the fight it is showing
+     * and `title` never gets consulted. The click retried for the full 60s test
+     * timeout instead of failing loudly, which is how it stayed broken across
+     * three releases. Pin both halves of that contract.
+     */
+    it('is named by the fight it shows, and only findable by title', () => {
+        useStatsStore.getState().setSelectedReplayFight('a');
+        render(<FightIdentityPill fights={fights} onOpenPicker={() => {}} />);
+        expect(screen.queryByRole('button', { name: /Show all fights/i })).toBeNull();
+        expect(screen.getByTitle('Show all fights')).toBeTruthy();
+        expect(screen.getByRole('button', { name: /Fight A/ })).toBeTruthy();
+    });
+
     it('renders nothing with an empty fight list', () => {
         const { container } = render(<FightIdentityPill fights={[]} onOpenPicker={() => {}} />);
         expect(container.firstChild).toBeNull();
