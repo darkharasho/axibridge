@@ -1,7 +1,20 @@
 # Release Notes
 
-Version v3.4.5 — August 31, 2026
+Version v3.5.0 — September 2, 2026
+
+## Replay HUD Redesign
+The replay transport bar has been rebuilt around a single instrument instead of a scattered set of controls. There's now a server tick readout with a live sparkline, a speed ladder that goes all the way down to 0.25x for frame-by-frame review, and a CC/strip lanes overlay right on the scrubber so you can see crowd control and boon strips line up with the fight timeline as you scrub. The map legend now collapses out of the way when you don't need it, and the old fight picker bar has been replaced with a floating fight identity pill.
+
+## Commander Tab: Pin Pressure
+Added a new Pin Pressure section to the Commander tab, showing pin attempts against your commander — including the ones the tag survived, not just the ones that landed. This gives a fuller picture of how much pressure a tag is actually under during a fight.
+
+## Enemy Attention
+Added an Enemy Attention section built from axilog's enemy cast census, surfacing which players are drawing the most enemy focus.
+
+## CC/Strip Timelines
+CC and Strip timelines are now dressed up as full sections with readable fight labels, making it easier to tell which fight you're looking at without cross-referencing elsewhere.
 
 ## Fixes
+- Repaired the replay E2E specs that had drifted out of sync with the HUD redesign.
 
-- **Boon Uptime was showing 0.0% for subgroup rows.** Any report or session published before v3.4.3 rendered every boon as 0.0 on subgroup rows, while individual player rows looked fine right next to them. The fallback that rebuilds coverage for older reports was only triggering when attendance was zero, but synthesized subgroup rows always have positive attendance and just lack the newer coverage data — so they never hit the fallback. Subgroup rows now show correct boon uptime again.
+NOTE: Pin Pressure and Enemy Attention require logs parsed with the latest axilog (pinned to 1.12.0 in this release); older cached parses won't have this data until re-parsed.
