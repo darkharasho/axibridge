@@ -1,3 +1,7 @@
+import {
+    CONVERGED_RATIO, FOCUSED_RATIO, MIN_OTHER_DOWNS, gradePinPressure,
+    type PinPressureBand,
+} from '../../shared/pinPressureCore';
 import type { EnemyAttentionContribution, EnemyAttentionIngest } from './computeEnemyAttention';
 
 /**
@@ -47,21 +51,11 @@ import type { EnemyAttentionContribution, EnemyAttentionIngest } from './compute
  */
 
 /**
- * Other-squad downs a fight needs before its ratio is reported.
- *
- * The denominator is a per-down average over the rest of the squad, so a fight
- * where two people went down sets it from two samples and swings wildly. At
- * five the comparison is stable enough to show; below it the honest output is
- * "no comparison", never a low ratio — see {@link PinPressureFight.comparable}.
+ * The grading rule itself lives in `shared/pinPressureCore` because the
+ * Commander tab grades a single fight by the same thresholds. It is re-exported
+ * here so the section and its tests keep one import.
  */
-export const MIN_OTHER_DOWNS = 5;
-
-/** Ratio at or above which a fight is called out as focused. Corpus p69. */
-export const FOCUSED_RATIO = 2;
-/** Ratio at or above which the convergence is called out as strong. Corpus p90. */
-export const CONVERGED_RATIO = 4;
-
-export type PinPressureBand = 'converged' | 'focused' | 'normal';
+export { CONVERGED_RATIO, FOCUSED_RATIO, MIN_OTHER_DOWNS, type PinPressureBand };
 
 export type PinPressureFight = {
     fightId: string;
@@ -132,9 +126,6 @@ export const EMPTY_PIN_PRESSURE: PinPressureResult = {
     pooledOtherPerDown: 0, focusedFightCount: 0, preDownWindowMs: 0,
 };
 
-const bandOf = (ratio: number): PinPressureBand =>
-    ratio >= CONVERGED_RATIO ? 'converged' : ratio >= FOCUSED_RATIO ? 'focused' : 'normal';
-
 const buildFight = (ingest: EnemyAttentionIngest): PinPressureFight | null => {
     const contributions: EnemyAttentionContribution[] = ingest.contributions || [];
     const tag = contributions.find(c => c.isCommander);
@@ -150,12 +141,12 @@ const buildFight = (ingest: EnemyAttentionIngest): PinPressureFight | null => {
         otherPreDownCasts += c.preDownCasts;
     }
 
-    const comparable = tag.downs > 0 && otherDowns >= MIN_OTHER_DOWNS;
-    const tagPerDown = tag.downs > 0 ? tag.preDownCasts / tag.downs : 0;
-    const otherPerDown = otherDowns > 0 ? otherPreDownCasts / otherDowns : 0;
-    // A squad that took downs while drawing no aimed casts leaves the baseline
-    // at zero, and a ratio over it would be an infinity dressed as a finding.
-    const ratio = comparable && otherPerDown > 0 ? tagPerDown / otherPerDown : 0;
+    const graded = gradePinPressure({
+        tagDowns: tag.downs,
+        tagPreDownCasts: tag.preDownCasts,
+        otherDowns,
+        otherPreDownCasts,
+    });
 
     return {
         fightId: tag.fightId,
@@ -167,11 +158,7 @@ const buildFight = (ingest: EnemyAttentionIngest): PinPressureFight | null => {
         tagPreDownCasts: tag.preDownCasts,
         otherDowns,
         otherPreDownCasts,
-        tagPerDown,
-        otherPerDown,
-        ratio,
-        band: comparable ? bandOf(ratio) : 'normal',
-        comparable: comparable && otherPerDown > 0,
+        ...graded,
     };
 };
 

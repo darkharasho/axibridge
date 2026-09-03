@@ -72,6 +72,15 @@ export function baseFight(overrides: Partial<CommanderFightData> = {}): Commande
       damageIn: 0,
       damageOutInRatio: 0,
     },
+    focus: {
+      hasTag: false,
+      tagAccount: '',
+      castsMeasurable: false,
+      pressure: { tagPerDown: 0, otherPerDown: 0, ratio: 0, band: 'normal', comparable: false },
+      tagDowns: 0,
+      otherDowns: 0,
+      attempts: { attempts: [], landedCount: 0, survivedCount: 0, peakSources: 0, measured: false },
+    },
     series: {
       incomingDps: [],
       healingThroughput: [],

@@ -1,5 +1,7 @@
 // src/shared/commanderTypes.ts
 import type { DPSReportJSON } from './dpsReportTypes';
+import type { PinPressure } from './pinPressureCore';
+import type { PinAttemptSummary } from './pinAttempts';
 import type { WvwTeamColor } from './wvwTeams';
 
 export type VerdictChip =
@@ -22,6 +24,26 @@ export interface BombWindow {
   incoming: number;
   heal: number;
   outcome: 'survived' | 'broke';
+}
+
+/**
+ * What the enemy pointed at the commander.
+ *
+ * Two independent measurements that must not be merged. `attempts` is control
+ * bursts, timestamped and available on every arcdps build. `pressure` is the
+ * enemy cast census, which exists only on post-2026-05 builds and can only
+ * speak about a tag that FELL. Folding casts into the attempt score was
+ * measured and rejected — see `pinAttempts.ts`.
+ */
+export interface CommanderFocus {
+  hasTag: boolean;
+  tagAccount: string;
+  /** Whether this log's arcdps build carries the enemy cast census at all. */
+  castsMeasurable: boolean;
+  pressure: PinPressure;
+  tagDowns: number;
+  otherDowns: number;
+  attempts: PinAttemptSummary;
 }
 
 export interface CommanderFightData {
@@ -102,6 +124,8 @@ export interface CommanderFightData {
     damageIn: number;
     damageOutInRatio: number;
   };
+
+  focus: CommanderFocus;
 
   series: {
     incomingDps: number[];             // per second, length = ceil(duration)

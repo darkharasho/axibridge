@@ -9,6 +9,7 @@ import { computeCohesion } from './cohesion';
 import { buildStabUptimeSeries, computeSustain, computeEngage } from './sustainAndEngage';
 import { computeOutcome } from './outcome';
 import { buildSquadTracks } from './shared';
+import { computeFocus } from './focus';
 
 export const computeCommanderFightData: ComputeCommanderFightData = (json, options) => {
   // --- root fields -------------------------------------------------------
@@ -102,6 +103,8 @@ export const computeCommanderFightData: ComputeCommanderFightData = (json, optio
     burst,
   );
 
+  const focus = computeFocus(json);
+
   const series: import('../commanderTypes').CommanderFightData['series'] = {
     incomingDps,
     healingThroughput,
@@ -122,6 +125,7 @@ export const computeCommanderFightData: ComputeCommanderFightData = (json, optio
     sustain,
     engage,
     outcome,
+    focus,
     series,
     verdictChips,
   };

@@ -19,6 +19,15 @@ const fight: CommanderFightData = {
   sustain: { cleansesApplied: 0, conditionsTaken: 0, stripsLanded: 0, stripsReceived: 0, stabThroughBombs: 0, resistanceAtBurst: 0, aegisAtBurst: 0 },
   engage: { squadHpAtEngage: 0, keyCdsUsed0to10s: 0, preEngageDowns: 0, stab0to10s: 0, dodgeStarvation: 'low' },
   outcome: { kills: 0, squadDeaths: 0, allyDeaths: 0, netTrade: 0, damageOut: 0, damageIn: 0, damageOutInRatio: 0 },
+  focus: {
+    hasTag: false,
+    tagAccount: '',
+    castsMeasurable: false,
+    pressure: { tagPerDown: 0, otherPerDown: 0, ratio: 0, band: 'normal', comparable: false },
+    tagDowns: 0,
+    otherDowns: 0,
+    attempts: { attempts: [], landedCount: 0, survivedCount: 0, peakSources: 0, measured: false },
+  },
   series: { incomingDps: [], healingThroughput: [], stabUptime: [], spreadStdev: [], deathsTimeline: [] },
   verdictChips: ['outnumbered'],
 };

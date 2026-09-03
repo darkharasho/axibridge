@@ -96,12 +96,12 @@ export const PinPressureSection = ({ result }: Props) => {
                         <table className="w-full text-xs table-auto min-w-full border-separate border-spacing-0" style={{ color: 'var(--text-primary)' }}>
                             <thead>
                                 <tr className="text-[10px] uppercase tracking-widest border-b border-[color:var(--border-default)]" style={{ color: 'var(--text-secondary)' }}>
-                                    <th className="text-left py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Fight</th>
+                                    <th className="text-left py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title="Ordered by how hard the enemy converged on the tag, hardest first — not chronologically.">Fight<span className="ml-1 normal-case tracking-normal opacity-70">(hardest first)</span></th>
                                     <th className="text-left py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Commander</th>
                                     <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title={`Aimed casts in the ${windowSeconds}s before each of the tag's downs, per down, over the same figure for the rest of the squad before theirs. Both halves come from this fight, so its length, size and lethality divide out.`}>Focus at Down</th>
                                     <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title={`Aimed casts in the ${windowSeconds}s before each tag down, per down.`}>Tag / Down</th>
                                     <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title={`The same figure for every other squad member who went down — this fight's own baseline.`}>Squad / Down</th>
-                                    <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title="Tag downs and other squad downs in this fight.">Downs</th>
+                                    <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title="How many times the tag went down in this fight, and how many downs the rest of the squad took. These are counts, not a rate — they are the denominators the two columns to the left are divided by.">Downs<span className="ml-1 normal-case tracking-normal opacity-70">(tag / squad)</span></th>
                                 </tr>
                             </thead>
                             <tbody>

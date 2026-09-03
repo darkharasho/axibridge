@@ -17,6 +17,7 @@ import fragmentedAtBomb from './fragmentedAtBomb';
 import damageTradeFavorable from './damageTradeFavorable';
 import lowSquadCasualties from './lowSquadCasualties';
 import caughtAtEngage from './caughtAtEngage';
+import pinPressure from './pinPressure';
 
 const DETECTORS: Detector[] = [
   firstSquadDeathEarly,
@@ -34,6 +35,7 @@ const DETECTORS: Detector[] = [
   damageTradeFavorable,
   lowSquadCasualties,
   caughtAtEngage,
+  pinPressure,
 ];
 
 export function runAllDetectors(
