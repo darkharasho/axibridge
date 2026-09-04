@@ -131,6 +131,18 @@ export interface SquadMemberMovement {
     firstPoll: number;
     downRanges: [number, number][];
     deadRanges: [number, number][];
+    /**
+     * DESPAWN -> SPAWN windows: the actor was not in the instance at all.
+     *
+     * Distinct from `deadRanges`, which cover a corpse that is still present
+     * and still a valid res target. axilog builds these from literal
+     * CBTS_DESPAWN/CBTS_SPAWN pairs, so an unmatched despawn (someone who
+     * leaves and never comes back) produces no interval at all — absence of a
+     * range never means "still here", only "no closed gap was observed".
+     *
+     * Optional because every non-native builder predates the field.
+     */
+    dcRanges?: [number, number][];
     boonStates?: Record<number, [number, number][]>;
     healthPercents?: [number, number][];
     /** Per-second damage taken deltas (index i = second i of the fight). */
@@ -454,6 +466,7 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
             firstPoll: dense.firstPoll,
             downRanges: track.down,
             deadRanges: track.dead,
+            dcRanges: track.dc,
             boonStates,
             healthPercents: p.healthPercents?.map((pt: any) => [pt[0], precisePositions ? pt[1] : Math.round(pt[1])] as [number, number]),
             damageTaken1SPerSec: precisePositions ? damageTaken1SPerSec : damageTaken1SPerSec?.map(Math.round),
@@ -483,6 +496,7 @@ export function buildMovementData(details: any, options: BuildMovementDataOption
             firstPoll: dense.firstPoll,
             downRanges: track.down,
             deadRanges: track.dead,
+            dcRanges: track.dc,
         });
     }
 

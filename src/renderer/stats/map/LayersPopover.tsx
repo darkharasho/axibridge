@@ -6,7 +6,8 @@ const MAP_TOGGLES: { key: 'zoneBorders' | 'scaleBar'; label: string; title: stri
     { key: 'scaleBar', label: 'Scale bar', title: 'A ruler in the map\'s bottom-left corner showing how many game units a given screen width covers at the current zoom' },
 ];
 
-const SQUAD_TOGGLES: { key: 'centroidSpread' | 'tagRangeRings' | 'squadHealthStrip' | 'partyHulls'; label: string; title: string }[] = [
+const SQUAD_TOGGLES: { key: 'showDead' | 'centroidSpread' | 'tagRangeRings' | 'squadHealthStrip' | 'partyHulls'; label: string; title: string }[] = [
+    { key: 'showDead', label: 'Dead players', title: 'Draws players who are currently dead, faded, where their body fell. Off by default: corpses accumulate for the whole fight and end up outnumbering the living, and a marker on a body says where someone died rather than where they are. The graveyard tally next to the legend counts them while they are hidden. Despawned players stay hidden either way — they left the instance, so there is nothing on the field to draw' },
     { key: 'centroidSpread', label: 'Centroid + spread ring', title: 'Shows the squad\'s center of mass and a ring indicating how spread out the group is' },
     { key: 'tagRangeRings', label: 'Tag range rings (600 / 1200)', title: 'Draws circles at 600 and 1200 unit radius around the commander tag — useful for checking boon range' },
     { key: 'squadHealthStrip', label: 'Squad health strip', title: 'Health bar strip along the top of the map showing each squad member\'s HP in real time' },

@@ -74,6 +74,12 @@ const MapLegendInner: React.FC<{ style?: React.CSSProperties }> = ({ style }) =>
             ]
             : []),
         ...ALWAYS,
+        // Only when they are actually on the map. With `showDead` off the
+        // graveyard tally is the thing that needs explaining, and it labels
+        // its own rows.
+        ...(layers.showDead
+            ? [{ key: 'dead-shown', label: 'Dead (faded)', color: '#94a3b8', glyph: 'marker' as const }]
+            : []),
         ...(layers.rallyRings
             ? [{ key: 'rallied', label: 'Rallied', color: '#22c55e', glyph: 'ring' as const }]
             : []),

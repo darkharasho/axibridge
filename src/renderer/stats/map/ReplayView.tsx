@@ -6,6 +6,7 @@ import { LayersPanel } from './LayersPopover';
 import { CcTakenNotice } from './CcTakenNotice';
 import { aboveTransportBottom } from './replayLayoutConstants';
 import { MapLegend } from './MapLegend';
+import { DeathTallyCard } from './DeathTallyCard';
 import { ScaleBar } from './ScaleBar';
 import { TransportBar } from './TransportBar';
 import { useHeatmapData } from './hooks/useHeatmapData';
@@ -424,6 +425,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                 <LayersPanel open={layersEffectivelyOpen} onToggle={toggleLayers} />
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start', minHeight: 0, pointerEvents: 'auto' }}>
+                                <DeathTallyCard members={selectedFight.movementData.members} timeMs={playhead.timeMs} />
                                 <MapLegend />
                                 {layers.scaleBar && (
                                     <ScaleBar

@@ -78,6 +78,12 @@ export interface StatsStoreState {
         ccTakenMarks: boolean;
         /** World-units ruler in the map's bottom-left corner. */
         scaleBar: boolean;
+        /** Draw players who are currently dead on the map. Off by default:
+         *  corpses accumulate for the whole fight and end up outnumbering the
+         *  living, and a dead marker sits wherever the body fell rather than
+         *  where the player is. The count of what is hidden is shown by the
+         *  graveyard tally instead. */
+        showDead: boolean;
         heatmap: 'off' | 'deaths' | 'time' | 'damage-taken';
     };
     replaySpotlightParty: number | null;
@@ -165,6 +171,7 @@ const initialState = {
         stripInLane: true,
         ccTakenMarks: true,
         scaleBar: true,
+        showDead: false,
         heatmap: 'off' as const,
     },
     replaySpotlightParty: null,
@@ -249,6 +256,7 @@ export const useStatsStore = create<StatsStoreState>()((set) => ({
             ccInLane: true, stripInLane: true,
             ccTakenMarks: true,
             scaleBar: true,
+            showDead: false,
             heatmap: 'off',
         },
         replaySpotlightParty: null,
