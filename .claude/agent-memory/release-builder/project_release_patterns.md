@@ -29,5 +29,7 @@ Version tag pattern: `v{semver}` (e.g. `v2.13.10`). Patch bumps increment the 3r
 
 The chunk-size warnings from Vite (index.js > 500 kB) are pre-existing and non-blocking.
 
+Historically (pre-v3.5.0) `prepare-release.mjs` sometimes landed the tag one commit early, on the release-notes-only commit that still carried the OLD `package.json` version — verify with `git show <tag>:package.json | grep version` every release. As of v3.5.0 the tag landed correctly on the actual `chore: release vX` commit (verified: tag commit == HEAD == the bump commit, version matched). Keep verifying each time rather than assuming it's fixed for good.
+
 **Why:** Documents conventions so future runs don't re-discover them, and so CI vs local mode isn't conflated.
 **How to apply:** Write release notes to `RELEASE_NOTES.md` (header must exactly match the tag about to be pushed) before running either script. In CI mode, do not manually run `ci:local`/tests yourself — the release workflow's `test` job covers it after the tag is pushed. Only run the one documented command for the requested mode; never run individual build/test steps yourself.
