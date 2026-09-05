@@ -467,7 +467,11 @@ const ensureSpecialBuffEntry = (
 export interface PlayerAggregationAccumulators {
     playerStats: Map<string, PlayerStats>;
     skillDamageMap: Record<number, { name: string; icon?: string; damage: number; hits: number; downContribution: number }>;
-    incomingSkillDamageMap: Record<number, { name: string; icon?: string; damage: number; hits: number }>;
+    // `playerDamage`/`splitDamage` carry axilog's `playerTotal` refinement (see
+    // the fold below). They are always present on a freshly-built accumulator
+    // but read as absent off older persisted state, which is what lets the UI
+    // detect that the split is unavailable rather than render it as zero.
+    incomingSkillDamageMap: Record<number, { name: string; icon?: string; damage: number; hits: number; playerDamage: number; splitDamage: number }>;
     playerSkillBreakdownMap: Map<string, {
         key: string;
         account: string;
@@ -1413,11 +1417,28 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
                         name = buffMeta.name;
                         icon = buffMeta.icon || icon;
                     }
-                    if (!acc.incomingSkillDamageMap[entry.id]) acc.incomingSkillDamageMap[entry.id] = { name, icon, damage: 0, hits: 0 };
+                    if (!acc.incomingSkillDamageMap[entry.id]) acc.incomingSkillDamageMap[entry.id] = { name, icon, damage: 0, hits: 0, playerDamage: 0, splitDamage: 0 };
                     if (!acc.incomingSkillDamageMap[entry.id].name.startsWith('Skill ') || name.startsWith('Skill ')) acc.incomingSkillDamageMap[entry.id].name = name;
                     if (!acc.incomingSkillDamageMap[entry.id].icon && icon) acc.incomingSkillDamageMap[entry.id].icon = icon;
                     acc.incomingSkillDamageMap[entry.id].damage += entry.totalDamage;
                     acc.incomingSkillDamageMap[entry.id].hits += entry.hits;
+                    // axilog >= 1.13.1 refines `totalDamage` with `playerTotal`:
+                    // the slice dealt by players and their minions, the rest
+                    // being siege, guards and NPCs. It is a REFINEMENT, not a
+                    // partition, so it is summed alongside `damage` rather than
+                    // subtracted from it.
+                    //
+                    // `splitDamage` tracks the `totalDamage` of the rows that
+                    // actually carried the field. Comparing it to `damage` is
+                    // how a consumer tells "no player damage" (0 with full
+                    // coverage) apart from "not measured" (a log parsed by an
+                    // axilog that predates the field). Anything short of full
+                    // coverage would silently understate the player total, so
+                    // the UI hides the view rather than showing a wrong number.
+                    if (typeof entry.playerTotal === 'number') {
+                        acc.incomingSkillDamageMap[entry.id].playerDamage += entry.playerTotal;
+                        acc.incomingSkillDamageMap[entry.id].splitDamage += entry.totalDamage;
+                    }
                 });
             });
         }

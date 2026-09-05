@@ -1705,7 +1705,22 @@ export class IncrementalAggregator {
             .sort((a, b) => b.downContribution - a.downContribution || b.hits - a.hits || String(a.name || '').localeCompare(String(b.name || '')))
             .slice(0, 25);
         const topSkills = this.topSkillsMetric === 'downContribution' ? topSkillsByDownContribution : topSkillsByDamage;
-        const topIncomingSkills = Object.values(incomingSkillDamageMap).sort((a, b) => b.damage - a.damage).slice(0, 25);
+        // The incoming table can be ranked by total damage or, when axilog
+        // supplied the player-sourced split, by that instead. Slicing to 25 on
+        // total damage alone would truncate the OTHER ranking: a skill that is
+        // mostly siege can outrank a player skill on total while losing to it
+        // on the player slice, so it would occupy a row that the player view
+        // should have given away. Carry the union of both top-25s and let the
+        // view sort and slice by whichever metric it is showing — the default
+        // damage ordering is unchanged, and the extra rows are only the ones
+        // where the two rankings actually disagree.
+        const incomingRows = Object.values(incomingSkillDamageMap);
+        const byIncomingDamage = (a: typeof incomingRows[number], b: typeof incomingRows[number]) => b.damage - a.damage;
+        const topByDamage = [...incomingRows].sort(byIncomingDamage).slice(0, 25);
+        const topByPlayerDamage = [...incomingRows]
+            .sort((a, b) => (b.playerDamage || 0) - (a.playerDamage || 0))
+            .slice(0, 25);
+        const topIncomingSkills = Array.from(new Set([...topByDamage, ...topByPlayerDamage])).sort(byIncomingDamage);
 
         // Squad class data
         const squadClassCounts: Record<string, number> = {};

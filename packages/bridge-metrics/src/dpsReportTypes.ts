@@ -245,6 +245,17 @@ export interface TotalDamageTaken {
     min: number;
     max: number;
     indirectDamage: boolean;
+    /**
+     * axilog extension (>= 1.13.1), absent from GW2EI and from anything an
+     * older axilog produced. The portion of `totalDamage` dealt by a player or
+     * a player's minion -- the rest being siege, guards and NPCs -- so that
+     * incoming damage can be shown the way the arcdps in-game filters do.
+     *
+     * It REFINES `totalDamage` rather than partitioning it: `playerTotal <=
+     * totalDamage`, and sums over `totalDamage` are unaffected. Absent means
+     * "not measured", never "no player damage".
+     */
+    playerTotal?: number;
 }
 
 export interface StatsTarget {

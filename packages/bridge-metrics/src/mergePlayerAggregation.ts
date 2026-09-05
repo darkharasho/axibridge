@@ -307,8 +307,8 @@ const mergeSkillDamageEntryInto = (
 };
 
 const mergeIncomingSkillDamageEntryInto = (
-    existing: { name: string; icon?: string; damage: number; hits: number },
-    incoming: { name: string; icon?: string; damage: number; hits: number },
+    existing: { name: string; icon?: string; damage: number; hits: number; playerDamage?: number; splitDamage?: number },
+    incoming: { name: string; icon?: string; damage: number; hits: number; playerDamage?: number; splitDamage?: number },
 ): void => {
     // Mirrors ingest's own (unusual) precedence at computePlayerAggregation.ts:
     // the name is replaced unless the existing one is a placeholder and the
@@ -319,6 +319,13 @@ const mergeIncomingSkillDamageEntryInto = (
     if (!existing.icon && incoming.icon) existing.icon = incoming.icon;
     existing.damage += incoming.damage;
     existing.hits += incoming.hits;
+    // Both sides of the player-sourced split sum like any other counter. They
+    // are optional here because a frame decoded from older persisted state may
+    // predate them; a missing side contributes nothing, which correctly leaves
+    // `splitDamage < damage` and so keeps the merged result marked as partial
+    // coverage rather than quietly claiming a complete split.
+    existing.playerDamage = (existing.playerDamage || 0) + (incoming.playerDamage || 0);
+    existing.splitDamage = (existing.splitDamage || 0) + (incoming.splitDamage || 0);
 };
 
 const mergeRecordOfEntries = <T>(
