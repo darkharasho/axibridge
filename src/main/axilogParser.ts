@@ -219,6 +219,42 @@ export const applyEiCompatShims = (details: any, _logPath: string): any => {
     learnSkillNames(details, nameCache);
     applyLearnedSkillNames(details, nameCache);
 
+    // Boon-strip down contribution: axilog's EI-shaped `support` projects the
+    // DAMAGE arm of down contribution (it lands on `statsAll.downContribution`,
+    // byte-equal to `contribution.by_entity[].downs_contribution.damage` for
+    // all 38 players of the 180135 fixture) but silently drops the STRIPS arm.
+    // So `support.boonStripDownContribution` was absent on every native parse,
+    // and Strip Spikes' "Down Contrib" toggle read 0 for every player on every
+    // fight while the plain "Strips" toggle read fine.
+    //
+    // The count is right there in the carried `blocks.contribution` block, so
+    // this projects it rather than waiting on an axilog schema addition.
+    // Players join to entities by `instanceID` -> `instid` -> `id` (38/38 on
+    // the fixture, and a duplicate agent-instance entry gets its own instid,
+    // so it maps to its own entity rather than double-counting).
+    //
+    // There is NO native counterpart for EI's `boonStripDownContributionTime`,
+    // so it stays absent rather than being derived from a strips ratio.
+    // Only ever FILLS a missing value, like the icon backfill above.
+    const contributionByEntity = details.native?.blocks?.contribution?.by_entity;
+    if (contributionByEntity && typeof contributionByEntity === 'object') {
+        const entityIdByInstid = new Map<number, number>();
+        for (const entity of nativeEntities) {
+            if (isFiniteNumber(entity?.instid) && isFiniteNumber(entity?.id)) {
+                entityIdByInstid.set(entity.instid, entity.id);
+            }
+        }
+        for (const player of players) {
+            const support = Array.isArray(player?.support) ? player.support[0] : player?.support;
+            if (!support || typeof support !== 'object') continue;
+            if (support.boonStripDownContribution !== undefined) continue;
+            const entityId = entityIdByInstid.get(Number(player?.instanceID));
+            if (entityId === undefined) continue;
+            const strips = (contributionByEntity as any)[String(entityId)]?.downs_contribution?.strips;
+            if (isFiniteNumber(strips)) support.boonStripDownContribution = strips;
+        }
+    }
+
     const encounter = details.native?.encounter;
     const nativeMap = typeof encounter?.map === 'string' ? encounter.map.trim() : '';
 

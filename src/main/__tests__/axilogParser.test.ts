@@ -213,6 +213,58 @@ describe('applyEiCompatShims', () => {
         expect(details.players[0].name).toBe('Kept');
     });
 
+    it('backfills boonStripDownContribution from the native contribution block', () => {
+        // The reported bug: Strip Spikes' "Down Contrib" toggle read 0 for
+        // every player on every fight. axilog's EI-shaped `support` projects
+        // the DAMAGE arm of down contribution (`statsAll.downContribution`)
+        // but not the STRIPS arm, even though
+        // `blocks.contribution.by_entity[].downs_contribution.strips` carries
+        // it. Players join to entities by `instanceID` -> `instid` -> `id`.
+        const details: any = {
+            players: [
+                { account: 'A.1111', instanceID: 4704, support: [{ boonStrips: 40 }] },
+                { account: 'B.2222', instanceID: 4723, support: [{ boonStrips: 9 }] },
+            ],
+            native: {
+                axilog: {},
+                entities: [
+                    { id: 0, instid: 4704, account: 'A.1111' },
+                    { id: 7, instid: 4723, account: 'B.2222' },
+                ],
+                blocks: {
+                    contribution: {
+                        by_entity: {
+                            '0': { downs_contribution: { damage: 14395, strips: 22, cc: 3 } },
+                            '7': { downs_contribution: { damage: 0, strips: 0, cc: 0 } },
+                        },
+                    },
+                },
+            },
+        };
+        applyEiCompatShims(details, FIXTURE);
+        expect(details.players[0].support[0].boonStripDownContribution).toBe(22);
+        expect(details.players[1].support[0].boonStripDownContribution).toBe(0);
+    });
+
+    it('never overwrites a boonStripDownContribution the parser supplied', () => {
+        const details: any = {
+            players: [{ account: 'A.1111', instanceID: 4704, support: [{ boonStrips: 40, boonStripDownContribution: 99 }] }],
+            native: {
+                axilog: {},
+                entities: [{ id: 0, instid: 4704 }],
+                blocks: { contribution: { by_entity: { '0': { downs_contribution: { strips: 22 } } } } },
+            },
+        };
+        applyEiCompatShims(details, FIXTURE);
+        expect(details.players[0].support[0].boonStripDownContribution).toBe(99);
+    });
+
+    it('leaves boonStripDownContribution alone when the native block is absent', () => {
+        const details: any = { players: [{ account: 'A.1111', instanceID: 4704, support: [{ boonStrips: 40 }] }] };
+        applyEiCompatShims(details, FIXTURE);
+        expect(details.players[0].support[0].boonStripDownContribution).toBeUndefined();
+    });
+
     it('survives a missing log file', () => {
         const details: any = { durationMS: 1000, players: [] };
         expect(() => applyEiCompatShims(details, '/nope/does-not-exist.zevtc')).not.toThrow();
