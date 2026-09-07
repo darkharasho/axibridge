@@ -1,8 +1,18 @@
 # Release Notes
 
-Version v3.6.1 — September 6, 2026
+Version v3.7.0 — September 7, 2026
 
-## Fixes
-- Fixed the "Down Contrib" toggle on Strip Spikes showing 0 for every player on every fight. The underlying data was missing the "strips" side of the contribution numbers, so only damage was ever counted.
+## Obsidian Sanctum shows up on the replay map
 
-NOTE: this only affects logs parsed from here on out. Existing saved logs and already-published web reports won't pick up the fix unless they're re-parsed and re-published.
+Fights in Obsidian Sanctum used to have no replay at all — the map wasn't one of
+the five WvW maps the parser knows about, so there was no map to draw on and the
+playback tab came up empty. It's now a proper map like the borderlands and EBG:
+you get the real Guild Wars 2 map art of the amphitheatre, with everyone's
+positions on top of it, and fights are labelled "OS" instead of the generic
+"World vs World".
+
+NOTE: logs you've already uploaded will draw their replay correctly, but they'll
+keep the old "World vs World" name until they're parsed again.
+
+Obsidian Sanctum has no keeps, towers or camps, so fight names there are just the
+map name and a timestamp — there's no landmark to say you fought "near Bay".
