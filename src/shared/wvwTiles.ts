@@ -4,6 +4,14 @@ interface WvwMapTileData {
     continentRect: [[number, number], [number, number]];
     pixelSize: [number, number];
     pixelOffset: [number, number];
+    /**
+     * Highest zoom this map has art for. Omitted means {@link MAX_HIRES_ZOOM}:
+     * the four match maps are covered by the AxiBridge hi-res pack at z8/z9.
+     * A map the pack was never built for must cap at {@link MAX_TILE_ZOOM},
+     * or `pickTileZoom` requests a synthetic tile that 404s and the detail
+     * layer renders blank over the coverage layer.
+     */
+    maxZoom?: number;
 }
 
 const CONTINENT_ID = 2;
@@ -35,6 +43,32 @@ export const WVW_TILE_DATA: Record<WvwMap, WvwMapTileData> = {
         continentRect: [[9214, 8958], [12286, 12030]],
         pixelSize: [750, 750],
         pixelOffset: [0, 0],
+    },
+    // Obsidian Sanctum frames the AMPHITHEATRE, not the whole map.
+    //
+    // `/v2/maps/899` reports the same `continent_rect` as Eternal
+    // Battlegrounds -- `[[8958, 12798], [12030, 15870]]` -- which reads like a
+    // placeholder but is not: OS's arena is drawn on continent 2 / floor 3 in
+    // the north-east corner of that shared rect, and projecting real log
+    // positions through the API's `map_rect` -> `continent_rect` mapping lands
+    // them inside the arena floor. Verified against 273,642 position samples
+    // from 16 real OS logs: 99.9% fall inside the rect below, so no
+    // `pixelOffset` calibration is needed (unlike EBG's hand-tuned shift).
+    //
+    // Using the full shared rect would be geometrically correct and visually
+    // useless -- the squad would occupy ~14% x 12% of the canvas in one corner
+    // of the EBG map. This rect is the arena's own sub-box, derived from the
+    // same linear mapping so the two stay consistent:
+    //     continent = 8958 + (world_x + 36864) / 24        (x)
+    //     continent = 12798 + (36864 - world_y) / 24       (y)
+    // It corresponds exactly to the world rect in `OBSIDIAN_SANCTUM_ARENA`
+    // (`@axiapps/bridge-metrics/nativePositioning`); change one and you must
+    // change the other.
+    [WvwMap.ObsidianSanctum]: {
+        continentRect: [[11205, 12875], [11645, 13250]],
+        pixelSize: [750, 639],
+        pixelOffset: [0, 0],
+        maxZoom: MAX_TILE_ZOOM,
     },
 };
 
@@ -130,7 +164,7 @@ export function pickTileZoom(
     const panelW = panelCssWidth > 0 ? panelCssWidth : mapWidth;
     const needed = (panelW / mapWidth) * viewportScale * (dpr > 0 ? dpr : 1);
     const zoom = MAX_TILE_ZOOM + Math.ceil(Math.log2(needed / nativeDensity));
-    return Math.min(MAX_HIRES_ZOOM, Math.max(3, zoom));
+    return Math.min(data.maxZoom ?? MAX_HIRES_ZOOM, Math.max(3, zoom));
 }
 
 export interface TileViewportState { scale: number; tx: number; ty: number; }

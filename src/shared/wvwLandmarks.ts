@@ -3,6 +3,7 @@ export enum WvwMap {
     GreenBorderlands = 'GreenBorderlands',
     BlueBorderlands = 'BlueBorderlands',
     RedBorderlands = 'RedBorderlands',
+    ObsidianSanctum = 'ObsidianSanctum',
 }
 
 export interface WvwLandmark {
@@ -107,6 +108,14 @@ export const WVW_LANDMARKS: Record<WvwMap, WvwLandmark[]> = {
     [WvwMap.GreenBorderlands]: GREEN_ALPINE,
     [WvwMap.BlueBorderlands]: BLUE_ALPINE,
     [WvwMap.RedBorderlands]: RED_DESERT,
+    // Obsidian Sanctum is a jumping-puzzle arena, not a contested map: it has
+    // no keeps, towers, camps or ruins, and `/v2/continents/2/floors/3` gives
+    // it zero sectors. Deliberately empty rather than populated with its three
+    // waypoints, which sit in the un-arted puzzle interior well outside the
+    // arena rect `wvwTiles` frames -- `findNearestLandmark` returning one of
+    // those would label every OS fight after a point off the canvas. Empty
+    // means `buildFightLabelV2` falls back to the bare map name.
+    [WvwMap.ObsidianSanctum]: [],
 };
 
 export function findNearestLandmark(map: WvwMap, x: number, y: number): WvwLandmark | null {

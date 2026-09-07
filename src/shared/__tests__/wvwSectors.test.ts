@@ -18,12 +18,26 @@ function sectorContaining(map: WvwMap, x: number, y: number) {
 }
 
 describe('wvwSectors generated data', () => {
-    it('has sectors, map ids and ref sizes for all four maps', () => {
-        for (const map of Object.values(WvwMap)) {
+    // Obsidian Sanctum is a jumping-puzzle arena: the API gives it zero
+    // sectors and zero WvW objectives, and its rect frames the amphitheatre
+    // rather than a full map, so it is the one entry with a non-750 height.
+    const CONTESTED = Object.values(WvwMap).filter(m => m !== WvwMap.ObsidianSanctum);
+
+    it('has sectors, map ids and ref sizes for all four contested maps', () => {
+        expect(CONTESTED).toHaveLength(4);
+        for (const map of CONTESTED) {
             expect(WVW_SECTORS[map].length).toBeGreaterThanOrEqual(15);
             expect(WVW_MAP_IDS[map]).toBeGreaterThan(0);
             expect(WVW_SECTOR_REF_SIZE[map][1]).toBe(750);
         }
+    });
+
+    it('carries Obsidian Sanctum as a sectorless map', () => {
+        expect(WVW_SECTORS[WvwMap.ObsidianSanctum]).toEqual([]);
+        expect(WVW_MAP_IDS[WvwMap.ObsidianSanctum]).toBe(899);
+        expect(WVW_SECTOR_REF_SIZE[WvwMap.ObsidianSanctum]).toEqual([750, 639]);
+        expect(Object.values(OBJECTIVE_SECTORS)).not.toHaveLength(0);
+        expect(Object.keys(OBJECTIVE_SECTORS).some(k => k.startsWith('899-'))).toBe(false);
     });
 
     // Keep landmark coords from wvwLandmarks.ts — containment proves the

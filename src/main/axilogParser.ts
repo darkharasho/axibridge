@@ -256,7 +256,24 @@ export const applyEiCompatShims = (details: any, _logPath: string): any => {
     }
 
     const encounter = details.native?.encounter;
-    const nativeMap = typeof encounter?.map === 'string' ? encounter.map.trim() : '';
+    let nativeMap = typeof encounter?.map === 'string' ? encounter.map.trim() : '';
+
+    // axilog names only the five WvW maps GW2EI has a combat-replay case for
+    // (`axilog-core/src/wvw/maps.rs`); every other WvW map id falls back to the
+    // generic `"World vs World"`. Obsidian Sanctum (899) is one of those, so
+    // without this an OS night lists as N identical "World vs World" fights --
+    // the same symptom the PvE `encounter_name` fix above was written for.
+    //
+    // `fightName` is rewritten alongside `zone` because it, not `zone`, is what
+    // the replay/history/sector-owner paths read.
+    const namedByMapId: Record<number, string> = { 899: 'Obsidian Sanctum' };
+    const unnamedMap = namedByMapId[Number(encounter?.map_id)];
+    if (unnamedMap && (!nativeMap || nativeMap === 'World vs World')) {
+        nativeMap = unnamedMap;
+        if (typeof details.fightName === 'string') {
+            details.fightName = details.fightName.replace(/World vs World$/, unnamedMap);
+        }
+    }
 
     // PvE encounters name themselves; only WvW names itself after its map.
     // axilog 1.5.0 added `encounter_name` (plus `kind`/`trigger_id`/
