@@ -123,6 +123,33 @@ describe('applyEiCompatShims', () => {
         expect(details.encounterDuration).toBe('0m 49s 285ms');
     });
 
+    it('names Obsidian Sanctum, which axilog can only call "World vs World"', () => {
+        // axilog's WvW map table covers the five maps GW2EI has a combat-replay
+        // case for; 899 is not one, so it falls back to the generic name and a
+        // night in OS would otherwise list as N identical "World vs World"
+        // fights. `fightName` matters as much as `zone`: it is what the replay,
+        // history and sector-owner paths read.
+        const details: any = {
+            fightName: 'Detailed WvW - World vs World',
+            players: [],
+            native: { axilog: {}, encounter: { map_id: 899, map: 'World vs World' } },
+        };
+        applyEiCompatShims(details, FIXTURE);
+        expect(details.fightName).toBe('Detailed WvW - Obsidian Sanctum');
+        expect(details.zone).toBe('Obsidian Sanctum');
+    });
+
+    it('leaves a map axilog CAN name alone', () => {
+        const details: any = {
+            fightName: 'Detailed WvW - Green Alpine Borderlands',
+            players: [],
+            native: { axilog: {}, encounter: { map_id: 95, map: 'Green Alpine Borderlands' } },
+        };
+        applyEiCompatShims(details, FIXTURE);
+        expect(details.fightName).toBe('Detailed WvW - Green Alpine Borderlands');
+        expect(details.zone).toBe('Green Alpine Borderlands');
+    });
+
     it('derives timeStart/timeEnd from the native encounter start', () => {
         const details: any = {
             players: [],

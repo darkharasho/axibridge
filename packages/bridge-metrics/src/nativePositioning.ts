@@ -69,9 +69,54 @@ const finiteOrNull = (v: unknown): number | null =>
 export const getPollMs = (details: any): number | null =>
     finiteOrNull(replayOf(details)?.tracks?.poll_ms);
 
+/**
+ * Obsidian Sanctum's arena, which axilog does not emit.
+ *
+ * axilog's `WVW_MAPS` table (`axilog-core/src/wvw/maps.rs`) transcribes the
+ * five maps GW2EI has a `GetCombatMapInternal` case for. Map 899 is
+ * deliberately absent: GW2EI names Obsidian Sanctum but its
+ * `CombatReplayObsidianSanctum` image constant is the empty string, so it
+ * falls through to the bounding-box default and axilog honestly omits
+ * `arena`. Without an arena {@link getArena} returns null,
+ * `buildMovementData` bails, and an OS fight produces NO replay at all.
+ *
+ * The frame below is not a per-log bounding box -- that would differ between
+ * two fights on the same map and make positions incomparable. It is a fixed
+ * world rect derived from `/v2/maps/899`'s `map_rect` -> `continent_rect`
+ * mapping, narrowed to the amphitheatre where the fighting happens. It
+ * corresponds exactly to `WVW_TILE_DATA[WvwMap.ObsidianSanctum]`'s
+ * `continentRect` in `src/shared/wvwTiles.ts`, which supplies the art;
+ * change one and you must change the other.
+ *
+ * `image_width`/`image_height` carry the rect's continent-unit size rather
+ * than a real image's pixels: nothing loads an image for this map (tiles do
+ * the drawing), and only their RATIO matters, because {@link replayCanvas}
+ * squeezes them to the 750px canvas every landmark constant is calibrated in.
+ * 440x375 -> 750x639, matching that entry's `pixelSize`.
+ */
+export const OBSIDIAN_SANCTUM_ARENA: ArenaProjection = {
+    image_width: 440,
+    image_height: 375,
+    image_url: '',
+    world_min_x: 17064,
+    world_min_y: 26016,
+    world_max_x: 27624,
+    world_max_y: 35016,
+};
+
+/** Map ids axilog emits no arena for, and the frame to use instead. */
+const ARENA_FALLBACKS: Record<number, ArenaProjection> = {
+    899: OBSIDIAN_SANCTUM_ARENA,
+};
+
 export const getArena = (details: any): ArenaProjection | null => {
     const arena = replayOf(details)?.tracks?.arena;
-    if (!arena || typeof arena !== 'object') return null;
+    if (!arena || typeof arena !== 'object') {
+        // Only reachable for a map axilog has no arena for; every other log
+        // takes the branch below and never consults this table.
+        const mapId = finiteOrNull((getNativeReport(details) as any)?.encounter?.map_id);
+        return (mapId !== null && ARENA_FALLBACKS[mapId]) || null;
+    }
     for (const k of ['image_width', 'image_height', 'world_min_x', 'world_min_y', 'world_max_x', 'world_max_y']) {
         if (finiteOrNull((arena as any)[k]) === null) return null;
     }

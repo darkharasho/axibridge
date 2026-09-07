@@ -12,6 +12,11 @@ const MAPS = {
     GreenBorderlands:     { apiId: 95,   rect: [[5630, 11518], [8190, 15102]],  size: [523, 750], offset: [0, 0] },
     BlueBorderlands:      { apiId: 96,   rect: [[12798, 10878], [15358, 14462]], size: [523, 750], offset: [0, 0] },
     RedBorderlands:       { apiId: 1099, rect: [[9214, 8958], [12286, 12030]],  size: [750, 750], offset: [0, 0] },
+    // `sectorless: true` -- Obsidian Sanctum is a jumping-puzzle arena. The
+    // API returns it with zero sectors and zero WvW objectives, so it gets an
+    // empty sector list rather than tripping the guard below. Its rect frames
+    // the amphitheatre, not the whole map; see WVW_TILE_DATA for the derivation.
+    ObsidianSanctum:      { apiId: 899,  rect: [[11205, 12875], [11645, 13250]], size: [750, 639], offset: [0, 0], sectorless: true },
 };
 
 const floor = await (await fetch('https://api.guildwars2.com/v2/continents/2/floors/3')).json();
@@ -21,7 +26,14 @@ const round1 = (n) => Math.round(n * 10) / 10;
 const sectorsByMap = {};
 for (const [key, cfg] of Object.entries(MAPS)) {
     const apiMap = floor.regions['7']?.maps?.[String(cfg.apiId)];
-    if (!apiMap?.sectors) throw new Error(`No sectors for map ${cfg.apiId} (${key})`);
+    if (!apiMap?.sectors && !cfg.sectorless) throw new Error(`No sectors for map ${cfg.apiId} (${key})`);
+    if (cfg.sectorless) {
+        const n = Object.keys(apiMap?.sectors ?? {}).length;
+        if (n > 0) throw new Error(`${key} is marked sectorless but the API returned ${n} sectors`);
+        sectorsByMap[key] = [];
+        console.log(`${key}: 0 sectors (sectorless)`);
+        continue;
+    }
     const [[cx1, cy1], [cx2, cy2]] = cfg.rect;
     const [pw, ph] = cfg.size;
     const [ox, oy] = cfg.offset;

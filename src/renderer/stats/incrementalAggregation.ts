@@ -57,7 +57,7 @@ import {
     hasCcTakenEvents, readCcTakenEvents,
 } from '@axiapps/bridge-metrics/nativeSeries';
 import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
-import { resolveMapFromZone, computeFightAvgPosition, buildFightLabelV2 } from '../../shared/mapUtils';
+import { resolveMapFromDetails, computeFightAvgPosition, buildFightLabelV2 } from '../../shared/mapUtils';
 import { findNearestLandmark } from '../../shared/wvwLandmarks';
 import { TRACKED_REPLAY_STATE_IDS } from '../../shared/replayBuffs';
 import type { ReplayFightPayload, ReplayDpsSample, ReplayKillEvent, DamageSpikeEvent, RallyEvent, TargetFocusSample, CcTakenEvent, ReplayTickRate } from './map/replayTypes';
@@ -179,7 +179,10 @@ export function buildReplayFightPayload(log: any, fightIndex: number, opts?: { p
 
     const avgPosition = computeFightAvgPosition(details);
     const zone = details?.fightName || log?.encounterName || `Fight ${fightIndex + 1}`;
-    const mapKey = resolveMapFromZone(String(zone));
+    // By id, not by name: Obsidian Sanctum's zone string is the generic
+    // "World vs World", and logs parsed before the naming shim landed still
+    // carry that spelling for every map axilog cannot name.
+    const mapKey = resolveMapFromDetails(details, String(zone));
     const landmark = (mapKey && avgPosition)
         ? findNearestLandmark(mapKey, avgPosition[0], avgPosition[1])?.name ?? null
         : null;

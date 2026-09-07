@@ -13,18 +13,50 @@ function stripPrefix(zone: string): string {
     return zone;
 }
 
+/**
+ * `CBTS_MAPID` -> map key, for the maps whose NAME is not enough.
+ *
+ * axilog names only the five WvW maps GW2EI has a combat-replay case for;
+ * every other id -- Obsidian Sanctum among them -- falls back to the generic
+ * `"World vs World"`, so no amount of string matching can identify it. The id
+ * is carried on `native.encounter.map_id`.
+ */
+const MAP_ID_TO_KEY: Record<number, WvwMap> = {
+    38: WvwMap.EternalBattlegrounds,
+    95: WvwMap.GreenBorderlands,
+    96: WvwMap.BlueBorderlands,
+    899: WvwMap.ObsidianSanctum,
+    1099: WvwMap.RedBorderlands,
+};
+
 export function resolveMapFromZone(zone: string): WvwMap | null {
     const clean = stripPrefix(zone).toLowerCase();
     if (clean.includes('eternal') || clean === 'ebg') return WvwMap.EternalBattlegrounds;
+    if (clean.includes('obsidian') || clean.includes('sanctum') || clean === 'os') return WvwMap.ObsidianSanctum;
     if (clean.includes('green')) return WvwMap.GreenBorderlands;
     if (clean.includes('blue')) return WvwMap.BlueBorderlands;
     if (clean.includes('red')) return WvwMap.RedBorderlands;
     return null;
 }
 
+/**
+ * Resolve the map from a details object, preferring the native map id over
+ * the zone string.
+ *
+ * The id path is what makes Obsidian Sanctum resolvable at all, and it also
+ * works on logs parsed before {@link applyEiCompatShims} learned to rewrite
+ * the generic name -- their stored `fightName` still says "World vs World".
+ */
+export function resolveMapFromDetails(details: any, zone: string): WvwMap | null {
+    const mapId = Number(details?.native?.encounter?.map_id);
+    if (Number.isFinite(mapId) && MAP_ID_TO_KEY[mapId]) return MAP_ID_TO_KEY[mapId];
+    return resolveMapFromZone(zone);
+}
+
 export function normalizeMapName(zone: string): string {
     const clean = stripPrefix(zone).toLowerCase();
     if (clean.includes('eternal')) return 'Eternal Battlegrounds';
+    if (clean.includes('obsidian') || clean.includes('sanctum')) return 'Obsidian Sanctum';
     if (clean.includes('green')) return 'Green Borderlands';
     if (clean.includes('blue')) return 'Blue Borderlands';
     if (clean.includes('red')) return 'Red Borderlands';
@@ -34,6 +66,7 @@ export function normalizeMapName(zone: string): string {
 export function normalizeMapNameShort(zone: string): string {
     const clean = stripPrefix(zone).toLowerCase();
     if (clean.includes('eternal') || clean === 'ebg') return 'EBG';
+    if (clean.includes('obsidian') || clean.includes('sanctum')) return 'OS';
     if (clean.includes('green')) return 'Green BL';
     if (clean.includes('blue')) return 'Blue BL';
     if (clean.includes('red')) return 'Red BL';
