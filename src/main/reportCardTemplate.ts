@@ -1,6 +1,18 @@
 import path from 'path';
 import { pathToFileURL } from 'url';
 import type { CardBoard, ReportCardModel } from '../shared/reportCardModel';
+import { PROFESSION_COLORS, getProfessionAbbrev } from '../shared/professionUtils';
+
+/** Allow-list of profession names that have a real file in
+ *  `public/img/class-icons/`. `PROFESSION_COLORS` is keyed by every known
+ *  profession/elite-spec name (plus a synthetic `Unknown` entry we exclude);
+ *  it is the same set the rest of the app already trusts for profession
+ *  identity. A `profession` string from a leaderboard entry is user/log
+ *  controlled — it must never be turned into a filesystem path or `file://`
+ *  URL unless it is a member of this set, or a crafted value such as
+ *  `../../../../Users/x/secret` would resolve outside `iconDir` and get
+ *  loaded into the capture window. */
+const KNOWN_PROFESSIONS = new Set(Object.keys(PROFESSION_COLORS).filter((key) => key !== 'Unknown'));
 
 export type ReportCardVariant = 'hybrid' | 'graphic';
 
@@ -44,16 +56,26 @@ const fontFace = (assets: ReportCardAssets) => `
   src: url('${fileUrl(path.join(assets.fontDir, 'InterVariable.woff2'))}') format('woff2');
 }`;
 
+const DEFAULT_MAP_COLOR = '#64748b';
+
+/** Only a strict hex colour is trusted for a `style="...background: X"`
+ *  attribute. `slice.color` comes from the stats blob, not a fixed palette,
+ *  so anything that isn't `#rgb`/`#rgba`/`#rrggbb`/`#rrggbbaa` is rejected
+ *  outright rather than "sanitised" — arbitrary CSS (e.g.
+ *  `red;background-image:url(...)`) must never reach a style attribute. */
+const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+const safeColor = (raw: string): string => (HEX_COLOR_RE.test(raw) ? raw : DEFAULT_MAP_COLOR);
+
 const mapBar = (model: ReportCardModel) => {
     const total = model.maps.reduce((sum, slice) => sum + slice.value, 0);
     if (total <= 0) return '';
     const segments = model.maps
-        .map((slice) => `<span style="flex: ${slice.value}; background: ${esc(slice.color)}"></span>`)
+        .map((slice) => `<span style="flex: ${slice.value}; background: ${safeColor(slice.color)}"></span>`)
         .join('');
     const legend = model.maps
         .map(
             (slice) =>
-                `<span class="lg"><i style="background: ${esc(slice.color)}"></i>${esc(slice.name)} ${slice.value}</span>`
+                `<span class="lg"><i style="background: ${safeColor(slice.color)}"></i>${esc(slice.name)} ${slice.value}</span>`
         )
         .join('');
     return `<div class="mapbar">${segments}</div><div class="legend">${legend}</div>`;
@@ -72,15 +94,34 @@ const sparkline = (model: ReportCardModel) => {
     return `<div class="spark">${bars}</div>`;
 };
 
+/** Renders the leader's class icon, or a text-abbreviation fallback if the
+ *  profession isn't a known one. No untrusted `leader` data is ever
+ *  interpolated into inline JS: the `onerror` handler is a fixed string with
+ *  no substitutions, and the icon `src` is only built from a profession name
+ *  that is a member of `KNOWN_PROFESSIONS` (see that const for why). The
+ *  abbreviation text itself is escaped and only ever placed in a text node,
+ *  never inside a `<script>`-context attribute. */
+const leaderIcon = (profession: string, assets: ReportCardAssets): string => {
+    const abbrev = esc(getProfessionAbbrev(profession));
+    if (!KNOWN_PROFESSIONS.has(profession)) {
+        return `<span class="chipicon chipabbrev">${abbrev}</span>`;
+    }
+    const src = fileUrl(path.join(assets.iconDir, `${profession}.png`));
+    return (
+        `<span class="chipicon">` +
+        `<img src="${src}" alt="" style="object-fit: contain" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` +
+        `<span class="chipabbrev" style="display:none">${abbrev}</span>` +
+        `</span>`
+    );
+};
+
 const leaderChips = (boards: CardBoard[], assets: ReportCardAssets) => {
     const chips = boards
         .filter((board) => board.leaders.length > 0)
         .slice(0, 6)
         .map((board) => {
             const leader = board.leaders[0];
-            const icon = leader.profession
-                ? `<img src="${fileUrl(path.join(assets.iconDir, `${leader.profession}.png`))}" alt="" style="object-fit: contain" onerror="this.replaceWith(document.createTextNode('${esc(leader.profession.slice(0, 2).toUpperCase())}'))">`
-                : '';
+            const icon = leader.profession ? leaderIcon(leader.profession, assets) : '';
             return `<div class="chip">${icon}<div><span class="cl">${esc(board.label)}</span><span class="cn">${esc(leader.account)}</span><span class="cv">${esc(leader.value)}</span></div></div>`;
         })
         .join('');
@@ -154,7 +195,9 @@ body{font-family:'InterCard',sans-serif;color:#dbdee1;width:${size.width}px}
 .chipshdr{font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:#8d95a0;margin-bottom:14px}
 .chipgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
 .chip{display:flex;gap:12px;align-items:center;background:#2b2d31;border-radius:8px;padding:14px 16px}
-.chip img{width:34px;height:34px;object-fit: contain;flex:0 0 34px}
+.chipicon{width:34px;height:34px;flex:0 0 34px;display:flex;align-items:center;justify-content:center}
+.chipicon img{width:34px;height:34px;object-fit: contain}
+.chipabbrev{width:34px;height:34px;flex:0 0 34px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;letter-spacing:.04em;color:#a3a6aa;background:#1f2023;border-radius:6px}
 .cl{display:block;font-size:13px;color:#8d95a0}
 .cn{display:block;font-size:17px;font-weight:600;color:#f2f3f5}
 .cv{display:block;font-size:15px;color:#a3a6aa}

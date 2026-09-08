@@ -97,4 +97,46 @@ describe('renderReportCardHtml', () => {
         expect(html).not.toContain('fonts.googleapis.com');
         expect(html).not.toContain('https://fonts.gstatic.com');
     });
+
+    it('does not resolve a path-traversal profession into a file:// src outside iconDir', () => {
+        const evil = buildReportCardModel({}, {
+            leaderboards: {
+                damage: [{ rank: 1, account: 'A.1234', profession: '../../../../etc/passwd', value: 1 }],
+            },
+        });
+        const html = renderReportCardHtml(evil, 'graphic', assets);
+        expect(html).not.toContain('etc/passwd');
+        expect(html).not.toContain('..%2F');
+        expect(html).toContain('chipabbrev');
+    });
+
+    it('degrades an unknown profession to a text abbreviation with no icon element', () => {
+        const unknown = buildReportCardModel({}, {
+            leaderboards: {
+                damage: [{ rank: 1, account: 'A.1234', profession: 'TotallyUnknownClass', value: 1 }],
+            },
+        });
+        const html = renderReportCardHtml(unknown, 'graphic', assets);
+        expect(html).not.toContain('TotallyUnknownClass.png');
+        expect(html).toContain('chipabbrev');
+    });
+
+    it('never interpolates untrusted leader data into inline onerror JavaScript', () => {
+        // Firebrand is a known profession, so this exercises the icon-with-fallback
+        // path (not the "no icon at all" unknown-profession path), and the onerror
+        // handler must still be a fixed script with no leader-derived substitution.
+        const html = renderReportCardHtml(model, 'graphic', assets);
+        expect(html).toContain(
+            `onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"`
+        );
+    });
+
+    it('falls back to the default map colour when a slice colour is not a strict hex value', () => {
+        const hostile = buildReportCardModel({}, {
+            mapData: [{ name: 'Eternal Battlegrounds', value: 1, color: 'red;background-image:url(evil)' }],
+        });
+        const html = renderReportCardHtml(hostile, 'hybrid', assets);
+        expect(html).not.toContain('background-image:url(evil)');
+        expect(html).toContain('#64748b');
+    });
 });
