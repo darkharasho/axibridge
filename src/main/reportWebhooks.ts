@@ -1,5 +1,7 @@
-import { IReportWebhook, MAX_FORUM_POST_TAGS, parseForumTagIds, renderReportTitle } from '../shared/reportWebhooks';
+import { coerceReportPostStyle, IReportWebhook, MAX_FORUM_POST_TAGS, parseForumTagIds, renderReportTitle } from '../shared/reportWebhooks';
+import { buildReportCardModel } from '../shared/reportCardModel';
 import { DISCORD_WEBHOOK_AVATAR_URL } from './discord';
+import { buildReportEmbed } from './reportEmbed';
 
 export interface ReportWebhookPostResult {
     id: string;
@@ -8,7 +10,6 @@ export interface ReportWebhookPostResult {
     error?: string;
 }
 
-const EMBED_COLOR = 0xef4444;
 const POST_TIMEOUT_MS = 10_000;
 
 export const buildReportSummaryLine = (stats: any): string => {
@@ -50,7 +51,7 @@ export async function postReportToWebhooks(opts: {
         guildName: String(opts.meta?.guild?.name || ''),
         guildTag: String(opts.meta?.guild?.tag || ''),
     };
-    const description = buildReportSummaryLine(opts.stats);
+    const model = buildReportCardModel(opts.meta, opts.stats);
 
     for (const hook of opts.webhooks) {
         let title = '';
@@ -86,13 +87,13 @@ export async function postReportToWebhooks(opts: {
         const label = hook.name || 'webhook';
         try {
             title = renderReportTitle(hook.titleTemplate, ctx);
-            embed = {
+            embed = buildReportEmbed({
+                model,
+                style: coerceReportPostStyle(hook.style),
                 title,
                 url: opts.url,
-                color: EMBED_COLOR,
-            };
-            if (description) embed.description = description;
-            if (opts.meta?.dateLabel) embed.footer = { text: String(opts.meta.dateLabel) };
+                hasImage: false,
+            });
 
             let usedForum = hook.isForum;
             let droppedTags = false;

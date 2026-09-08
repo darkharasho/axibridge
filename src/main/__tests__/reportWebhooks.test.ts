@@ -48,7 +48,8 @@ describe('postReportToWebhooks', () => {
         expect(body.username).toBe('AxiBridge');
         expect(body.embeds[0].title).toBe('Axi Vale');
         expect(body.embeds[0].url).toBe('https://example.com/r/1');
-        expect(body.embeds[0].description).toBe('19 fights • 16W – 3L • Squad KDR 5.56');
+        expect(body.embeds[0].description).toBe('**19 fights** · 16W – 3L');
+        expect(Array.isArray(body.embeds[0].fields)).toBe(true);
         expect(body.embeds[0].footer.text).toBe(meta.dateLabel);
     });
 
