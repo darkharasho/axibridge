@@ -30,6 +30,61 @@ const charCount = (embed: any) =>
     (embed.fields ?? []).reduce((sum: number, f: any) => sum + f.name.length + f.value.length, 0);
 
 describe('buildReportEmbed', () => {
+    // Every multi-row value is a fenced code block so Discord renders it
+    // monospaced and never reflows a row — the failure these replaced was
+    // account names wrapping mid-token in a narrow forum sidebar.
+    it('fences every multi-row field and closes the fence', () => {
+        const embed = buildReportEmbed({ model, style: 'text', title: 'T', url: 'https://r/1', hasImage: false });
+        for (const field of embed.fields!) {
+            expect(field.value.startsWith('```\n')).toBe(true);
+            expect(field.value.endsWith('\n```')).toBe(true);
+            // A stray third fence would mean a value was clamped mid-block.
+            expect(field.value.split('```')).toHaveLength(3);
+        }
+    });
+
+    it('aligns board rows into fixed columns and truncates long names', () => {
+        const long = buildReportCardModel(meta, {
+            ...stats,
+            leaderboards: {
+                ...stats.leaderboards,
+                damage: [
+                    { rank: 1, account: 'Quantumized.5873', profession: 'Firebrand', value: 900 },
+                    { rank: 2, account: 'Bob.1', profession: 'Firebrand', value: 10 },
+                ],
+            },
+        });
+        const embed = buildReportEmbed({ model: long, style: 'text', title: 'T', url: 'https://r/1', hasImage: false });
+        const damage = embed.fields!.find((f) => f.name.includes('Damage'))!;
+        const rows = damage.value.split('\n').slice(1, -1);
+        // Truncated with an ellipsis at the fixed width, and both rows padded
+        // to the same length so the value column lines up.
+        expect(rows[0]).toContain('Quantumized.…');
+        expect(rows[0]).not.toContain('5873');
+        expect(rows[0].length).toBe(rows[1].length);
+    });
+
+    it('drops board rows rather than clamping a fence off the end', () => {
+        // topN must be raised explicitly: the model caps boards at 3 leaders,
+        // which can never reach the 1024-character field limit on its own.
+        const huge = buildReportCardModel(meta, {
+            ...stats,
+            leaderboards: {
+                ...stats.leaderboards,
+                damage: Array.from({ length: 400 }, (_, i) => ({
+                    rank: i + 1, account: `player${i}.1234`, profession: 'Firebrand', value: 1000 - i,
+                })),
+            },
+        }, { topN: 400 });
+        const embed = buildReportEmbed({ model: huge, style: 'text', title: 'T', url: 'https://r/1', hasImage: false });
+        const damage = embed.fields!.find((f) => f.name.includes('Damage'))!;
+        const rows = damage.value.split('\n').slice(1, -1);
+        expect(rows.length).toBeGreaterThan(1);
+        expect(rows.length).toBeLessThan(400);
+        expect(damage.value.length).toBeLessThanOrEqual(1024);
+        expect(damage.value.endsWith('\n```')).toBe(true);
+    });
+
     it('builds a rich text embed with KPI and board fields', () => {
         const embed = buildReportEmbed({ model, style: 'text', title: 'T', url: 'https://r/1', hasImage: false });
         expect(embed.title).toBe('T');

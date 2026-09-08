@@ -28,40 +28,103 @@ const fieldCost = (field: DiscordEmbedField) => field.name.length + field.value.
 const clampValue = (value: string) =>
     value.length <= DISCORD_FIELD_VALUE_LIMIT ? value : `${value.slice(0, DISCORD_FIELD_VALUE_LIMIT - 1)}…`;
 
+/** Discord lays inline fields out in columns, and a report is often read in a
+ *  narrow container — a forum channel's post sidebar, a docked window, a phone.
+ *  Proportional text in a ~15-character column wraps in the middle of an
+ *  account name (`Quantumized.58 / 73`), which is what made the plain
+ *  `1. name — value` rows unreadable there.
+ *
+ *  Every multi-row value is therefore a fenced code block: Discord renders it
+ *  monospaced and does not reflow it, so a row either fits or is clipped at
+ *  the column edge, but never wraps into a second ragged line. Names are
+ *  truncated to a fixed width and values are padded to a common width, so the
+ *  numbers line up as a real column at any container size. */
+const BOARD_NAME_WIDTH = 13;
+/** Fences plus the two newlines they sit on. */
+const CODE_FENCE_COST = 8;
+
+const truncateName = (raw: string): string =>
+    raw.length <= BOARD_NAME_WIDTH ? raw : `${raw.slice(0, BOARD_NAME_WIDTH - 1)}…`;
+
+/** Fences `rows`, dropping rows from the tail until the fenced block fits a
+ *  field value. Clamping the fenced string instead would cut off the closing
+ *  fence and leak code-block syntax into the post. */
+const codeBlock = (rows: string[]): string => {
+    const kept = [...rows];
+    while (kept.length > 1 && kept.join('\n').length + CODE_FENCE_COST > DISCORD_FIELD_VALUE_LIMIT) {
+        kept.pop();
+    }
+    return `\`\`\`\n${clampValue(kept.join('\n'))}\n\`\`\``;
+};
+
+/** `label -> value` rows padded into two aligned monospace columns. Shared by
+ *  the KPI fields so squad and enemy read as the same shape side by side. */
+const statRows = (entries: Array<[string, string]>): string[] => {
+    const width = Math.max(...entries.map(([, value]) => value.length));
+    return entries.map(([label, value]) => `${value.padStart(width)}  ${label}`);
+};
+
 const kpiFields = (model: ReportCardModel): DiscordEmbedField[] => [
     {
         name: '⚔️ Squad',
-        value: `${model.squad.kills.toLocaleString('en-US')} kills · ${model.squad.downs.toLocaleString('en-US')} downs\n${model.squad.deaths.toLocaleString('en-US')} deaths\nKDR **${model.squad.kdr}**`,
+        value: codeBlock(
+            statRows([
+                ['kills', model.squad.kills.toLocaleString('en-US')],
+                ['downs', model.squad.downs.toLocaleString('en-US')],
+                ['deaths', model.squad.deaths.toLocaleString('en-US')],
+                ['KDR', model.squad.kdr],
+            ])
+        ),
         inline: true,
     },
     {
         name: '🛡️ Enemy',
-        value: `${model.enemy.kills.toLocaleString('en-US')} kills · ${model.enemy.downs.toLocaleString('en-US')} downs\n${model.enemy.deaths.toLocaleString('en-US')} deaths\nKDR **${model.enemy.kdr}**`,
+        value: codeBlock(
+            statRows([
+                ['kills', model.enemy.kills.toLocaleString('en-US')],
+                ['downs', model.enemy.downs.toLocaleString('en-US')],
+                ['deaths', model.enemy.deaths.toLocaleString('en-US')],
+                ['KDR', model.enemy.kdr],
+            ])
+        ),
         inline: true,
     },
     {
         name: '👥 Size',
-        value: `Squad avg **${model.size.squad}**\nEnemy avg **${model.size.enemy}**`,
+        value: codeBlock(
+            statRows([
+                ['avg squad', String(model.size.squad)],
+                ['avg enemy', String(model.size.enemy)],
+            ])
+        ),
         inline: true,
     },
 ];
 
 const mapField = (model: ReportCardModel): DiscordEmbedField[] => {
     if (model.maps.length === 0) return [];
-    const value = model.maps.map((slice) => `${slice.name} ${slice.value}`).join(' · ');
-    return [{ name: '🗺️ Maps', value: clampValue(value), inline: false }];
+    const width = Math.max(...model.maps.map((slice) => String(slice.value).length));
+    const rows = model.maps.map((slice) => `${String(slice.value).padStart(width)}  ${slice.name}`);
+    return [{ name: '🗺️ Maps', value: codeBlock(rows), inline: false }];
 };
 
 const boardFields = (model: ReportCardModel): DiscordEmbedField[] =>
     model.boards
         .filter((board) => board.leaders.length > 0)
-        .map((board) => ({
-            name: board.label,
-            value: clampValue(
-                board.leaders.map((leader) => `${leader.rank}. ${leader.account} — ${leader.value}`).join('\n')
-            ),
-            inline: true,
-        }));
+        .map((board) => {
+            const leaders = board.leaders.map((leader) => ({
+                rank: String(leader.rank),
+                name: truncateName(leader.account),
+                value: leader.value,
+            }));
+            const nameWidth = Math.max(...leaders.map((leader) => leader.name.length));
+            const valueWidth = Math.max(...leaders.map((leader) => leader.value.length));
+            const rows = leaders.map(
+                (leader) =>
+                    `${leader.rank} ${leader.name.padEnd(nameWidth)} ${leader.value.padStart(valueWidth)}`
+            );
+            return { name: board.label, value: codeBlock(rows), inline: true };
+        });
 
 /** Truncation is deterministic. Required (KPI/map) fields are each tried in
  *  order and skipped individually if they would blow the budget, so one
