@@ -1,6 +1,7 @@
 import path from 'path';
 import { pathToFileURL } from 'url';
 import type { CardBoard, ReportCardModel } from '../shared/reportCardModel';
+import type { ReportPostStyle } from '../shared/reportWebhooks';
 import { PROFESSION_COLORS, getProfessionAbbrev } from '../shared/professionUtils';
 
 /** Allow-list of profession names that have a real file in
@@ -14,7 +15,7 @@ import { PROFESSION_COLORS, getProfessionAbbrev } from '../shared/professionUtil
  *  loaded into the capture window. */
 const KNOWN_PROFESSIONS = new Set(Object.keys(PROFESSION_COLORS).filter((key) => key !== 'Unknown'));
 
-export type ReportCardVariant = 'hybrid' | 'graphic';
+export type ReportCardVariant = Exclude<ReportPostStyle, 'text'>;
 
 export interface ReportCardAssets {
     fontDir: string;

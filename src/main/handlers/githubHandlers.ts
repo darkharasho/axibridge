@@ -2245,17 +2245,23 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const reportWebhooks = selectReportWebhooks(allReportWebhooks, payload.reportWebhookIds);
             if (reportWebhooks.length > 0) {
                 sendWebUploadStatus('Posting', `Posting report link to ${reportWebhooks.length} Discord webhook${reportWebhooks.length === 1 ? '' : 's'}...`, 100);
-                const variants = planReportCardVariants(reportWebhooks);
+                // Render the report card(s) needed for the styles in use. Non-blocking:
+                // a failure here must not abort the publish — the report is already live.
                 const images: Partial<Record<ReportCardVariant, Buffer | null>> = {};
-                if (variants.length > 0) {
-                    sendWebUploadStatus('Posting', 'Rendering report card...', 100);
-                    const cardModel = buildReportCardModel(reportMeta, payload.stats);
-                    for (const variant of variants) {
-                        images[variant] = await renderReportCard(cardModel, variant);
-                        if (!images[variant]) {
-                            sendWebUploadStatus('Warning', `Report card (${variant}) could not be rendered — posting text instead.`, 100);
+                try {
+                    const variants = planReportCardVariants(reportWebhooks);
+                    if (variants.length > 0) {
+                        sendWebUploadStatus('Posting', 'Rendering report card...', 100);
+                        const cardModel = buildReportCardModel(reportMeta, payload.stats);
+                        for (const variant of variants) {
+                            images[variant] = await renderReportCard(cardModel, variant);
+                            if (!images[variant]) {
+                                sendWebUploadStatus('Warning', `Report card (${variant}) could not be rendered — posting text instead.`, 100);
+                            }
                         }
                     }
+                } catch (err) {
+                    log.warn('[Main] Failed to render report card (non-blocking):', err);
                 }
                 webhookResults = await postReportToWebhooks({
                     webhooks: reportWebhooks,
