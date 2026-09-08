@@ -110,12 +110,14 @@ export const resolveCleanseTotal = (row: any, scope: CleanseScope): number => {
     if (scope === 'squad') return squad;
     const all = squad + (totals?.condiCleanseSelf || 0);
     if (scope === 'all') return all;
-    // Prefer axilog's arcdps-methodology counters. Base bucket plus the "vs
-    // npcs" bucket — see `getPlayerCleansesArcdps` for why that pairing and
-    // not the other toggle. Fall back to the legacy minion approximation for
-    // rows aggregated before those counters existed.
+    // Prefer axilog's arcdps-methodology counters — base plus both minion
+    // buckets, see `getPlayerCleansesArcdps` for why all three. Fall back to
+    // the legacy minion approximation for rows aggregated before those
+    // counters existed.
     if ((totals?.condiCleanseArcdpsLogs || 0) > 0) {
-        return (totals?.condiCleanseArcdps || 0) + (totals?.condiCleanseArcdpsOnMinion || 0);
+        return (totals?.condiCleanseArcdps || 0)
+            + (totals?.condiCleanseArcdpsOnMinion || 0)
+            + (totals?.condiCleanseArcdpsByMinion || 0);
     }
     return all + (totals?.condiCleanseMinions || 0);
 };

@@ -85,12 +85,18 @@ describe('cleanse scopes', () => {
         };
 
         it('replaces the legacy sum instead of adding to it', () => {
-            // 430 + 18, NOT 450 + 18 and not 468 + anything.
-            expect(getPlayerCleansesArcdps(arcdps)).toBe(448);
+            // 430 + 7 + 18, NOT 450 + 18 and not 468 + anything.
+            expect(getPlayerCleansesArcdps(arcdps)).toBe(455);
         });
 
-        it('omits the "from npcs" bucket, which needs the other meter toggle', () => {
-            expect(getPlayerCleansesArcdps(arcdps)).not.toBe(455);
+        // A ranger pet is the only minion that cleanses in volume, so dropping
+        // the "from npcs" bucket read correctly for every profession EXCEPT
+        // druid, where it lost ~30-40% of the total. Reported from the field
+        // with arcdps screenshots; both meter toggles are on in practice.
+        it('includes the "from npcs" bucket — pets cleanse for their master', () => {
+            expect(getPlayerCleansesArcdps(arcdps)).toBe(430 + 7 + 18);
+            const petless = { support: [{ ...arcdps.support[0], condiCleanseArcdpsByMinion: 0 }] } as any;
+            expect(getPlayerCleansesArcdps(petless)).toBe(448);
         });
 
         it('leaves the Elite Insights number untouched', () => {
@@ -116,6 +122,7 @@ describe('cleanse scopes', () => {
                     condiCleanseSelf: 50,
                     condiCleanseMinions: 18,
                     condiCleanseArcdps: 430,
+                    condiCleanseArcdpsByMinion: 7,
                     condiCleanseArcdpsOnMinion: 18,
                     condiCleanseArcdpsLogs: 3
                 },
@@ -123,7 +130,13 @@ describe('cleanse scopes', () => {
             };
 
             it('prefers the methodology counters for the arcdps scope', () => {
-                expect(resolveCleanseTotal(row, 'arcdps')).toBe(448);
+                expect(resolveCleanseTotal(row, 'arcdps')).toBe(455);
+            });
+
+            // Same pet gap as the per-player getter, one aggregation layer up.
+            it('carries the "from npcs" bucket through aggregation', () => {
+                const noPet = { ...row, supportTotals: { ...row.supportTotals, condiCleanseArcdpsByMinion: 0 } };
+                expect(resolveCleanseTotal(noPet, 'arcdps')).toBe(448);
             });
 
             it('does not disturb the other two scopes', () => {

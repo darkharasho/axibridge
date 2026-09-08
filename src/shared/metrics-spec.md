@@ -93,7 +93,24 @@ Implementation: `src/shared/combatMetrics.ts` (computeIncomingDisruptions).
 
 Implementation: `src/shared/dashboardMetrics.ts` (getPlayerCleanses).
 
-UI note: the Support table can display either **All** (condiCleanse + condiCleanseSelf) or **Squad** (condiCleanse only) via the cleanse-scope toggle. Discord and top summaries use **All**.
+UI note: the Support table's cleanse-scope toggle picks one of three totals:
+
+- **Squad** — `condiCleanse` only.
+- **All** — `condiCleanse + condiCleanseSelf` (EI parity).
+- **arcdps** — what the in-game meter shows. Not an adjustment on top of EI:
+  axilog counts this with a transcription of the meter's own source, and the
+  displayed total is the sum of all three of its buckets,
+  `condiCleanseArcdps + condiCleanseArcdpsOnMinion + condiCleanseArcdpsByMinion`
+  (base, "vs npcs", "from npcs"). Older logs answer it the legacy way, EI parity
+  plus `condiCleanseMinions`, which gets the population right but not arcdps'
+  exclusions and reads a few percent high.
+
+  The `ByMinion` bucket is cleanses performed **by** the player's own pet or
+  minion. Omitting it matches every profession except druid, whose pet cleanses
+  in volume — a cleanse gap confined to one profession is a minion-population
+  gap, not a methodology gap.
+
+Discord and top summaries use **arcdps** (`getPlayerCleansesArcdps`).
 
 ## Strips
 

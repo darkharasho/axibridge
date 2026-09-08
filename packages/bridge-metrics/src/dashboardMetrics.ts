@@ -34,13 +34,18 @@ export const hasArcdpsCleanseData = (player: Player): boolean =>
 
 // Matches what the in-game arcdps meter reports, in three tiers of fidelity:
 //
-//  1. axilog's arcdps-methodology counters, when present. Base bucket plus the
-//     "vs npcs" bucket — cleanses performed ON a minion. That combination is what
-//     the field reports we calibrated against actually showed; the meter's own
-//     default window inclusions decide this, so it is an empirical match rather
-//     than a derived one. The "from npcs" bucket is deliberately NOT added: it
-//     needs the other toggle, and adding both would double-count neither but
-//     over-report against the windows users described.
+//  1. axilog's arcdps-methodology counters, when present. All three buckets:
+//     the base, "vs npcs" (cleanses performed ON a minion) and "from npcs"
+//     (cleanses performed BY this player's minion). The meter's own window
+//     inclusions decide this, so it is an empirical match rather than a derived
+//     one — and the field reports we calibrated against have both toggles on.
+//
+//     "from npcs" was originally left out, which read correctly for every
+//     profession that has no cleansing minion — i.e. all of them but one. A
+//     ranger pet cleanses in volume, so druids alone came in 30-40% under the
+//     in-game meter while every other class matched exactly. That is the
+//     signature to watch for if this pairing is ever revisited: a gap confined
+//     to one profession is a minion-population gap, not a methodology gap.
 //  2. Otherwise EI parity plus `condiCleanseMinions`, the older approximation.
 //     Right population, wrong exclusions — reads a few percent high.
 //  3. Otherwise plain EI parity.
@@ -51,7 +56,9 @@ export const hasArcdpsCleanseData = (player: Player): boolean =>
 export const getPlayerCleansesArcdps = (player: Player): number => {
     const support = player.support?.[0] as any;
     if (support != null && 'condiCleanseArcdps' in support) {
-        return (support.condiCleanseArcdps || 0) + (support.condiCleanseArcdpsOnMinion || 0);
+        return (support.condiCleanseArcdps || 0)
+            + (support.condiCleanseArcdpsOnMinion || 0)
+            + (support.condiCleanseArcdpsByMinion || 0);
     }
     return getPlayerCleanses(player) + (support?.condiCleanseMinions || 0);
 };
