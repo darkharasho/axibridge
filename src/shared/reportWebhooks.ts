@@ -1,3 +1,14 @@
+export type ReportPostStyle = 'text' | 'hybrid' | 'graphic';
+
+export const REPORT_POST_STYLES: readonly ReportPostStyle[] = ['text', 'hybrid', 'graphic'];
+
+export const DEFAULT_REPORT_POST_STYLE: ReportPostStyle = 'text';
+
+/** Webhooks persisted before this field existed have no `style`, and the store
+ *  is written raw with no normalizer — so every read site coerces here. */
+export const coerceReportPostStyle = (raw: unknown): ReportPostStyle =>
+    raw === 'hybrid' || raw === 'graphic' ? raw : DEFAULT_REPORT_POST_STYLE;
+
 export interface IReportWebhook {
     id: string;
     name: string;
@@ -6,6 +17,7 @@ export interface IReportWebhook {
     isForum: boolean;
     titleTemplate: string;
     forumTagIds?: string;
+    style?: ReportPostStyle;
 }
 
 /** Discord allows at most 5 tags on a forum post. The parser itself does not
@@ -30,6 +42,7 @@ export const makeDefaultReportWebhook = (id: string): IReportWebhook => ({
     isForum: false,
     titleTemplate: DEFAULT_REPORT_TITLE_TEMPLATE,
     forumTagIds: '',
+    style: DEFAULT_REPORT_POST_STYLE,
 });
 
 export interface ReportTitleContext {
