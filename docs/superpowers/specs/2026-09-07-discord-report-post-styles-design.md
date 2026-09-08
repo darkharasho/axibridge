@@ -79,7 +79,7 @@ Two alternatives were considered and rejected:
 
 The window approach adds no dependencies, keeps layout in CSS (which is cheap
 to iterate on, and lets the design mocks become the template nearly verbatim),
-and loads class icons over `file://`. `BrowserWindow` is already constructed
+and inlines class icons as `data:` URIs. `BrowserWindow` is already constructed
 in main (`src/main/handlers/settingsHandlers.ts:344`), so a hidden window is
 not a new pattern.
 
@@ -155,7 +155,11 @@ optional image buffer parameter. It never learns how to draw one.
 
 ## Fonts and assets
 
-Inter ships as a local `woff2`, `@font-face`d from `file://` in the template.
+Inter ships as a local `woff2`, read from disk and `@font-face`d as a base64
+`data:` URI in the template. A `data:text/html` document has an opaque origin,
+so Chromium refuses every `file://` subresource it references — the font and
+icons must be inlined, not linked, or they silently fail to load on every
+render while the capture still succeeds.
 The app currently pulls Inter and Cinzel from Google Fonts at runtime
 (`src/renderer/index.css:1`); reusing that inside the capture would mean the
 card either races the network or silently renders in a fallback face when
