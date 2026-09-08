@@ -392,6 +392,78 @@ describe('postReportToWebhooks with an image', () => {
         expect((call[1] as RequestInit).headers).toEqual({ 'Content-Type': 'application/json' });
     });
 
+    it('retries without the image when Discord rejects the attachment as too large', async () => {
+        const fetchImpl = vi.fn()
+            .mockResolvedValueOnce(errorResponse(413, '{"message": "Request entity too large", "code": 40005}'))
+            .mockResolvedValueOnce(okResponse);
+        const onStatus = vi.fn();
+        const results = await postReportToWebhooks({
+            webhooks: [hook({ style: 'graphic' })],
+            meta, stats, url: 'u', fetchImpl, onStatus,
+            images: { graphic: png() },
+        });
+        // The report link is the load-bearing part: a rejected card must still
+        // land as a text post, reported as success with a warning.
+        expect(results[0].ok).toBe(true);
+        expect(fetchImpl).toHaveBeenCalledTimes(2);
+        const retry = (fetchImpl.mock.calls[1] as any[])[1] as RequestInit;
+        expect(retry.headers).toEqual({ 'Content-Type': 'application/json' });
+        const body = JSON.parse(retry.body as string);
+        expect(body.embeds[0].image).toBeUndefined();
+        expect(body.embeds[0].fields.length).toBeGreaterThan(0);
+        expect(onStatus).toHaveBeenCalledWith(expect.stringContaining('without the card image'), true);
+    });
+
+    it('retries without the image when payload_json is rejected', async () => {
+        const fetchImpl = vi.fn()
+            .mockResolvedValueOnce(errorResponse(400, '{"payload_json": ["Invalid form body"]}'))
+            .mockResolvedValueOnce(okResponse);
+        const results = await postReportToWebhooks({
+            webhooks: [hook({ style: 'hybrid' })],
+            meta, stats, url: 'u', fetchImpl,
+            images: { hybrid: png() },
+        });
+        expect(results[0].ok).toBe(true);
+        expect((fetchImpl.mock.calls[1] as any[])[1].headers).toEqual({ 'Content-Type': 'application/json' });
+    });
+
+    it('retries without the image when the multipart post throws (abort/network)', async () => {
+        const abort = Object.assign(new Error('The operation was aborted'), { name: 'AbortError' });
+        const fetchImpl = vi.fn()
+            .mockRejectedValueOnce(abort)
+            .mockResolvedValueOnce(okResponse);
+        const results = await postReportToWebhooks({
+            webhooks: [hook({ style: 'graphic' })],
+            meta, stats, url: 'u', fetchImpl,
+            images: { graphic: png() },
+        });
+        expect(results[0].ok).toBe(true);
+        expect(fetchImpl).toHaveBeenCalledTimes(2);
+        expect((fetchImpl.mock.calls[1] as any[])[1].headers).toEqual({ 'Content-Type': 'application/json' });
+    });
+
+    it('reports failure when even the imageless retry fails', async () => {
+        const fetchImpl = vi.fn(async () => errorResponse(500, 'boom'));
+        const results = await postReportToWebhooks({
+            webhooks: [hook({ style: 'graphic' })],
+            meta, stats, url: 'u', fetchImpl,
+            images: { graphic: png() },
+        });
+        expect(results[0].ok).toBe(false);
+        expect(results[0].error).toContain('500');
+        expect(fetchImpl).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not retry a text-style post a second time', async () => {
+        const fetchImpl = vi.fn(async () => errorResponse(500, 'boom'));
+        const results = await postReportToWebhooks({
+            webhooks: [hook({ style: 'text' })],
+            meta, stats, url: 'u', fetchImpl,
+        });
+        expect(results[0].ok).toBe(false);
+        expect(fetchImpl).toHaveBeenCalledTimes(1);
+    });
+
     it('ignores an image when the hook style is text', async () => {
         const fetchImpl = vi.fn(async () => okResponse);
         await postReportToWebhooks({

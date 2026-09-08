@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { buildReportCardModel } from '../../shared/reportCardModel';
-import { renderReportCardHtml, REPORT_CARD_SIZES, resolveReportCardAssets } from '../reportCardTemplate';
+import {
+    collectCardProfessions,
+    renderReportCardHtml,
+    REPORT_CARD_SIZES,
+    type ReportCardAssets,
+} from '../reportCardTemplate';
 
 const model = buildReportCardModel(
     { dateLabel: 'Saturday, September 7, 2026', guild: { id: 'G', name: 'Axius Imperium', tag: 'AXI' } },
@@ -22,13 +27,34 @@ const model = buildReportCardModel(
     }
 );
 
-const assets = resolveReportCardAssets('/app/public');
+// The template is pure: it only ever sees pre-encoded `data:` URIs. Reading the
+// real files is `reportCardAssets`' job and is covered in its own suite.
+const FONT_URI = 'data:font/woff2;base64,d09GMgABAAAA';
+const PNG_URI = (seed: string) => `data:image/png;base64,${Buffer.from(seed).toString('base64')}`;
 
-describe('resolveReportCardAssets', () => {
-    it('derives font, icon, and glyph paths from the public dir', () => {
-        expect(assets.fontDir).toContain('fonts');
-        expect(assets.iconDir).toContain('class-icons');
-        expect(assets.glyphPath).toContain('AxiBridge-glyph.png');
+const assets: ReportCardAssets = {
+    fontDataUri: FONT_URI,
+    iconDataUris: { Firebrand: PNG_URI('firebrand'), Druid: PNG_URI('druid') },
+    glyphDataUri: PNG_URI('glyph'),
+};
+const emptyAssets: ReportCardAssets = { fontDataUri: null, iconDataUris: {}, glyphDataUri: null };
+
+describe('collectCardProfessions', () => {
+    it('lists the allow-listed professions the graphic card will draw', () => {
+        expect(collectCardProfessions(model, 'graphic').sort()).toEqual(['Druid', 'Firebrand']);
+    });
+
+    it('asks for nothing on the hybrid card, which draws no chips', () => {
+        expect(collectCardProfessions(model, 'hybrid')).toEqual([]);
+    });
+
+    it('never emits a profession outside the allow-list', () => {
+        const evil = buildReportCardModel({}, {
+            leaderboards: {
+                damage: [{ rank: 1, account: 'A.1234', profession: '../../../../etc/passwd', value: 1 }],
+            },
+        });
+        expect(collectCardProfessions(evil, 'graphic')).toEqual([]);
     });
 });
 
@@ -41,12 +67,43 @@ describe('renderReportCardHtml', () => {
         expect(html).toContain('AXI');
     });
 
-    it('declares local @font-face rules and no remote font fetch', () => {
+    it('inlines the font as a data: URI rather than referencing it', () => {
         const html = renderReportCardHtml(model, 'hybrid', assets);
         expect(html).toContain('@font-face');
-        expect(html).toContain('InterVariable.woff2');
+        expect(html).toContain(`url('${FONT_URI}')`);
         expect(html).not.toContain('fonts.googleapis.com');
         expect(html).not.toContain('http://');
+    });
+
+    // The card document is loaded from a `data:` URL, whose opaque origin makes
+    // Chromium refuse every `file://` subresource. A single `file://` here means
+    // a missing font or a missing icon on every render, on every platform — and
+    // the capture still succeeds, so nothing else catches it.
+    it.each(['hybrid', 'graphic'] as const)('emits no file:// subresource at all (%s)', (variant) => {
+        const html = renderReportCardHtml(model, variant, assets);
+        expect(html).not.toContain('file://');
+        for (const match of html.matchAll(/(?:src="|url\(')([^"')]+)/g)) {
+            expect(match[1]).toMatch(/^data:(?:image\/png|font\/woff2);base64,/);
+        }
+    });
+
+    it('drops the @font-face entirely when the woff2 could not be read', () => {
+        const html = renderReportCardHtml(model, 'hybrid', emptyAssets);
+        expect(html).not.toContain('@font-face');
+        expect(html).toContain('sans-serif');
+    });
+
+    it('rejects an asset URI that is not a base64 image/font data URI', () => {
+        const hostile: ReportCardAssets = {
+            fontDataUri: 'https://evil.example/x.woff2',
+            iconDataUris: { Firebrand: 'javascript:alert(1)' },
+            glyphDataUri: 'file:///etc/passwd',
+        };
+        const html = renderReportCardHtml(model, 'graphic', hostile);
+        expect(html).not.toContain('evil.example');
+        expect(html).not.toContain('javascript:');
+        expect(html).not.toContain('/etc/passwd');
+        expect(html).toContain('chipabbrev');
     });
 
     it('draws one map segment per map with its color', () => {
@@ -64,10 +121,24 @@ describe('renderReportCardHtml', () => {
         expect(hybrid).not.toContain('Harasho.1234');
     });
 
-    it('references class icons with object-fit contain', () => {
+    it('inlines class icons as data: PNGs with object-fit contain', () => {
         const html = renderReportCardHtml(model, 'graphic', assets);
-        expect(html).toContain('Firebrand.png');
+        expect(html).toContain(`<img src="${PNG_URI('firebrand')}"`);
+        expect(html).toContain('data:image/png;base64,');
         expect(html).toContain('object-fit: contain');
+    });
+
+    it('inlines the footer glyph, and omits it when unreadable', () => {
+        expect(renderReportCardHtml(model, 'hybrid', assets)).toContain(`<img src="${PNG_URI('glyph')}"`);
+        const bare = renderReportCardHtml(model, 'hybrid', emptyAssets);
+        expect(bare).toContain('class="foot"');
+        expect(bare).not.toContain('<img');
+    });
+
+    it('degrades a known profession with an unreadable icon to the text abbreviation', () => {
+        const html = renderReportCardHtml(model, 'graphic', { ...assets, iconDataUris: {} });
+        expect(html).toContain('chipabbrev');
+        expect(html).not.toContain('data:image/png;base64,' + Buffer.from('firebrand').toString('base64'));
     });
 
     it('escapes account names so a crafted name cannot inject markup', () => {
@@ -84,6 +155,7 @@ describe('renderReportCardHtml', () => {
         const empty = buildReportCardModel({}, {});
         expect(() => renderReportCardHtml(empty, 'graphic', assets)).not.toThrow();
         expect(() => renderReportCardHtml(empty, 'hybrid', assets)).not.toThrow();
+        expect(() => renderReportCardHtml(empty, 'graphic', emptyAssets)).not.toThrow();
     });
 
     it('exposes 2x sizes for both variants', () => {
@@ -98,7 +170,7 @@ describe('renderReportCardHtml', () => {
         expect(html).not.toContain('https://fonts.gstatic.com');
     });
 
-    it('does not resolve a path-traversal profession into a file:// src outside iconDir', () => {
+    it('does not resolve a path-traversal profession into an icon src', () => {
         const evil = buildReportCardModel({}, {
             leaderboards: {
                 damage: [{ rank: 1, account: 'A.1234', profession: '../../../../etc/passwd', value: 1 }],

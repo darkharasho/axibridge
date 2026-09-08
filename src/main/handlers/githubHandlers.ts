@@ -2248,33 +2248,43 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 // Render the report card(s) needed for the styles in use. Non-blocking:
                 // a failure here must not abort the publish — the report is already live.
                 const images: Partial<Record<ReportCardVariant, Buffer | null>> = {};
-                try {
-                    const variants = planReportCardVariants(reportWebhooks);
-                    if (variants.length > 0) {
-                        sendWebUploadStatus('Posting', 'Rendering report card...', 100);
-                        const cardModel = buildReportCardModel(reportMeta, payload.stats);
-                        for (const variant of variants) {
-                            images[variant] = await renderReportCard(cardModel, variant);
-                            if (!images[variant]) {
-                                sendWebUploadStatus('Warning', `Report card (${variant}) could not be rendered — posting text instead.`, 100);
-                            }
-                        }
-                    }
-                } catch (err) {
-                    log.warn('[Main] Failed to render report card (non-blocking):', err);
+                const variants = planReportCardVariants(reportWebhooks);
+                if (variants.length > 0) {
+                    sendWebUploadStatus('Posting', 'Rendering report card...', 100);
                 }
-                webhookResults = await postReportToWebhooks({
-                    webhooks: reportWebhooks,
-                    meta: reportMeta,
-                    stats: payload.stats,
-                    url: reportUrl,
-                    onStatus: (line: string, isWarn?: boolean) => sendWebUploadStatus(isWarn ? 'Warning' : 'Posting', line, 100),
-                    persistForumFlag: (id: string, isForum: boolean) => {
-                        const current = store.get('reportWebhooks', []) as IReportWebhook[];
-                        store.set('reportWebhooks', current.map((hook) => (hook.id === id ? { ...hook, isForum } : hook)));
-                    },
-                    images,
-                });
+                for (const variant of variants) {
+                    // Per variant, not per loop: a throw while rendering one
+                    // style must not deny the other style's hooks their card.
+                    try {
+                        const cardModel = buildReportCardModel(reportMeta, payload.stats);
+                        images[variant] = await renderReportCard(cardModel, variant);
+                    } catch (err) {
+                        log.warn(`[Main] Failed to render report card (${variant}) (non-blocking):`, err);
+                    }
+                    if (!images[variant]) {
+                        sendWebUploadStatus('Warning', `Report card (${variant}) could not be rendered — posting text instead.`, 100);
+                    }
+                }
+                // Non-blocking: the report is already live on Pages, so a throw
+                // in the posting path (model build, meta coercion, or any hook)
+                // must not turn this publish into a failure for the renderer.
+                try {
+                    webhookResults = await postReportToWebhooks({
+                        webhooks: reportWebhooks,
+                        meta: reportMeta,
+                        stats: payload.stats,
+                        url: reportUrl,
+                        onStatus: (line: string, isWarn?: boolean) => sendWebUploadStatus(isWarn ? 'Warning' : 'Posting', line, 100),
+                        persistForumFlag: (id: string, isForum: boolean) => {
+                            const current = store.get('reportWebhooks', []) as IReportWebhook[];
+                            store.set('reportWebhooks', current.map((hook) => (hook.id === id ? { ...hook, isForum } : hook)));
+                        },
+                        images,
+                    });
+                } catch (err) {
+                    log.warn('[Main] Failed to post report to webhooks (non-blocking):', err);
+                    sendWebUploadStatus('Warning', 'Could not post the report link to Discord.', 100);
+                }
             }
             return { success: true, url: reportUrl, replayDataUrl: replayDataUrl ?? null, webhookResults };
         } catch (err: any) {
