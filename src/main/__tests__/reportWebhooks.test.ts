@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { buildReportSummaryLine, postReportToWebhooks } from '../reportWebhooks';
 import { makeDefaultReportWebhook } from '../../shared/reportWebhooks';
+import { REPORT_CARD_FILENAME } from '../reportEmbed';
 
 const hook = (over: Partial<ReturnType<typeof makeDefaultReportWebhook>> = {}) => ({
     ...makeDefaultReportWebhook('h1'),
@@ -286,5 +287,119 @@ describe('postReportToWebhooks', () => {
         expect(retryBody.thread_name).toBeUndefined();
         expect(retryBody.applied_tags).toBeUndefined();
         expect(persistForumFlag).toHaveBeenCalledWith('h1', false);
+    });
+});
+
+const readFormBody = async (call: any[]) => {
+    const form = (call[1] as RequestInit).body as FormData;
+    const payload = JSON.parse(form.get('payload_json') as string);
+    const file = form.get('files[0]') as Blob & { name?: string };
+    return { form, payload, file };
+};
+
+const png = () => Buffer.from('fake-png-bytes');
+
+// TAG_A in the existing suite is scoped to its own describe block, so the
+// multipart suite declares its own.
+const IMG_TAG = '111111111111111111';
+
+describe('postReportToWebhooks with an image', () => {
+    it('posts multipart with payload_json and the card file', async () => {
+        const fetchImpl = vi.fn(async () => okResponse);
+        await postReportToWebhooks({
+            webhooks: [hook({ style: 'graphic' })],
+            meta, stats, url: 'u', fetchImpl,
+            images: { graphic: png() },
+        });
+        const call = fetchImpl.mock.calls[0] as any[];
+        expect((call[1] as RequestInit).headers).toBeUndefined();
+        const { payload, file } = await readFormBody(call);
+        expect(payload.username).toBe('AxiBridge');
+        expect(payload.embeds[0].image.url).toBe(`attachment://${REPORT_CARD_FILENAME}`);
+        expect(file).toBeInstanceOf(Blob);
+        expect((file as any).name ?? REPORT_CARD_FILENAME).toBe(REPORT_CARD_FILENAME);
+    });
+
+    it('puts thread_name and applied_tags inside payload_json for forums', async () => {
+        const fetchImpl = vi.fn(async () => okResponse);
+        await postReportToWebhooks({
+            webhooks: [hook({ style: 'hybrid', isForum: true, forumTagIds: IMG_TAG })],
+            meta, stats, url: 'u', fetchImpl,
+            images: { hybrid: png() },
+        });
+        const { form, payload } = await readFormBody(fetchImpl.mock.calls[0] as any[]);
+        expect(payload.thread_name).toBe('Axi Vale');
+        expect(payload.applied_tags).toEqual([IMG_TAG]);
+        expect(form.get('thread_name')).toBeNull();
+    });
+
+    it('self-heals the forum flag on the multipart path with a fresh body each attempt', async () => {
+        const fetchImpl = vi.fn()
+            .mockResolvedValueOnce(errorResponse(400, '{"message": "Webhooks posted to forum channels must have a thread_name or thread_id"}'))
+            .mockResolvedValueOnce(okResponse);
+        const persistForumFlag = vi.fn();
+        const results = await postReportToWebhooks({
+            webhooks: [hook({ style: 'graphic', isForum: false })],
+            meta, stats, url: 'u', fetchImpl, persistForumFlag,
+            images: { graphic: png() },
+        });
+        expect(results[0].ok).toBe(true);
+        expect(fetchImpl).toHaveBeenCalledTimes(2);
+        const first = (fetchImpl.mock.calls[0] as any[])[1].body;
+        const second = (fetchImpl.mock.calls[1] as any[])[1].body;
+        expect(first).not.toBe(second);
+        const { payload } = await readFormBody(fetchImpl.mock.calls[1] as any[]);
+        expect(payload.thread_name).toBe('Axi Vale');
+        expect(persistForumFlag).toHaveBeenCalledWith('h1', true);
+    });
+
+    it('drops applied_tags on a tag 400 over multipart', async () => {
+        const fetchImpl = vi.fn()
+            .mockResolvedValueOnce(errorResponse(400, '{"applied_tags": ["Unknown tag"]}'))
+            .mockResolvedValueOnce(okResponse);
+        const results = await postReportToWebhooks({
+            webhooks: [hook({ style: 'graphic', isForum: true, forumTagIds: IMG_TAG })],
+            meta, stats, url: 'u', fetchImpl,
+            images: { graphic: png() },
+        });
+        expect(results[0].ok).toBe(true);
+        const { payload } = await readFormBody(fetchImpl.mock.calls[1] as any[]);
+        expect(payload.applied_tags).toBeUndefined();
+    });
+
+    it('falls back to a JSON text post when the card is missing', async () => {
+        const fetchImpl = vi.fn(async () => okResponse);
+        await postReportToWebhooks({
+            webhooks: [hook({ style: 'graphic' })],
+            meta, stats, url: 'u', fetchImpl,
+            images: { graphic: null },
+        });
+        const call = fetchImpl.mock.calls[0] as any[];
+        expect((call[1] as RequestInit).headers).toEqual({ 'Content-Type': 'application/json' });
+        const body = JSON.parse((call[1] as RequestInit).body as string);
+        expect(body.embeds[0].image).toBeUndefined();
+        expect(body.embeds[0].fields.length).toBeGreaterThan(0);
+    });
+
+    it('falls back to text when the card exceeds the attachment ceiling', async () => {
+        const fetchImpl = vi.fn(async () => okResponse);
+        await postReportToWebhooks({
+            webhooks: [hook({ style: 'graphic' })],
+            meta, stats, url: 'u', fetchImpl,
+            images: { graphic: Buffer.alloc(9 * 1024 * 1024) },
+        });
+        const call = fetchImpl.mock.calls[0] as any[];
+        expect((call[1] as RequestInit).headers).toEqual({ 'Content-Type': 'application/json' });
+    });
+
+    it('ignores an image when the hook style is text', async () => {
+        const fetchImpl = vi.fn(async () => okResponse);
+        await postReportToWebhooks({
+            webhooks: [hook({ style: 'text' })],
+            meta, stats, url: 'u', fetchImpl,
+            images: { hybrid: png(), graphic: png() },
+        });
+        const call = fetchImpl.mock.calls[0] as any[];
+        expect((call[1] as RequestInit).headers).toEqual({ 'Content-Type': 'application/json' });
     });
 });

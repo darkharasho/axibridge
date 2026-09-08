@@ -1,7 +1,7 @@
-import { coerceReportPostStyle, IReportWebhook, MAX_FORUM_POST_TAGS, parseForumTagIds, renderReportTitle } from '../shared/reportWebhooks';
+import { coerceReportPostStyle, IReportWebhook, MAX_FORUM_POST_TAGS, parseForumTagIds, renderReportTitle, type ReportPostStyle } from '../shared/reportWebhooks';
 import { buildReportCardModel } from '../shared/reportCardModel';
 import { DISCORD_WEBHOOK_AVATAR_URL } from './discord';
-import { buildReportEmbed } from './reportEmbed';
+import { buildReportEmbed, REPORT_CARD_FILENAME } from './reportEmbed';
 
 export interface ReportWebhookPostResult {
     id: string;
@@ -11,6 +11,10 @@ export interface ReportWebhookPostResult {
 }
 
 const POST_TIMEOUT_MS = 10_000;
+const IMAGE_POST_TIMEOUT_MS = 30_000;
+/** Conservative ceiling under Discord's attachment limit. An oversized card
+ *  degrades to text before we send, rather than after a doomed upload. */
+const MAX_CARD_BYTES = 7 * 1024 * 1024;
 
 export const buildReportSummaryLine = (stats: any): string => {
     const parts: string[] = [];
@@ -38,6 +42,9 @@ export async function postReportToWebhooks(opts: {
     onStatus?: (line: string, isWarn?: boolean) => void;
     persistForumFlag?: (id: string, isForum: boolean) => void;
     fetchImpl?: typeof fetch;
+    /** Rendered card keyed by style. A missing or null entry means the hook's
+     *  style degrades to text for that post. */
+    images?: Partial<Record<ReportPostStyle, Buffer | null>>;
 }): Promise<ReportWebhookPostResult[]> {
     const doFetch = opts.fetchImpl || fetch;
     const results: ReportWebhookPostResult[] = [];
@@ -58,25 +65,51 @@ export async function postReportToWebhooks(opts: {
         let embed: any;
         const tagIds = parseForumTagIds(hook.forumTagIds).slice(0, MAX_FORUM_POST_TAGS);
 
+        const style = coerceReportPostStyle(hook.style);
+        const candidate = style === 'text' ? null : (opts.images?.[style] ?? null);
+        const image = candidate && candidate.byteLength > 0 && candidate.byteLength <= MAX_CARD_BYTES
+            ? candidate
+            : null;
+
         const post = async (withThreadName: boolean, withTags: boolean) => {
-            const body: any = {
+            const payload: any = {
                 username: 'AxiBridge',
                 avatar_url: DISCORD_WEBHOOK_AVATAR_URL,
                 embeds: [embed],
             };
             if (withThreadName) {
-                body.thread_name = title.slice(0, 100);
-                if (withTags && tagIds.length > 0) body.applied_tags = tagIds;
+                payload.thread_name = title.slice(0, 100);
+                if (withTags && tagIds.length > 0) payload.applied_tags = tagIds;
             }
             const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), POST_TIMEOUT_MS);
+            const timer = setTimeout(() => controller.abort(), image ? IMAGE_POST_TIMEOUT_MS : POST_TIMEOUT_MS);
             try {
-                const resp = await doFetch(hook.url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body),
-                    signal: controller.signal,
-                });
+                // A fresh body per attempt: the self-heal retries call post()
+                // again, and a FormData whose stream has already been consumed
+                // would fail in a way that looks like a Discord error.
+                const init: RequestInit = image
+                    ? {
+                        method: 'POST',
+                        // No Content-Type — fetch must write the multipart boundary itself.
+                        body: (() => {
+                            const form = new FormData();
+                            form.set('payload_json', JSON.stringify(payload));
+                            form.set(
+                                'files[0]',
+                                new Blob([new Uint8Array(image)], { type: 'image/png' }),
+                                REPORT_CARD_FILENAME
+                            );
+                            return form;
+                        })(),
+                        signal: controller.signal,
+                    }
+                    : {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                        signal: controller.signal,
+                    };
+                const resp = await doFetch(hook.url, init);
                 const text = resp.ok ? '' : await resp.text().catch(() => '');
                 return { ok: resp.ok, status: resp.status, text };
             } finally {
@@ -89,10 +122,10 @@ export async function postReportToWebhooks(opts: {
             title = renderReportTitle(hook.titleTemplate, ctx);
             embed = buildReportEmbed({
                 model,
-                style: coerceReportPostStyle(hook.style),
+                style,
                 title,
                 url: opts.url,
-                hasImage: false,
+                hasImage: image !== null,
             });
 
             let usedForum = hook.isForum;
