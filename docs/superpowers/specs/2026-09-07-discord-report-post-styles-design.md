@@ -1,7 +1,7 @@
 # Discord report post styles
 
 Date: 2026-09-07
-Status: design, awaiting review
+Status: implemented
 
 ## Problem
 
@@ -55,6 +55,8 @@ never tune — and a fixed list is what lets `buildReportEmbed` guarantee the
 field and character budgets instead of validating every combination a user
 can produce. Toggles are additive later, once it is clear which boards people
 actually ask for.
+
+`stability` maps to `s.stab`, a summed stability-generation value — it is formatted as a compact number, not a percentage. `closestToTag` is an average distance in inches.
 
 ## Rendering approach
 
@@ -161,10 +163,7 @@ someone is offline. Unlike the app UI, this artifact gets posted publicly and
 cannot be re-rendered. One subset file makes the output identical on every
 machine.
 
-Class icons and the AxiBridge glyph resolve from the built renderer output
-(`dist-react/img/...`) over `file://`, with a dev-mode branch to `public/`. An
-icon that fails to resolve degrades to a text abbreviation rather than a
-broken-image box.
+Class icons and the AxiBridge glyph resolve under `process.env.VITE_PUBLIC` (`src/main/index.ts:250`), which already points at `dist-react` when packaged and `public` in dev. An icon that fails to resolve degrades to a text abbreviation rather than a broken-image box.
 
 ## Posting
 
@@ -224,8 +223,7 @@ three-way picker (Text / Banner + stats / Full graphic) with a one-line
 description each. `makeDefaultReportWebhook` gains `style: 'text'`.
 
 Persisted hooks predate the field, so the reader coerces anything missing or
-unrecognized to `'text'`. That coercion belongs in the same normalizer the
-existing fields use, not scattered `?? 'text'` at read sites.
+unrecognized to `'text'`. There is no normalizer for report webhooks — `src/main/index.ts:1664` writes the array to the store raw. So `coerceReportPostStyle` is exported from `src/shared/reportWebhooks.ts` and called at each read site: `postReportToWebhooks`, `planReportCardVariants`, and `ReportWebhooksCard`.
 
 ## Testing
 
@@ -249,8 +247,7 @@ Matching the component boundaries.
   image falls back to a text embed and posts.
 - **Template** — the HTML-producing function is snapshot-tested for structure
   and escaping.
-- **Migration** — `settingsMigration.test.ts` covers the missing/unknown
-  `style` coercion.
+- **Coercion** — `src/shared/__tests__/reportWebhooks.test.ts` covers missing, empty, wrong-cased, and non-string `style` values.
 
 `renderReportCard` itself needs a live Electron window and is not unit-tested.
 The Playwright Electron suite can cover "publish produces a non-empty PNG".
