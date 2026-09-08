@@ -15,6 +15,10 @@ import {
 import { parseAttendanceFile, updateAttendanceForPublish, type AttendanceRaid } from '../../web/attendance';
 import { postReportToWebhooks, type ReportWebhookPostResult } from '../reportWebhooks';
 import { type IReportWebhook, selectReportWebhooks } from '../../shared/reportWebhooks';
+import { buildReportCardModel } from '../../shared/reportCardModel';
+import { planReportCardVariants } from '../reportCardRenderPlan';
+import { renderReportCard } from '../reportCardRenderer';
+import type { ReportCardVariant } from '../reportCardTemplate';
 import { resolveGuild } from '../guildDirectory';
 import { type R2Config } from '../cloudflare/r2SigV4';
 import {
@@ -2241,6 +2245,18 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const reportWebhooks = selectReportWebhooks(allReportWebhooks, payload.reportWebhookIds);
             if (reportWebhooks.length > 0) {
                 sendWebUploadStatus('Posting', `Posting report link to ${reportWebhooks.length} Discord webhook${reportWebhooks.length === 1 ? '' : 's'}...`, 100);
+                const variants = planReportCardVariants(reportWebhooks);
+                const images: Partial<Record<ReportCardVariant, Buffer | null>> = {};
+                if (variants.length > 0) {
+                    sendWebUploadStatus('Posting', 'Rendering report card...', 100);
+                    const cardModel = buildReportCardModel(reportMeta, payload.stats);
+                    for (const variant of variants) {
+                        images[variant] = await renderReportCard(cardModel, variant);
+                        if (!images[variant]) {
+                            sendWebUploadStatus('Warning', `Report card (${variant}) could not be rendered — posting text instead.`, 100);
+                        }
+                    }
+                }
                 webhookResults = await postReportToWebhooks({
                     webhooks: reportWebhooks,
                     meta: reportMeta,
@@ -2251,6 +2267,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                         const current = store.get('reportWebhooks', []) as IReportWebhook[];
                         store.set('reportWebhooks', current.map((hook) => (hook.id === id ? { ...hook, isForum } : hook)));
                     },
+                    images,
                 });
             }
             return { success: true, url: reportUrl, replayDataUrl: replayDataUrl ?? null, webhookResults };
