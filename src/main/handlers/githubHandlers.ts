@@ -1,4 +1,4 @@
-import { ipcMain, app, BrowserWindow } from 'electron';
+import { ipcMain, app, BrowserWindow, shell } from 'electron';
 import fs from 'fs';
 import path from 'node:path';
 import https from 'node:https';
@@ -2411,6 +2411,26 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             return { success: true, url: `${baseUrl}/web/?report=${reportMeta.id}` };
         } catch (err: any) {
             return { success: false, error: err?.message || 'Failed to create local web report.' };
+        }
+    });
+
+    ipcMain.handle('preview-report-card', async (_event, payload: { meta: any; stats: any; variant?: 'hybrid' | 'graphic' }) => {
+        if (app.isPackaged) {
+            return { success: false, error: 'Card previews are only available in dev builds.' };
+        }
+        try {
+            const variant = payload?.variant === 'graphic' ? 'graphic' : 'hybrid';
+            const model = buildReportCardModel(payload?.meta || {}, payload?.stats || {});
+            const png = await renderReportCard(model, variant);
+            if (!png) return { success: false, error: 'Card render returned no image.' };
+            const outDir = path.join(app.getPath('userData'), 'card-previews');
+            fs.mkdirSync(outDir, { recursive: true });
+            const filePath = path.join(outDir, `report-card-${variant}.png`);
+            fs.writeFileSync(filePath, png);
+            await shell.openPath(filePath);
+            return { success: true, filePath };
+        } catch (err: any) {
+            return { success: false, error: err?.message || 'Card preview failed.' };
         }
     });
 }
