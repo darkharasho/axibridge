@@ -1,10 +1,11 @@
 import { BrowserWindow } from 'electron';
 import {
     REPORT_CARD_SIZES,
+    collectCardProfessions,
     renderReportCardHtml,
-    resolveReportCardAssets,
     type ReportCardVariant,
 } from './reportCardTemplate';
+import { resolveReportCardAssets } from './reportCardAssets';
 import type { ReportCardModel } from '../shared/reportCardModel';
 
 const RENDER_TIMEOUT_MS = 15_000;
@@ -34,7 +35,11 @@ export async function renderReportCard(
     try {
         const publicDir = process.env.VITE_PUBLIC || '';
         if (!publicDir) return null;
-        const html = renderReportCardHtml(model, variant, resolveReportCardAssets(publicDir));
+        // Assets are inlined as `data:` URIs: this document is loaded from a
+        // `data:` URL, whose opaque origin makes Chromium refuse every
+        // `file://` subresource.
+        const assets = resolveReportCardAssets(publicDir, collectCardProfessions(model, variant));
+        const html = renderReportCardHtml(model, variant, assets);
 
         win = new BrowserWindow({
             width: size.width,

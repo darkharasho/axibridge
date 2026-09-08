@@ -1,5 +1,3 @@
-import path from 'path';
-import { pathToFileURL } from 'url';
 import type { CardBoard, ReportCardModel } from '../shared/reportCardModel';
 import type { ReportPostStyle } from '../shared/reportWebhooks';
 import { PROFESSION_COLORS, getProfessionAbbrev } from '../shared/professionUtils';
@@ -9,18 +7,38 @@ import { PROFESSION_COLORS, getProfessionAbbrev } from '../shared/professionUtil
  *  profession/elite-spec name (plus a synthetic `Unknown` entry we exclude);
  *  it is the same set the rest of the app already trusts for profession
  *  identity. A `profession` string from a leaderboard entry is user/log
- *  controlled — it must never be turned into a filesystem path or `file://`
- *  URL unless it is a member of this set, or a crafted value such as
- *  `../../../../Users/x/secret` would resolve outside `iconDir` and get
- *  loaded into the capture window. */
-const KNOWN_PROFESSIONS = new Set(Object.keys(PROFESSION_COLORS).filter((key) => key !== 'Unknown'));
+ *  controlled — it must never be turned into a filesystem path unless it is a
+ *  member of this set, or a crafted value such as `../../../../Users/x/secret`
+ *  would be read off disk and inlined into the capture window. This module is
+ *  pure (no `fs`, no Electron), so the gate is applied both here — nothing
+ *  outside the set is ever rendered — and again in `resolveReportCardAssets`,
+ *  which is the only place that touches the filesystem. */
+export const KNOWN_PROFESSIONS = new Set(
+    Object.keys(PROFESSION_COLORS).filter((key) => key !== 'Unknown')
+);
 
 export type ReportCardVariant = Exclude<ReportPostStyle, 'text'>;
 
+/** Every asset arrives pre-encoded as a `data:` URI.
+ *
+ *  The card document is loaded via `loadURL('data:text/html,...')`, which gives
+ *  it an opaque origin — Chromium then refuses *every* `file://` subresource
+ *  ("Not allowed to load local resource"), silently dropping the bundled font
+ *  and all icons on every platform. Inlining is the deterministic fix; the
+ *  alternatives (`webSecurity: false`, or switching to `loadFile`) either widen
+ *  the capture window's privileges or add a temp-file lifecycle.
+ *
+ *  A `null`/absent entry means the file was missing or unreadable, and the
+ *  corresponding element degrades (font → system sans, icon → text
+ *  abbreviation, glyph → hidden) instead of throwing. */
 export interface ReportCardAssets {
-    fontDir: string;
-    iconDir: string;
-    glyphPath: string;
+    /** `data:font/woff2;base64,...`, or null when the woff2 is unreadable. */
+    fontDataUri: string | null;
+    /** Profession name → `data:image/png;base64,...`. Only ever populated with
+     *  keys from `KNOWN_PROFESSIONS`. */
+    iconDataUris: Record<string, string>;
+    /** `data:image/png;base64,...` for the footer glyph, or null. */
+    glyphDataUri: string | null;
 }
 
 /** Authored at ~2x Discord's embed image width so the capture downsamples
@@ -31,15 +49,13 @@ export const REPORT_CARD_SIZES: Record<ReportCardVariant, { width: number; heigh
     graphic: { width: 1200, height: 900 },
 };
 
-export function resolveReportCardAssets(publicDir: string): ReportCardAssets {
-    return {
-        fontDir: path.join(publicDir, 'fonts'),
-        iconDir: path.join(publicDir, 'img', 'class-icons'),
-        glyphPath: path.join(publicDir, 'img', 'AxiBridge-glyph.png'),
-    };
-}
-
-const fileUrl = (p: string) => pathToFileURL(p).href;
+/** A `data:` URI we are willing to put in an `src`/`url()`. The assets resolver
+ *  is the only producer, but the template refuses anything else so a future
+ *  caller cannot smuggle e.g. a `javascript:` or remote URL through the assets
+ *  object. */
+const DATA_URI_RE = /^data:(?:image\/png|font\/woff2);base64,[A-Za-z0-9+/=]+$/;
+const safeDataUri = (raw: string | null | undefined): string | null =>
+    typeof raw === 'string' && DATA_URI_RE.test(raw) ? raw : null;
 
 const esc = (raw: string): string =>
     String(raw)
@@ -49,13 +65,20 @@ const esc = (raw: string): string =>
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
 
-const fontFace = (assets: ReportCardAssets) => `
+const fontFace = (assets: ReportCardAssets) => {
+    const src = safeDataUri(assets.fontDataUri);
+    // No font file → no @font-face at all, so the body rule falls straight
+    // through to the system sans-serif rather than blocking on a face that
+    // will never load (`font-display: block`).
+    if (!src) return '';
+    return `
 @font-face {
   font-family: 'InterCard';
   font-weight: 100 900;
   font-display: block;
-  src: url('${fileUrl(path.join(assets.fontDir, 'InterVariable.woff2'))}') format('woff2');
+  src: url('${src}') format('woff2');
 }`;
+};
 
 const DEFAULT_MAP_COLOR = '#64748b';
 
@@ -96,18 +119,23 @@ const sparkline = (model: ReportCardModel) => {
 };
 
 /** Renders the leader's class icon, or a text-abbreviation fallback if the
- *  profession isn't a known one. No untrusted `leader` data is ever
- *  interpolated into inline JS: the `onerror` handler is a fixed string with
- *  no substitutions, and the icon `src` is only built from a profession name
+ *  profession isn't a known one or its icon file could not be read. No
+ *  untrusted `leader` data is ever interpolated into inline JS: the `onerror`
+ *  handler is a fixed string with no substitutions, and the icon `src` is only
+ *  ever a validated `data:image/png;base64,...` looked up by a profession name
  *  that is a member of `KNOWN_PROFESSIONS` (see that const for why). The
  *  abbreviation text itself is escaped and only ever placed in a text node,
  *  never inside a `<script>`-context attribute. */
 const leaderIcon = (profession: string, assets: ReportCardAssets): string => {
     const abbrev = esc(getProfessionAbbrev(profession));
-    if (!KNOWN_PROFESSIONS.has(profession)) {
+    const src = KNOWN_PROFESSIONS.has(profession)
+        ? safeDataUri(Object.prototype.hasOwnProperty.call(assets.iconDataUris, profession)
+            ? assets.iconDataUris[profession]
+            : null)
+        : null;
+    if (!src) {
         return `<span class="chipicon chipabbrev">${abbrev}</span>`;
     }
-    const src = fileUrl(path.join(assets.iconDir, `${profession}.png`));
     return (
         `<span class="chipicon">` +
         `<img src="${src}" alt="" style="object-fit: contain" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` +
@@ -116,10 +144,28 @@ const leaderIcon = (profession: string, assets: ReportCardAssets): string => {
     );
 };
 
+/** The boards that actually become chips. Shared with
+ *  `collectCardProfessions` so the icons we preload can never drift from the
+ *  icons we render. */
+const chipBoards = (boards: CardBoard[]): CardBoard[] =>
+    boards.filter((board) => board.leaders.length > 0).slice(0, 6);
+
+/** The professions whose icons this card will ask for — the exact input the
+ *  (impure) assets resolver needs, computed here so the selection logic lives
+ *  in one place. Already filtered by the allow-list, so the resolver never
+ *  sees an untrusted string. */
+export function collectCardProfessions(model: ReportCardModel, variant: ReportCardVariant): string[] {
+    if (variant !== 'graphic') return [];
+    const seen = new Set<string>();
+    for (const board of chipBoards(model.boards)) {
+        const profession = board.leaders[0]?.profession;
+        if (profession && KNOWN_PROFESSIONS.has(profession)) seen.add(profession);
+    }
+    return [...seen];
+}
+
 const leaderChips = (boards: CardBoard[], assets: ReportCardAssets) => {
-    const chips = boards
-        .filter((board) => board.leaders.length > 0)
-        .slice(0, 6)
+    const chips = chipBoards(boards)
         .map((board) => {
             const leader = board.leaders[0];
             const icon = leader.profession ? leaderIcon(leader.profession, assets) : '';
@@ -136,6 +182,11 @@ export function renderReportCardHtml(
 ): string {
     const size = REPORT_CARD_SIZES[variant];
     const tag = model.guildTag ? `<span class="tag">[${esc(model.guildTag)}]</span>` : '';
+    const glyphSrc = safeDataUri(assets.glyphDataUri);
+    // A missing glyph is simply omitted — no broken-image box, no element to hide.
+    const glyph = glyphSrc
+        ? `<img src="${glyphSrc}" alt="" style="object-fit: contain" onerror="this.style.display='none'">`
+        : '';
 
     const body = `
 <div id="card" class="card ${variant}">
@@ -164,7 +215,7 @@ export function renderReportCardHtml(
   ${mapBar(model)}
   ${variant === 'graphic' ? sparkline(model) : ''}
   ${variant === 'graphic' ? leaderChips(model.boards, assets) : ''}
-  <div class="foot"><img src="${fileUrl(assets.glyphPath)}" alt="" style="object-fit: contain" onerror="this.style.display='none'">AxiBridge</div>
+  <div class="foot">${glyph}AxiBridge</div>
 </div>`;
 
     return `<!doctype html><html><head><meta charset="utf-8"><style>
