@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import {
+    coerceReportPostStyle,
     IReportWebhook,
     MAX_FORUM_POST_TAGS,
     makeDefaultReportWebhook,
     parseForumTagIds,
     renderReportTitle,
+    type ReportPostStyle,
 } from '../shared/reportWebhooks';
 
 const PREVIEW_CTX = {
@@ -19,6 +21,12 @@ const PREVIEW_CTX = {
 
 const looksLikeDiscordWebhook = (url: string) =>
     !url || /^https:\/\/(discord\.com|discordapp\.com|ptb\.discord\.com|canary\.discord\.com)\/api\/webhooks\//.test(url);
+
+const STYLE_OPTIONS: Array<{ value: ReportPostStyle; label: string; hint: string }> = [
+    { value: 'text', label: 'Text', hint: 'Session stats and leaderboards as embed fields. No image.' },
+    { value: 'hybrid', label: 'Banner + stats', hint: 'A generated banner image plus the leaderboards as text.' },
+    { value: 'graphic', label: 'Full graphic', hint: 'One generated image carries the whole session.' },
+];
 
 export function ReportWebhooksCard({
     reportWebhooks,
@@ -148,6 +156,23 @@ export function ReportWebhooksCard({
                                 <span className="ml-2 opacity-70">
                                     Placeholders: {'{date}'} {'{day_of_week}'} {'{commander}'} {'{commanders}'} {'{account}'} {'{guild}'} {'{guild_tag}'}
                                 </span>
+                            </p>
+                            <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                                <span className="shrink-0">Post style</span>
+                                <select
+                                    aria-label="Post style"
+                                    value={coerceReportPostStyle(hook.style)}
+                                    onChange={(e) => patch(hook.id, { style: e.target.value as ReportPostStyle })}
+                                    className="rounded-[4px] border px-2 py-1.5 text-xs bg-transparent focus:outline-none"
+                                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                >
+                                    {STYLE_OPTIONS.map((option) => (
+                                        <option key={option.value} value={option.value}>{option.label}</option>
+                                    ))}
+                                </select>
+                            </label>
+                            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                                {STYLE_OPTIONS.find((o) => o.value === coerceReportPostStyle(hook.style))!.hint}
                             </p>
                             {hook.isForum && (
                                 <>

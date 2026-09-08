@@ -1,7 +1,7 @@
 # Discord report post styles
 
 Date: 2026-09-07
-Status: design, awaiting review
+Status: implemented
 
 ## Problem
 
@@ -56,6 +56,8 @@ field and character budgets instead of validating every combination a user
 can produce. Toggles are additive later, once it is clear which boards people
 actually ask for.
 
+`stability` maps to `s.stab`, a summed stability-generation value — it is formatted as a compact number, not a percentage. `closestToTag` is an average distance in inches.
+
 ## Rendering approach
 
 The card is drawn by a hidden `BrowserWindow` and captured with
@@ -77,7 +79,7 @@ Two alternatives were considered and rejected:
 
 The window approach adds no dependencies, keeps layout in CSS (which is cheap
 to iterate on, and lets the design mocks become the template nearly verbatim),
-and loads class icons over `file://`. `BrowserWindow` is already constructed
+and inlines class icons as `data:` URIs. `BrowserWindow` is already constructed
 in main (`src/main/handlers/settingsHandlers.ts:344`), so a hidden window is
 not a new pattern.
 
@@ -153,7 +155,11 @@ optional image buffer parameter. It never learns how to draw one.
 
 ## Fonts and assets
 
-Inter ships as a local `woff2`, `@font-face`d from `file://` in the template.
+Inter ships as a local `woff2`, read from disk and `@font-face`d as a base64
+`data:` URI in the template. A `data:text/html` document has an opaque origin,
+so Chromium refuses every `file://` subresource it references — the font and
+icons must be inlined, not linked, or they silently fail to load on every
+render while the capture still succeeds.
 The app currently pulls Inter and Cinzel from Google Fonts at runtime
 (`src/renderer/index.css:1`); reusing that inside the capture would mean the
 card either races the network or silently renders in a fallback face when
@@ -161,10 +167,7 @@ someone is offline. Unlike the app UI, this artifact gets posted publicly and
 cannot be re-rendered. One subset file makes the output identical on every
 machine.
 
-Class icons and the AxiBridge glyph resolve from the built renderer output
-(`dist-react/img/...`) over `file://`, with a dev-mode branch to `public/`. An
-icon that fails to resolve degrades to a text abbreviation rather than a
-broken-image box.
+Class icons and the AxiBridge glyph resolve under `process.env.VITE_PUBLIC` (`src/main/index.ts:250`), which already points at `dist-react` when packaged and `public` in dev. An icon that fails to resolve degrades to a text abbreviation rather than a broken-image box.
 
 ## Posting
 
@@ -224,8 +227,7 @@ three-way picker (Text / Banner + stats / Full graphic) with a one-line
 description each. `makeDefaultReportWebhook` gains `style: 'text'`.
 
 Persisted hooks predate the field, so the reader coerces anything missing or
-unrecognized to `'text'`. That coercion belongs in the same normalizer the
-existing fields use, not scattered `?? 'text'` at read sites.
+unrecognized to `'text'`. There is no normalizer for report webhooks — `src/main/index.ts:1664` writes the array to the store raw. So `coerceReportPostStyle` is exported from `src/shared/reportWebhooks.ts` and called at each read site: `postReportToWebhooks`, `planReportCardVariants`, and `ReportWebhooksCard`.
 
 ## Testing
 
@@ -249,8 +251,7 @@ Matching the component boundaries.
   image falls back to a text embed and posts.
 - **Template** — the HTML-producing function is snapshot-tested for structure
   and escaping.
-- **Migration** — `settingsMigration.test.ts` covers the missing/unknown
-  `style` coercion.
+- **Coercion** — `src/shared/__tests__/reportWebhooks.test.ts` covers missing, empty, wrong-cased, and non-string `style` values.
 
 `renderReportCard` itself needs a live Electron window and is not unit-tested.
 The Playwright Electron suite can cover "publish produces a non-empty PNG".

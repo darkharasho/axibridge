@@ -1,4 +1,4 @@
-import { ipcMain, app, BrowserWindow } from 'electron';
+import { ipcMain, app, BrowserWindow, shell } from 'electron';
 import fs from 'fs';
 import path from 'node:path';
 import https from 'node:https';
@@ -15,6 +15,10 @@ import {
 import { parseAttendanceFile, updateAttendanceForPublish, type AttendanceRaid } from '../../web/attendance';
 import { postReportToWebhooks, type ReportWebhookPostResult } from '../reportWebhooks';
 import { type IReportWebhook, selectReportWebhooks } from '../../shared/reportWebhooks';
+import { buildReportCardModel } from '../../shared/reportCardModel';
+import { planReportCardVariants } from '../reportCardRenderPlan';
+import { renderReportCard } from '../reportCardRenderer';
+import type { ReportCardVariant } from '../reportCardTemplate';
 import { resolveGuild } from '../guildDirectory';
 import { type R2Config } from '../cloudflare/r2SigV4';
 import {
@@ -2241,17 +2245,46 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const reportWebhooks = selectReportWebhooks(allReportWebhooks, payload.reportWebhookIds);
             if (reportWebhooks.length > 0) {
                 sendWebUploadStatus('Posting', `Posting report link to ${reportWebhooks.length} Discord webhook${reportWebhooks.length === 1 ? '' : 's'}...`, 100);
-                webhookResults = await postReportToWebhooks({
-                    webhooks: reportWebhooks,
-                    meta: reportMeta,
-                    stats: payload.stats,
-                    url: reportUrl,
-                    onStatus: (line: string, isWarn?: boolean) => sendWebUploadStatus(isWarn ? 'Warning' : 'Posting', line, 100),
-                    persistForumFlag: (id: string, isForum: boolean) => {
-                        const current = store.get('reportWebhooks', []) as IReportWebhook[];
-                        store.set('reportWebhooks', current.map((hook) => (hook.id === id ? { ...hook, isForum } : hook)));
-                    },
-                });
+                // Render the report card(s) needed for the styles in use. Non-blocking:
+                // a failure here must not abort the publish — the report is already live.
+                const images: Partial<Record<ReportCardVariant, Buffer | null>> = {};
+                const variants = planReportCardVariants(reportWebhooks);
+                if (variants.length > 0) {
+                    sendWebUploadStatus('Posting', 'Rendering report card...', 100);
+                }
+                for (const variant of variants) {
+                    // Per variant, not per loop: a throw while rendering one
+                    // style must not deny the other style's hooks their card.
+                    try {
+                        const cardModel = buildReportCardModel(reportMeta, payload.stats);
+                        images[variant] = await renderReportCard(cardModel, variant);
+                    } catch (err) {
+                        log.warn(`[Main] Failed to render report card (${variant}) (non-blocking):`, err);
+                    }
+                    if (!images[variant]) {
+                        sendWebUploadStatus('Warning', `Report card (${variant}) could not be rendered — posting text instead.`, 100);
+                    }
+                }
+                // Non-blocking: the report is already live on Pages, so a throw
+                // in the posting path (model build, meta coercion, or any hook)
+                // must not turn this publish into a failure for the renderer.
+                try {
+                    webhookResults = await postReportToWebhooks({
+                        webhooks: reportWebhooks,
+                        meta: reportMeta,
+                        stats: payload.stats,
+                        url: reportUrl,
+                        onStatus: (line: string, isWarn?: boolean) => sendWebUploadStatus(isWarn ? 'Warning' : 'Posting', line, 100),
+                        persistForumFlag: (id: string, isForum: boolean) => {
+                            const current = store.get('reportWebhooks', []) as IReportWebhook[];
+                            store.set('reportWebhooks', current.map((hook) => (hook.id === id ? { ...hook, isForum } : hook)));
+                        },
+                        images,
+                    });
+                } catch (err) {
+                    log.warn('[Main] Failed to post report to webhooks (non-blocking):', err);
+                    sendWebUploadStatus('Warning', 'Could not post the report link to Discord.', 100);
+                }
             }
             return { success: true, url: reportUrl, replayDataUrl: replayDataUrl ?? null, webhookResults };
         } catch (err: any) {
@@ -2388,6 +2421,26 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             return { success: true, url: `${baseUrl}/web/?report=${reportMeta.id}` };
         } catch (err: any) {
             return { success: false, error: err?.message || 'Failed to create local web report.' };
+        }
+    });
+
+    ipcMain.handle('preview-report-card', async (_event, payload: { meta: any; stats: any; variant?: 'hybrid' | 'graphic' }) => {
+        if (app.isPackaged) {
+            return { success: false, error: 'Card previews are only available in dev builds.' };
+        }
+        try {
+            const variant = payload?.variant === 'graphic' ? 'graphic' : 'hybrid';
+            const model = buildReportCardModel(payload?.meta || {}, payload?.stats || {});
+            const png = await renderReportCard(model, variant);
+            if (!png) return { success: false, error: 'Card render returned no image.' };
+            const outDir = path.join(app.getPath('userData'), 'card-previews');
+            fs.mkdirSync(outDir, { recursive: true });
+            const filePath = path.join(outDir, `report-card-${variant}.png`);
+            fs.writeFileSync(filePath, png);
+            await shell.openPath(filePath);
+            return { success: true, filePath };
+        } catch (err: any) {
+            return { success: false, error: err?.message || 'Card preview failed.' };
         }
     });
 }

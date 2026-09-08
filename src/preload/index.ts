@@ -130,6 +130,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // `githubHandlers.ts`.
     uploadWebReport: (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecar?: any }) => ipcRenderer.invoke('upload-web-report', payload),
     mockWebReport: (payload: { meta: any; stats: any }) => ipcRenderer.invoke('mock-web-report', payload),
+    // Dev-only: renders a Discord report card (hybrid/graphic) to a PNG and opens it
+    // in the system image viewer, for tuning the template without publishing or
+    // hitting Discord. Main-process handler no-ops (returns success: false) in
+    // packaged builds.
+    previewReportCard: (payload: { meta: any; stats: any; variant?: 'hybrid' | 'graphic' }) =>
+        ipcRenderer.invoke('preview-report-card', payload),
     getGithubPagesBuildStatus: (payload?: { repoFullName?: string; repoOwner?: string; repoName?: string }) => ipcRenderer.invoke('get-github-pages-build-status', payload),
     isR2Configured: () => ipcRenderer.invoke('get-r2-configured'),
     getCloudflareStatus: () => ipcRenderer.invoke('get-cloudflare-status'),
