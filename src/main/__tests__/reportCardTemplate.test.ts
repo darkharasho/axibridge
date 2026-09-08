@@ -62,9 +62,24 @@ describe('renderReportCardHtml', () => {
     it('embeds the session numbers', () => {
         const html = renderReportCardHtml(model, 'hybrid', assets);
         expect(html).toContain('12');
-        expect(html).toContain('8W – 4L');
+        // The record is split so the win and loss halves can be coloured.
+        expect(html).toContain('<span class="w">8W</span>');
+        expect(html).toContain('<span class="l">4L</span>');
         expect(html).toContain('2.31');
         expect(html).toContain('AXI');
+    });
+
+    it('renders an unrecognised record label whole rather than as broken markup', () => {
+        const html = renderReportCardHtml({ ...model, recordLabel: 'no fights logged' }, 'hybrid', assets);
+        expect(html).toContain('no fights logged');
+        expect(html).not.toContain('class="w"');
+    });
+
+    it('tints each leader chip with its profession colour', () => {
+        const html = renderReportCardHtml(model, 'graphic', assets);
+        // Guardian's entry in PROFESSION_COLORS. An unknown profession must
+        // fall back to the neutral grey instead of reaching CSS unchecked.
+        expect(html).toMatch(/<div class="chip" style="--pc: #[0-9a-fA-F]{6}"/);
     });
 
     it('inlines the font as a data: URI rather than referencing it', () => {

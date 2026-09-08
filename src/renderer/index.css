@@ -1744,6 +1744,42 @@ select option {
   color: var(--text-primary);
 }
 
+/* App-wide native <select> chrome.
+
+   `.fight-diff-select` does this same job but is scoped under `.stats-view`,
+   so it is unavailable to Settings. This is the unscoped equivalent: the
+   native arrow is replaced with an inline chevron so the control matches the
+   text inputs beside it, and the option list is pinned to an OPAQUE fill.
+   Chromium on Linux paints the option popup from the control's own
+   background — a `bg-transparent` control renders a see-through, unreadable
+   popup, which is exactly what a translucent theme produced here. */
+.app-native-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: var(--bg-input);
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  background-size: 0.75rem 0.75rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%238d95a0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  padding-right: 1.9rem;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.app-native-select:hover { border-color: var(--border-hover); }
+.app-native-select:focus-visible { border-color: var(--accent-border); outline: none; }
+
+.app-native-select option {
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+body.glass-surfaces .app-native-select,
+body.glassmorphic .app-native-select {
+  background-color: rgba(15, 18, 25, 0.9);
+}
+
 /* --- Hover states --- */
 .hover\:bg-white\/10:hover { background-color: var(--bg-hover) !important; }
 .hover\:bg-white\/5:hover { background-color: var(--bg-hover) !important; }
