@@ -85,6 +85,46 @@ describe('buildReportEmbed', () => {
         expect(embed.fields!.length).toBeGreaterThan(0);
     });
 
+    it('drops trailing boards in fixed order and never reorders a later, smaller board ahead of a skipped one', () => {
+        // Eight boards sized near the 1024-char clamp (topN 30, 30-char
+        // accounts) exhaust the budget partway through the fixed order.
+        // closestToTag — last in REPORT_CARD_BOARDS, but tiny (one entry) —
+        // would easily fit in the leftover budget if the scan kept looking
+        // past a board that didn't fit. It must not appear once an earlier
+        // board (stability) has been skipped: boards only drop from the tail.
+        const bloated = buildReportCardModel(meta, {
+            ...stats,
+            leaderboards: {
+                damage: lb(30, 'Z'.repeat(30)),
+                healing: lb(30, 'Z'.repeat(30)),
+                barrier: lb(30, 'Z'.repeat(30)),
+                cleanses: lb(30, 'Z'.repeat(30)),
+                strips: lb(30, 'Z'.repeat(30)),
+                stability: lb(30, 'Z'.repeat(30)),
+                ccAndInterrupts: lb(30, 'Z'.repeat(30)),
+                downContrib: lb(30, 'Z'.repeat(30)),
+                closestToTag: lb(1, 'a'),
+            },
+        }, { topN: 30 });
+        const embed = buildReportEmbed({ model: bloated, style: 'text', title: 'T', url: 'u', hasImage: false });
+        const boardOrder = [
+            'Damage', 'Healing', 'Barrier', 'Cleanses', 'Strips',
+            'Stability', 'CC + Interrupts', 'Down Contribution', 'Closest to Tag',
+        ];
+        const names = embed.fields!.map((f) => f.name);
+        const presentBoards = boardOrder.filter((label) => names.includes(label));
+        // Truncation actually triggered: not all nine boards survived.
+        expect(presentBoards.length).toBeGreaterThan(0);
+        expect(presentBoards.length).toBeLessThan(boardOrder.length);
+        // Boards that survive form an unbroken prefix of the fixed order —
+        // the tiny trailing board must not be pulled in ahead of a larger
+        // one that was skipped in the middle of the order.
+        expect(presentBoards).toEqual(boardOrder.slice(0, presentBoards.length));
+        expect(names).not.toContain('Closest to Tag');
+        expect(embed.fields!.length).toBeLessThanOrEqual(DISCORD_EMBED_FIELD_LIMIT);
+        expect(charCount(embed)).toBeLessThanOrEqual(DISCORD_EMBED_CHAR_LIMIT);
+    });
+
     it('never emits a field longer than 1024 characters', () => {
         const wide = buildReportCardModel(meta, {
             ...stats,

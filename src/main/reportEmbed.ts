@@ -63,10 +63,13 @@ const boardFields = (model: ReportCardModel): DiscordEmbedField[] =>
             inline: true,
         }));
 
-/** Truncation is deterministic: KPI and map fields are kept, then boards are
- *  appended while both the field count and the character budget allow. Boards
- *  drop from the tail of REPORT_CARD_BOARDS order, so the same model always
- *  produces the same embed. */
+/** Truncation is deterministic. Required (KPI/map) fields are each tried in
+ *  order and skipped individually if they would blow the budget, so one
+ *  oversized field never knocks out the ones after it. Optional (board)
+ *  fields are appended in REPORT_CARD_BOARDS order and STOP at the first one
+ *  that doesn't fit — later, possibly-smaller boards are never pulled in out
+ *  of order — so boards only ever drop from the tail of the fixed order and
+ *  the same model always produces the same embed. */
 const fitFields = (
     required: DiscordEmbedField[],
     optional: DiscordEmbedField[],
@@ -76,13 +79,13 @@ const fitFields = (
     let chars = fixedChars;
     for (const field of required) {
         if (out.length >= DISCORD_EMBED_FIELD_LIMIT) break;
-        if (chars + fieldCost(field) > CHAR_BUDGET) break;
+        if (chars + fieldCost(field) > CHAR_BUDGET) continue;
         out.push(field);
         chars += fieldCost(field);
     }
     for (const field of optional) {
         if (out.length >= DISCORD_EMBED_FIELD_LIMIT) break;
-        if (chars + fieldCost(field) > CHAR_BUDGET) continue;
+        if (chars + fieldCost(field) > CHAR_BUDGET) break;
         out.push(field);
         chars += fieldCost(field);
     }
