@@ -131,3 +131,28 @@ describe('ReportWebhooksCard', () => {
         expect(input.value).toBe('');
     });
 });
+
+describe('post style picker', () => {
+    it('shows the three styles and defaults a legacy hook to text', () => {
+        const legacy = { ...makeDefaultReportWebhook('h1'), url: 'https://discord.com/api/webhooks/1/a' } as any;
+        delete legacy.style;
+        render(<ReportWebhooksCard reportWebhooks={[legacy]} onChange={() => {}} />);
+        const picker = screen.getByLabelText('Post style') as HTMLSelectElement;
+        expect(picker.value).toBe('text');
+        expect(Array.from(picker.options).map((o) => o.value)).toEqual(['text', 'hybrid', 'graphic']);
+    });
+
+    it('emits the chosen style', () => {
+        const onChange = vi.fn();
+        const hook = { ...makeDefaultReportWebhook('h1'), url: 'https://discord.com/api/webhooks/1/a' };
+        render(<ReportWebhooksCard reportWebhooks={[hook]} onChange={onChange} />);
+        fireEvent.change(screen.getByLabelText('Post style'), { target: { value: 'graphic' } });
+        expect(onChange).toHaveBeenCalledWith([expect.objectContaining({ id: 'h1', style: 'graphic' })]);
+    });
+
+    it('describes the selected style', () => {
+        const hook = { ...makeDefaultReportWebhook('h1'), style: 'hybrid' as const, url: 'https://discord.com/api/webhooks/1/a' };
+        render(<ReportWebhooksCard reportWebhooks={[hook]} onChange={() => {}} />);
+        expect(screen.getByText(/banner image/i)).toBeInTheDocument();
+    });
+});
