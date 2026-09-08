@@ -6,6 +6,9 @@ import {
     selectReportWebhooks,
     MAX_FORUM_POST_TAGS,
     parseForumTagIds,
+    coerceReportPostStyle,
+    DEFAULT_REPORT_POST_STYLE,
+    REPORT_POST_STYLES,
 } from '../reportWebhooks';
 import type { IReportWebhook } from '../reportWebhooks';
 
@@ -112,6 +115,7 @@ describe('makeDefaultReportWebhook', () => {
             isForum: false,
             titleTemplate: DEFAULT_REPORT_TITLE_TEMPLATE,
             forumTagIds: '',
+            style: DEFAULT_REPORT_POST_STYLE,
         });
     });
 });
@@ -148,5 +152,28 @@ describe('parseForumTagIds', () => {
         expect(parseForumTagIds([six[0], six[1], six[0], ...six.slice(2)].join(',')))
             .toEqual(six);
         expect(MAX_FORUM_POST_TAGS).toBe(5);
+    });
+});
+
+describe('report post style', () => {
+    it('accepts the three known styles', () => {
+        expect(coerceReportPostStyle('text')).toBe('text');
+        expect(coerceReportPostStyle('hybrid')).toBe('hybrid');
+        expect(coerceReportPostStyle('graphic')).toBe('graphic');
+    });
+
+    it('coerces anything unrecognized to text', () => {
+        expect(coerceReportPostStyle(undefined)).toBe('text');
+        expect(coerceReportPostStyle(null)).toBe('text');
+        expect(coerceReportPostStyle('')).toBe('text');
+        expect(coerceReportPostStyle('IMAGE')).toBe('text');
+        expect(coerceReportPostStyle(7)).toBe('text');
+        expect(coerceReportPostStyle({ style: 'hybrid' })).toBe('text');
+    });
+
+    it('defaults new webhooks to text', () => {
+        expect(makeDefaultReportWebhook('x').style).toBe('text');
+        expect(DEFAULT_REPORT_POST_STYLE).toBe('text');
+        expect(REPORT_POST_STYLES).toEqual(['text', 'hybrid', 'graphic']);
     });
 });
