@@ -25,7 +25,7 @@ describe('computeReviveDetail', () => {
     it('aggregates one log into per-player rows', () => {
         const acc = createReviveDetailAccumulator();
         ingestLogReviveDetail(handReviveLog(), acc);
-        const result = finalizeReviveDetail(acc);
+        const result = finalizeReviveDetail(acc)!;
 
         expect(result.squad).toMatchObject({ downs: 1, recovered: 1, died: 0, hand: 1 });
         const reviver = result.players.find((p) => p.account === 'Reviver')!;
@@ -36,7 +36,7 @@ describe('computeReviveDetail', () => {
         const acc = createReviveDetailAccumulator();
         ingestLogReviveDetail(handReviveLog(), acc);
         ingestLogReviveDetail(handReviveLog(), acc);
-        const result = finalizeReviveDetail(acc);
+        const result = finalizeReviveDetail(acc)!;
         expect(result.squad.recovered).toBe(2);
         expect(result.players.find((p) => p.account === 'Reviver')!.handRevives).toBe(2);
     });
@@ -60,7 +60,7 @@ describe('computeReviveDetail', () => {
         ingestLogReviveDetail({ details: { skillMap: {}, players: [
             { account: 'A', profession: 'Guardian', combatReplayData: { down: [[1, 2]], dead: [] } },
         ] } }, acc);
-        const result = finalizeReviveDetail(acc);
+        const result = finalizeReviveDetail(acc)!;
         expect(result.coverage).toEqual({ logsWithData: 0, logsWithoutData: 1 });
         expect(result.squad.downs).toBe(0);
     });
@@ -72,7 +72,7 @@ describe('computeReviveDetail', () => {
                 rotation: [{ id: 10244, skills: [{ castTime: 4000, duration: 0 }] }] }),
             player({ account: 'Downed', down: [[1000, 5000], [8000, 12000]], dead: [[12000, 20000]] }),
         ] } }, acc);
-        const result = finalizeReviveDetail(acc);
+        const result = finalizeReviveDetail(acc)!;
         expect(result.iol).toMatchObject({ revives: 1, reDowned: 1, survived: 0 });
         expect(result.iol!.medianTimeToReDownMs).toBe(3000);
     });
@@ -84,7 +84,7 @@ describe('computeReviveDetail', () => {
                 rotation: [{ id: 10244, skills: [{ castTime: 4000, duration: 0 }] }] }),
             player({ account: 'Downed', down: [[1000, 5000]] }),
         ] } }, acc);
-        const result = finalizeReviveDetail(acc);
+        const result = finalizeReviveDetail(acc)!;
         expect(result.iol).toMatchObject({ revives: 1, reDowned: 0, survived: 1, medianTimeToReDownMs: null });
     });
 
@@ -121,7 +121,7 @@ describe('computeReviveDetail', () => {
         mergeReviveDetailFrame(target, frameA);
         mergeReviveDetailFrame(target, frameB);
 
-        const result = finalizeReviveDetail(target);
+        const result = finalizeReviveDetail(target)!;
 
         const battleStandard = result.utilities.find((u) => u.skillId === 14419)!;
         expect(battleStandard.casts).toBe(2);
@@ -148,19 +148,52 @@ describe('computeReviveDetail', () => {
 
         const target = createReviveDetailAccumulator();
         mergeReviveDetailFrame(target, frame);
-        const result = finalizeReviveDetail(target);
+        const result = finalizeReviveDetail(target)!;
         expect(result.coverage).toEqual({ logsWithData: 0, logsWithoutData: 1 });
         expect(result.squad.downs).toBe(0);
     });
 
-    it('finalizes an empty accumulator with no data at all', () => {
+    it('returns null for an accumulator that saw no logs at all', () => {
+        // An empty accumulator has NO measurement. Returning a zero-filled
+        // summary would render "Downs 0 · Recovered 0 · Died 0 / Coverage: 0
+        // logs", which reads as "nobody was revived" — indistinguishable from a
+        // real zero. This is the state a viewer lands in when it merges frames
+        // from a sidecar that predates the reviveDetail section.
+        expect(finalizeReviveDetail(createReviveDetailAccumulator())).toBeNull();
+    });
+
+    it('accumulates per-player active time under the same key as the counts', () => {
         const acc = createReviveDetailAccumulator();
-        const result = finalizeReviveDetail(acc);
-        expect(result.coverage).toEqual({ logsWithData: 0, logsWithoutData: 0 });
-        expect(result.squad).toEqual({ downs: 0, recovered: 0, died: 0, hand: 0, utility: 0, self: 0, unattributed: 0 });
-        expect(result.players).toEqual([]);
-        expect(result.utilities).toEqual([]);
-        expect(result.iol).toBeNull();
+        // activeTimes[0] wins where present; otherwise the fight duration.
+        const log = {
+            details: {
+                skillMap: {}, durationMS: 20000,
+                players: [
+                    { ...player({ account: 'Reviver', rotation: [{ id: 1066, skills: [{ castTime: 3000, duration: 3000 }] }] }), activeTimes: [12000] },
+                    player({ account: 'Downed', down: [[1000, 5000]] }),
+                ],
+            },
+        };
+        ingestLogReviveDetail(log, acc);
+        ingestLogReviveDetail(log, acc);
+        const result = finalizeReviveDetail(acc)!;
+
+        const reviver = result.players.find((p) => p.account === 'Reviver')!;
+        const downed = result.players.find((p) => p.account === 'Downed')!;
+        // Summed over both logs, keyed identically to the counts — 2 attempts
+        // over 24s of active time is 5.00/min, not the 120.00/min a 1s
+        // denominator floor would have printed.
+        expect(reviver.activeMs).toBe(24000);
+        expect(reviver.attempts).toBe(2);
+        expect(downed.activeMs).toBe(40000);
+    });
+
+    it('excludes uncovered logs from the active-time denominator, as it does from the counts', () => {
+        const acc = createReviveDetailAccumulator();
+        ingestLogReviveDetail({ details: { skillMap: {}, durationMS: 30000, players: [
+            { account: 'A', profession: 'Guardian', combatReplayData: { down: [[1, 2]], dead: [] } },
+        ] } }, acc);
+        expect(finalizeReviveDetail(acc)!.players).toEqual([]);
     });
 });
 
@@ -197,6 +230,41 @@ const handReviveAggregatorLog = () => ({
 });
 
 describe('reviveDetail on the aggregator', () => {
+    it('carries its own active-time denominator, so it never depends on defensePlayers key conventions', () => {
+        // Two ways the two tables' `${account}|${profession}` keys disagree:
+        //  - defensePlayers normalizes the legacy ':Account.1234' spelling away,
+        //    the revive rows key on the raw account;
+        //  - a player who swaps elite spec across logs is ONE aggregated defense
+        //    row (last raw profession wins) but SEVERAL revive rows.
+        // Borrowing the denominator from defensePlayers therefore missed, and the
+        // miss silently floored the divisor at 1 second. The revive rows now carry
+        // their own active time, accumulated under their own key.
+        const logA: any = handReviveAggregatorLog();
+        logA.details.players[0].account = ':Reviver.1111';
+        logA.details.players[0].profession = 'Firebrand';
+        logA.details.players[0].activeTimes = [180000];
+        const logB: any = handReviveAggregatorLog();
+        logB.filePath = 'revive-2.zevtc';
+        logB.details.players[0].account = ':Reviver.1111';
+        logB.details.players[0].profession = 'Willbender';
+        logB.details.players[0].activeTimes = [60000];
+
+        const stats: any = computeStatsSync({ logs: [logA, logB] }).stats;
+
+        const defenseRows = stats.defensePlayers.filter((p: any) => String(p.account).includes('Reviver.1111'));
+        expect(defenseRows).toHaveLength(1);
+        expect(defenseRows[0].account).toBe('Reviver.1111');   // ':' folded away
+
+        const reviveRows = stats.reviveDetail.players.filter((p: any) => String(p.account).includes('Reviver.1111'));
+        expect(reviveRows.map((r: any) => r.key).sort()).toEqual([
+            ':Reviver.1111|Firebrand', ':Reviver.1111|Willbender',
+        ]);
+        // Each revive row's own denominator — 1 attempt over 180s and 1 over 60s.
+        const byKey = new Map<string, any>(reviveRows.map((r: any) => [r.key, r]));
+        expect(byKey.get(':Reviver.1111|Firebrand')!.activeMs).toBe(180000);
+        expect(byKey.get(':Reviver.1111|Willbender')!.activeMs).toBe(60000);
+    });
+
     it('exposes reviveDetail on aggregated stats', () => {
         const stats: any = computeStatsSync({ logs: [handReviveAggregatorLog()] }).stats;
         expect(stats.reviveDetail.squad.recovered).toBe(1);

@@ -106,6 +106,14 @@ export interface AttributionOptions {
      * window-only attribution. Implementations must use the last known position
      * sample and never interpolate across a gap: a missing position sample
      * means the entity was stationary, not that it moved.
+     *
+     * NO PRODUCTION CALLER PASSES THIS TODAY. Utility attribution is therefore
+     * time-window-only: a Battle Standard planted anywhere on the map is
+     * credited with every squad stand-up inside its window, and one long-window
+     * utility can be credited with several. That is the mechanism behind the
+     * revives-per-cast figures above 1 in the spec's validation table, and the
+     * Revives section carries a matching caveat. It is a known limitation of the
+     * heuristic, not a defect in it; this option is the extension point.
      */
     isWithinRadius?: (casterIndex: number, revivedIndex: number, atMs: number) => boolean;
     /**

@@ -120,6 +120,13 @@ export interface RevivePlayerRow {
     key: string;
     account: string;
     profession: string;
+    /** Summed active time over the covered logs this player appeared in, used
+     *  as the denominator for the section's per-1s / per-60s rate toggle. It is
+     *  accumulated alongside the counts under the SAME player key, so the rate
+     *  denominator can never be looked up under a different key convention.
+     *  Absent (or 0) on reports published before this field existed — the
+     *  section renders a dash rather than inventing a denominator. */
+    activeMs: number;
     attempts: number;
     attemptTimeMs: number;
     handRevives: number;
