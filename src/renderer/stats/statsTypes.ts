@@ -115,3 +115,52 @@ export interface RoleClassificationEntry {
     threshold?: number;
     factors?: unknown[];
 }
+
+export interface RevivePlayerRow {
+    key: string;
+    account: string;
+    profession: string;
+    attempts: number;
+    attemptTimeMs: number;
+    handRevives: number;
+    successRate: number;
+    utilityCasts: number;
+    utilityRevives: number;
+    revivesPerCast: number;
+    assists: number;
+    totalRevives: number;
+}
+
+export interface ReviveUtilityRow {
+    skillId: number;
+    name: string;
+    casts: number;
+    revives: number;
+    revivesPerCast: number;
+    topCasterKey: string | null;
+}
+
+export interface ReviveDetailSummary {
+    coverage: { logsWithData: number; logsWithoutData: number };
+    squad: {
+        downs: number;
+        recovered: number;
+        died: number;
+        hand: number;
+        utility: number;
+        self: number;
+        unattributed: number;
+    };
+    players: RevivePlayerRow[];
+    utilities: ReviveUtilityRow[];
+    iol: {
+        revives: number;
+        survived: number;
+        reDowned: number;
+        medianTimeToReDownMs: number | null;
+    } | null;
+}
+
+export interface ReviveDetailFrame {
+    acc: import('./computeReviveDetail').ReviveDetailAccumulator;
+}
