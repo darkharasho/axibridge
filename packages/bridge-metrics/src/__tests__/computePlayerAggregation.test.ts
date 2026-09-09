@@ -93,6 +93,64 @@ describe('duplicate player entries (same account)', () => {
     });
 });
 
+describe('revivesCompleted', () => {
+    const revivePlayer = (over: any) => ({
+        account: over.account, name: over.account, profession: over.profession || 'Guardian', notInSquad: false,
+        activeTimes: [60000],
+        dpsAll: [{ damage: 0 }],
+        defenses: [{ downCount: over.downCount || 0, deadCount: 0, damageTaken: 0, dodgeCount: 0 }],
+        statsAll: [{ distToCom: 0, saved: 0 }],
+        statsTargets: [[{ downed: 0, killed: 0 }]],
+        support: [{ resurrects: over.resurrects || 0 }],
+        combatReplayData: { down: over.down || [], dead: over.dead || [] },
+        rotation: over.rotation || [],
+    });
+
+    // Rezzer channels the hand-resurrect skill (1066) once, covering the
+    // moment the ally stands back up from their one down interval.
+    const handRezDetails = () => ({
+        durationMS: 60000, success: true, targets: [], skillMap: {}, buffMap: {},
+        players: [
+            revivePlayer({
+                account: 'Rezzer', resurrects: 1,
+                rotation: [{ id: 1066, skills: [{ castTime: 3000, duration: 3000 }] }],
+            }),
+            revivePlayer({ account: 'Downed', downCount: 1, down: [[1000, 5000]] }),
+        ],
+    });
+
+    // No rotation/combatReplayData on any roster member: the log predates (or
+    // lacks) the replay data revive derivation depends on.
+    const detailsWithoutRotation = () => ({
+        durationMS: 60000, success: true, targets: [], skillMap: {}, buffMap: {},
+        players: [
+            {
+                account: 'Rezzer', name: 'Rezzer', profession: 'Guardian', notInSquad: false,
+                activeTimes: [60000], dpsAll: [{ damage: 0 }],
+                defenses: [{ downCount: 0, deadCount: 0, damageTaken: 0, dodgeCount: 0 }],
+                statsAll: [{ distToCom: 0, saved: 0 }], statsTargets: [[{ downed: 0, killed: 0 }]],
+                support: [{}],
+            },
+        ],
+    });
+
+    const aggregateOneLog = (details: any) => computePlayerAggregation({
+        validLogs: [{ details }], method: 'count', skillDamageSource: 'target', splitPlayersByClass: false
+    }).playerStats.get('Rezzer');
+
+    it('accumulates completed revives separately from attempts', () => {
+        const totals = aggregateOneLog(handRezDetails());
+        expect(totals!.revives).toBe(1);          // attempts, unchanged behaviour
+        expect(totals!.revivesCompleted).toBe(1);
+    });
+
+    it('leaves revivesCompleted null when the log has no rotation data', () => {
+        const totals = aggregateOneLog(detailsWithoutRotation());
+        expect(totals!.revives).toBe(0);
+        expect(totals!.revivesCompleted).toBeNull();
+    });
+});
+
 describe('incoming skill damage: player-sourced split', () => {
     const takenPlayer = (rows: any[]) => ({
         account: 'Taker.1234', name: 'Taker', profession: 'Guardian', notInSquad: false,

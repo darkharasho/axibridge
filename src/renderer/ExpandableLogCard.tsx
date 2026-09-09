@@ -16,6 +16,7 @@ import { useLogDetails } from './cache/useLogDetails';
 import { buildFightLabelV2, computeFightAvgPosition } from '../shared/mapUtils';
 import { getWvwTeamColor, teamMapFromLog, WVW_TEAM_COLOR_META, WVW_TEAM_COLOR_ORDER, type WvwTeamColor } from '../shared/wvwTeams';
 import { detailsHaveAxilogData } from './stats/utils/axilogCoverage';
+import { deriveReviveLogSummary, reviveePlayerKey } from '@axiapps/bridge-metrics';
 
 // Track which logs have already played their arrival/success animations (survives virtualization remounts)
 const seenArrivalIds = new Set<string>();
@@ -584,7 +585,15 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     // parse populates no distance scalars in `statsAll`.
     const resolveDistanceToTag = createDistanceToTagResolver(details);
     const getDistanceToTag = (p: any) => resolveDistanceToTag(p) ?? 0;
-    const getResurrects = (p: any) => p.support?.[0]?.resurrects || 0;
+    // Derived once per log (not per player): `deriveReviveLogSummary` walks
+    // the whole roster. `reviveSummary.hasData` is false when this log lacks
+    // the rotation/replay data the derivation needs -- the Revives column
+    // must be omitted entirely then, never rendered as a fabricated 0.
+    const reviveSummary = deriveReviveLogSummary(details);
+    const getRevivesCompleted = (p: any) => {
+        const counts = reviveSummary.players.get(reviveePlayerKey(p));
+        return counts ? counts.handRevives + counts.utilityRevives : 0;
+    };
     const getBreakbarDamage = (p: any) => p.dpsAll?.[0]?.breakbarDamage || 0;
     const getDamageTaken = (p: any) => p.defenses?.[0]?.damageTaken || 0;
     const getDeaths = (p: any) => p.defenses?.[0]?.deadCount || 0;
@@ -806,10 +815,13 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
             fmtVal: (v: number) => v.toLocaleString()
         },
         {
-            enabled: settings.showResurrects,
-            title: "Resurrects",
-            sortFn: (a: any, b: any) => getResurrects(b) - getResurrects(a),
-            valFn: (p: any) => getResurrects(p),
+            // hasData false means this log lacks the rotation/replay data the
+            // derivation needs -- omit the column rather than render a
+            // fabricated 0 for every player.
+            enabled: settings.showResurrects && reviveSummary.hasData,
+            title: "Revives",
+            sortFn: (a: any, b: any) => getRevivesCompleted(b) - getRevivesCompleted(a),
+            valFn: (p: any) => getRevivesCompleted(p),
             fmtVal: (v: number) => v.toString()
         },
         {

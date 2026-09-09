@@ -76,7 +76,7 @@ export const COMPARISON_METRICS: Record<ComparisonCategory, ComparisonMetric[]> 
         { id: 'boonStrips', label: 'Boon Strips', totalsKey: 'supportTotals', field: 'boonStrips' },
         { id: 'stripsPerMin', label: 'Strips/min', totalsKey: 'supportTotals', field: 'boonStrips', perMinute: true, decimals: 1 },
         { id: 'stunBreak', label: 'Stun Breaks', totalsKey: 'supportTotals', field: 'stunBreak' },
-        { id: 'resurrects', label: 'Resurrects', totalsKey: 'supportTotals', field: 'resurrects' },
+        { id: 'resurrects', label: 'Resurrect Attempts', totalsKey: 'supportTotals', field: 'resurrects' },
         // Stability generation
         { id: 'stabSquad', label: 'Stab (Squad)', boonId: 'b1122', boonCategory: 'squadBuffs', decimals: 1 },
         { id: 'stabGroup', label: 'Stab (Group)', boonId: 'b1122', boonCategory: 'groupBuffs', decimals: 1 },

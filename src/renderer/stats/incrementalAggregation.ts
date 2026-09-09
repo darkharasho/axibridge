@@ -1441,6 +1441,11 @@ export class IncrementalAggregator {
                 case 'ccAndInterrupts': return s.cc + s.interrupts;
                 case 'stability': return s.stab;
                 case 'revives': return s.revives;
+                // Leaderboards need a sortable number; `null` (no replay/rotation
+                // data for this player) reads as 0 here, but the raw `s.revivesCompleted`
+                // stays null for consumers -- like MVP scoring and Discord -- that must
+                // not conflate "unknown" with "revived nobody".
+                case 'revivesCompleted': return s.revivesCompleted ?? 0;
                 case 'downedHealing': return s.healingTotals['downedHealing'] || 0;
                 // DPS is a rate: aggregate as total damage / total fight time across
                 // all fights. (s.dps is a sum of per-fight DPS rates — meaningless to
@@ -1479,6 +1484,7 @@ export class IncrementalAggregator {
             ccAndInterrupts: createLB('ccAndInterrupts', true),
             stability: createLB('stability', true),
             revives: createLB('revives', true),
+            revivesCompleted: createLB('revivesCompleted', true),
             downedHealing: createLB('downedHealing', true),
             participation: createLB('participation', true),
             dps: createLB('dps', true),

@@ -13,7 +13,6 @@ import {
     getPlayerMissed,
     getPlayerBlocked,
     getPlayerEvaded,
-    getPlayerResurrects,
     getPlayerStrips,
     getTargetStatTotal,
 } from '../shared/dashboardMetrics';
@@ -25,6 +24,7 @@ import {
     computeOutgoingCrowdControl as getPlayerOutgoingCrowdControl,
     computeIncomingDisruptions as getIncomingDisruptions,
 } from '../shared/combatMetrics';
+import { deriveReviveLogSummary, reviveePlayerKey } from '@axiapps/bridge-metrics';
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
 import { getProfessionAbbrev, getProfessionBase, getProfessionEmoji } from '../shared/professionUtils';
 import { partitionSquadPlayers } from '../shared/playerIdentity';
@@ -771,7 +771,15 @@ export class DiscordNotifier {
                     // made this list print 0 for the whole squad.
                     const resolveDistanceToTag = createDistanceToTagResolver(jsonDetails);
                     const getDistanceToTag = (p: any) => resolveDistanceToTag(p) ?? 0;
-                    const getResurrects = (p: any) => getPlayerResurrects(p);
+                    // Derived once per fight (not per player): `deriveReviveLogSummary`
+                    // walks the whole roster. `hasData` false means this fight lacks
+                    // the rotation/replay data the derivation needs -- the Revives
+                    // column is omitted entirely then, never rendered as a fabricated 0.
+                    const reviveSummary = deriveReviveLogSummary(jsonDetails);
+                    const getRevivesCompleted = (p: any) => {
+                        const counts = reviveSummary.players.get(reviveePlayerKey(p));
+                        return counts ? counts.handRevives + counts.utilityRevives : 0;
+                    };
                     const getBreakbarDamage = (p: any) => getPlayerBreakbarDamage(p);
                     const getDamageTaken = (p: any) => getPlayerDamageTaken(p);
                     const getDeaths = (p: any) => getPlayerDeaths(p);
@@ -848,10 +856,10 @@ export class DiscordNotifier {
                         fmtVal: (v: any) => fmtInt(v)
                             },
                             {
-                                enabled: settings.showResurrects,
-                                title: "Resurrects",
-                                sortFn: (a: any, b: any) => getResurrects(b) - getResurrects(a),
-                                valFn: (p: any) => getResurrects(p),
+                                enabled: settings.showResurrects && reviveSummary.hasData,
+                                title: "Revives",
+                                sortFn: (a: any, b: any) => getRevivesCompleted(b) - getRevivesCompleted(a),
+                                valFn: (p: any) => getRevivesCompleted(p),
                         fmtVal: (v: any) => fmtInt(v)
                             },
                             {
