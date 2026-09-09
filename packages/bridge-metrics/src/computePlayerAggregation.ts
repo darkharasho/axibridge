@@ -749,6 +749,12 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
     // identity (relog / build swap / subgroup move) must not inflate attendance.
     const joinedIdentityKeys = new Set<string>();
     const stackedIdentityKeys = new Set<string>();
+    // `reviveSummary.players` is keyed by identity, so every `players[]` entry
+    // for the same person re-fetches the SAME merged counts -- crediting each
+    // one would multiply revivesCompleted by however many duplicate entries
+    // this log has (relog / build swap / subgroup move), exactly like
+    // `joinedIdentityKeys` guards attendance above.
+    const revivesCreditedKeys = new Set<string>();
 
     players.forEach((p, playerIndex) => {
         if (p.notInSquad) return;
@@ -1201,8 +1207,10 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
 
         // Completed revives: null, never 0, when the log cannot support the
         // derivation (no rotation/replay data). Self-revives are excluded --
-        // `totalRevives` is hand + utility only.
-        if (reviveSummary.hasData) {
+        // `totalRevives` is hand + utility only. Credited once per key per
+        // log -- see `revivesCreditedKeys` above.
+        if (reviveSummary.hasData && !revivesCreditedKeys.has(key)) {
+            revivesCreditedKeys.add(key);
             const reviveCounts = reviveSummary.players.get(key);
             if (reviveCounts) {
                 const totalRevives = reviveCounts.handRevives + reviveCounts.utilityRevives;

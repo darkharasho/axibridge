@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeMvpWeightProfiles } from '../mvpWeightProfiles';
+import { normalizeMvpWeightProfiles, buildMvpMetrics } from '../mvpWeightProfiles';
 import { DEFAULT_MVP_WEIGHT_PROFILES } from '../../global.d';
 
 describe('normalizeMvpWeightProfiles', () => {
@@ -36,5 +36,37 @@ describe('normalizeMvpWeightProfiles', () => {
   it('default profiles match the catalog-derived defaults', async () => {
     const { DEFAULT_MVP_WEIGHT_PROFILES_FROM_CATALOG } = await import('../mvpWeightProfiles');
     expect(DEFAULT_MVP_WEIGHT_PROFILES).toEqual(DEFAULT_MVP_WEIGHT_PROFILES_FROM_CATALOG);
+  });
+});
+
+describe('buildMvpMetrics: defensiveRevives scores completed revives', () => {
+  // `def.id === 'revives'` is the only catalog entry whose getter is repointed
+  // away from its own `source.key` leaderboard -- the ratio calculation reads
+  // `metric.leaderboard[0].value` as the normalization denominator, so scoring
+  // completed revives against the (larger) attempts leaderboard would silently
+  // deflate every ratio.
+  const getVal = (s: any, k: string) => Number(s?.[k] ?? 0);
+
+  it('scores against the revivesCompleted leaderboard and labels the metric "Revives"', () => {
+    const leaderboards = {
+      revives: [{ account: 'A', value: 10 }],
+      revivesCompleted: [{ account: 'A', value: 4 }],
+    };
+    const [metric] = buildMvpMetrics({ revives: 1 }, leaderboards, {}, getVal);
+    expect(metric.name).toBe('Revives');
+    expect(metric.leaderboard).toBe(leaderboards.revivesCompleted);
+    // Completed revives, not attempts.
+    expect(metric.getter({ revivesCompleted: 3, revives: 10 })).toBe(3);
+    // Falls back to attempts only when completed is null (no replay/rotation data).
+    expect(metric.getter({ revivesCompleted: null, revives: 10 })).toBe(10);
+  });
+
+  it('falls back to the attempts leaderboard when the completed leaderboard is empty', () => {
+    const leaderboards = {
+      revives: [{ account: 'A', value: 10 }],
+      revivesCompleted: [],
+    };
+    const [metric] = buildMvpMetrics({ revives: 1 }, leaderboards, {}, getVal);
+    expect(metric.leaderboard).toBe(leaderboards.revives);
   });
 });

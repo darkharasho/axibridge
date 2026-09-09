@@ -99,11 +99,22 @@ export const buildMvpMetrics = (
       // score attempts. Attempts are attribution-free but mean "tried", not
       // "picked someone up" -- score completed revives instead, falling back
       // to attempts only when a log lacks the rotation/replay data completed
-      // revives require, so historical logs don't score zero.
-      const getter = def.id === 'revives'
+      // revives require, so historical logs don't score zero. The leaderboard
+      // (used for the `best` normalization denominator AND the rank shown in
+      // the MVP breakdown) and the metric's own name are repointed to match --
+      // scoring completed revives against the attempts leaderboard would
+      // systematically deflate every ratio, and showing "Resurrect Attempts"
+      // beside a completed-revives value/rank would be its own mislabel.
+      const isReviveOverride = def.id === 'revives';
+      const completedLeaderboard = leaderboards['revivesCompleted'];
+      const leaderboard = isReviveOverride
+        ? ((completedLeaderboard && completedLeaderboard.length > 0) ? completedLeaderboard : (leaderboards[key] || []))
+        : (leaderboards[key] || []);
+      const getter = isReviveOverride
         ? (s: any) => (s?.revivesCompleted ?? s?.revives ?? 0)
         : (s: any) => getVal(s, key);
-      metrics.push({ name: def.label, weight, higher: def.higherIsBetter, leaderboard: leaderboards[key] || [], getter });
+      const name = isReviveOverride ? 'Revives' : def.label;
+      metrics.push({ name, weight, higher: def.higherIsBetter, leaderboard, getter });
     }
   }
   return metrics;

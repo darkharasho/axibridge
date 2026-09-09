@@ -2194,7 +2194,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 <Toggle
                                     enabled={embedStats.showResurrects}
                                     onChange={(v) => updateEmbedStat('showResurrects', v)}
-                                    label="Resurrects"
+                                    label="Revives"
                                     description="Downed allies revived"
                                 />
                                 <Toggle
