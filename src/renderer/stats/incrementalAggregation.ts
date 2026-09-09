@@ -37,6 +37,7 @@ import { createAllDamageAccumulator, ingestLogAllDamage, finalizeAllDamage, extr
 import { createStripSpikesAccumulator, ingestLogStripSpikes, finalizeStripSpikes, extractStripSpikesFrame, mergeStripSpikesFrame } from './computeStripSpikesData';
 import { createIncomingStrikeDamageAccumulator, ingestLogIncomingStrikeDamage, finalizeIncomingStrikeDamage, extractIncomingStrikeFrame, mergeIncomingStrikeFrame } from './computeIncomingStrikeDamageData';
 import { createSkillUsageAccumulator, ingestLogSkillUsage, finalizeSkillUsage, extractSkillUsageFrame, mergeSkillUsageFrame } from './computeSkillUsageData';
+import { createReviveDetailAccumulator, ingestLogReviveDetail, finalizeReviveDetail, extractReviveDetailFrame, mergeReviveDetailFrame } from './computeReviveDetail';
 
 import { createBoonTimelineAccumulator, ingestLogBoonTimeline, finalizeBoonTimeline, extractBoonTimelineFrame, mergeBoonTimelineFrame } from './computeBoonTimeline';
 import { createBoonUptimeTimelineAccumulator, ingestLogBoonUptimeTimeline, finalizeBoonUptimeTimeline, extractBoonUptimeFrame, mergeBoonUptimeFrame } from './computeBoonUptimeTimeline';
@@ -686,6 +687,7 @@ export class IncrementalAggregator {
     private stripSpikesAcc;
     private incomingStrikeAcc;
     private skillUsageAcc;
+    private reviveDetailAcc;
 
     // Boon timelines
     private boonTimelineAcc;
@@ -735,6 +737,7 @@ export class IncrementalAggregator {
         this.stripSpikesAcc = createStripSpikesAccumulator();
         this.incomingStrikeAcc = createIncomingStrikeDamageAccumulator();
         this.skillUsageAcc = createSkillUsageAccumulator();
+        this.reviveDetailAcc = createReviveDetailAccumulator();
 
         const boonIntervalSettings = {
             boonBucketIntervalMs: this.activeStatsViewSettings.boonBucketIntervalMs ?? 5000,
@@ -890,6 +893,7 @@ export class IncrementalAggregator {
         ingestLogStripSpikes(log, this.stripSpikesAcc, { splitPlayersByClass: this.splitPlayersByClass });
         ingestLogIncomingStrikeDamage(log, this.incomingStrikeAcc);
         ingestLogSkillUsage(log, this.skillUsageAcc);
+        ingestLogReviveDetail(log, this.reviveDetailAcc);
 
         // 5. Boon timelines
         ingestLogBoonTimeline(log, this.boonTimelineAcc);
@@ -1021,6 +1025,7 @@ export class IncrementalAggregator {
                 stripSpikes: extractStripSpikesFrame(this.stripSpikesAcc),
                 incomingStrike: extractIncomingStrikeFrame(this.incomingStrikeAcc),
                 skillUsage: extractSkillUsageFrame(this.skillUsageAcc),
+                reviveDetail: extractReviveDetailFrame(this.reviveDetailAcc),
                 boonTimeline: extractBoonTimelineFrame(this.boonTimelineAcc),
                 boonUptime: extractBoonUptimeFrame(this.boonUptimeAcc),
                 stabPerformance: extractStabPerformanceFrame(this.stabPerfAcc),
@@ -1128,6 +1133,7 @@ export class IncrementalAggregator {
         if (frame.stripSpikes) mergeStripSpikesFrame(this.stripSpikesAcc, frame.stripSpikes, labels);
         if (frame.incomingStrike) mergeIncomingStrikeFrame(this.incomingStrikeAcc, frame.incomingStrike, labels);
         if (frame.skillUsage) mergeSkillUsageFrame(this.skillUsageAcc, frame.skillUsage);
+        if (frame.reviveDetail) mergeReviveDetailFrame(this.reviveDetailAcc, frame.reviveDetail);
         if (frame.boonTimeline) mergeBoonTimelineFrame(this.boonTimelineAcc, frame.boonTimeline, labels);
         if (frame.boonUptime) mergeBoonUptimeFrame(this.boonUptimeAcc, frame.boonUptime, labels);
         if (frame.stabPerformance) mergeStabPerformanceFrame(this.stabPerfAcc, frame.stabPerformance);
@@ -1165,6 +1171,7 @@ export class IncrementalAggregator {
         const stripSpikes = finalizeStripSpikes(this.stripSpikesAcc);
         const incomingStrikeDamage = finalizeIncomingStrikeDamage(this.incomingStrikeAcc);
         const skillUsageData = finalizeSkillUsage(this.skillUsageAcc);
+        const reviveDetail = finalizeReviveDetail(this.reviveDetailAcc);
 
         // 3. Finalize boon timelines
         const boonTimeline = finalizeBoonTimeline(this.boonTimelineAcc);
@@ -1867,6 +1874,7 @@ export class IncrementalAggregator {
             allDamage,
             stripSpikes,
             incomingStrikeDamage,
+            reviveDetail,
             healEffectiveness,
             tagDistanceDeaths,
             distanceToTag,
