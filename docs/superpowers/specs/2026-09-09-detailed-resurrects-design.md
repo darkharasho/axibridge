@@ -270,6 +270,69 @@ pass/fail gate — either outcome produces information.
 The derivation lands and is proven before anything user-facing changes, so a poor empirical
 result stops at a known-good point rather than half-shipping.
 
+## Empirical validation
+
+Measured 2026-09-09 against real WvW logs: 324 logs sampled (stride-10 across 3237 files in the
+arcdps log folder, spread from January through the most recent session — not just one night), 0
+parse failures, 0 logs without revive data.
+
+Ground truth: 6506 downs, 3149 recovered, 3357 died.
+
+Four-bucket attribution split (of 3149 recoveries):
+
+| Bucket | Count | % |
+|---|---|---|
+| hand | 1115 | 35.41% |
+| utility | 1877 | 59.61% |
+| self | 7 | 0.22% |
+| **unattributed** | **150** | **4.76%** |
+
+**4.76% is under the 15% "heuristic is sound" threshold.**
+
+Per-log distribution (not just the aggregate): median 0% unattributed, p75 7.7%, unweighted mean
+across logs 14.2%. 69% of logs (173/250 with ≥1 recovery) attribute every recovery. 22 logs sit
+at 100% unattributed, but these account for only 41 of the 150 total unattributed recoveries
+(27.3%) and are almost all low-recovery-count fights (1–4 recoveries, where one miss reads as
+50–100%) — small-sample noise, not a systemic hole in the ladder.
+
+Risk 1 (truncated-down false positives — a `down` interval closed by fight-end rather than a
+real stand-up, misread as a recovery): 65 of 3149 recoveries (2.06%) have `standUpAt` within 1s
+of the fight's `durationMS`.
+
+Risk 2 (`hasData` via `.some()` vs `.every()` on `hasReviveData` — whether a partial-roster log
+could silently undercount while reporting `hasData: true`): disagreed in **0 of 324 logs**. Under
+real `parseFileEi({replay:true, rotation:true})`, replay/rotation data is log-wide — a log either
+has both fields for its whole roster or not at all, in this sample.
+
+Utilities observed (casts → revives credited):
+
+| Skill id | Name | Casts | Revives |
+|---|---|---|---|
+| 12569 | Spirit of Nature | 1105 | 1421 |
+| 14419 | Battle Standard | 324 | 437 |
+| 10244 | Illusion of Life | 14 | 13 |
+| 9163 | Signet of Mercy | 2 | 2 |
+| 55024 / 55046 | Glyph of the Stars | 12 | 4 |
+| 34309 | "Search and Rescue!" | 1 | 0 |
+| 14569 | Battle Standard (dup id) | 1 | 0 |
+
+Conversion >100% for Spirit of Nature and Battle Standard is expected, not a bug: their windows
+are long-lived ground effects (45s / 60s), so one cast can legitimately credit several different
+players' stand-ups while active — this is the windows doing their job, not double-counting a
+single recovery.
+
+**Verdict: ships as-is.** 4.76% aggregate unattributed is comfortably under threshold, both
+structural risks raised in review are small (2.06% and 0 logs respectively), and the unattributed
+tail is explained by small-sample noise rather than a systemic gap. Two follow-ups worth doing
+later, not blocking:
+
+1. A native fight-end/truncation sentinel from axilog (a flag distinguishing "down interval
+   closed by a real stand-up" from "closed because the log ended") to remove the ~2% truncation
+   guesswork.
+2. Larger real-log samples before trusting the provisional `windowMs` values for the rare
+   utilities — `"Search and Rescue!"`, `Glyph of the Stars`, and the duplicate Battle Standard id
+   `14569` — each had single-digit sample sizes here.
+
 ## Future work
 
 - **Native axilog resurrect block.** Exact attribution from raw EVTC resurrect application
