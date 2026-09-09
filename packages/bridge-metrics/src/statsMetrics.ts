@@ -175,7 +175,7 @@ export const SUPPORT_METRICS: Array<{
         { id: 'boonStripDownContributionTime', label: 'Boon Strip Down Contribution Time', field: 'boonStripDownContributionTime', isTime: true },
         { id: 'stunBreak', label: 'Stun Breaks', field: 'stunBreak' },
         { id: 'removedStunDuration', label: 'Removed Stun Duration', field: 'removedStunDuration', isTime: true },
-        { id: 'resurrects', label: 'Resurrects', field: 'resurrects' },
+        { id: 'resurrects', label: 'Resurrect Attempts', field: 'resurrects' },
         { id: 'resurrectTime', label: 'Resurrect Time', field: 'resurrectTime', isTime: true }
     ];
 
