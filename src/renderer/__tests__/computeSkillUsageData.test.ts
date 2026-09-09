@@ -342,9 +342,49 @@ describe('edge cases', () => {
         expect(result.players).toHaveLength(1);
     });
 
-    it('always returns resUtilitySkills as empty array', () => {
-        const result = computeSkillUsageData([makeLog()]);
-        expect(result.resUtilitySkills).toEqual([]);
+    it('lists resurrect utilities that were actually cast', () => {
+        const log = makeLog({
+            skillMap: {
+                s10244: { name: 'Illusion of Life' },
+                s5491: { name: 'Fireball' },
+            },
+            players: [
+                {
+                    account: 'Alice.1234',
+                    name: 'Alice',
+                    profession: 'Guardian',
+                    notInSquad: false,
+                    activeTimes: [30000],
+                    rotation: [
+                        { id: 10244, skills: [{ time: 100 }, { time: 200 }] },
+                        { id: 5491, skills: Array.from({ length: 9 }, (_, i) => ({ time: i * 100 })) },
+                    ],
+                },
+            ],
+        });
+        const result = computeSkillUsageData([log]);
+        const resUtilitySkills = result.resUtilitySkills ?? [];
+        expect(resUtilitySkills.map((s) => s.id)).toEqual(['s10244']);
+        expect(resUtilitySkills[0].name).toBe('Illusion of Life');
+    });
+
+    it('excludes the hand resurrect channel from resurrect utilities', () => {
+        const log = makeLog({
+            skillMap: { s1066: { name: 'Resurrect' } },
+            players: [
+                {
+                    account: 'Alice.1234',
+                    name: 'Alice',
+                    profession: 'Guardian',
+                    notInSquad: false,
+                    activeTimes: [30000],
+                    rotation: [
+                        { id: 1066, skills: [{ time: 100 }, { time: 200 }, { time: 300 }, { time: 400 }] },
+                    ],
+                },
+            ],
+        });
+        expect(computeSkillUsageData([log]).resUtilitySkills).toEqual([]);
     });
 });
 
