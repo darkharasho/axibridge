@@ -173,3 +173,129 @@ export const attributeRecovery = (
 
     return { ...base, kind: 'unattributed', primaryKey: null, skillId: null };
 };
+
+export const ILLUSION_OF_LIFE_ID = 10244;
+
+export interface RevivePlayerCounts {
+    attempts: number;
+    attemptTimeMs: number;
+    handRevives: number;
+    utilityCasts: number;
+    utilityRevives: number;
+    selfRevives: number;
+    assists: number;
+}
+
+export interface ReviveLogSummary {
+    hasData: boolean;
+    downs: number;
+    recovered: number;
+    died: number;
+    byKind: Record<'hand' | 'utility' | 'self' | 'unattributed', number>;
+    players: Map<string, RevivePlayerCounts>;
+    utilities: Map<number, { name: string; casts: number; revives: number; byCaster: Map<string, number> }>;
+    iolRevives: Array<{ playerKey: string; playerIndex: number; at: number }>;
+}
+
+const emptyCounts = (): RevivePlayerCounts => ({
+    attempts: 0, attemptTimeMs: 0, handRevives: 0,
+    utilityCasts: 0, utilityRevives: 0, selfRevives: 0, assists: 0,
+});
+
+/**
+ * The single source of truth for how a player is keyed across revive
+ * derivation, the renderer accumulator (Task 7), and the aggregation layer
+ * (Task 9). Exported so every consumer builds and splits the same string
+ * instead of keeping its own private copy of this convention.
+ */
+export const reviveePlayerKey = (player: any): string =>
+    `${player?.account || player?.name || 'Unknown'}|${player?.profession || 'Unknown'}`;
+
+export const deriveReviveLogSummary = (details: any, opts: AttributionOptions = {}): ReviveLogSummary => {
+    const summary: ReviveLogSummary = {
+        hasData: false, downs: 0, recovered: 0, died: 0,
+        byKind: { hand: 0, utility: 0, self: 0, unattributed: 0 },
+        players: new Map(), utilities: new Map(), iolRevives: [],
+    };
+
+    const roster = (Array.isArray(details?.players) ? details.players : [])
+        .map((player: any, index: number) => ({ player, index }))
+        .filter(({ player }: any) => !player?.notInSquad);
+    if (roster.length === 0) return summary;
+
+    summary.hasData = roster.some(({ player }: any) => hasReviveData(player));
+    if (!summary.hasData) return summary;
+
+    const counts = (key: string) => {
+        let entry = summary.players.get(key);
+        if (!entry) { entry = emptyCounts(); summary.players.set(key, entry); }
+        return entry;
+    };
+
+    const allCasts: ResurrectCast[] = [];
+    const allRecoveries: Recovery[] = [];
+
+    for (const { player, index } of roster) {
+        const key = reviveePlayerKey(player);
+        counts(key);
+
+        const casts = extractResurrectCasts(player, key, index, details?.skillMap);
+        allCasts.push(...casts);
+
+        for (const cast of casts) {
+            const entry = counts(key);
+            if (cast.kind === 'hand') {
+                entry.attempts += 1;
+                entry.attemptTimeMs += Math.max(0, cast.end - cast.start);
+            } else if (cast.kind === 'utility') {
+                entry.utilityCasts += 1;
+                let utility = summary.utilities.get(cast.skillId);
+                if (!utility) {
+                    utility = { name: cast.skillName, casts: 0, revives: 0, byCaster: new Map() };
+                    summary.utilities.set(cast.skillId, utility);
+                }
+                utility.casts += 1;
+            }
+        }
+
+        const downCount = Array.isArray(player?.combatReplayData?.down) ? player.combatReplayData.down.length : 0;
+        summary.downs += downCount;
+        allRecoveries.push(...deriveRecoveries(player, key, index));
+    }
+
+    summary.recovered = allRecoveries.length;
+    summary.died = summary.downs - summary.recovered;
+
+    for (const recovery of allRecoveries) {
+        const attribution = attributeRecovery(recovery, allCasts, opts);
+        summary.byKind[attribution.kind] += 1;
+
+        if (attribution.primaryKey) {
+            const entry = counts(attribution.primaryKey);
+            if (attribution.kind === 'hand') entry.handRevives += 1;
+            if (attribution.kind === 'self') entry.selfRevives += 1;
+            if (attribution.kind === 'utility') {
+                entry.utilityRevives += 1;
+                const utility = summary.utilities.get(attribution.skillId!);
+                if (utility) {
+                    utility.revives += 1;
+                    utility.byCaster.set(
+                        attribution.primaryKey,
+                        (utility.byCaster.get(attribution.primaryKey) || 0) + 1
+                    );
+                }
+                if (attribution.skillId === ILLUSION_OF_LIFE_ID) {
+                    summary.iolRevives.push({
+                        playerKey: recovery.playerKey,
+                        playerIndex: recovery.playerIndex,
+                        at: recovery.standUpAt,
+                    });
+                }
+            }
+        }
+
+        for (const assistKey of attribution.assistKeys) counts(assistKey).assists += 1;
+    }
+
+    return summary;
+};

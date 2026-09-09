@@ -23,3 +23,21 @@ export * from './nativeDamage';
 export * from './nativeBoons';
 export * from './nativeConditions';
 export * from './nativeFocus';
+export {
+    deriveReviveLogSummary,
+    deriveRecoveries,
+    extractResurrectCasts,
+    attributeRecovery,
+    hasReviveData,
+    reviveePlayerKey,
+    ILLUSION_OF_LIFE_ID,
+    DEATH_MATCH_TOLERANCE_MS,
+} from './reviveDerivation';
+export type {
+    Recovery,
+    ResurrectCast,
+    Attribution,
+    AttributionOptions,
+    ReviveLogSummary,
+    RevivePlayerCounts,
+} from './reviveDerivation';
