@@ -332,6 +332,22 @@ export function FightReportHistoryView() {
         }
     };
 
+    const allFilteredSelected = filteredEntries.length > 0
+        && filteredEntries.every((entry) => selectedForDelete.has(entry.id));
+
+    const handleToggleSelectAll = () => {
+        setSelectedForDelete((prev) => {
+            if (allFilteredSelected) {
+                const next = new Set(prev);
+                filteredEntries.forEach((entry) => next.delete(entry.id));
+                return next;
+            }
+            const next = new Set(prev);
+            filteredEntries.forEach((entry) => next.add(entry.id));
+            return next;
+        });
+    };
+
     const handleDeleteSelected = async () => {
         const ids = Array.from(selectedForDelete);
         if (ids.length === 0) return;
@@ -497,6 +513,18 @@ export function FightReportHistoryView() {
                         </div>
                         <div className="flex items-center gap-2">
                             <RepoDropdown options={repoOptions} selected={selectedOption} onSelect={setSelectedRepoKey} />
+                            {deleteMode && filteredEntries.length > 0 && (
+                                <button type="button"
+                                    onClick={handleToggleSelectAll}
+                                    className="px-3 py-2 rounded-[4px] text-xs whitespace-nowrap"
+                                    style={{
+                                        background: 'var(--bg-input)',
+                                        color: allFilteredSelected ? 'var(--brand-primary)' : 'var(--text-secondary)',
+                                        border: `1px solid ${allFilteredSelected ? 'var(--brand-primary)' : 'var(--border-default)'}`
+                                    }}>
+                                    {allFilteredSelected ? 'Deselect All' : `Select All (${filteredEntries.length})`}
+                                </button>
+                            )}
                             <button type="button"
                                 onClick={() => { setDeleteMode((v) => !v); setSelectedForDelete(new Set()); }}
                                 className="px-3 py-2 rounded-[4px] text-xs"
@@ -762,8 +790,8 @@ export function FightReportHistoryView() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
                             transition={{ duration: 0.2, ease: 'easeOut' }}
-                            className="sticky bottom-0 py-3"
-                            style={{ background: 'var(--bg-surface)', borderTop: '1px solid var(--border-default)' }}
+                            className="app-sticky-bar sticky bottom-0 px-4 -mx-4 py-3"
+                            style={{ borderTop: '1px solid var(--border-default)' }}
                         >
                             <div className="flex items-center justify-between">
                                 <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>

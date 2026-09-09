@@ -251,6 +251,28 @@ body.glass-surfaces .app-dropdown {
   backdrop-filter: blur(12px) !important;
 }
 
+/* Sticky action bars (report-history bulk delete) — cards scroll underneath,
+   so the bar needs an opaque fill of its own. Same rule as .app-dropdown: a
+   surface with content moving behind it never inherits a translucent glass
+   background, because blur is a no-op on Linux and alpha alone reads as
+   see-through. */
+.app-sticky-bar {
+  background: var(--bg-card);
+}
+
+body.glass-surfaces .app-sticky-bar,
+body.glassmorphic .app-sticky-bar {
+  background: rgba(15, 18, 25, 0.97) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+body.bulk-uploading.glass-surfaces .app-sticky-bar,
+body.bulk-uploading.glassmorphic .app-sticky-bar {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 /* Settings sidebar in glass mode */
 body.glass-surfaces .settings-view aside > div {
   backdrop-filter: blur(12px);
