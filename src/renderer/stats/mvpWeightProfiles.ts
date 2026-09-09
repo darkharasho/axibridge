@@ -1,7 +1,10 @@
-import { TOP_STATS_CATALOG, type TopStatDef } from './topStatsCatalog';
+import { MVP_WEIGHTABLE_STATS, mvpStatLabel, type TopStatDef } from './topStatsCatalog';
 import { DEFAULT_MVP_WEIGHT_PROFILES, type IMvpWeightProfiles } from '../global.d';
 
-const VALID_IDS = new Set(TOP_STATS_CATALOG.map((d) => d.id));
+// Only MVP-weightable ids may carry a weight. A stat that is excluded from the
+// picker must also be rejected on load, or a hand-edited or stale settings file
+// could re-introduce the duplicate weight the exclusion exists to prevent.
+const VALID_IDS = new Set(MVP_WEIGHTABLE_STATS.map((d) => d.id));
 
 const LEGACY_MAP: Record<string, [keyof IMvpWeightProfiles, string]> = {
   offensiveDownContribution: ['offensive', 'downContrib'],
@@ -86,35 +89,40 @@ export const buildMvpMetrics = (
   getVal: (s: any, key: string) => number,
 ): MvpMetric[] => {
   const metrics: MvpMetric[] = [];
-  for (const def of TOP_STATS_CATALOG as TopStatDef[]) {
+  for (const def of MVP_WEIGHTABLE_STATS as TopStatDef[]) {
     const weight = weights[def.id] || 0;
     if (weight <= 0) continue;
     if (def.source.kind === 'boon') {
       const lb = boonLeaderboards[def.source.boonId] || [];
       const valueByAccount = new Map<string, number>(lb.map((r: any) => [String(r.account), Number(r.value) || 0]));
-      metrics.push({ name: def.label, weight, higher: def.higherIsBetter, leaderboard: lb, getter: (s) => valueByAccount.get(String(s.account)) ?? 0 });
+      metrics.push({ name: mvpStatLabel(def), weight, higher: def.higherIsBetter, leaderboard: lb, getter: (s) => valueByAccount.get(String(s.account)) ?? 0 });
     } else {
       const key = def.source.key;
       // `defensiveRevives` (legacy weight key -> catalog id 'revives') used to
       // score attempts. Attempts are attribution-free but mean "tried", not
-      // "picked someone up" -- score completed revives instead, falling back
-      // to attempts only when a log lacks the rotation/replay data completed
-      // revives require, so historical logs don't score zero. The leaderboard
+      // "picked someone up" -- score completed revives instead. The leaderboard
       // (used for the `best` normalization denominator AND the rank shown in
-      // the MVP breakdown) and the metric's own name are repointed to match --
-      // scoring completed revives against the attempts leaderboard would
-      // systematically deflate every ratio, and showing "Resurrect Attempts"
-      // beside a completed-revives value/rank would be its own mislabel.
+      // the MVP breakdown) is repointed to match: scoring completed revives
+      // against the attempts leaderboard would systematically deflate every
+      // ratio. The picker and breakdown name comes from `mvpLabel`, so what the
+      // user selects is named for what is actually scored.
+      //
+      // A null `revivesCompleted` means "unknown" (the log lacked the
+      // rotation/replay data), never "revived nobody". Return NaN so
+      // computeCategoryScores' `!Number.isFinite(val)` guard drops the metric
+      // for that player entirely. Falling back to ATTEMPTS here was worse than
+      // a zero: attempts are an incommensurable, systematically larger quantity,
+      // so val/best against a completed-revives `best` could exceed 1.0 and let
+      // one metric outweigh every other bounded contribution in the sum.
       const isReviveOverride = def.id === 'revives';
       const completedLeaderboard = leaderboards['revivesCompleted'];
       const leaderboard = isReviveOverride
         ? ((completedLeaderboard && completedLeaderboard.length > 0) ? completedLeaderboard : (leaderboards[key] || []))
         : (leaderboards[key] || []);
       const getter = isReviveOverride
-        ? (s: any) => (s?.revivesCompleted ?? s?.revives ?? 0)
+        ? (s: any) => (s?.revivesCompleted ?? NaN)
         : (s: any) => getVal(s, key);
-      const name = isReviveOverride ? 'Revives' : def.label;
-      metrics.push({ name, weight, higher: def.higherIsBetter, leaderboard, getter });
+      metrics.push({ name: mvpStatLabel(def), weight, higher: def.higherIsBetter, leaderboard, getter });
     }
   }
   return metrics;

@@ -1686,7 +1686,13 @@ export class IncrementalAggregator {
                         if (!Number.isFinite(val)) return;
                         const higherIsBetter = metric.higher !== false;
                         if (higherIsBetter ? val <= 0 : val >= Number.POSITIVE_INFINITY || val <= 0) return;
-                        const ratio = higherIsBetter ? val / best : best / val;
+                        // Defence in depth: `best` is the leaderboard maximum
+                        // (or minimum, for lower-is-better), so a value drawn
+                        // from that same leaderboard can never exceed 1 and the
+                        // clamp is a no-op. It only bites if a metric's getter
+                        // and its leaderboard ever fall out of sync again, which
+                        // would otherwise let one weight dominate the whole sum.
+                        const ratio = Math.min(1, higherIsBetter ? val / best : best / val);
                         const rank = metricRankMaps[idx].get(stat.account) || 0;
                         score += ratio * metric.weight;
                         contribs.push({ name: metric.name, ratio, weight: metric.weight, val: val.toLocaleString(), rank });

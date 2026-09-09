@@ -750,20 +750,6 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
         return normalized;
     }, [stats]);
 
-    // ReviveDetailSection needs a per-player active-time denominator to offer the
-    // same total/per1s/per60s rate toggle the other Defense sections have — WvW
-    // fight lengths vary a lot, so raw revive counts alone favour whoever attended
-    // the longest fights. reviveDetail itself carries no per-player time, so this
-    // borrows defensePlayers' activeMs (keyed the same way RevivePlayerRow.key is:
-    // `${account}|${profession}`).
-    const reviveDetailPlayerActiveMs = useMemo(() => {
-        const map: Record<string, number> = {};
-        (safeStats.defensePlayers || []).forEach((row: any) => {
-            map[`${row.account}|${row.profession}`] = Number(row.activeMs || 0);
-        });
-        return map;
-    }, [safeStats.defensePlayers]);
-
     useEffect(() => {
         if (!window?.electronAPI?.fetchImageAsDataUrl) return;
         let cancelled = false;
@@ -5202,7 +5188,6 @@ type SpikeFight = {
                             /> },
                             { id: 'revive-detail', element: <ReviveDetailSection
                                 reviveDetail={safeStats.reviveDetail ?? null}
-                                playerActiveMs={reviveDetailPlayerActiveMs}
                             /> },
                             { id: 'incoming-strike-damage', element: <SpikeDamageSection
                                 sectionId="incoming-strike-damage"

@@ -1,9 +1,13 @@
-import { deriveReviveLogSummary, type RevivePlayerCounts } from '@axiapps/bridge-metrics';
+import { deriveReviveLogSummary, reviveePlayerKey, type RevivePlayerCounts } from '@axiapps/bridge-metrics';
 import type { ReviveDetailFrame, ReviveDetailSummary } from './statsTypes';
 
 interface ReviveDetailPlayer extends RevivePlayerCounts {
     account: string;
     profession: string;
+    /** Active time over the covered logs this player appeared in. Accumulated
+     *  here, under the same key as the counts, so the rate denominator and the
+     *  numerators can never drift onto two key conventions. */
+    activeMs: number;
 }
 
 export interface ReviveDetailAccumulator {
@@ -58,7 +62,7 @@ export function ingestLogReviveDetail(log: any, acc: ReviveDetailAccumulator): v
         if (!row) {
             const [account, profession] = key.split('|');
             row = {
-                account, profession, attempts: 0, attemptTimeMs: 0, handRevives: 0,
+                account, profession, activeMs: 0, attempts: 0, attemptTimeMs: 0, handRevives: 0,
                 utilityCasts: 0, utilityRevives: 0, selfRevives: 0, assists: 0,
             };
             acc.players.set(key, row);
@@ -84,6 +88,21 @@ export function ingestLogReviveDetail(log: any, acc: ReviveDetailAccumulator): v
     });
 
     const roster = Array.isArray(details?.players) ? details.players : [];
+
+    // Per-player active time for the rate toggle. Only covered logs contribute,
+    // matching the counts above: a log excluded from the numerators must be
+    // excluded from the denominator too. Mirrors computePlayerAggregation's
+    // definition of active time (activeTimes[0], else the fight duration).
+    for (const player of roster) {
+        if (player?.notInSquad) continue;
+        const row = acc.players.get(reviveePlayerKey(player));
+        if (!row) continue;
+        const activeMs = Array.isArray(player?.activeTimes) && typeof player.activeTimes[0] === 'number'
+            ? Number(player.activeTimes[0] || 0)
+            : Number(details?.durationMS || 0);
+        row.activeMs += Math.max(0, activeMs);
+    }
+
     for (const revive of summary.iolRevives) {
         acc.iol.revives += 1;
         const down = roster[revive.playerIndex]?.combatReplayData?.down;
@@ -106,11 +125,21 @@ const median = (values: number[]): number | null => {
     return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 };
 
-export function finalizeReviveDetail(acc: ReviveDetailAccumulator): ReviveDetailSummary {
+/**
+ * `null` means "no measurement", not "zero revives". An accumulator that saw no
+ * logs at all (e.g. a viewer that merged frames from an older sidecar which
+ * carried no `reviveDetail` section) has nothing to report, and rendering it as
+ * "Downs 0 · Recovered 0" would fabricate exactly the zero this whole module
+ * exists to avoid. The section already renders a null summary as "no data".
+ */
+export function finalizeReviveDetail(acc: ReviveDetailAccumulator): ReviveDetailSummary | null {
+    if (acc.logsWithData + acc.logsWithoutData === 0) return null;
+
     const players = Array.from(acc.players.entries()).map(([key, row]) => ({
         key,
         account: row.account,
         profession: row.profession,
+        activeMs: row.activeMs,
         attempts: row.attempts,
         attemptTimeMs: row.attemptTimeMs,
         handRevives: row.handRevives,
@@ -185,6 +214,7 @@ export function mergeReviveDetailFrame(target: ReviveDetailAccumulator, frame: R
             target.players.set(key, { ...sourceRow });
             return;
         }
+        row.activeMs += sourceRow.activeMs;
         row.attempts += sourceRow.attempts;
         row.attemptTimeMs += sourceRow.attemptTimeMs;
         row.handRevives += sourceRow.handRevives;

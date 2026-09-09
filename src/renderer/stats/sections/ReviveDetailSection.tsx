@@ -6,10 +6,6 @@ import type { ReviveDetailSummary, RevivePlayerRow } from '../statsTypes';
 
 type ReviveDetailSectionProps = {
     reviveDetail: ReviveDetailSummary | null | undefined;
-    /** account|profession -> total active ms, used only to normalize the count
-     *  columns into per-1s / per-60s rates. Missing/absent entries fall back to
-     *  a 1-second floor so the section never divides by zero. */
-    playerActiveMs?: Record<string, number>;
 };
 
 type PlayerSortKey =
@@ -51,24 +47,30 @@ const displayName = (key: string | null): string => {
     return account || key;
 };
 
-/** Player's total active seconds, floored at 1s so per-second/per-minute rates
- *  never divide by zero. Falls back to the floor when no activeMs was supplied
- *  for this player (e.g. old data, or the caller didn't pass playerActiveMs). */
-const totalSecondsFor = (row: RevivePlayerRow, playerActiveMs?: Record<string, number>): number =>
-    Math.max(1, (playerActiveMs?.[row.key] || 0) / 1000);
+/** Player's total active seconds over the covered logs, or `null` when the row
+ *  carries no active time at all (a report published before `activeMs` was
+ *  recorded). A rate needs a real denominator: inventing one — a 1-second floor,
+ *  say — turns 9 attempts over three minutes into "9.00/s" with nothing on
+ *  screen to say it is wrong, so those rows render a dash instead. */
+const totalSecondsFor = (row: RevivePlayerRow): number | null => {
+    const seconds = Number(row.activeMs || 0) / 1000;
+    return seconds > 0 ? seconds : null;
+};
 
-const resolveCountValue = (raw: number, viewMode: ViewMode, seconds: number): number => {
+const resolveCountValue = (raw: number, viewMode: ViewMode, seconds: number | null): number | null => {
     if (viewMode === 'total') return raw;
+    if (seconds === null) return null;
     const perSecond = raw / seconds;
     return viewMode === 'per1s' ? perSecond : perSecond * 60;
 };
 
-const formatCountValue = (raw: number, viewMode: ViewMode, seconds: number): string => {
+const formatCountValue = (raw: number, viewMode: ViewMode, seconds: number | null): string => {
     const value = resolveCountValue(raw, viewMode, seconds);
+    if (value === null) return '—';
     return viewMode === 'total' ? String(value) : value.toFixed(2);
 };
 
-export const ReviveDetailSection = ({ reviveDetail, playerActiveMs }: ReviveDetailSectionProps) => {
+export const ReviveDetailSection = ({ reviveDetail }: ReviveDetailSectionProps) => {
     const [sort, setSort] = useState<{ key: PlayerSortKey; dir: 'asc' | 'desc' }>({ key: 'totalRevives', dir: 'desc' });
     const [viewMode, setViewMode] = useState<ViewMode>('total');
 
@@ -91,7 +93,9 @@ export const ReviveDetailSection = ({ reviveDetail, playerActiveMs }: ReviveDeta
             if (sort.key === 'account') return row.account;
             const raw = Number((row as any)[sort.key] || 0);
             if (RATE_FIELDS.has(sort.key) && viewMode !== 'total') {
-                return resolveCountValue(raw, viewMode, totalSecondsFor(row, playerActiveMs));
+                // A row with no known active time sorts last in rate modes; it
+                // has no rate to compare.
+                return resolveCountValue(raw, viewMode, totalSecondsFor(row)) ?? -1;
             }
             return raw;
         };
@@ -107,7 +111,7 @@ export const ReviveDetailSection = ({ reviveDetail, playerActiveMs }: ReviveDeta
             return String(a.account || '').localeCompare(String(b.account || ''));
         });
         return rows;
-    }, [players, sort, viewMode, playerActiveMs]);
+    }, [players, sort, viewMode]);
 
     const recoveredRatePercent = squad.downs > 0 ? Math.round((squad.recovered / squad.downs) * 100) : null;
 
@@ -160,6 +164,9 @@ export const ReviveDetailSection = ({ reviveDetail, playerActiveMs }: ReviveDeta
                         <div className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>
                             Coverage: {coverage.logsWithData} {coverage.logsWithData === 1 ? 'log' : 'logs'} with revive data. Per-player totals below only sum the logs that carried revive data — there is no per-player denominator, so a player present for fewer covered logs is not on equal footing with one who attended more.
                         </div>
+                        <div className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
+                            Utility credit is time-window based: a utility is credited with a stand-up that happens inside its window, with no check on how far away it was. One long-window utility can therefore be credited with several stand-ups, so Utility Revives and Revives per Cast read on the generous side.
+                        </div>
                     </div>
 
                     <div className="rounded-[var(--radius-md)] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
@@ -185,7 +192,7 @@ export const ReviveDetailSection = ({ reviveDetail, playerActiveMs }: ReviveDeta
                                 </div>
                                 <div className="max-h-96 overflow-y-auto">
                                     {sortedPlayers.map((row) => {
-                                        const seconds = totalSecondsFor(row, playerActiveMs);
+                                        const seconds = totalSecondsFor(row);
                                         return (
                                             <div
                                                 key={row.key}
