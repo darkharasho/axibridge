@@ -103,7 +103,7 @@ export const STATS_CATEGORIES: readonly StatsCategory[] = [
         description: 'Cleanses, stun breaks, resurrects, healing, and barrier.',
         keywords: ['support', 'healer'],
         sections: [
-            { id: 'support-detailed', label: 'Support Detailed', icon: SupportPlusIcon, description: 'Cleanses, strips, stun breaks, and resurrects per player.', keywords: ['cleanses', 'condition cleanse', 'stun breaks', 'resurrects', 'res'] },
+            { id: 'support-detailed', label: 'Support Detailed', icon: SupportPlusIcon, description: 'Cleanses, strips, stun breaks, and resurrect attempts per player.', keywords: ['cleanses', 'condition cleanse', 'stun breaks', 'resurrects', 'resurrect attempts', 'res'] },
             { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse, description: 'Healing and barrier output per player.', keywords: ['healing', 'hps', 'barrier'] },
             { id: 'healing-breakdown', label: 'Healing Breakdown', icon: ListTree, description: 'Healing split by skill for each player.', keywords: ['healing skills'] },
             { id: 'heal-effectiveness', label: 'Heal Effectiveness', icon: Waves, description: 'How much healing landed versus was wasted.', keywords: ['effective healing', 'overheal'] },
