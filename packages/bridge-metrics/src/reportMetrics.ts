@@ -28,6 +28,12 @@ export interface RunPlayerSummary {
     strips: number;
     cleanses: number;
     resurrects: number;
+    /**
+     * Completed revives (hand + utility). `null`, never `0`, when no
+     * published report row that contributed to this account carried
+     * `supportTotals.revivesCompleted` -- older reports predate the field.
+     */
+    revivesCompleted: number | null;
     healing: number;
     barrier: number;
     hasHealAddon: boolean;
@@ -75,7 +81,7 @@ export const extractRunSummary = (report: unknown): RunSummary => {
                 professionList: Array.isArray(row?.professionList) ? row.professionList.map(String) : [],
                 combatTimeMs: 0, squadTimeMs: 0, classTimes: [],
                 damage: 0, downContribution: 0, kills: 0, downsCaused: 0,
-                strips: 0, cleanses: 0, resurrects: 0,
+                strips: 0, cleanses: 0, resurrects: 0, revivesCompleted: null,
                 healing: 0, barrier: 0, hasHealAddon: false,
                 damageTaken: 0, downs: 0, deaths: 0, logsJoined: 0
             };
@@ -113,6 +119,12 @@ export const extractRunSummary = (report: unknown): RunSummary => {
             + num(row?.supportTotals?.condiCleanseMinions);
         p.strips = Math.max(p.strips, num(row?.supportTotals?.boonStrips));
         p.resurrects += num(row?.supportTotals?.resurrects);
+        // null, never 0: an older published report has no supportTotals.revivesCompleted
+        // at all, which must not read as "this account revived nobody".
+        const revivesCompletedVal = row?.supportTotals?.revivesCompleted;
+        if (typeof revivesCompletedVal === 'number' && Number.isFinite(revivesCompletedVal)) {
+            p.revivesCompleted = (p.revivesCompleted ?? 0) + revivesCompletedVal;
+        }
         p.logsJoined = Math.max(p.logsJoined, num(row?.logsJoined));
     }
     for (const row of Array.isArray(stats?.healingPlayers) ? stats.healingPlayers : []) {

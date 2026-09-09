@@ -8,8 +8,8 @@ import {
 import { DEFAULT_STATS_VIEW_SETTINGS } from '../../global.d';
 
 describe('topStatsCatalog', () => {
-  it('has 38 entries across 5 categories', () => {
-    expect(TOP_STATS_CATALOG).toHaveLength(38);
+  it('has 39 entries across 5 categories', () => {
+    expect(TOP_STATS_CATALOG).toHaveLength(39);
     const cats = new Set(TOP_STATS_CATALOG.map((d) => d.category));
     expect([...cats].sort()).toEqual(['boon', 'control', 'defense', 'offense', 'utility']);
   });

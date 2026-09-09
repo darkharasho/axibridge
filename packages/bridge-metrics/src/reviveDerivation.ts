@@ -108,6 +108,14 @@ export interface AttributionOptions {
      * means the entity was stationary, not that it moved.
      */
     isWithinRadius?: (casterIndex: number, revivedIndex: number, atMs: number) => boolean;
+    /**
+     * Overrides `reviveePlayerKey` for building the key each player is tracked
+     * under. A caller that keys its own player map differently (e.g.
+     * `computePlayerAggregation`'s account-or-`account::profession` identity)
+     * passes its own function here rather than reconciling two separate key
+     * conventions after the fact.
+     */
+    playerKey?: (player: any) => string;
 }
 
 export interface Attribution {
@@ -226,6 +234,8 @@ export const deriveReviveLogSummary = (details: any, opts: AttributionOptions = 
     summary.hasData = roster.some(({ player }: any) => hasReviveData(player));
     if (!summary.hasData) return summary;
 
+    const keyFor = opts.playerKey || reviveePlayerKey;
+
     const counts = (key: string) => {
         let entry = summary.players.get(key);
         if (!entry) { entry = emptyCounts(); summary.players.set(key, entry); }
@@ -236,7 +246,7 @@ export const deriveReviveLogSummary = (details: any, opts: AttributionOptions = 
     const allRecoveries: Recovery[] = [];
 
     for (const { player, index } of roster) {
-        const key = reviveePlayerKey(player);
+        const key = keyFor(player);
         counts(key);
 
         const casts = extractResurrectCasts(player, key, index, details?.skillMap);

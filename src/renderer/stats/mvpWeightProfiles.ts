@@ -95,7 +95,15 @@ export const buildMvpMetrics = (
       metrics.push({ name: def.label, weight, higher: def.higherIsBetter, leaderboard: lb, getter: (s) => valueByAccount.get(String(s.account)) ?? 0 });
     } else {
       const key = def.source.key;
-      metrics.push({ name: def.label, weight, higher: def.higherIsBetter, leaderboard: leaderboards[key] || [], getter: (s) => getVal(s, key) });
+      // `defensiveRevives` (legacy weight key -> catalog id 'revives') used to
+      // score attempts. Attempts are attribution-free but mean "tried", not
+      // "picked someone up" -- score completed revives instead, falling back
+      // to attempts only when a log lacks the rotation/replay data completed
+      // revives require, so historical logs don't score zero.
+      const getter = def.id === 'revives'
+        ? (s: any) => (s?.revivesCompleted ?? s?.revives ?? 0)
+        : (s: any) => getVal(s, key);
+      metrics.push({ name: def.label, weight, higher: def.higherIsBetter, leaderboard: leaderboards[key] || [], getter });
     }
   }
   return metrics;
