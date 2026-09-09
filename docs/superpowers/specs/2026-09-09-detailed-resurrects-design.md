@@ -139,11 +139,15 @@ positions are never interpolated across a gap.
 | Utility Revives | recoveries credited to those casts |
 | Revives per Cast | Utility Revives ÷ Utility Casts |
 | Assists | recoveries contributed to without primary credit |
-| Total Revives | primary credits from all sources |
+| Total Revives | Hand Revives + Utility Revives (primary credits) |
 
 ### Per utility
 
 One row per utility type: squad casts, revives, revives per cast, top caster.
+
+Self-revives (Bandage) are counted in the squad split only. They are not credited to
+the reviving player's Total Revives, since crediting a player for reviving themselves
+would distort the leaderboard.
 
 ### Post–Illusion of Life survival
 
