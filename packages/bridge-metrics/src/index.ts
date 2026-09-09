@@ -9,6 +9,8 @@ export * from './rollup';
 export * from './aggregationTypes';
 export * from './roles';
 export { isResUtilitySkill } from './resUtility';
+export { classifyResurrectSkill, RESURRECT_SKILLS, DEFAULT_UTILITY_WINDOW_MS } from './resurrectCatalog';
+export type { ResurrectKind, ResurrectSkill } from './resurrectCatalog';
 export { resolveFightTimestamp, parseTimestamp as parseFightTimestamp } from './timestampUtils';
 export * from './reportMetrics';
 export * from './positioning';
