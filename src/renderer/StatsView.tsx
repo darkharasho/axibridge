@@ -48,6 +48,7 @@ import { DamageModifiersSection } from './stats/sections/DamageModifiersSection'
 import { ConditionsSection } from './stats/sections/ConditionsSection';
 import { BoonOutputSection } from './stats/sections/BoonOutputSection';
 import { DefenseSection } from './stats/sections/DefenseSection';
+import { ReviveDetailSection } from './stats/sections/ReviveDetailSection';
 import { BoonStripComparisonSection } from './stats/sections/BoonStripComparisonSection';
 import { DamageMitigationSection } from './stats/sections/DamageMitigationSection';
 import { SupportSection } from './stats/sections/SupportSection';
@@ -200,6 +201,7 @@ const ORDERED_SECTION_IDS = [
     'all-damage',
     'conditions-outgoing',
     'defense-detailed',
+    'revive-detail',
     'incoming-damage-modifiers',
     'incoming-strike-damage',
     'support-detailed',
@@ -5183,6 +5185,9 @@ type SpikeFight = {
                                 defenseViewMode={defenseViewMode}
                                 setDefenseViewMode={setDefenseViewMode}
                                 noEgoMode={noEgoMode}
+                            /> },
+                            { id: 'revive-detail', element: <ReviveDetailSection
+                                reviveDetail={safeStats.reviveDetail ?? null}
                             /> },
                             { id: 'incoming-strike-damage', element: <SpikeDamageSection
                                 sectionId="incoming-strike-damage"

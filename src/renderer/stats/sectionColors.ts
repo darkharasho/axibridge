@@ -63,6 +63,7 @@ export const SECTION_ACCENT_COLORS: Record<string, string> = {
     'conditions-outgoing': 'var(--section-offense)',
     // Defense group
     'defense-detailed': 'var(--section-defense)',
+    'revive-detail': 'var(--section-defense)',
     'incoming-damage-modifiers': 'var(--section-defense)',
     'incoming-strike-damage': 'var(--section-defense)',
     'defense-mitigation': 'var(--section-mitigation)',
