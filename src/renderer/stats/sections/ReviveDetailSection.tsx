@@ -1,14 +1,29 @@
 import { useMemo, useState } from 'react';
 import { HelpingHand } from 'lucide-react';
+import { renderProfessionIcon } from '../ui/StatsViewShared';
+import { PillToggleGroup } from '../ui/PillToggleGroup';
 import type { ReviveDetailSummary, RevivePlayerRow } from '../statsTypes';
 
 type ReviveDetailSectionProps = {
     reviveDetail: ReviveDetailSummary | null | undefined;
+    /** account|profession -> total active ms, used only to normalize the count
+     *  columns into per-1s / per-60s rates. Missing/absent entries fall back to
+     *  a 1-second floor so the section never divides by zero. */
+    playerActiveMs?: Record<string, number>;
 };
 
 type PlayerSortKey =
     | 'account' | 'attempts' | 'attemptTimeMs' | 'handRevives' | 'successRate'
     | 'utilityCasts' | 'utilityRevives' | 'revivesPerCast' | 'assists' | 'totalRevives';
+
+/** The count fields that get divided by active time when the rate toggle is off
+ *  "Total" — mirrors DefenseSection's total/per1s/per60s mechanism. successRate
+ *  and revivesPerCast are already ratios and must never be time-scaled. */
+const RATE_FIELDS = new Set<PlayerSortKey>([
+    'attempts', 'handRevives', 'utilityCasts', 'utilityRevives', 'assists', 'totalRevives',
+]);
+
+type ViewMode = 'total' | 'per1s' | 'per60s';
 
 const PLAYER_COLUMNS: Array<{ id: PlayerSortKey; label: string; align: 'left' | 'right' }> = [
     { id: 'account', label: 'Player', align: 'left' },
@@ -36,14 +51,32 @@ const displayName = (key: string | null): string => {
     return account || key;
 };
 
-export const ReviveDetailSection = ({ reviveDetail }: ReviveDetailSectionProps) => {
+/** Player's total active seconds, floored at 1s so per-second/per-minute rates
+ *  never divide by zero. Falls back to the floor when no activeMs was supplied
+ *  for this player (e.g. old data, or the caller didn't pass playerActiveMs). */
+const totalSecondsFor = (row: RevivePlayerRow, playerActiveMs?: Record<string, number>): number =>
+    Math.max(1, (playerActiveMs?.[row.key] || 0) / 1000);
+
+const resolveCountValue = (raw: number, viewMode: ViewMode, seconds: number): number => {
+    if (viewMode === 'total') return raw;
+    const perSecond = raw / seconds;
+    return viewMode === 'per1s' ? perSecond : perSecond * 60;
+};
+
+const formatCountValue = (raw: number, viewMode: ViewMode, seconds: number): string => {
+    const value = resolveCountValue(raw, viewMode, seconds);
+    return viewMode === 'total' ? String(value) : value.toFixed(2);
+};
+
+export const ReviveDetailSection = ({ reviveDetail, playerActiveMs }: ReviveDetailSectionProps) => {
     const [sort, setSort] = useState<{ key: PlayerSortKey; dir: 'asc' | 'desc' }>({ key: 'totalRevives', dir: 'desc' });
+    const [viewMode, setViewMode] = useState<ViewMode>('total');
 
     const toggleSort = (key: PlayerSortKey) => {
-        setSort((prev) => ({
-            key,
-            dir: prev.key === key ? (prev.dir === 'desc' ? 'asc' : 'desc') : 'desc',
-        }));
+        setSort((prev) => {
+            if (prev.key === key) return { key, dir: prev.dir === 'desc' ? 'asc' : 'desc' };
+            return { key, dir: key === 'account' ? 'asc' : 'desc' };
+        });
     };
 
     const players = reviveDetail?.players ?? [];
@@ -54,19 +87,27 @@ export const ReviveDetailSection = ({ reviveDetail }: ReviveDetailSectionProps) 
 
     const sortedPlayers = useMemo(() => {
         const rows = [...players];
+        const resolveSortValue = (row: RevivePlayerRow): number | string => {
+            if (sort.key === 'account') return row.account;
+            const raw = Number((row as any)[sort.key] || 0);
+            if (RATE_FIELDS.has(sort.key) && viewMode !== 'total') {
+                return resolveCountValue(raw, viewMode, totalSecondsFor(row, playerActiveMs));
+            }
+            return raw;
+        };
         rows.sort((a: RevivePlayerRow, b: RevivePlayerRow) => {
-            if (sort.key === 'account') {
-                const diff = String(a.account || '').localeCompare(String(b.account || ''));
+            const av = resolveSortValue(a);
+            const bv = resolveSortValue(b);
+            if (typeof av === 'string' || typeof bv === 'string') {
+                const diff = String(av).localeCompare(String(bv));
                 return sort.dir === 'desc' ? -diff : diff;
             }
-            const av = Number((a as any)[sort.key] || 0);
-            const bv = Number((b as any)[sort.key] || 0);
             const diff = av - bv;
             if (diff !== 0) return sort.dir === 'desc' ? -diff : diff;
             return String(a.account || '').localeCompare(String(b.account || ''));
         });
         return rows;
-    }, [players, sort]);
+    }, [players, sort, viewMode, playerActiveMs]);
 
     const recoveredRatePercent = squad.downs > 0 ? Math.round((squad.recovered / squad.downs) * 100) : null;
 
@@ -77,6 +118,21 @@ export const ReviveDetailSection = ({ reviveDetail }: ReviveDetailSectionProps) 
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
                     Revives
                 </h3>
+                {reviveDetail && (
+                    <div className="ml-auto">
+                        <PillToggleGroup
+                            value={viewMode}
+                            onChange={setViewMode}
+                            options={[
+                                { value: 'total', label: 'Total' },
+                                { value: 'per1s', label: 'Stat/1s' },
+                                { value: 'per60s', label: 'Stat/60s' },
+                            ]}
+                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
+                            inactiveClassName="text-[color:var(--text-secondary)]"
+                        />
+                    </div>
+                )}
             </div>
 
             {!reviveDetail ? (
@@ -128,24 +184,30 @@ export const ReviveDetailSection = ({ reviveDetail }: ReviveDetailSectionProps) 
                                     ))}
                                 </div>
                                 <div className="max-h-96 overflow-y-auto">
-                                    {sortedPlayers.map((row) => (
-                                        <div
-                                            key={row.key}
-                                            className={`grid ${GRID_COLS} gap-2 px-3 py-2 text-xs`}
-                                            style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
-                                        >
-                                            <div className="min-w-0 truncate">{row.account}</div>
-                                            <div className="text-right font-mono">{row.attempts}</div>
-                                            <div className="text-right font-mono">{formatSeconds(row.attemptTimeMs)}</div>
-                                            <div className="text-right font-mono">{row.handRevives}</div>
-                                            <div className="text-right font-mono">{formatPercent(row.successRate, row.attempts === 0)}</div>
-                                            <div className="text-right font-mono">{row.utilityCasts}</div>
-                                            <div className="text-right font-mono">{row.utilityRevives}</div>
-                                            <div className="text-right font-mono">{formatRatio(row.revivesPerCast, row.utilityCasts === 0)}</div>
-                                            <div className="text-right font-mono">{row.assists}</div>
-                                            <div className="text-right font-mono">{row.totalRevives}</div>
-                                        </div>
-                                    ))}
+                                    {sortedPlayers.map((row) => {
+                                        const seconds = totalSecondsFor(row, playerActiveMs);
+                                        return (
+                                            <div
+                                                key={row.key}
+                                                className={`grid ${GRID_COLS} gap-2 px-3 py-2 text-xs`}
+                                                style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
+                                            >
+                                                <div className="min-w-0 truncate flex items-center gap-1.5">
+                                                    {renderProfessionIcon(row.profession, undefined, 'w-4 h-4 flex-shrink-0')}
+                                                    <span className="truncate">{row.account}</span>
+                                                </div>
+                                                <div className="text-right font-mono">{formatCountValue(row.attempts, viewMode, seconds)}</div>
+                                                <div className="text-right font-mono">{formatSeconds(row.attemptTimeMs)}</div>
+                                                <div className="text-right font-mono">{formatCountValue(row.handRevives, viewMode, seconds)}</div>
+                                                <div className="text-right font-mono">{formatPercent(row.successRate, row.attempts === 0)}</div>
+                                                <div className="text-right font-mono">{formatCountValue(row.utilityCasts, viewMode, seconds)}</div>
+                                                <div className="text-right font-mono">{formatCountValue(row.utilityRevives, viewMode, seconds)}</div>
+                                                <div className="text-right font-mono">{formatRatio(row.revivesPerCast, row.utilityCasts === 0)}</div>
+                                                <div className="text-right font-mono">{formatCountValue(row.assists, viewMode, seconds)}</div>
+                                                <div className="text-right font-mono">{formatCountValue(row.totalRevives, viewMode, seconds)}</div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </>
                         )}
