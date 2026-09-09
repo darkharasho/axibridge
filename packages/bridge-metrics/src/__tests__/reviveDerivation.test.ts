@@ -54,7 +54,7 @@ describe('hasReviveData', () => {
 const recovery = { playerKey: 'Downed|Scourge', playerIndex: 1, downStart: 1000, standUpAt: 5000 };
 
 const cast = (over: Partial<any> = {}) => ({
-    playerKey: 'Rezzer|Firebrand', playerIndex: 0, skillId: 1066, skillName: 'Resurrect',
+    playerKey: 'Reviver|Firebrand', playerIndex: 0, skillId: 1066, skillName: 'Resurrect',
     kind: 'hand' as const, start: 3000, end: 6000, ...over,
 });
 
@@ -66,7 +66,7 @@ describe('extractResurrectCasts', () => {
                 { castTime: 4000, duration: 900 },
             ] }],
         };
-        const casts = extractResurrectCasts(player, 'Rezzer|Firebrand', 0, {});
+        const casts = extractResurrectCasts(player, 'Reviver|Firebrand', 0, {});
         expect(casts).toHaveLength(2);
         expect(casts[1]).toMatchObject({ start: 4000, end: 4900, kind: 'hand' });
     });
@@ -86,7 +86,7 @@ describe('extractResurrectCasts', () => {
 describe('attributeRecovery', () => {
     it('credits a hand channel that covers the stand-up', () => {
         const result = attributeRecovery(recovery, [cast()]);
-        expect(result).toMatchObject({ kind: 'hand', primaryKey: 'Rezzer|Firebrand', skillId: 1066, assistKeys: [] });
+        expect(result).toMatchObject({ kind: 'hand', primaryKey: 'Reviver|Firebrand', skillId: 1066, assistKeys: [] });
     });
 
     it('does NOT credit a channel that ended before the stand-up', () => {
@@ -136,5 +136,84 @@ describe('attributeRecovery', () => {
 
     it('reports unattributed rather than dropping the recovery', () => {
         expect(attributeRecovery(recovery, [])).toMatchObject({ kind: 'unattributed', primaryKey: null, assistKeys: [] });
+    });
+});
+
+import { deriveReviveLogSummary, reviveePlayerKey } from '../reviveDerivation';
+
+const details = (players: any[], skillMap: any = {}) => ({ players, skillMap });
+
+const squadPlayer = (over: any) => ({
+    account: over.account, profession: over.profession || 'Guardian',
+    combatReplayData: { down: over.down || [], dead: over.dead || [] },
+    rotation: over.rotation || [],
+});
+
+describe('reviveePlayerKey', () => {
+    it('builds a key from account and profession', () => {
+        expect(reviveePlayerKey({ account: 'A', profession: 'Guardian' })).toBe('A|Guardian');
+    });
+
+    it('falls back to name when account is absent', () => {
+        expect(reviveePlayerKey({ name: 'Charname', profession: 'Guardian' })).toBe('Charname|Guardian');
+    });
+
+    it('falls back to Unknown for both account and profession when absent', () => {
+        expect(reviveePlayerKey({})).toBe('Unknown|Unknown');
+    });
+});
+
+describe('deriveReviveLogSummary', () => {
+    it('summarises a hand revive across two players', () => {
+        const summary = deriveReviveLogSummary(details([
+            squadPlayer({ account: 'Reviver', rotation: [{ id: 1066, skills: [{ castTime: 3000, duration: 3000 }] }] }),
+            squadPlayer({ account: 'Downed', down: [[1000, 5000]] }),
+        ]));
+
+        expect(summary.hasData).toBe(true);
+        expect(summary.downs).toBe(1);
+        expect(summary.recovered).toBe(1);
+        expect(summary.died).toBe(0);
+        expect(summary.byKind.hand).toBe(1);
+        expect(summary.players.get('Reviver|Guardian')).toMatchObject({
+            attempts: 1, attemptTimeMs: 3000, handRevives: 1,
+        });
+    });
+
+    it('counts an attempt that did not land as an attempt only', () => {
+        const summary = deriveReviveLogSummary(details([
+            squadPlayer({ account: 'Reviver', rotation: [{ id: 1066, skills: [{ castTime: 1000, duration: 500 }] }] }),
+            squadPlayer({ account: 'Downed', down: [[1000, 5000]], dead: [[5000, 9000]] }),
+        ]));
+
+        expect(summary.recovered).toBe(0);
+        expect(summary.died).toBe(1);
+        expect(summary.players.get('Reviver|Guardian')).toMatchObject({ attempts: 1, handRevives: 0 });
+    });
+
+    it('reports hasData false when a log has no rotation', () => {
+        const summary = deriveReviveLogSummary({
+            players: [{ account: 'A', profession: 'Guardian', combatReplayData: { down: [[1, 2]], dead: [] } }],
+            skillMap: {},
+        });
+        expect(summary.hasData).toBe(false);
+    });
+
+    it('tallies utility casts and revives per utility with a top caster', () => {
+        const summary = deriveReviveLogSummary(details([
+            squadPlayer({ account: 'Mes', profession: 'Chronomancer',
+                rotation: [{ id: 10244, skills: [{ castTime: 4000, duration: 0 }] }] }),
+            squadPlayer({ account: 'Downed', down: [[1000, 5000]] }),
+        ]));
+
+        const iol = summary.utilities.get(10244);
+        expect(iol).toMatchObject({ casts: 1, revives: 1 });
+        expect(iol!.byCaster.get('Mes|Chronomancer')).toBe(1);
+        expect(summary.iolRevives).toEqual([{ playerKey: 'Downed|Guardian', playerIndex: 1, at: 5000 }]);
+    });
+
+    it('excludes non-squad players', () => {
+        const pug = { ...squadPlayer({ account: 'Pug', down: [[1000, 5000]] }), notInSquad: true };
+        expect(deriveReviveLogSummary(details([pug])).downs).toBe(0);
     });
 });
