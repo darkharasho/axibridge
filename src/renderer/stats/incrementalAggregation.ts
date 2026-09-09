@@ -1441,11 +1441,13 @@ export class IncrementalAggregator {
                 case 'ccAndInterrupts': return s.cc + s.interrupts;
                 case 'stability': return s.stab;
                 case 'revives': return s.revives;
-                // Leaderboards need a sortable number; `null` (no replay/rotation
-                // data for this player) reads as 0 here, but the raw `s.revivesCompleted`
-                // stays null for consumers -- like MVP scoring and Discord -- that must
-                // not conflate "unknown" with "revived nobody".
-                case 'revivesCompleted': return s.revivesCompleted ?? 0;
+                // NaN (not 0) for "no replay/rotation data" -- `createLB` builds the
+                // rows the Revives card and report.json actually display, and
+                // `buildLeaderboard` already drops non-finite values (see
+                // `closestToTag`'s Infinity sentinel below). A player with no data
+                // must be ABSENT from this leaderboard, not present with a false
+                // zero indistinguishable from someone who genuinely revived nobody.
+                case 'revivesCompleted': return s.revivesCompleted ?? NaN;
                 case 'downedHealing': return s.healingTotals['downedHealing'] || 0;
                 // DPS is a rate: aggregate as total damage / total fight time across
                 // all fights. (s.dps is a sum of per-fight DPS rates — meaningless to
@@ -1484,7 +1486,10 @@ export class IncrementalAggregator {
             ccAndInterrupts: createLB('ccAndInterrupts', true),
             stability: createLB('stability', true),
             revives: createLB('revives', true),
-            revivesCompleted: createLB('revivesCompleted', true),
+            // Matches closestToTag's Infinity-sentinel filter below: buildLeaderboard
+            // already drops non-finite values, this just makes the null-exclusion
+            // explicit at the definition site instead of relying on it implicitly.
+            revivesCompleted: createLB('revivesCompleted', true).filter(i => Number.isFinite(i.value)),
             downedHealing: createLB('downedHealing', true),
             participation: createLB('participation', true),
             dps: createLB('dps', true),
