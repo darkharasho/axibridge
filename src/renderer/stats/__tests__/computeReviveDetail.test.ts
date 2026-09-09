@@ -3,6 +3,7 @@ import {
     createReviveDetailAccumulator, ingestLogReviveDetail, finalizeReviveDetail,
     extractReviveDetailFrame, mergeReviveDetailFrame,
 } from '../computeReviveDetail';
+import { computeStatsSync } from '../incrementalAggregation';
 
 const player = (over: any) => ({
     account: over.account, profession: over.profession || 'Guardian',
@@ -160,5 +161,53 @@ describe('computeReviveDetail', () => {
         expect(result.players).toEqual([]);
         expect(result.utilities).toEqual([]);
         expect(result.iol).toBeNull();
+    });
+});
+
+/**
+ * A minimal log shaped for `IncrementalAggregator.ingestLog`, not just the
+ * bare-bones `{ details: { players } }` shape the accumulator-level tests
+ * above use. `computeStatsSync` runs the whole aggregation pipeline (fight
+ * breakdown, player aggregation, etc.), which needs `filePath`,
+ * `details.durationMS` and EI-shaped player rows in addition to the
+ * revive-specific `combatReplayData`/`rotation` fields.
+ */
+const handReviveAggregatorLog = () => ({
+    filePath: 'revive-1.zevtc',
+    details: {
+        durationMS: 10000,
+        fightName: 'Skirmish',
+        skillMap: {},
+        players: [
+            {
+                account: 'Reviver.1111', name: 'Reviver', profession: 'Guardian', notInSquad: false,
+                dpsAll: [{ damage: 0 }], defenses: [{}], statsAll: [{}],
+                combatReplayData: { down: [], dead: [] },
+                rotation: [{ id: 1066, skills: [{ castTime: 3000, duration: 3000 }] }],
+            },
+            {
+                account: 'Downed.2222', name: 'Downed', profession: 'Necromancer', notInSquad: false,
+                dpsAll: [{ damage: 0 }], defenses: [{}], statsAll: [{}],
+                combatReplayData: { down: [[1000, 5000]], dead: [] },
+                rotation: [],
+            },
+        ],
+        targets: [],
+    },
+});
+
+describe('reviveDetail on the aggregator', () => {
+    it('exposes reviveDetail on aggregated stats', () => {
+        const stats: any = computeStatsSync({ logs: [handReviveAggregatorLog()] }).stats;
+        expect(stats.reviveDetail.squad.recovered).toBe(1);
+    });
+
+    it('sums reviveDetail across many logs ingested one at a time — the same per-log path the >8-log worker uses', () => {
+        const logs = Array.from({ length: 10 }, () => handReviveAggregatorLog());
+        const stats: any = computeStatsSync({ logs }).stats;
+        expect(stats.reviveDetail.squad.recovered).toBe(10);
+        expect(stats.reviveDetail.squad.hand).toBe(10);
+        const reviver = stats.reviveDetail.players.find((p: any) => p.account === 'Reviver.1111');
+        expect(reviver.handRevives).toBe(10);
     });
 });
