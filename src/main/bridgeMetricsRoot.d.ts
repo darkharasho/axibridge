@@ -44,7 +44,13 @@ declare module '@axiapps/bridge-metrics' {
         died: number;
         byKind: Record<'hand' | 'utility' | 'self' | 'unattributed', number>;
         players: Map<string, RevivePlayerCounts>;
-        utilities: Map<number, { name: string; casts: number; revives: number; byCaster: Map<string, number> }>;
+        utilities: Map<number, {
+            name: string;
+            icon: string | null;
+            casts: number;
+            revives: number;
+            byCaster: Map<string, { casts: number; revives: number }>;
+        }>;
         iolRevives: Array<{ playerKey: string; playerIndex: number; at: number }>;
     }
 

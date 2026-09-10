@@ -208,8 +208,50 @@ describe('deriveReviveLogSummary', () => {
 
         const iol = summary.utilities.get(10244);
         expect(iol).toMatchObject({ casts: 1, revives: 1 });
-        expect(iol!.byCaster.get('Mes|Chronomancer')).toBe(1);
+        expect(iol!.byCaster.get('Mes|Chronomancer')).toEqual({ casts: 1, revives: 1 });
         expect(summary.iolRevives).toEqual([{ playerKey: 'Downed|Guardian', playerIndex: 1, at: 5000 }]);
+    });
+
+    it('counts a caster who cast but never landed a revive, with zero revives', () => {
+        // Two chronomancers cast Illusion of Life; only one of them is credited.
+        // The other must still appear in byCaster — a per-caster breakdown that
+        // silently omits unsuccessful casters cannot compute revives per cast.
+        const summary = deriveReviveLogSummary(details([
+            squadPlayer({ account: 'Hit', profession: 'Chronomancer',
+                rotation: [{ id: 10244, skills: [{ castTime: 4000, duration: 0 }] }] }),
+            squadPlayer({ account: 'Miss', profession: 'Chronomancer',
+                rotation: [{ id: 10244, skills: [{ castTime: 100, duration: 0 }] }] }),
+            squadPlayer({ account: 'Downed', down: [[1000, 5000]] }),
+        ]));
+
+        const iol = summary.utilities.get(10244)!;
+        expect(iol.casts).toBe(2);
+        expect(iol.revives).toBe(1);
+        expect(iol.byCaster.get('Hit|Chronomancer')).toEqual({ casts: 1, revives: 1 });
+        expect(iol.byCaster.get('Miss|Chronomancer')).toEqual({ casts: 1, revives: 0 });
+    });
+
+    it('carries the skill icon from the skill map onto the utility row', () => {
+        const summary = deriveReviveLogSummary({
+            ...details([
+                squadPlayer({ account: 'Mes', profession: 'Chronomancer',
+                    rotation: [{ id: 10244, skills: [{ castTime: 4000, duration: 0 }] }] }),
+                squadPlayer({ account: 'Downed', down: [[1000, 5000]] }),
+            ]),
+            skillMap: { s10244: { name: 'Illusion of Life', icon: 'https://example.test/iol.png' } },
+        });
+
+        expect(summary.utilities.get(10244)!.icon).toBe('https://example.test/iol.png');
+    });
+
+    it('leaves the icon null when the skill map carries none', () => {
+        const summary = deriveReviveLogSummary(details([
+            squadPlayer({ account: 'Mes', profession: 'Chronomancer',
+                rotation: [{ id: 10244, skills: [{ castTime: 4000, duration: 0 }] }] }),
+            squadPlayer({ account: 'Downed', down: [[1000, 5000]] }),
+        ]));
+
+        expect(summary.utilities.get(10244)!.icon).toBeNull();
     });
 
     it('excludes non-squad players', () => {

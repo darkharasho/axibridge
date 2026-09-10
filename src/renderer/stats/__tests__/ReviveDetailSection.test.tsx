@@ -12,7 +12,15 @@ const summary: any = {
     players: [{ key: 'A|Firebrand', account: 'A', profession: 'Firebrand', activeMs: 180000, attempts: 9, attemptTimeMs: 10945,
         handRevives: 3, successRate: 3 / 9, utilityCasts: 2, utilityRevives: 2, revivesPerCast: 1,
         assists: 1, totalRevives: 5 }],
-    utilities: [{ skillId: 14419, name: 'Battle Standard', casts: 4, revives: 6, revivesPerCast: 1.5, topCasterKey: 'B|Berserker' }],
+    utilities: [{
+        skillId: 14419, name: 'Battle Standard', icon: 'https://example.test/banner.png',
+        casts: 4, revives: 6, revivesPerCast: 1.5, topCasterKey: 'B|Berserker',
+        casters: [
+            // Per-caster casts (2 + 2) and revives (5 + 1) sum to the row's own 4 and 6.
+            { key: 'B|Berserker', account: 'B', profession: 'Berserker', casts: 2, revives: 5, revivesPerCast: 2.5 },
+            { key: 'C|Spellbreaker', account: 'C', profession: 'Spellbreaker', casts: 2, revives: 1, revivesPerCast: 0.5 },
+        ],
+    }],
     iol: null,
 };
 
@@ -43,8 +51,67 @@ describe('ReviveDetailSection', () => {
     it('shows Illusion of Life survival when present', () => {
         const withIol = { ...summary, iol: { revives: 8, survived: 3, reDowned: 5, medianTimeToReDownMs: 6200 } };
         render(<ReviveDetailSection reviveDetail={withIol} />);
-        expect(screen.getByText(/Illusion of Life/i)).toBeTruthy();
-        expect(screen.getByText(/6\.2s/)).toBeTruthy();
+        expect(screen.getByText('Illusion of Life')).toBeTruthy();
+        expect(screen.getByText(/Survived the fight 3/)).toBeTruthy();
+        expect(screen.getByText(/Re-downed 5 — median 6\.2s/)).toBeTruthy();
+    });
+
+    it('graphs the time-to-re-down histogram with one labelled bucket per boundary', () => {
+        const withIol = { ...summary, iol: {
+            revives: 8, survived: 3, reDowned: 5, medianTimeToReDownMs: 6200,
+            timeToReDownBuckets: [2, 1, 1, 1, 0],
+        } };
+        render(<ReviveDetailSection reviveDetail={withIol} />);
+        expect(screen.getByText('0–5s')).toBeTruthy();
+        expect(screen.getByText('5–10s')).toBeTruthy();
+        expect(screen.getByText('10–20s')).toBeTruthy();
+        expect(screen.getByText('20–60s')).toBeTruthy();
+        expect(screen.getByText('60s+')).toBeTruthy();
+    });
+
+    it('omits the histogram for a report published before the buckets existed', () => {
+        const legacy = { ...summary, iol: { revives: 8, survived: 3, reDowned: 5, medianTimeToReDownMs: 6200 } };
+        render(<ReviveDetailSection reviveDetail={legacy} />);
+        expect(screen.queryByText('0–5s')).toBeNull();
+        // The survived/re-downed split still renders — only the histogram is gone.
+        expect(screen.getByText(/Survived the fight 3/)).toBeTruthy();
+    });
+
+    it('renders the skill icon before the utility name', () => {
+        const { container } = render(<ReviveDetailSection reviveDetail={summary} />);
+        const icon = container.querySelector('img[src="https://example.test/banner.png"]');
+        expect(icon).toBeTruthy();
+        // Before the name, and decorative — the name is the accessible label.
+        expect(icon!.compareDocumentPosition(screen.getByText('Battle Standard')))
+            .toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+        expect(icon!.getAttribute('alt')).toBe('');
+    });
+
+    it('reveals per-caster stats when a utility row is expanded, and hides them again', () => {
+        render(<ReviveDetailSection reviveDetail={summary} />);
+        expect(screen.queryByText('B')).toBeNull();
+
+        const expander = screen.getByRole('button', { name: /Expand Battle Standard casters/i });
+        fireEvent.click(expander);
+
+        expect(screen.getByText('B')).toBeTruthy();
+        expect(screen.getByText('C')).toBeTruthy();
+        // Each caster's own ratio, not the utility row's 1.50.
+        expect(screen.getByText('2.50')).toBeTruthy();
+        expect(screen.getByText('0.50')).toBeTruthy();
+
+        fireEvent.click(screen.getByRole('button', { name: /Collapse Battle Standard casters/i }));
+        expect(screen.queryByText('B')).toBeNull();
+    });
+
+    it('does not offer an expander for a report published without per-caster data', () => {
+        const legacy = {
+            ...summary,
+            utilities: [{ skillId: 14419, name: 'Battle Standard', casts: 4, revives: 6, revivesPerCast: 1.5, topCasterKey: null }],
+        };
+        render(<ReviveDetailSection reviveDetail={legacy} />);
+        expect(screen.getByText('Battle Standard')).toBeTruthy();
+        expect(screen.queryByRole('button', { name: /Battle Standard casters/i })).toBeNull();
     });
 
     it('shows a profession icon for each player row', () => {
