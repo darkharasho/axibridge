@@ -18,7 +18,7 @@ const EXPECTED_SECTION_IDS = [
     'offense-detailed', 'cc-timeline', 'damage-breakdown', 'all-damage', 'spike-damage',
     'damage-modifiers', 'conditions-outgoing',
     // defense
-    'defense-detailed', 'incoming-strike-damage', 'incoming-damage-modifiers',
+    'defense-detailed', 'revive-detail', 'incoming-strike-damage', 'incoming-damage-modifiers',
     'enemy-attention',
     'defense-mitigation',
     // boons-strips

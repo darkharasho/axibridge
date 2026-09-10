@@ -19,6 +19,46 @@
 // the functions `embedMitigation.ts` consumes, for the type-checker only —
 // it has zero effect at runtime, where Node's own resolver already handles
 // the real `exports` map correctly.
+//
+// `deriveReviveLogSummary`/`reviveePlayerKey` (consumed by `discord.ts`) have
+// no subpath of their own — they only ship from the package root — so unlike
+// the re-export above they are declared by hand here, matching the real
+// signatures in `reviveDerivation.ts`.
 declare module '@axiapps/bridge-metrics' {
     export * from '@axiapps/bridge-metrics/computePlayerAggregation';
+
+    export interface RevivePlayerCounts {
+        attempts: number;
+        attemptTimeMs: number;
+        handRevives: number;
+        utilityCasts: number;
+        utilityRevives: number;
+        selfRevives: number;
+        assists: number;
+    }
+
+    export interface ReviveLogSummary {
+        hasData: boolean;
+        downs: number;
+        recovered: number;
+        died: number;
+        byKind: Record<'hand' | 'utility' | 'self' | 'unattributed', number>;
+        players: Map<string, RevivePlayerCounts>;
+        utilities: Map<number, {
+            name: string;
+            icon: string | null;
+            casts: number;
+            revives: number;
+            byCaster: Map<string, { casts: number; revives: number }>;
+        }>;
+        iolRevives: Array<{ playerKey: string; playerIndex: number; at: number }>;
+    }
+
+    export interface AttributionOptions {
+        isWithinRadius?: (casterIndex: number, revivedIndex: number, atMs: number) => boolean;
+        playerKey?: (player: any) => string;
+    }
+
+    export function deriveReviveLogSummary(details: any, opts?: AttributionOptions): ReviveLogSummary;
+    export function reviveePlayerKey(player: any): string;
 }

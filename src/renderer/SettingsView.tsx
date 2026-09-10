@@ -16,7 +16,7 @@ import { useStatsStore } from './stats/statsStore';
 import { getProfessionColor } from '../shared/professionUtils';
 import { ProofOfWorkModal } from './ui/ProofOfWorkModal';
 import { ParticleHover } from './particles';
-import { TOP_STATS_CATALOG, CATEGORY_ORDER, CATEGORY_META, DEFAULT_ENABLED_TOP_STATS, normalizeEnabledTopStats, type TopStatCategory } from './stats/topStatsCatalog';
+import { TOP_STATS_CATALOG, MVP_WEIGHTABLE_STATS, mvpStatLabel, CATEGORY_ORDER, CATEGORY_META, DEFAULT_ENABLED_TOP_STATS, normalizeEnabledTopStats, type TopStatCategory } from './stats/topStatsCatalog';
 import { BoonGlyph } from './ui/BoonGlyph';
 import { HistoryReparseCard } from './settings/HistoryReparseCard';
 import { CloudflareConnect } from './settings/CloudflareConnect';
@@ -2194,7 +2194,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 <Toggle
                                     enabled={embedStats.showResurrects}
                                     onChange={(v) => updateEmbedStat('showResurrects', v)}
-                                    label="Resurrects"
+                                    label="Revives"
                                     description="Downed allies revived"
                                 />
                                 <Toggle
@@ -2609,7 +2609,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         <p className="text-xs text-gray-500 mb-3">Weight any stat toward this MVP. 0 = ignored. Offensive &amp; Defensive also include the General weights.</p>
                         {CATEGORY_ORDER.map((cat: TopStatCategory) => {
                             const meta = CATEGORY_META[cat];
-                            const defs = TOP_STATS_CATALOG.filter((d) => d.category === cat);
+                            const defs = MVP_WEIGHTABLE_STATS.filter((d) => d.category === cat);
                             return (
                                 <div key={cat} className="mb-3.5 last:mb-0">
                                     <div className="flex items-center gap-2 mb-2">
@@ -2625,10 +2625,10 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             return (
                                                 <div key={def.id} className="inline-flex items-center rounded-lg border overflow-hidden"
                                                     style={on ? { borderColor: `${meta.color}66`, background: `${meta.color}1f` } : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
-                                                    <span className="pl-2.5 pr-1 py-1 text-xs font-semibold" style={{ color: on ? meta.color : '#6b7280' }}>{def.label}</span>
-                                                    <button type="button" aria-label={`decrease ${def.label}`} onClick={() => setMvpWeight(mvpBucket, def.id, w - 0.05)} className="w-5 h-6 text-sm leading-none" style={{ color: on ? meta.color : '#4b5563' }}>−</button>
+                                                    <span className="pl-2.5 pr-1 py-1 text-xs font-semibold" style={{ color: on ? meta.color : '#6b7280' }}>{mvpStatLabel(def)}</span>
+                                                    <button type="button" aria-label={`decrease ${mvpStatLabel(def)}`} onClick={() => setMvpWeight(mvpBucket, def.id, w - 0.05)} className="w-5 h-6 text-sm leading-none" style={{ color: on ? meta.color : '#4b5563' }}>−</button>
                                                     <span className="min-w-[30px] text-center text-xs font-bold tabular-nums" style={{ color: on ? meta.color : '#4b5563' }}>{w.toFixed(2)}</span>
-                                                    <button type="button" aria-label={`increase ${def.label}`} onClick={() => setMvpWeight(mvpBucket, def.id, w + 0.05)} className="w-5 h-6 text-sm leading-none pr-1" style={{ color: on ? meta.color : '#9ca3af' }}>+</button>
+                                                    <button type="button" aria-label={`increase ${mvpStatLabel(def)}`} onClick={() => setMvpWeight(mvpBucket, def.id, w + 0.05)} className="w-5 h-6 text-sm leading-none pr-1" style={{ color: on ? meta.color : '#9ca3af' }}>+</button>
                                                 </div>
                                             );
                                         })}

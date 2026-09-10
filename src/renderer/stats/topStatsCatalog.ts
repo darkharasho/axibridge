@@ -17,6 +17,21 @@ export interface TopStatDef {
   source: TopStatSource;
   defaultOn: boolean;
   supportsRate: boolean;  // per-second/per-minute applies
+  /**
+   * Label to use wherever this stat appears as an MVP weight (the weight
+   * picker and the MVP breakdown). Only set it when the MVP scorer deliberately
+   * scores something other than the card's leaderboard — `revives` is the one
+   * case: the card shows resurrect ATTEMPTS, the frozen `revives` weight scores
+   * COMPLETED revives. The picker must name what is actually scored.
+   */
+  mvpLabel?: string;
+  /**
+   * `false` removes this stat from the MVP weight picker (and rejects a
+   * persisted weight for it). Used where two catalog ids would score the exact
+   * same quantity, which would let a user double-weight one metric under two
+   * rows in the breakdown.
+   */
+  mvpWeightable?: boolean;
 }
 
 // GW2 boon skill ids (see src/shared/replayBuffs.ts).
@@ -55,7 +70,14 @@ export const TOP_STATS_CATALOG: TopStatDef[] = [
   { id: 'cleanses', label: 'Cleanses', category: 'defense', color: '#60a5fa', icon: 'Flame', higherIsBetter: true, source: lb('cleanses'), defaultOn: true, supportsRate: true },
   { id: 'strips', label: 'Strips', category: 'defense', color: '#a78bfa', icon: 'Zap', higherIsBetter: true, source: lb('strips'), defaultOn: true, supportsRate: true },
   { id: 'stability', label: 'Stability Gen', category: 'defense', color: '#22d3ee', icon: 'ShieldCheck', higherIsBetter: true, source: lb('stability'), defaultOn: true, supportsRate: true },
-  { id: 'revives', label: 'Revives', category: 'defense', color: CAT_COLOR.defense, icon: 'HelpingHand', higherIsBetter: true, source: lb('revives'), defaultOn: false, supportsRate: true },
+  // `revives` is a FROZEN id (persisted in user settings and published reports).
+  // As a card it draws the attempts leaderboard; as an MVP weight it scores
+  // completed revives (see buildMvpMetrics), hence the separate `mvpLabel`.
+  { id: 'revives', label: 'Resurrect Attempts', category: 'defense', color: CAT_COLOR.defense, icon: 'HelpingHand', higherIsBetter: true, source: lb('revives'), defaultOn: false, supportsRate: true, mvpLabel: 'Revives' },
+  // Same scored quantity as the `revives` weight, so it is not offered as a
+  // second MVP weight -- two rows named "Revives" in one breakdown would
+  // double-weight one metric.
+  { id: 'revivesCompleted', label: 'Revives', category: 'defense', color: CAT_COLOR.defense, icon: 'HelpingHand', higherIsBetter: true, source: lb('revivesCompleted'), defaultOn: false, supportsRate: true, mvpWeightable: false },
   { id: 'blocks', label: 'Blocks', category: 'defense', color: '#2dd4bf', icon: 'ShieldHalf', higherIsBetter: true, source: lb('blocks'), defaultOn: false, supportsRate: false },
   { id: 'evades', label: 'Evades', category: 'defense', color: '#2dd4bf', icon: 'Footprints', higherIsBetter: true, source: lb('evades'), defaultOn: false, supportsRate: false },
   { id: 'misses', label: 'Enemy Misses Forced', category: 'defense', color: '#2dd4bf', icon: 'EyeOff', higherIsBetter: true, source: lb('misses'), defaultOn: false, supportsRate: false },
@@ -89,6 +111,12 @@ export const TOP_STATS_CATALOG: TopStatDef[] = [
 export const DEFAULT_ENABLED_TOP_STATS: string[] = TOP_STATS_CATALOG
   .filter((d) => d.defaultOn)
   .map((d) => d.id);
+
+/** Catalog entries a user may assign an MVP weight to. */
+export const MVP_WEIGHTABLE_STATS: TopStatDef[] = TOP_STATS_CATALOG.filter((d) => d.mvpWeightable !== false);
+
+/** The name this stat carries in the MVP weight picker and the MVP breakdown. */
+export const mvpStatLabel = (def: TopStatDef): string => def.mvpLabel || def.label;
 
 const VALID_IDS = new Set(TOP_STATS_CATALOG.map((d) => d.id));
 
