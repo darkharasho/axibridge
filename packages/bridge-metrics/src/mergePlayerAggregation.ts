@@ -32,7 +32,7 @@ import type { PlayerSkillDamageEntry, PlayerHealingSkillEntry } from './aggregat
 export type MergeRule =
     | 'sum' | 'max' | 'min' | 'first' | 'or'
     | 'setUnion' | 'arrayUnion' | 'recordSum' | 'recordDeepSum'
-    | 'firstKnown' | 'lastKnown' | 'derived' | 'special';
+    | 'firstKnown' | 'lastKnown' | 'derived' | 'special' | 'sumNullable';
 
 /**
  * How each `PlayerStats` field combines when two accumulators are merged.
@@ -50,6 +50,10 @@ export type MergeRule =
  *   target's value is left alone.
  * - `special`: resolved by hand-written code in `mergePlayerStatsInto` because
  *   it depends on the value of another field.
+ * - `sumNullable`: like `sum`, but `null` (never `0`) means "no contributing
+ *   fight carried the data this field needs" -- the two sides only sum to a
+ *   number once at least one of them has one. Summing `null` as if it were 0
+ *   would turn "unknown" into a real, wrong zero in a merged/sliced report.
  *
  * A field produced by a real log with no rule here is a test failure, not a
  * silent drop — see the coverage test in mergePlayerAggregation.test.ts.
@@ -127,6 +131,7 @@ export const PLAYER_STATS_MERGE_RULES: Readonly<Record<string, MergeRule>> = Obj
     // running total, not a rate recomputed at finalize.
     dps: 'sum',
     revives: 'sum',
+    revivesCompleted: 'sumNullable',
     outgoingConditions: 'recordDeepSum',
     incomingConditions: 'recordDeepSum',
     damageModTotals: 'recordDeepSum',
@@ -198,6 +203,9 @@ const applyRule = (rule: MergeRule, targetValue: any, sourceValue: any): any => 
             deepSumInto(out, sourceValue || {});
             return out;
         }
+        case 'sumNullable':
+            if (targetValue == null && sourceValue == null) return null;
+            return Number(targetValue || 0) + Number(sourceValue || 0);
         case 'special':
             // Handled by the caller; leave the target untouched here.
             return targetValue;

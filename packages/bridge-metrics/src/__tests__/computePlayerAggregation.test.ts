@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { computePlayerAggregation } from '../computePlayerAggregation';
+import {
+    computePlayerAggregation,
+    createPlayerAggregationAccumulators,
+    ingestLogPlayerData,
+    mergePlayerAggregationAccumulators,
+} from '../computePlayerAggregation';
 import { buildRollupData } from '../rollup';
 
 const FIXTURES = path.resolve(__dirname, '../../../../test-fixtures/boon-trimmed');
@@ -90,6 +95,122 @@ describe('duplicate player entries (same account)', () => {
         });
         expect(result.playerStats.get('Dup.1234::Guardian')!.logsJoined).toBe(1);
         expect(result.playerStats.get('Dup.1234::Necromancer')!.logsJoined).toBe(1);
+    });
+
+    it('credits revivesCompleted once per key per log, not once per duplicate entry', () => {
+        // Dup.1234 relogs mid-fight (Guardian -> Necromancer entry) and hand-revives
+        // one ally. `reviveSummary.players` merges both entries under one key, so
+        // the per-entry loop below must credit that merged total exactly once --
+        // not once per `players[]` entry sharing the identity.
+        const log = {
+            details: {
+                durationMS: 60000, success: true, targets: [], skillMap: {}, buffMap: {},
+                players: [
+                    dupPlayer('Guardian', 45000, {
+                        rotation: [{ id: 1066, skills: [{ castTime: 3000, duration: 3000 }] }],
+                        combatReplayData: { down: [], dead: [] },
+                    }),
+                    dupPlayer('Necromancer', 15000, { combatReplayData: { down: [], dead: [] } }),
+                    {
+                        account: 'Ally.9999', name: 'Ally', profession: 'Elementalist', notInSquad: false,
+                        activeTimes: [60000], dpsAll: [{ damage: 0 }],
+                        defenses: [{ downCount: 1, deadCount: 0, damageTaken: 0, dodgeCount: 0 }],
+                        statsAll: [{ distToCom: 0, saved: 0 }], statsTargets: [[{ downed: 0, killed: 0 }]],
+                        support: [{}], rotation: [],
+                        combatReplayData: { down: [[1000, 5000]], dead: [] },
+                    },
+                ],
+            },
+        };
+        const result = computePlayerAggregation({
+            validLogs: [log], method: 'count', skillDamageSource: 'target', splitPlayersByClass: false
+        });
+        const row = result.playerStats.get('Dup.1234');
+        expect(row!.revivesCompleted).toBe(1);
+        expect(row!.supportTotals.revivesCompleted).toBe(1);
+    });
+});
+
+describe('revivesCompleted', () => {
+    const revivePlayer = (over: any) => ({
+        account: over.account, name: over.account, profession: over.profession || 'Guardian', notInSquad: false,
+        activeTimes: [60000],
+        dpsAll: [{ damage: 0 }],
+        defenses: [{ downCount: over.downCount || 0, deadCount: 0, damageTaken: 0, dodgeCount: 0 }],
+        statsAll: [{ distToCom: 0, saved: 0 }],
+        statsTargets: [[{ downed: 0, killed: 0 }]],
+        support: [{ resurrects: over.resurrects || 0 }],
+        combatReplayData: { down: over.down || [], dead: over.dead || [] },
+        rotation: over.rotation || [],
+    });
+
+    // Reviver channels the hand-resurrect skill (1066) once, covering the
+    // moment the ally stands back up from their one down interval.
+    const handResurrectDetails = () => ({
+        durationMS: 60000, success: true, targets: [], skillMap: {}, buffMap: {},
+        players: [
+            revivePlayer({
+                account: 'Reviver', resurrects: 1,
+                rotation: [{ id: 1066, skills: [{ castTime: 3000, duration: 3000 }] }],
+            }),
+            revivePlayer({ account: 'Downed', downCount: 1, down: [[1000, 5000]] }),
+        ],
+    });
+
+    // No rotation/combatReplayData on any roster member: the log predates (or
+    // lacks) the replay data revive derivation depends on.
+    const detailsWithoutRotation = () => ({
+        durationMS: 60000, success: true, targets: [], skillMap: {}, buffMap: {},
+        players: [
+            {
+                account: 'Reviver', name: 'Reviver', profession: 'Guardian', notInSquad: false,
+                activeTimes: [60000], dpsAll: [{ damage: 0 }],
+                defenses: [{ downCount: 0, deadCount: 0, damageTaken: 0, dodgeCount: 0 }],
+                statsAll: [{ distToCom: 0, saved: 0 }], statsTargets: [[{ downed: 0, killed: 0 }]],
+                support: [{}],
+            },
+        ],
+    });
+
+    const aggregateOneLog = (details: any) => computePlayerAggregation({
+        validLogs: [{ details }], method: 'count', skillDamageSource: 'target', splitPlayersByClass: false
+    }).playerStats.get('Reviver');
+
+    it('accumulates completed revives separately from attempts', () => {
+        const totals = aggregateOneLog(handResurrectDetails());
+        expect(totals!.revives).toBe(1);          // attempts, unchanged behaviour
+        expect(totals!.revivesCompleted).toBe(1);
+    });
+
+    it('leaves revivesCompleted null when the log has no rotation data', () => {
+        const totals = aggregateOneLog(detailsWithoutRotation());
+        expect(totals!.revives).toBe(0);
+        expect(totals!.revivesCompleted).toBeNull();
+    });
+
+    describe('merging accumulators (the sumNullable merge rule)', () => {
+        // This is the path the >8-log Web Worker and the fight-slice sidecar take:
+        // per-fight accumulators are built independently, then merged. A plain
+        // 'sum' rule would read `null` as 0 via `Number(null || 0)`, fabricating a
+        // real zero the instant one fight-frame with no data merged into another.
+        const OPTIONS = { method: 'count' as const, skillDamageSource: 'target' as const, splitPlayersByClass: false };
+        const soloAcc = (details: any) => {
+            const acc = createPlayerAggregationAccumulators();
+            ingestLogPlayerData({ details }, acc, OPTIONS);
+            return acc;
+        };
+
+        it('stays null when neither merged fight carried revive data', () => {
+            const target = soloAcc(detailsWithoutRotation());
+            mergePlayerAggregationAccumulators(target, soloAcc(detailsWithoutRotation()));
+            expect(target.playerStats.get('Reviver')!.revivesCompleted).toBeNull();
+        });
+
+        it('sums a real value into a null side instead of dropping it', () => {
+            const target = soloAcc(detailsWithoutRotation());
+            mergePlayerAggregationAccumulators(target, soloAcc(handResurrectDetails()));
+            expect(target.playerStats.get('Reviver')!.revivesCompleted).toBe(1);
+        });
     });
 });
 

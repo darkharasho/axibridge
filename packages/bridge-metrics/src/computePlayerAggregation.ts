@@ -14,6 +14,7 @@ import { normalizeAccountName, partitionSquadPlayers } from './playerIdentity';
 import { getEntityProfession, squadEntities } from './nativeRoster';
 import { getEntityConditionDamageTakenRows } from './nativeConditions';
 import { getBuffMeta } from './nativeBoons';
+import { deriveReviveLogSummary } from './reviveDerivation';
 
 export interface PlayerStats {
     name: string;
@@ -64,6 +65,13 @@ export interface PlayerStats {
     damage: number;
     dps: number;
     revives: number;
+    /**
+     * Completed revives (hand + utility), derived from replay/rotation data via
+     * `deriveReviveLogSummary`. `null`, never `0`, when no log contributing to
+     * this player carried the replay data the derivation needs — a fabricated
+     * zero would read as "revived nobody" instead of "unknown".
+     */
+    revivesCompleted: number | null;
     outgoingConditions: Record<string, any>;
     incomingConditions: Record<string, any>;
     damageModTotals: Record<string, { damageGain: number; hitCount: number; totalHitCount: number; totalDamage: number }>;
@@ -584,6 +592,14 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
     const { method, skillDamageSource, splitPlayersByClass } = options;
     const details = log.details;
     if (!details) return;
+    // Derived once per log -- deriveReviveLogSummary walks the whole roster,
+    // so calling it inside the per-player loop below would redo that work for
+    // every player. Keyed with this module's own player identity (not
+    // reviveePlayerKey's `account|profession`) so the derivation and this
+    // accumulator's playerStats map can never drift onto two conventions.
+    const reviveSummary = deriveReviveLogSummary(details, {
+        playerKey: (player: any) => getPlayerIdentity(player, splitPlayersByClass).key,
+    });
     const players = details.players as unknown as Player[];
     const squadPlayers = players.filter((player: any) => !player?.notInSquad);
     const allPlayers = Array.isArray(players) ? players : [];
@@ -733,6 +749,12 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
     // identity (relog / build swap / subgroup move) must not inflate attendance.
     const joinedIdentityKeys = new Set<string>();
     const stackedIdentityKeys = new Set<string>();
+    // `reviveSummary.players` is keyed by identity, so every `players[]` entry
+    // for the same person re-fetches the SAME merged counts -- crediting each
+    // one would multiply revivesCompleted by however many duplicate entries
+    // this log has (relog / build swap / subgroup move), exactly like
+    // `joinedIdentityKeys` guards attendance above.
+    const revivesCreditedKeys = new Set<string>();
 
     players.forEach((p, playerIndex) => {
         if (p.notInSquad) return;
@@ -747,7 +769,7 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
                 kills: 0, enemyDowns: 0, damageTaken: 0, breakbar: 0, blocks: 0, evades: 0, misses: 0, totalFightMs: 0,
                 offenseTotals: {}, offenseRateWeights: {}, defenseActiveMs: 0, defenseTotals: {}, defenseMinionDamageTaken: {}, supportActiveMs: 0, supportTotals: {},
                 healingActiveMs: 0, healingTotals: {}, hasHealAddon: false, profession: identity.profession, professions: new Set(),
-                professionTimeMs: {}, squadActiveMs: 0, firstSeenFightTs: 0, lastSeenFightTs: 0, lastSeenFightDurationMs: 0, isCommander: false, damage: 0, dps: 0, revives: 0, outgoingConditions: {}, incomingConditions: {}, damageModTotals: {}, incomingDamageModTotals: {}
+                professionTimeMs: {}, squadActiveMs: 0, firstSeenFightTs: 0, lastSeenFightTs: 0, lastSeenFightDurationMs: 0, isCommander: false, damage: 0, dps: 0, revives: 0, revivesCompleted: null, outgoingConditions: {}, incomingConditions: {}, damageModTotals: {}, incomingDamageModTotals: {}
                 , roleClassification: { role: 'damage' as const, supportScore: 0, confidenceScore: 0, threshold: 0, factors: [] }
             });
         }
@@ -1182,6 +1204,20 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
         }
 
         s.revives += p.support?.[0]?.resurrects || 0;
+
+        // Completed revives: null, never 0, when the log cannot support the
+        // derivation (no rotation/replay data). Self-revives are excluded --
+        // `totalRevives` is hand + utility only. Credited once per key per
+        // log -- see `revivesCreditedKeys` above.
+        if (reviveSummary.hasData && !revivesCreditedKeys.has(key)) {
+            revivesCreditedKeys.add(key);
+            const reviveCounts = reviveSummary.players.get(key);
+            if (reviveCounts) {
+                const totalRevives = reviveCounts.handRevives + reviveCounts.utilityRevives;
+                s.revivesCompleted = (s.revivesCompleted ?? 0) + totalRevives;
+                s.supportTotals.revivesCompleted = (s.supportTotals.revivesCompleted || 0) + totalRevives;
+            }
+        }
         if (dpsAll) {
             s.damage += dpsAll.damage || 0;
             s.dps += dpsAll.dps || 0;

@@ -37,6 +37,7 @@ import { createAllDamageAccumulator, ingestLogAllDamage, finalizeAllDamage, extr
 import { createStripSpikesAccumulator, ingestLogStripSpikes, finalizeStripSpikes, extractStripSpikesFrame, mergeStripSpikesFrame } from './computeStripSpikesData';
 import { createIncomingStrikeDamageAccumulator, ingestLogIncomingStrikeDamage, finalizeIncomingStrikeDamage, extractIncomingStrikeFrame, mergeIncomingStrikeFrame } from './computeIncomingStrikeDamageData';
 import { createSkillUsageAccumulator, ingestLogSkillUsage, finalizeSkillUsage, extractSkillUsageFrame, mergeSkillUsageFrame } from './computeSkillUsageData';
+import { createReviveDetailAccumulator, ingestLogReviveDetail, finalizeReviveDetail, extractReviveDetailFrame, mergeReviveDetailFrame } from './computeReviveDetail';
 
 import { createBoonTimelineAccumulator, ingestLogBoonTimeline, finalizeBoonTimeline, extractBoonTimelineFrame, mergeBoonTimelineFrame } from './computeBoonTimeline';
 import { createBoonUptimeTimelineAccumulator, ingestLogBoonUptimeTimeline, finalizeBoonUptimeTimeline, extractBoonUptimeFrame, mergeBoonUptimeFrame } from './computeBoonUptimeTimeline';
@@ -686,6 +687,7 @@ export class IncrementalAggregator {
     private stripSpikesAcc;
     private incomingStrikeAcc;
     private skillUsageAcc;
+    private reviveDetailAcc;
 
     // Boon timelines
     private boonTimelineAcc;
@@ -735,6 +737,7 @@ export class IncrementalAggregator {
         this.stripSpikesAcc = createStripSpikesAccumulator();
         this.incomingStrikeAcc = createIncomingStrikeDamageAccumulator();
         this.skillUsageAcc = createSkillUsageAccumulator();
+        this.reviveDetailAcc = createReviveDetailAccumulator();
 
         const boonIntervalSettings = {
             boonBucketIntervalMs: this.activeStatsViewSettings.boonBucketIntervalMs ?? 5000,
@@ -890,6 +893,7 @@ export class IncrementalAggregator {
         ingestLogStripSpikes(log, this.stripSpikesAcc, { splitPlayersByClass: this.splitPlayersByClass });
         ingestLogIncomingStrikeDamage(log, this.incomingStrikeAcc);
         ingestLogSkillUsage(log, this.skillUsageAcc);
+        ingestLogReviveDetail(log, this.reviveDetailAcc);
 
         // 5. Boon timelines
         ingestLogBoonTimeline(log, this.boonTimelineAcc);
@@ -1021,6 +1025,7 @@ export class IncrementalAggregator {
                 stripSpikes: extractStripSpikesFrame(this.stripSpikesAcc),
                 incomingStrike: extractIncomingStrikeFrame(this.incomingStrikeAcc),
                 skillUsage: extractSkillUsageFrame(this.skillUsageAcc),
+                reviveDetail: extractReviveDetailFrame(this.reviveDetailAcc),
                 boonTimeline: extractBoonTimelineFrame(this.boonTimelineAcc),
                 boonUptime: extractBoonUptimeFrame(this.boonUptimeAcc),
                 stabPerformance: extractStabPerformanceFrame(this.stabPerfAcc),
@@ -1128,6 +1133,7 @@ export class IncrementalAggregator {
         if (frame.stripSpikes) mergeStripSpikesFrame(this.stripSpikesAcc, frame.stripSpikes, labels);
         if (frame.incomingStrike) mergeIncomingStrikeFrame(this.incomingStrikeAcc, frame.incomingStrike, labels);
         if (frame.skillUsage) mergeSkillUsageFrame(this.skillUsageAcc, frame.skillUsage);
+        if (frame.reviveDetail) mergeReviveDetailFrame(this.reviveDetailAcc, frame.reviveDetail);
         if (frame.boonTimeline) mergeBoonTimelineFrame(this.boonTimelineAcc, frame.boonTimeline, labels);
         if (frame.boonUptime) mergeBoonUptimeFrame(this.boonUptimeAcc, frame.boonUptime, labels);
         if (frame.stabPerformance) mergeStabPerformanceFrame(this.stabPerfAcc, frame.stabPerformance);
@@ -1165,6 +1171,7 @@ export class IncrementalAggregator {
         const stripSpikes = finalizeStripSpikes(this.stripSpikesAcc);
         const incomingStrikeDamage = finalizeIncomingStrikeDamage(this.incomingStrikeAcc);
         const skillUsageData = finalizeSkillUsage(this.skillUsageAcc);
+        const reviveDetail = finalizeReviveDetail(this.reviveDetailAcc);
 
         // 3. Finalize boon timelines
         const boonTimeline = finalizeBoonTimeline(this.boonTimelineAcc);
@@ -1434,6 +1441,13 @@ export class IncrementalAggregator {
                 case 'ccAndInterrupts': return s.cc + s.interrupts;
                 case 'stability': return s.stab;
                 case 'revives': return s.revives;
+                // NaN (not 0) for "no replay/rotation data" -- `createLB` builds the
+                // rows the Revives card and report.json actually display, and
+                // `buildLeaderboard` already drops non-finite values (see
+                // `closestToTag`'s Infinity sentinel below). A player with no data
+                // must be ABSENT from this leaderboard, not present with a false
+                // zero indistinguishable from someone who genuinely revived nobody.
+                case 'revivesCompleted': return s.revivesCompleted ?? NaN;
                 case 'downedHealing': return s.healingTotals['downedHealing'] || 0;
                 // DPS is a rate: aggregate as total damage / total fight time across
                 // all fights. (s.dps is a sum of per-fight DPS rates — meaningless to
@@ -1472,6 +1486,10 @@ export class IncrementalAggregator {
             ccAndInterrupts: createLB('ccAndInterrupts', true),
             stability: createLB('stability', true),
             revives: createLB('revives', true),
+            // Matches closestToTag's Infinity-sentinel filter below: buildLeaderboard
+            // already drops non-finite values, this just makes the null-exclusion
+            // explicit at the definition site instead of relying on it implicitly.
+            revivesCompleted: createLB('revivesCompleted', true).filter(i => Number.isFinite(i.value)),
             downedHealing: createLB('downedHealing', true),
             participation: createLB('participation', true),
             dps: createLB('dps', true),
@@ -1668,7 +1686,13 @@ export class IncrementalAggregator {
                         if (!Number.isFinite(val)) return;
                         const higherIsBetter = metric.higher !== false;
                         if (higherIsBetter ? val <= 0 : val >= Number.POSITIVE_INFINITY || val <= 0) return;
-                        const ratio = higherIsBetter ? val / best : best / val;
+                        // Defence in depth: `best` is the leaderboard maximum
+                        // (or minimum, for lower-is-better), so a value drawn
+                        // from that same leaderboard can never exceed 1 and the
+                        // clamp is a no-op. It only bites if a metric's getter
+                        // and its leaderboard ever fall out of sync again, which
+                        // would otherwise let one weight dominate the whole sum.
+                        const ratio = Math.min(1, higherIsBetter ? val / best : best / val);
                         const rank = metricRankMaps[idx].get(stat.account) || 0;
                         score += ratio * metric.weight;
                         contribs.push({ name: metric.name, ratio, weight: metric.weight, val: val.toLocaleString(), rank });
@@ -1867,6 +1891,7 @@ export class IncrementalAggregator {
             allDamage,
             stripSpikes,
             incomingStrikeDamage,
+            reviveDetail,
             healEffectiveness,
             tagDistanceDeaths,
             distanceToTag,

@@ -44,6 +44,59 @@ describe('MVP profiles scoring', () => {
     expect(stats.offensiveMvp.topStats[0].name).toBe('Down Contribution');
   });
 
+  it('does not score revives for a player whose completed count is unknown', () => {
+    // `revives` carries a DEFAULT defensive weight of 0.7, so this fires for a
+    // user who never opened MVP settings, on any mixed-coverage log set.
+    //
+    // nocover.2 attended a log with no replay/rotation data: 12 resurrect
+    // ATTEMPTS, completed revives unknown (null). cover.1 attended a covered log
+    // and completed 1 revive, which is the best-completed denominator. Scoring
+    // nocover.2's attempts against it gave ratio 12 -> 12 x 0.7 = 8.4, where
+    // every other metric in the sum is bounded by 1.0 x weight, handing the
+    // Defensive MVP to the player we cannot measure.
+    const reviver = (account: string, over: any) => ({ ...player(account, over), ...over.extra });
+    const coveredLog = {
+      status: 'success', filePath: 'covered.zevtc',
+      details: { durationMS: 60_000, skillMap: {}, buffMap: {}, targets: [], players: [
+        reviver('cover.1', { revives: 1, extra: {
+          combatReplayData: { down: [], dead: [] },
+          rotation: [{ id: 1066, skills: [{ castTime: 3000, duration: 3000 }] }],
+        } }),
+        reviver('downed.3', { extra: {
+          combatReplayData: { down: [[1000, 5000]], dead: [] }, rotation: [],
+        } }),
+      ] },
+    };
+    const uncoveredLog = {
+      status: 'success', filePath: 'uncovered.zevtc',
+      details: { durationMS: 60_000, skillMap: {}, buffMap: {}, targets: [],
+        players: [player('nocover.2', { revives: 12 })] },
+    };
+
+    const { stats } = computeStatsSync({
+      logs: [coveredLog, uncoveredLog] as any[],
+      mvpWeights: DEFAULT_MVP_WEIGHT_PROFILES as any,
+      statsViewSettings: { ...DEFAULT_STATS_VIEW_SETTINGS, showMvp: true },
+    });
+
+    // The completed leaderboard has a single, low best: 1.
+    expect((stats as any).leaderboards.revivesCompleted).toEqual([
+      expect.objectContaining({ account: 'cover.1', value: 1 }),
+    ]);
+    expect(stats.defensiveMvp.account).toBe('cover.1');
+
+    const placements = [stats.defensiveMvp, (stats as any).defensiveSilver, (stats as any).defensiveBronze]
+      .filter(Boolean) as any[];
+    const nocover = placements.find((p) => p.account === 'nocover.2');
+    expect(nocover).toBeTruthy();
+    // Unknown means ABSENT from scoring, not scored at a capped value.
+    expect(nocover.contribs.map((c: any) => c.name)).not.toContain('Revives');
+    // And no contribution anywhere exceeds its weight's 1.0 ceiling.
+    for (const placement of placements) {
+      for (const contrib of placement.contribs) expect(contrib.ratio).toBeLessThanOrEqual(1);
+    }
+  });
+
   it('zero weights everywhere yields no MVP', () => {
     const logs = [makeLog([player('a.1', { damage: 5_000_000 })])];
     const { stats } = computeStatsSync({

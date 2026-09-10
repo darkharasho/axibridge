@@ -581,11 +581,67 @@ for Vindicators), so we recover the count 1:1 from the player's rotation.
 Implementation: `src/shared/dashboardMetrics.ts`
 (getPlayerDodges, getPlayerMissed, getPlayerBlocked, getPlayerEvaded).
 
-## Resurrects
+## Resurrects and Revives
 
-`resurrects = support[0].resurrects`.
+Two different things, tracked separately.
 
-Implementation: `src/shared/dashboardMetrics.ts` (getPlayerResurrects).
+**Resurrect Attempts** — id `resurrects`, `resurrects = support[0].resurrects`.
+
+Despite the name of the source field, this is the count of hand-resurrect CHANNEL STARTS: it
+tracks skill 1066 ("Resurrect") cast segments. It counts attempts, not completed revives — a
+player who channels six times on one ally who then dies scores six — and it includes no
+resurrect utilities at all. It is surfaced as "Resurrect Attempts" (Support Detailed column,
+comparison views).
+
+Implementation: `packages/bridge-metrics/src/dashboardMetrics.ts` (getPlayerResurrects).
+
+**Revives** — id `revivesCompleted`, completed pickups, derived rather than read from a field.
+
+A *recovery* is a `combatReplayData.down` interval that ended without a matching
+`combatReplayData.dead` interval starting at its end (within 250ms, `DEATH_MATCH_TOLERANCE_MS`).
+Recoveries are ground truth and require no heuristic.
+
+Each recovery is attributed through a four-tier ladder: hand resurrect (skill 1066, active at
+the moment of stand-up) → active resurrect utility within its effect window → self-resurrect
+(Bandage, skill 1175) → **unattributed**, which is reported in the UI rather than hidden.
+Catalogued resurrect utilities are Illusion of Life (10244), Spirit of Nature (12569), and
+Battle Standard (14419); others are recognized by name match. Skill 12502 ("Signet of Renewal")
+is a condition cleanse and is deliberately excluded from the resurrect catalog.
+
+A player's `totalRevives` is hand + utility attributions. Self-revives are excluded from a
+player's total — crediting someone for reviving themselves would distort the leaderboard — and
+appear in the squad split only.
+
+`revivesCompleted` is **null, not zero**, for any log lacking the `replay` or `rotation` data
+the derivation needs (`hasReviveData`). The MVP scorer falls back to Resurrect Attempts when
+`revivesCompleted` is unavailable (`mvpWeightProfiles.ts`). The Discord notifier derives revives
+per-log directly from `deriveReviveLogSummary` rather than reading the aggregated field, and
+gates the whole "Revives" row on the `showResurrects` setting — when disabled, the derivation is
+skipped entirely rather than run and discarded. A zero would read as "revived nobody," which is
+false; the truth is "unknown."
+
+Resurrect utility casts are also counted as the healing metric `resUtility` (and per-skill
+`resUtility_s<id>`) in the Healing Breakdown section. That metric is a CAST count, not a revive
+count — a utility that is cast but never covers a stand-up still increments it.
+
+Known upstream gap: axilog returns `resurrectTime = 0` for every player, a field Elite Insights
+populates. Resurrect Time (id `resurrectTime`) is therefore derived from channel durations
+instead.
+
+Empirically validated against 324 real WvW logs (2026-09-09): of 3149 recovered downs, 35.41%
+were attributed to hand resurrects, 59.61% to utilities, 0.22% to self, and 4.76% were
+unattributed. Full methodology and per-log distribution are in
+`docs/superpowers/specs/2026-09-09-detailed-resurrects-design.md` ("Empirical validation").
+
+The Revives section (Defense category, section id `revive-detail`) surfaces squad totals, a
+per-player attempts-vs-completed table, a per-utility effectiveness table, and post–Illusion of
+Life survival.
+
+Implementation: `packages/bridge-metrics/src/reviveDerivation.ts`,
+`packages/bridge-metrics/src/resurrectCatalog.ts`,
+`packages/bridge-metrics/src/computePlayerAggregation.ts` (revivesCompleted aggregation),
+`src/renderer/stats/computeReviveDetail.ts`,
+`src/renderer/stats/sections/ReviveDetailSection.tsx`.
 
 ## Distance to Tag
 

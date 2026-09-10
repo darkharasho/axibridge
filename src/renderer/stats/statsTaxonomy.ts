@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { Trophy, Shield, ShieldAlert, ShieldOff, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target, Route, Waves, Flame, Crosshair, ArrowUpDown, Eraser, Play, LayoutGrid, Hand } from 'lucide-react';
+import { Trophy, Shield, ShieldAlert, ShieldOff, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target, Route, Waves, Flame, Crosshair, ArrowUpDown, Eraser, Play, LayoutGrid, Hand, HelpingHand } from 'lucide-react';
 import { CommanderTagIcon } from '../ui/CommanderTagIcon';
 import { SupportPlusIcon } from '../ui/SupportPlusIcon';
 import { Gw2ApmIcon } from '../ui/Gw2ApmIcon';
@@ -76,6 +76,7 @@ export const STATS_CATEGORIES: readonly StatsCategory[] = [
         keywords: ['survivability', 'tanking'],
         sections: [
             { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield, description: 'Full defensive stat table: damage taken, downs, deaths, dodges.', keywords: ['damage taken', 'deaths', 'downs', 'dodges'] },
+            { id: 'revive-detail', label: 'Revives', icon: HelpingHand, description: 'Completed revives, resurrect attempts, and which utilities picked people up.', keywords: ['revives', 'resurrects', 'resurrect attempts', 'battle standard', 'illusion of life', 'spirit of nature', 'banner', 'rally', 'picked up'] },
             { id: 'incoming-strike-damage', label: 'Incoming Strike Damage', icon: ShieldAlert, description: 'Incoming pressure over time and per player.', keywords: ['pressure', 'focused'] },
             { id: 'enemy-attention', label: 'Enemy Attention', icon: Crosshair, description: 'Who the enemy actually aimed their casts at, and who they focused before a down.', keywords: ['focus', 'focused', 'targeted', 'aimed at', 'attention', 'threat', 'who gets hit'] },
             { id: 'incoming-damage-modifiers', label: 'Incoming Modifiers', icon: ShieldOff, description: 'Incoming damage modifier uptimes.', keywords: ['damage reduction'] },
@@ -102,7 +103,7 @@ export const STATS_CATEGORIES: readonly StatsCategory[] = [
         description: 'Cleanses, stun breaks, resurrects, healing, and barrier.',
         keywords: ['support', 'healer'],
         sections: [
-            { id: 'support-detailed', label: 'Support Detailed', icon: SupportPlusIcon, description: 'Cleanses, strips, stun breaks, and resurrects per player.', keywords: ['cleanses', 'condition cleanse', 'stun breaks', 'resurrects', 'res'] },
+            { id: 'support-detailed', label: 'Support Detailed', icon: SupportPlusIcon, description: 'Cleanses, strips, stun breaks, and resurrect attempts per player.', keywords: ['cleanses', 'condition cleanse', 'stun breaks', 'resurrects', 'resurrect attempts', 'res'] },
             { id: 'healing-stats', label: 'Healing Stats', icon: HeartPulse, description: 'Healing and barrier output per player.', keywords: ['healing', 'hps', 'barrier'] },
             { id: 'healing-breakdown', label: 'Healing Breakdown', icon: ListTree, description: 'Healing split by skill for each player.', keywords: ['healing skills'] },
             { id: 'heal-effectiveness', label: 'Heal Effectiveness', icon: Waves, description: 'How much healing landed versus was wasted.', keywords: ['effective healing', 'overheal'] },

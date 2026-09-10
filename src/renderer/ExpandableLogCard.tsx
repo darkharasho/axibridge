@@ -16,10 +16,19 @@ import { useLogDetails } from './cache/useLogDetails';
 import { buildFightLabelV2, computeFightAvgPosition } from '../shared/mapUtils';
 import { getWvwTeamColor, teamMapFromLog, WVW_TEAM_COLOR_META, WVW_TEAM_COLOR_ORDER, type WvwTeamColor } from '../shared/wvwTeams';
 import { detailsHaveAxilogData } from './stats/utils/axilogCoverage';
+import { deriveReviveLogSummary, reviveePlayerKey, type ReviveLogSummary } from '@axiapps/bridge-metrics';
 
 // Track which logs have already played their arrival/success animations (survives virtualization remounts)
 const seenArrivalIds = new Set<string>();
 const seenSuccessIds = new Set<string>();
+
+// `deriveReviveLogSummary` walks the whole roster's rotation/replay data --
+// skip it entirely when the Revives column is disabled.
+const EMPTY_REVIVE_SUMMARY: ReviveLogSummary = {
+    hasData: false, downs: 0, recovered: 0, died: 0,
+    byKind: { hand: 0, utility: 0, self: 0, unattributed: 0 },
+    players: new Map(), utilities: new Map(), iolRevives: [],
+};
 
 interface ExpandableLogCardProps {
     log: any;
@@ -584,7 +593,28 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     // parse populates no distance scalars in `statsAll`.
     const resolveDistanceToTag = createDistanceToTagResolver(details);
     const getDistanceToTag = (p: any) => resolveDistanceToTag(p) ?? 0;
-    const getResurrects = (p: any) => p.support?.[0]?.resurrects || 0;
+    // Derived once per log (not per player) and skipped entirely when the stat
+    // is disabled -- `deriveReviveLogSummary` walks the whole roster's
+    // rotation/replay data. `reviveSummary.hasData` is false when this log
+    // lacks that data -- the Revives column must be omitted entirely then,
+    // never rendered as a fabricated 0.
+    const reviveSummary = settings.showResurrects ? deriveReviveLogSummary(details) : EMPTY_REVIVE_SUMMARY;
+    // `reviveSummary.players` is keyed by identity, so a relog/build-swap
+    // duplicate `players[]` entry would otherwise re-render the SAME merged
+    // total under a second row. Credit only the first roster entry seen for
+    // each key.
+    const revivesCanonicalEntryByKey = new Map<string, any>();
+    allPlayers.forEach((entry: any) => {
+        if (entry?.notInSquad) return;
+        const key = reviveePlayerKey(entry);
+        if (!revivesCanonicalEntryByKey.has(key)) revivesCanonicalEntryByKey.set(key, entry);
+    });
+    const getRevivesCompleted = (p: any) => {
+        const key = reviveePlayerKey(p);
+        if (revivesCanonicalEntryByKey.get(key) !== p) return 0;
+        const counts = reviveSummary.players.get(key);
+        return counts ? counts.handRevives + counts.utilityRevives : 0;
+    };
     const getBreakbarDamage = (p: any) => p.dpsAll?.[0]?.breakbarDamage || 0;
     const getDamageTaken = (p: any) => p.defenses?.[0]?.damageTaken || 0;
     const getDeaths = (p: any) => p.defenses?.[0]?.deadCount || 0;
@@ -806,10 +836,13 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
             fmtVal: (v: number) => v.toLocaleString()
         },
         {
-            enabled: settings.showResurrects,
-            title: "Resurrects",
-            sortFn: (a: any, b: any) => getResurrects(b) - getResurrects(a),
-            valFn: (p: any) => getResurrects(p),
+            // hasData false means this log lacks the rotation/replay data the
+            // derivation needs -- omit the column rather than render a
+            // fabricated 0 for every player.
+            enabled: settings.showResurrects && reviveSummary.hasData,
+            title: "Revives",
+            sortFn: (a: any, b: any) => getRevivesCompleted(b) - getRevivesCompleted(a),
+            valFn: (p: any) => getRevivesCompleted(p),
             fmtVal: (v: number) => v.toString()
         },
         {

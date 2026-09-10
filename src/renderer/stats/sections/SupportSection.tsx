@@ -361,7 +361,9 @@ export const SupportSection = ({
                                     columns={visibleSupportColumns.map((metric) => ({
                                         id: metric.id,
                                         metricKey: metric.id,
-                                        label: metric.label,
+                                        label: metric.id === 'resurrects'
+                                            ? <span title="Channel starts, not completed revives — see Defense → Revives for completed pickups and attribution.">{metric.label}</span>
+                                            : metric.label,
                                         align: 'right',
                                         minWidth: 90
                                     }))}
@@ -410,6 +412,9 @@ export const SupportSection = ({
                                         key={metric.id}
                                         data-metric-key={metric.id}
                                         onClick={() => setActiveSupportStat(metric.id)}
+                                        title={metric.id === 'resurrects'
+                                            ? 'Channel starts, not completed revives — see Defense → Revives for completed pickups and attribution.'
+                                            : undefined}
                                         className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeSupportStat === metric.id
                                             ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
                                             : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
@@ -453,6 +458,14 @@ export const SupportSection = ({
                                 });
 
                             return (
+                                <>
+                                {metric.id === 'resurrects' && (
+                                    <div className="mb-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                                        Resurrect Attempts counts hand-resurrect channel starts, not completed
+                                        revives. See Defense → Revives for completed pickups, attribution, and
+                                        Illusion of Life survival.
+                                    </div>
+                                )}
                                 <StatsTableShell
                                     expanded={expandedSection === 'support-detailed'}
                                     animationKey={`${activeSupportStat}-${supportViewMode}`}
@@ -512,6 +525,7 @@ export const SupportSection = ({
                                         </>
                                     }
                                 />
+                                </>
                             );
                         })()}
                     </>

@@ -1,3 +1,4 @@
+import { classifyResurrectSkill } from '@axiapps/bridge-metrics';
 import { SkillUsageLogRecord, SkillUsagePlayer, SkillUsageSummary } from './statsTypes';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 
@@ -123,7 +124,13 @@ export function finalizeSkillUsage(acc: SkillUsageAccumulator): SkillUsageSummar
         logRecords: acc.logRecords,
         players: Array.from(acc.playerMap.values()),
         skillOptions,
-        resUtilitySkills: []
+        resUtilitySkills: skillOptions
+            .filter((option) => {
+                const id = Number(String(option.id).replace(/^s/, ''));
+                if (!Number.isFinite(id)) return false;
+                return classifyResurrectSkill(id, { [option.id]: { name: option.name } })?.kind === 'utility';
+            })
+            .map((option) => ({ id: option.id, name: option.name, icon: option.icon }))
     };
 }
 
