@@ -261,19 +261,26 @@ export const ReviveDetailSection = ({ reviveDetail }: ReviveDetailSectionProps) 
 
     const sortedPlayers = useMemo(() => {
         const rows = [...players];
-        const resolveSortValue = (row: RevivePlayerRow): number | string => {
+        // `null` means "no rate to compare" — a row with no known active time in
+        // a rate mode. Those rows sort last in BOTH directions, handled ahead of
+        // the direction flip below: a numeric sentinel would put them first
+        // ascending, presenting unmeasurable rows as the lowest rates.
+        const resolveSortValue = (row: RevivePlayerRow): number | string | null => {
             if (sort.key === 'account') return row.account;
             const raw = Number((row as any)[sort.key] || 0);
             if (RATE_FIELDS.has(sort.key) && viewMode !== 'total') {
-                // A row with no known active time sorts last in rate modes; it
-                // has no rate to compare.
-                return resolveCountValue(raw, viewMode, totalSecondsFor(row)) ?? -1;
+                return resolveCountValue(raw, viewMode, totalSecondsFor(row)) ?? null;
             }
             return raw;
         };
         rows.sort((a: RevivePlayerRow, b: RevivePlayerRow) => {
             const av = resolveSortValue(a);
             const bv = resolveSortValue(b);
+            if (av === null || bv === null) {
+                if (av !== null) return -1;
+                if (bv !== null) return 1;
+                return String(a.account || '').localeCompare(String(b.account || ''));
+            }
             if (typeof av === 'string' || typeof bv === 'string') {
                 const diff = String(av).localeCompare(String(bv));
                 return sort.dir === 'desc' ? -diff : diff;
@@ -334,7 +341,9 @@ export const ReviveDetailSection = ({ reviveDetail }: ReviveDetailSectionProps) 
                             {`Hand ${squad.hand} · Utility ${squad.utility} · Self ${squad.self} · Unattributed ${squad.unattributed}`}
                         </div>
                         <div className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>
-                            Coverage: {coverage.logsWithData} {coverage.logsWithData === 1 ? 'log' : 'logs'} with revive data. Per-player totals below only sum the logs that carried revive data — there is no per-player denominator, so a player present for fewer covered logs is not on equal footing with one who attended more.
+                            Coverage: {coverage.logsWithData} {coverage.logsWithData === 1 ? 'log' : 'logs'} with revive data. Per-player numbers below only count the logs that carried revive data. {viewMode === 'total'
+                                ? 'Totals carry no per-player denominator, so a player present for fewer covered logs is not on equal footing with one who attended more — switch to a rate to compare them.'
+                                : 'Rates divide by each player’s own active time over those same logs, so players who attended different numbers of fights are comparable.'}
                         </div>
                         <div className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
                             Utility credit is time-window based: a utility is credited with a stand-up that happens inside its window, with no check on how far away it was. One long-window utility can therefore be credited with several stand-ups, so Utility Revives and Revives per Cast read on the generous side.

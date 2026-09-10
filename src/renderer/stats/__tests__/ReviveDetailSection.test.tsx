@@ -161,6 +161,40 @@ describe('ReviveDetailSection', () => {
         expect(screen.getByText('33%')).toBeTruthy();
     });
 
+    it('sorts rows with no measurable rate last in BOTH directions', () => {
+        // A numeric sentinel for "no rate" ranks below every real rate, which is
+        // correct descending and exactly backwards ascending — it would present
+        // the one row that has no rate at all as the lowest rate in the squad.
+        const mixed: any = {
+            ...summary,
+            players: [
+                { ...summary.players[0], key: 'Alpha|Guardian', account: 'Alpha', activeMs: 0, attempts: 9 },
+                { ...summary.players[0], key: 'Bravo|Guardian', account: 'Bravo', activeMs: 180000, attempts: 9 },
+                { ...summary.players[0], key: 'Charlie|Guardian', account: 'Charlie', activeMs: 180000, attempts: 3 },
+            ],
+        };
+        render(<ReviveDetailSection reviveDetail={mixed} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Stat/60s' }));
+        const order = () => screen.getAllByText(/^(Alpha|Bravo|Charlie)$/).map((el) => el.textContent);
+
+        fireEvent.click(screen.getByRole('button', { name: /^Resurrect Attempts/ }));
+        expect(order()).toEqual(['Bravo', 'Charlie', 'Alpha']);
+
+        fireEvent.click(screen.getByRole('button', { name: /^Resurrect Attempts/ }));
+        expect(order()).toEqual(['Charlie', 'Bravo', 'Alpha']);
+    });
+
+    it('states the right coverage caveat for the active view mode', () => {
+        render(<ReviveDetailSection reviveDetail={summary} />);
+        // Totals genuinely have no denominator...
+        expect(screen.getByText(/Totals carry no per-player denominator/i)).toBeTruthy();
+
+        // ...but rates do, so repeating the totals caveat there would be wrong.
+        fireEvent.click(screen.getByRole('button', { name: 'Stat/60s' }));
+        expect(screen.queryByText(/Totals carry no per-player denominator/i)).toBeNull();
+        expect(screen.getByText(/each player.s own active time/i)).toBeTruthy();
+    });
+
     it('notes that utility credit is time-window based with no proximity check', () => {
         render(<ReviveDetailSection reviveDetail={summary} />);
         expect(screen.getByText(/time-window based/i)).toBeTruthy();
