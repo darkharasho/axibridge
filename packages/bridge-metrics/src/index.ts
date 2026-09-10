@@ -39,5 +39,6 @@ export type {
     Attribution,
     AttributionOptions,
     ReviveLogSummary,
+    ReviveUtilityTally,
     RevivePlayerCounts,
 } from './reviveDerivation';

@@ -1,5 +1,6 @@
 import { deriveReviveLogSummary, reviveePlayerKey, type RevivePlayerCounts } from '@axiapps/bridge-metrics';
-import type { ReviveDetailFrame, ReviveDetailSummary } from './statsTypes';
+import { REVIVE_RE_DOWN_BUCKETS_MS } from './statsTypes';
+import type { ReviveDetailFrame, ReviveDetailSummary, ReviveUtilityCasterRow } from './statsTypes';
 
 interface ReviveDetailPlayer extends RevivePlayerCounts {
     account: string;
@@ -9,6 +10,31 @@ interface ReviveDetailPlayer extends RevivePlayerCounts {
      *  numerators can never drift onto two key conventions. */
     activeMs: number;
 }
+
+interface ReviveDetailUtility {
+    name: string;
+    icon: string | null;
+    casts: number;
+    revives: number;
+    /** Per-caster casts AND revives. Both are needed: the expansion shows each
+     *  caster's revives per cast, and a caster who never landed one still has
+     *  to appear so the per-caster casts sum to the row's cast count. */
+    byCaster: Map<string, { casts: number; revives: number }>;
+}
+
+/** Sums two per-caster maps into `target`, creating rows as needed. Shared by
+ *  the ingest and frame-merge paths so they cannot drift apart. */
+const mergeCasters = (
+    target: ReviveDetailUtility,
+    source: Map<string, { casts: number; revives: number }>
+): void => {
+    source.forEach((counts, caster) => {
+        let entry = target.byCaster.get(caster);
+        if (!entry) { entry = { casts: 0, revives: 0 }; target.byCaster.set(caster, entry); }
+        entry.casts += counts.casts;
+        entry.revives += counts.revives;
+    });
+};
 
 export interface ReviveDetailAccumulator {
     logsWithData: number;
@@ -23,7 +49,7 @@ export interface ReviveDetailAccumulator {
         unattributed: number;
     };
     players: Map<string, ReviveDetailPlayer>;
-    utilities: Map<number, { name: string; casts: number; revives: number; byCaster: Map<string, number> }>;
+    utilities: Map<number, ReviveDetailUtility>;
     iol: { revives: number; survived: number; reDowned: number; timesToReDownMs: number[] };
 }
 
@@ -79,12 +105,15 @@ export function ingestLogReviveDetail(log: any, acc: ReviveDetailAccumulator): v
     summary.utilities.forEach((utility, skillId) => {
         let row = acc.utilities.get(skillId);
         if (!row) {
-            row = { name: utility.name, casts: 0, revives: 0, byCaster: new Map() };
+            row = { name: utility.name, icon: utility.icon, casts: 0, revives: 0, byCaster: new Map() };
             acc.utilities.set(skillId, row);
         }
+        // A log parsed without a skill map contributes no icon; a later log that
+        // has one fills it in rather than leaving the row iconless forever.
+        if (!row.icon && utility.icon) row.icon = utility.icon;
         row.casts += utility.casts;
         row.revives += utility.revives;
-        utility.byCaster.forEach((count, caster) => row!.byCaster.set(caster, (row!.byCaster.get(caster) || 0) + count));
+        mergeCasters(row, utility.byCaster);
     });
 
     const roster = Array.isArray(details?.players) ? details.players : [];
@@ -126,6 +155,20 @@ const median = (values: number[]): number | null => {
 };
 
 /**
+ * Counts each time-to-re-down into `REVIVE_RE_DOWN_BUCKETS_MS` — one bucket per
+ * boundary (upper bound exclusive) plus a trailing unbounded bucket, so the
+ * result always sums to the number of re-downs.
+ */
+const bucketTimes = (values: number[]): number[] => {
+    const buckets = new Array(REVIVE_RE_DOWN_BUCKETS_MS.length + 1).fill(0);
+    for (const value of values) {
+        const index = REVIVE_RE_DOWN_BUCKETS_MS.findIndex((bound) => value < bound);
+        buckets[index === -1 ? REVIVE_RE_DOWN_BUCKETS_MS.length : index] += 1;
+    }
+    return buckets;
+};
+
+/**
  * `null` means "no measurement", not "zero revives". An accumulator that saw no
  * logs at all (e.g. a viewer that merged frames from an older sidecar which
  * carried no `reviveDetail` section) has nothing to report, and rendering it as
@@ -154,19 +197,32 @@ export function finalizeReviveDetail(acc: ReviveDetailAccumulator): ReviveDetail
     const utilities = Array.from(acc.utilities.entries()).map(([skillId, row]) => {
         let topCasterKey: string | null = null;
         let topCount = 0;
-        row.byCaster.forEach((count, caster) => {
-            if (count > topCount) {
-                topCount = count;
+        const casters: ReviveUtilityCasterRow[] = [];
+        row.byCaster.forEach((counts, caster) => {
+            if (counts.revives > topCount) {
+                topCount = counts.revives;
                 topCasterKey = caster;
             }
+            const [account, profession] = caster.split('|');
+            casters.push({
+                key: caster,
+                account,
+                profession,
+                casts: counts.casts,
+                revives: counts.revives,
+                revivesPerCast: counts.casts > 0 ? counts.revives / counts.casts : 0,
+            });
         });
+        casters.sort((a, b) => (b.revives - a.revives) || (b.casts - a.casts));
         return {
             skillId,
             name: row.name,
+            icon: row.icon,
             casts: row.casts,
             revives: row.revives,
             revivesPerCast: row.casts > 0 ? row.revives / row.casts : 0,
             topCasterKey,
+            casters,
         };
     }).sort((a, b) => b.revives - a.revives);
 
@@ -181,6 +237,7 @@ export function finalizeReviveDetail(acc: ReviveDetailAccumulator): ReviveDetail
                 survived: acc.iol.survived,
                 reDowned: acc.iol.reDowned,
                 medianTimeToReDownMs: median(acc.iol.timesToReDownMs),
+                timeToReDownBuckets: bucketTimes(acc.iol.timesToReDownMs),
             }
             : null,
     };
@@ -227,12 +284,13 @@ export function mergeReviveDetailFrame(target: ReviveDetailAccumulator, frame: R
     source.utilities.forEach((sourceRow, skillId) => {
         let row = target.utilities.get(skillId);
         if (!row) {
-            row = { name: sourceRow.name, casts: 0, revives: 0, byCaster: new Map() };
+            row = { name: sourceRow.name, icon: sourceRow.icon, casts: 0, revives: 0, byCaster: new Map() };
             target.utilities.set(skillId, row);
         }
+        if (!row.icon && sourceRow.icon) row.icon = sourceRow.icon;
         row.casts += sourceRow.casts;
         row.revives += sourceRow.revives;
-        sourceRow.byCaster.forEach((count, caster) => row!.byCaster.set(caster, (row!.byCaster.get(caster) || 0) + count));
+        mergeCasters(row, sourceRow.byCaster);
     });
 
     target.iol.revives += source.iol.revives;

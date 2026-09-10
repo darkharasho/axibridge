@@ -43,6 +43,19 @@ describe('deriveReviveLogSummary on a real parsed log', () => {
         expect(spiritOfNature!.revives).toBe(1);
     });
 
+    it('reads the real skill icon and splits the two casts across both druids', () => {
+        const spiritOfNature = summary.utilities.get(12569)!;
+        expect(spiritOfNature.icon)
+            .toBe('https://render.guildwars2.com/file/E23D450D539B92FE0D36DEDF1B2D6010A961E612/104011.png');
+
+        // Two casters, one cast each, and only one of them credited — the case
+        // a revives-only breakdown would have rendered as a single caster.
+        const casters = [...spiritOfNature.byCaster.values()];
+        expect(casters).toHaveLength(2);
+        expect(casters.reduce((sum, c) => sum + c.casts, 0)).toBe(2);
+        expect(casters.reduce((sum, c) => sum + c.revives, 0)).toBe(1);
+    });
+
     it('records real hand resurrect attempts and channel time', () => {
         // A non-zero attemptTimeMs proves `castTime`/`duration` were actually
         // read off the rotation entries, not defaulted.

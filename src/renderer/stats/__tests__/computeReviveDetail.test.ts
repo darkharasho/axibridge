@@ -133,6 +133,67 @@ describe('computeReviveDetail', () => {
         const casterB = result.players.find((p) => p.account === 'CasterB')!;
         expect(casterA.utilityRevives).toBe(1);
         expect(casterB.utilityRevives).toBe(2);
+
+        // The expansion's rows: both casters present, per-caster casts summing
+        // to the row's own cast count, ordered by revives.
+        expect(battleStandard.casters).toEqual([
+            { key: 'CasterB|Guardian', account: 'CasterB', profession: 'Guardian', casts: 1, revives: 2, revivesPerCast: 2 },
+            { key: 'CasterA|Guardian', account: 'CasterA', profession: 'Guardian', casts: 1, revives: 1, revivesPerCast: 1 },
+        ]);
+        expect(battleStandard.casters!.reduce((sum, c) => sum + c.casts, 0)).toBe(battleStandard.casts);
+    });
+
+    it('carries the skill icon through ingest, frame merge and finalize', () => {
+        const withIcon = {
+            details: {
+                skillMap: { s14419: { name: 'Battle Standard', icon: 'https://example.test/banner.png' } },
+                players: [
+                    player({ account: 'CasterA', rotation: [{ id: 14419, skills: [{ castTime: 0, duration: 0 }] }] }),
+                    player({ account: 'DownedZ', down: [[1000, 5000]] }),
+                ],
+            },
+        };
+        // A second log with no skill map at all must not blank the icon back out.
+        const withoutIcon = {
+            details: {
+                skillMap: {},
+                players: [
+                    player({ account: 'CasterB', rotation: [{ id: 14419, skills: [{ castTime: 0, duration: 0 }] }] }),
+                    player({ account: 'DownedY', down: [[1000, 5000]] }),
+                ],
+            },
+        };
+
+        const accA = createReviveDetailAccumulator();
+        ingestLogReviveDetail(withoutIcon, accA);
+        const frameA = extractReviveDetailFrame(accA);
+
+        const target = createReviveDetailAccumulator();
+        ingestLogReviveDetail(withIcon, target);
+        mergeReviveDetailFrame(target, frameA);
+
+        const banner = finalizeReviveDetail(target)!.utilities.find((u) => u.skillId === 14419)!;
+        expect(banner.icon).toBe('https://example.test/banner.png');
+    });
+
+    it('buckets Illusion of Life re-down times and sums them to the re-down count', () => {
+        const acc = createReviveDetailAccumulator();
+        // Three re-downs at 3s, 12s and 90s after standing up, plus one survivor.
+        ingestLogReviveDetail({ details: { skillMap: {}, players: [
+            player({ account: 'Mes', profession: 'Chronomancer',
+                rotation: [{ id: 10244, skills: [{ castTime: 4000, duration: 0 }] }] }),
+            // The re-downs end in death so they are not themselves recoveries.
+            player({ account: 'Quick', down: [[1000, 5000], [8000, 9000]], dead: [[9000, 99000]] }),
+            player({ account: 'Slower', down: [[1000, 5000], [17000, 18000]], dead: [[18000, 99000]] }),
+            player({ account: 'Much later', down: [[1000, 5000], [95000, 96000]], dead: [[96000, 99000]] }),
+            player({ account: 'Survivor', down: [[1000, 5000]] }),
+        ] } }, acc);
+
+        const iol = finalizeReviveDetail(acc)!.iol!;
+        expect(iol).toMatchObject({ revives: 4, reDowned: 3, survived: 1 });
+        // Buckets are 0-5s, 5-10s, 10-20s, 20-60s, 60s+.
+        expect(iol.timeToReDownBuckets).toEqual([1, 0, 1, 0, 1]);
+        expect(iol.timeToReDownBuckets!.reduce((a, b) => a + b, 0)).toBe(iol.reDowned);
     });
 
     it('extracts a frame after ingesting a single uncovered log without throwing', () => {

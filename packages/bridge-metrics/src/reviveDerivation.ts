@@ -57,6 +57,8 @@ export interface ResurrectCast {
     skillId: number;
     skillName: string;
     kind: ResurrectKind;
+    /** Skill icon URL from the log's own skill map, or null when it carries none. */
+    skillIcon: string | null;
     start: number;
     end: number;
 }
@@ -74,7 +76,7 @@ export const extractResurrectCasts = (
     player: any,
     playerKey: string,
     playerIndex: number,
-    skillMap: Record<string, { name?: string }> | undefined
+    skillMap: Record<string, { name?: string; icon?: string }> | undefined
 ): ResurrectCast[] => {
     const rotation = Array.isArray(player?.rotation) ? player.rotation : [];
     const casts: ResurrectCast[] = [];
@@ -92,6 +94,7 @@ export const extractResurrectCasts = (
             casts.push({
                 playerKey, playerIndex,
                 skillId: skill.id, skillName: skill.name, kind: skill.kind,
+                skillIcon: skillMap?.[`s${skill.id}`]?.icon || null,
                 start, end,
             });
         }
@@ -202,6 +205,20 @@ export interface RevivePlayerCounts {
     assists: number;
 }
 
+/**
+ * Per-utility tally. `byCaster` holds BOTH casts and revives, keyed by caster,
+ * because a per-caster breakdown that carried revives alone could not show
+ * revives per cast — and a caster who cast without ever landing one would
+ * vanish from the breakdown entirely while still counting toward the total.
+ */
+export interface ReviveUtilityTally {
+    name: string;
+    icon: string | null;
+    casts: number;
+    revives: number;
+    byCaster: Map<string, { casts: number; revives: number }>;
+}
+
 export interface ReviveLogSummary {
     hasData: boolean;
     downs: number;
@@ -209,7 +226,7 @@ export interface ReviveLogSummary {
     died: number;
     byKind: Record<'hand' | 'utility' | 'self' | 'unattributed', number>;
     players: Map<string, RevivePlayerCounts>;
-    utilities: Map<number, { name: string; casts: number; revives: number; byCaster: Map<string, number> }>;
+    utilities: Map<number, ReviveUtilityTally>;
     iolRevives: Array<{ playerKey: string; playerIndex: number; at: number }>;
 }
 
@@ -250,6 +267,21 @@ export const deriveReviveLogSummary = (details: any, opts: AttributionOptions = 
         return entry;
     };
 
+    const utilityTally = (skillId: number, name: string, icon: string | null): ReviveUtilityTally => {
+        let utility = summary.utilities.get(skillId);
+        if (!utility) {
+            utility = { name, icon, casts: 0, revives: 0, byCaster: new Map() };
+            summary.utilities.set(skillId, utility);
+        }
+        return utility;
+    };
+
+    const casterTally = (utility: ReviveUtilityTally, casterKey: string) => {
+        let entry = utility.byCaster.get(casterKey);
+        if (!entry) { entry = { casts: 0, revives: 0 }; utility.byCaster.set(casterKey, entry); }
+        return entry;
+    };
+
     const allCasts: ResurrectCast[] = [];
     const allRecoveries: Recovery[] = [];
 
@@ -267,12 +299,9 @@ export const deriveReviveLogSummary = (details: any, opts: AttributionOptions = 
                 entry.attemptTimeMs += Math.max(0, cast.end - cast.start);
             } else if (cast.kind === 'utility') {
                 entry.utilityCasts += 1;
-                let utility = summary.utilities.get(cast.skillId);
-                if (!utility) {
-                    utility = { name: cast.skillName, casts: 0, revives: 0, byCaster: new Map() };
-                    summary.utilities.set(cast.skillId, utility);
-                }
+                const utility = utilityTally(cast.skillId, cast.skillName, cast.skillIcon);
                 utility.casts += 1;
+                casterTally(utility, key).casts += 1;
             }
         }
 
@@ -297,10 +326,7 @@ export const deriveReviveLogSummary = (details: any, opts: AttributionOptions = 
                 const utility = summary.utilities.get(attribution.skillId!);
                 if (utility) {
                     utility.revives += 1;
-                    utility.byCaster.set(
-                        attribution.primaryKey,
-                        (utility.byCaster.get(attribution.primaryKey) || 0) + 1
-                    );
+                    casterTally(utility, attribution.primaryKey).revives += 1;
                 }
                 if (attribution.skillId === ILLUSION_OF_LIFE_ID) {
                     summary.iolRevives.push({

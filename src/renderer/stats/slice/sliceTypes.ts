@@ -5,8 +5,12 @@ import type { FightRosterEntry } from '../statsStore';
  *
  *  v2: frames carry a `reviveDetail` section. A v1 sidecar merged by a v2
  *  viewer would leave the revive accumulator empty, which must not be
- *  presented as "nobody was revived". */
-export const SLICE_SIDECAR_VERSION = 2;
+ *  presented as "nobody was revived".
+ *
+ *  v3: the revive accumulator's per-utility `byCaster` map changed from a bare
+ *  revive count to `{ casts, revives }`, and utility rows carry a skill icon. A
+ *  v2 frame merged by a v3 viewer would add numbers to objects. */
+export const SLICE_SIDECAR_VERSION = 3;
 
 /** The tray's view of a fight. Deliberately the Phase A roster shape, so
  *  `FightSliceTray` renders sidecar fights with no changes at all. */
