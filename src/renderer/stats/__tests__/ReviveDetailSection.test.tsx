@@ -77,6 +77,25 @@ describe('ReviveDetailSection', () => {
         expect(screen.getByText(/Survived the fight 3/)).toBeTruthy();
     });
 
+    it('shows deaths under Illusion of Life as their own outcome', () => {
+        const withDeaths = { ...summary, iol: {
+            revives: 10, survived: 3, reDowned: 5, diedUnderIol: 2, medianTimeToReDownMs: 6200,
+            timeToReDownBuckets: [2, 1, 1, 1, 0],
+        } };
+        render(<ReviveDetailSection reviveDetail={withDeaths} />);
+        expect(screen.getByText(/Died under IoL 2/)).toBeTruthy();
+        // Survived percentage is over all three outcomes: 3 of 10.
+        expect(screen.getByText(/Survived the fight 3 \(30%\)/)).toBeTruthy();
+        expect(screen.getByText(/mesmers outside the squad/i)).toBeTruthy();
+    });
+
+    it('omits the died-under-IoL outcome for a report published before it existed', () => {
+        const legacy = { ...summary, iol: { revives: 8, survived: 3, reDowned: 5, medianTimeToReDownMs: 6200 } };
+        render(<ReviveDetailSection reviveDetail={legacy} />);
+        expect(screen.queryByText(/Died under IoL/)).toBeNull();
+        expect(screen.getByText(/Survived the fight 3 \(38%\)/)).toBeTruthy();
+    });
+
     it('renders the skill icon before the utility name', () => {
         const { container } = render(<ReviveDetailSection reviveDetail={summary} />);
         const icon = container.querySelector('img[src="https://example.test/banner.png"]');
