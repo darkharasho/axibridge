@@ -9,8 +9,12 @@ import type { FightRosterEntry } from '../statsStore';
  *
  *  v3: the revive accumulator's per-utility `byCaster` map changed from a bare
  *  revive count to `{ casts, revives }`, and utility rows carry a skill icon. A
- *  v2 frame merged by a v3 viewer would add numbers to objects. */
-export const SLICE_SIDECAR_VERSION = 3;
+ *  v2 frame merged by a v3 viewer would add numbers to objects.
+ *
+ *  v4: the revive accumulator's Illusion of Life outcomes gained
+ *  `diedUnderIol`. A v3 frame merged by a v4 viewer would add undefined and
+ *  render NaN. */
+export const SLICE_SIDECAR_VERSION = 4;
 
 /** The tray's view of a fight. Deliberately the Phase A roster shape, so
  *  `FightSliceTray` renders sidecar fights with no changes at all. */

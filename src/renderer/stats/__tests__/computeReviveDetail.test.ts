@@ -196,6 +196,57 @@ describe('computeReviveDetail', () => {
         expect(iol.timeToReDownBuckets!.reduce((a, b) => a + b, 0)).toBe(iol.reDowned);
     });
 
+    it('counts a death that skipped the downed state after an IoL stand-up as died under IoL, not re-downed', () => {
+        const acc = createReviveDetailAccumulator();
+        ingestLogReviveDetail({ details: { skillMap: {}, players: [
+            player({ account: 'Mes', profession: 'Chronomancer',
+                rotation: [{ id: 10244, skills: [{ castTime: 4000, duration: 0 }] }] }),
+            // arcdps records a ~0ms down right before the death.
+            player({ account: 'Instant', down: [[1000, 5000], [7000, 7005]], dead: [[7005, 99000]] }),
+        ] } }, acc);
+
+        const iol = finalizeReviveDetail(acc)!.iol!;
+        expect(iol).toMatchObject({ revives: 1, survived: 0, reDowned: 0, diedUnderIol: 1, medianTimeToReDownMs: null });
+        // Not a re-down, so not a 2s entry skewing the histogram.
+        expect(iol.timeToReDownBuckets).toEqual([0, 0, 0, 0, 0]);
+    });
+
+    it('keeps a short down that the player stood up from as a re-down', () => {
+        const acc = createReviveDetailAccumulator();
+        ingestLogReviveDetail({ details: { skillMap: {}, players: [
+            player({ account: 'Mes', profession: 'Chronomancer',
+                rotation: [{ id: 10244, skills: [{ castTime: 4000, duration: 0 }] }] }),
+            // The blip starts after the 5s IoL cast window, so it is not itself an IoL revive.
+            player({ account: 'Blip', down: [[1000, 5000], [10000, 10005]] }),
+        ] } }, acc);
+        expect(finalizeReviveDetail(acc)!.iol).toMatchObject({ revives: 1, reDowned: 1, diedUnderIol: 0 });
+    });
+
+    it('splits IoL revives into three outcomes that sum to the revive count, through frame merge', () => {
+        const log = () => ({ details: { skillMap: {}, players: [
+            player({ account: 'Mes', profession: 'Chronomancer',
+                rotation: [{ id: 10244, skills: [{ castTime: 4000, duration: 0 }] }] }),
+            player({ account: 'Instant', down: [[1000, 5000], [7000, 7005]], dead: [[7005, 99000]] }),
+            player({ account: 'Slow', down: [[1000, 5000], [18000, 22000]], dead: [[22000, 99000]] }),
+            player({ account: 'Survivor', down: [[1000, 5000]] }),
+        ] } });
+
+        const direct = createReviveDetailAccumulator();
+        ingestLogReviveDetail(log(), direct);
+        ingestLogReviveDetail(log(), direct);
+
+        const target = createReviveDetailAccumulator();
+        const single = createReviveDetailAccumulator();
+        ingestLogReviveDetail(log(), target);
+        ingestLogReviveDetail(log(), single);
+        mergeReviveDetailFrame(target, extractReviveDetailFrame(single));
+
+        const iol = finalizeReviveDetail(target)!.iol!;
+        expect(iol).toMatchObject({ revives: 6, survived: 2, reDowned: 2, diedUnderIol: 2, medianTimeToReDownMs: 13000 });
+        expect(iol.survived + iol.reDowned + iol.diedUnderIol!).toBe(iol.revives);
+        expect(finalizeReviveDetail(target)).toEqual(finalizeReviveDetail(direct));
+    });
+
     it('extracts a frame after ingesting a single uncovered log without throwing', () => {
         const acc = createReviveDetailAccumulator();
         ingestLogReviveDetail({ details: { skillMap: {}, players: [
