@@ -190,11 +190,17 @@ export interface ReviveDetailSummary {
         revives: number;
         survived: number;
         reDowned: number;
+        /** Revived players whose next down was a ~0ms blip straight into death
+         *  — the Illusion of Life buff expiring or being killed through it.
+         *  Counted apart from `reDowned`, so `survived + reDowned +
+         *  diedUnderIol === revives`. Absent on reports published before it
+         *  shipped. */
+        diedUnderIol?: number;
         medianTimeToReDownMs: number | null;
         /** Histogram of time from standing up to going down again, one count
          *  per `REVIVE_RE_DOWN_BUCKETS_MS` boundary plus a trailing unbounded
-         *  bucket. Sums to `reDowned`; survivors are not in it. Absent on
-         *  reports published before the graph shipped. */
+         *  bucket. Sums to `reDowned`; survivors and deaths under IoL are not
+         *  in it. Absent on reports published before the graph shipped. */
         timeToReDownBuckets?: number[];
     } | null;
 }

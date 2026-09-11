@@ -165,12 +165,20 @@ const UtilityName = ({ utility }: { utility: ReviveUtilityRow }) => (
     </>
 );
 
-/** Illusion of Life outcomes: the survived/re-downed split as one stacked bar,
- *  and how quickly the re-downs happened as a histogram. */
+/** Mesmer purple, matching the Illusion of Life buff. No theme token is purple,
+ *  and reusing the error red would read as another shade of "re-downed". */
+const DIED_UNDER_IOL_COLOR = '#b679d5';
+
+/** Illusion of Life outcomes: the survived/re-downed/died-under-IoL split as one
+ *  stacked bar, and how quickly the re-downs happened as a histogram. */
 const IllusionOfLifeCard = ({ iol }: {
     iol: NonNullable<ReviveDetailSummary['iol']>;
 }) => {
-    const total = iol.survived + iol.reDowned;
+    // Absent on reports published before the outcome existed; those rendered
+    // the deaths inside `reDowned`, so the card simply shows two outcomes.
+    const hasDeathOutcome = typeof iol.diedUnderIol === 'number';
+    const diedUnderIol = iol.diedUnderIol ?? 0;
+    const total = iol.survived + iol.reDowned + diedUnderIol;
     const survivedPercent = total > 0 ? Math.round((iol.survived / total) * 100) : null;
     const buckets = iol.timeToReDownBuckets ?? null;
     const peak = buckets ? Math.max(...buckets) : 0;
@@ -191,6 +199,7 @@ const IllusionOfLifeCard = ({ iol }: {
                     <div className="flex h-3 w-full overflow-hidden rounded-full" style={{ background: 'var(--border-subtle)' }}>
                         <div style={{ width: `${(iol.survived / total) * 100}%`, background: 'var(--status-success)' }} />
                         <div style={{ width: `${(iol.reDowned / total) * 100}%`, background: 'var(--status-error)' }} />
+                        <div style={{ width: `${(diedUnderIol / total) * 100}%`, background: DIED_UNDER_IOL_COLOR }} />
                     </div>
                     <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
                         <span className="flex items-center gap-1.5">
@@ -202,6 +211,12 @@ const IllusionOfLifeCard = ({ iol }: {
                             Re-downed {iol.reDowned}
                             {iol.medianTimeToReDownMs !== null ? ` — median ${formatSeconds(iol.medianTimeToReDownMs)}` : ''}
                         </span>
+                        {hasDeathOutcome && (
+                            <span className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full" style={{ background: DIED_UNDER_IOL_COLOR }} />
+                                Died under IoL {diedUnderIol}
+                            </span>
+                        )}
                     </div>
                 </>
             )}
@@ -228,6 +243,7 @@ const IllusionOfLifeCard = ({ iol }: {
 
             <div className="text-[11px] mt-3" style={{ color: 'var(--text-muted)' }}>
                 Time from standing up under Illusion of Life to going down again. Players who never went down again count as survived and are not in the histogram.
+                {hasDeathOutcome && ' Died under IoL means the player skipped the downed state and died outright before going down again. Only IoL cast by squad members is seen — IoL from mesmers outside the squad is not counted.'}
             </div>
         </div>
     );

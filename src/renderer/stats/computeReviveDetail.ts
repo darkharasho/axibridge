@@ -1,6 +1,17 @@
-import { deriveReviveLogSummary, reviveePlayerKey, type RevivePlayerCounts } from '@axiapps/bridge-metrics';
+import {
+    DEATH_MATCH_TOLERANCE_MS, deriveReviveLogSummary, reviveePlayerKey, type RevivePlayerCounts,
+} from '@axiapps/bridge-metrics';
 import { REVIVE_RE_DOWN_BUCKETS_MS } from './statsTypes';
 import type { ReviveDetailFrame, ReviveDetailSummary, ReviveUtilityCasterRow } from './statsTypes';
+
+/** A down shorter than this that ends in death is arcdps recording a player who
+ *  skipped the downed state — under Illusion of Life, the buff running out or
+ *  being killed through. A real downed state lasts seconds; across 400 real
+ *  logs every such death after an IoL stand-up was under 50ms. */
+const INSTANT_DEATH_MAX_DOWN_MS = 250;
+
+const intervals = (value: unknown): number[][] =>
+    (Array.isArray(value) ? value : []).filter((entry): entry is number[] => Array.isArray(entry) && entry.length >= 2);
 
 interface ReviveDetailPlayer extends RevivePlayerCounts {
     account: string;
@@ -50,7 +61,7 @@ export interface ReviveDetailAccumulator {
     };
     players: Map<string, ReviveDetailPlayer>;
     utilities: Map<number, ReviveDetailUtility>;
-    iol: { revives: number; survived: number; reDowned: number; timesToReDownMs: number[] };
+    iol: { revives: number; survived: number; reDowned: number; diedUnderIol: number; timesToReDownMs: number[] };
 }
 
 export function createReviveDetailAccumulator(): ReviveDetailAccumulator {
@@ -60,7 +71,7 @@ export function createReviveDetailAccumulator(): ReviveDetailAccumulator {
         squad: { downs: 0, recovered: 0, died: 0, hand: 0, utility: 0, self: 0, unattributed: 0 },
         players: new Map(),
         utilities: new Map(),
-        iol: { revives: 0, survived: 0, reDowned: 0, timesToReDownMs: [] },
+        iol: { revives: 0, survived: 0, reDowned: 0, diedUnderIol: 0, timesToReDownMs: [] },
     };
 }
 
@@ -134,15 +145,21 @@ export function ingestLogReviveDetail(log: any, acc: ReviveDetailAccumulator): v
 
     for (const revive of summary.iolRevives) {
         acc.iol.revives += 1;
-        const down = roster[revive.playerIndex]?.combatReplayData?.down;
-        const next = (Array.isArray(down) ? down : [])
-            .map((interval: number[]) => interval[0])
-            .filter((start: number) => start > revive.at)
-            .sort((a: number, b: number) => a - b)[0];
-        if (next === undefined) acc.iol.survived += 1;
+        const replay = roster[revive.playerIndex]?.combatReplayData;
+        const next = intervals(replay?.down)
+            .filter(([start]) => start > revive.at)
+            .sort((a, b) => a[0] - b[0])[0];
+        if (next === undefined) {
+            acc.iol.survived += 1;
+            continue;
+        }
+        const [downStart, downEnd] = next;
+        const diedInstantly = downEnd - downStart < INSTANT_DEATH_MAX_DOWN_MS
+            && intervals(replay?.dead).some(([deadStart]) => Math.abs(deadStart - downEnd) <= DEATH_MATCH_TOLERANCE_MS);
+        if (diedInstantly) acc.iol.diedUnderIol += 1;
         else {
             acc.iol.reDowned += 1;
-            acc.iol.timesToReDownMs.push(next - revive.at);
+            acc.iol.timesToReDownMs.push(downStart - revive.at);
         }
     }
 }
@@ -236,6 +253,7 @@ export function finalizeReviveDetail(acc: ReviveDetailAccumulator): ReviveDetail
                 revives: acc.iol.revives,
                 survived: acc.iol.survived,
                 reDowned: acc.iol.reDowned,
+                diedUnderIol: acc.iol.diedUnderIol,
                 medianTimeToReDownMs: median(acc.iol.timesToReDownMs),
                 timeToReDownBuckets: bucketTimes(acc.iol.timesToReDownMs),
             }
@@ -296,5 +314,6 @@ export function mergeReviveDetailFrame(target: ReviveDetailAccumulator, frame: R
     target.iol.revives += source.iol.revives;
     target.iol.survived += source.iol.survived;
     target.iol.reDowned += source.iol.reDowned;
+    target.iol.diedUnderIol += source.iol.diedUnderIol;
     target.iol.timesToReDownMs.push(...source.iol.timesToReDownMs);
 }
