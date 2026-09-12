@@ -1,21 +1,9 @@
 import { SLICE_SIDECAR_VERSION, type SliceSidecar } from './sliceTypes';
+import { inflateGzipToText } from '../utils/fetchParts';
 
 export type FetchSliceResult =
     | { ok: true; sidecar: SliceSidecar }
     | { ok: false; reason: "network" | "version" | "settings" | "malformed"; message: string };
-
-/**
- * Inflate gzipped bytes in the browser.
- *
- * R2 serves the sidecar as `application/gzip` with no `Content-Encoding`, so
- * the browser does NOT transparently inflate it — these are the compressed
- * bytes and this is where they are decompressed. Node's test environment
- * provides DecompressionStream from Node 18 on, so the same path runs in tests.
- */
-const inflate = async (buffer: ArrayBuffer): Promise<string> => {
-    const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream('gzip'));
-    return new Response(stream).text();
-};
 
 /**
  * Fetch and validate a published report's slice sidecar.
@@ -45,7 +33,7 @@ export async function fetchSliceSidecar(
 
     let sidecar: SliceSidecar;
     try {
-        sidecar = JSON.parse(await inflate(buffer));
+        sidecar = JSON.parse(await inflateGzipToText(buffer));
     } catch {
         return { ok: false, reason: "malformed", message: "Slice data could not be read." };
     }
