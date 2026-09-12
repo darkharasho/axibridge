@@ -21,6 +21,7 @@ import { useStatsStore } from '../renderer/stats/statsStore';
 import type { SliceSidecar } from '../renderer/stats/slice/sliceTypes';
 import { useSliceRecompute } from './hooks/useSliceRecompute';
 import { computeIncludedOrdinals } from '../renderer/stats/slice/computeIncludedOrdinals';
+import { fetchReportPayload } from '../renderer/stats/utils/fetchParts';
 import { useSliceSidecarLoader } from './hooks/useSliceSidecarLoader';
 import {
     ShieldCheck,
@@ -969,13 +970,16 @@ export function ReportApp() {
                 });
         };
 
-        const loadReport = () => fetch(reportPath, { cache: 'no-store' })
-            .then((resp) => (resp.ok ? resp.json() : Promise.reject()))
+        const loadReport = () => fetchReportPayload(reportPath)
             .then((data) => {
                 if (!isMounted) return;
                 const normalized = expandIconIndex(normalizeTopDownContribution(normalizeCommanderDistance(data)));
                 setReport(normalized);
                 applyPaletteFromReport(normalized);
+            })
+            .catch((err) => {
+                console.warn('[Report] Failed to load report:', err);
+                throw err;
             });
 
         if (isRollupView) {
@@ -1045,9 +1049,7 @@ export function ReportApp() {
             const loadedReports: ReportPayload[] = [];
             await Promise.all(entries.map(async (entry) => {
                 try {
-                    const response = await fetch(`${basePath}reports/${entry.id}/report.json`, { cache: 'no-store' });
-                    if (!response.ok) return;
-                    const payload = await response.json();
+                    const payload = await fetchReportPayload(`${basePath}reports/${entry.id}/report.json`);
                     if (!isMounted) return;
                     loadedReports.push(payload);
                 } catch {
