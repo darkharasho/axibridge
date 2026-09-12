@@ -352,6 +352,16 @@ export function ReportApp() {
     const metricsSpecHeadingCountsRef = useRef<Map<string, number>>(new Map());
     const pendingScrollIdRef = useRef<string | null>(null);
     const groupTopScrollRafRef = useRef<number | null>(null);
+    // Cancels the group scroll-to-top rAF loop (see animateGroupScrollToTop)
+    // so its trailing `scrollTo({ top: 0 })` can't stomp on a section jump
+    // requested afterwards, from any entry point (sub-nav click, pending
+    // scroll effect, or hash navigation).
+    const cancelGroupTopScroll = () => {
+        if (groupTopScrollRafRef.current !== null) {
+            cancelAnimationFrame(groupTopScrollRafRef.current);
+            groupTopScrollRafRef.current = null;
+        }
+    };
     const basePath = useMemo(() => {
         let pathName = window.location.pathname || '/';
         const isLocalhost = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(window.location.host);
@@ -829,6 +839,10 @@ export function ReportApp() {
     useEffect(() => {
         const pendingId = pendingScrollIdRef.current;
         if (!pendingId) return;
+        // A hash/group change may race with an in-flight group scroll-to-top
+        // animation; cancel it so its trailing `scrollTo({ top: 0 })` can't
+        // override the pending section scroll below.
+        cancelGroupTopScroll();
         let attempts = 0;
         const tick = () => {
             if (scrollToSection(pendingId)) {
@@ -867,6 +881,10 @@ export function ReportApp() {
             // scrollToSection special-cases — keep that literal sentinel instead
             // of resolving it to the overview section id.
             pendingScrollIdRef.current = (raw.toLowerCase().replace(/^#/, '') === 'report-top') ? 'report-top' : target.sectionId;
+            // Cancel any in-flight group scroll-to-top animation (e.g. from a
+            // just-clicked group header) so it can't race the hash-driven
+            // section scroll picked up by the pendingScrollIdRef effect below.
+            cancelGroupTopScroll();
         };
         syncFromHash();
         window.addEventListener('hashchange', syncFromHash);
@@ -1223,10 +1241,7 @@ export function ReportApp() {
     }, [playerProfessionFilter, playerProfessionOptions]);
 
     useEffect(() => () => {
-        if (groupTopScrollRafRef.current !== null) {
-            cancelAnimationFrame(groupTopScrollRafRef.current);
-            groupTopScrollRafRef.current = null;
-        }
+        cancelGroupTopScroll();
     }, []);
 
     const legalNoticePane = (
@@ -1445,10 +1460,7 @@ export function ReportApp() {
     if (report) {
         const axibridgeLogoUrl = joinAssetPath(assetBasePath, 'svg/AxiBridge.svg');
         const animateGroupScrollToTop = () => {
-            if (groupTopScrollRafRef.current !== null) {
-                cancelAnimationFrame(groupTopScrollRafRef.current);
-                groupTopScrollRafRef.current = null;
-            }
+            cancelGroupTopScroll();
             const startTop = window.scrollY || window.pageYOffset || 0;
             if (startTop <= 1) {
                 window.scrollTo({ top: 0, behavior: 'auto' });
@@ -1503,10 +1515,7 @@ export function ReportApp() {
         const handleSubNavClick = (groupId: string, id: string) => {
             // Cancel any in-flight group scroll-to-top animation so its trailing
             // `scrollTo({ top: 0 })` can't override the section jump below.
-            if (groupTopScrollRafRef.current !== null) {
-                cancelAnimationFrame(groupTopScrollRafRef.current);
-                groupTopScrollRafRef.current = null;
-            }
+            cancelGroupTopScroll();
             if (!expandedGroups[groupId]) {
                 expandOnlyGroup(groupId);
             }
