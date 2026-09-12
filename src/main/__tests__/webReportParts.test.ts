@@ -75,6 +75,15 @@ describe('writeReplayParts', () => {
     });
 });
 
+describe('buildReportStub', () => {
+    it('matches the shape verified against the v3.9.0 viewer', () => {
+        const { manifest } = splitIntoParts(new Uint8Array(3), 'report.json.gz', 'x');
+        const stub = buildReportStub({ meta: { id: 'a', title: 'T' }, stats: { colorPalette: 'arcane', huge: [1] } }, manifest);
+        expect(Object.keys(stub.stats).sort()).toMatchSnapshot();
+        expect(stub.meta).toEqual({ id: 'a', title: 'T — open with AxiBridge 3.10 or newer to view' });
+    });
+});
+
 describe('readLocalReport', () => {
     it('prefers web-report-local', () => {
         writeLocalReportCopy(dir, 'r1', Buffer.from(JSON.stringify(payload('Local', 1))));
