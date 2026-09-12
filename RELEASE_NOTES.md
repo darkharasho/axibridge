@@ -1,12 +1,15 @@
 # Release Notes
 
-Version v3.8.1 — September 10, 2026
+Version v3.9.0 — September 12, 2026
 
-## Died Under Illusion of Life
+## Warrior burst skills now split by adrenaline tier
 
-The Illusion of Life card has a third outcome: **Died under IoL**, shown in purple. It counts players who got picked up by IoL and then skipped the downed state and died outright, which is what happens when the buff runs out or someone gets killed through it.
+Eviscerate, Arc Divider, and the rest of Warrior's adrenaline-based bursts now show up as separate rows per tier — e.g. "Eviscerate (Adrenaline 1)" vs "Eviscerate (Adrenaline 2)" — instead of getting lumped together. Jade sphere skills now split by attunement variant the same way.
 
-- Before, those deaths were counted as "Re-downed" with a fake 1–8s time to go down again, which dragged the histogram and the median down. They're kept out of both now.
-- Only IoL cast by your squad is tracked. IoL from mesmers outside the squad isn't counted.
+NOTE: this needs logs parsed with the newer @axiapps/axilog parser. Older logs won't have the tier/variant labels, so their tiers will stay combined until you re-parse them.
 
-NOTE: This only shows up in new reports. Reports published before this version keep the old survived/re-downed split, and fight slicing is turned off on them until they're republished.
+## Skill rows merge cleanly across cast and hit
+
+A skill's cast and hit are two separate ids under the hood, which used to show up as duplicate-looking rows. Those are now merged into a single row wherever skills are listed — Skill Usage, Skill Totals, player damage/healing/barrier/incoming breakdowns, and the All Damage drilldown.
+
+Thanks to BreakN on Discord for flagging this one.
