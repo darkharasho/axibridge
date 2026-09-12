@@ -20,7 +20,8 @@
 // it has zero effect at runtime, where Node's own resolver already handles
 // the real `exports` map correctly.
 //
-// `deriveReviveLogSummary`/`reviveePlayerKey` (consumed by `discord.ts`) have
+// `deriveReviveLogSummary`/`reviveePlayerKey` (consumed by `discord.ts`) and
+// `withVariantLabel` (consumed by `axilogParser.ts`) have
 // no subpath of their own — they only ship from the package root — so unlike
 // the re-export above they are declared by hand here, matching the real
 // signatures in `reviveDerivation.ts`.
@@ -61,4 +62,7 @@ declare module '@axiapps/bridge-metrics' {
 
     export function deriveReviveLogSummary(details: any, opts?: AttributionOptions): ReviveLogSummary;
     export function reviveePlayerKey(player: any): string;
+
+    // `axilogParser.ts` — root-only too, mirrors `skillCanonicalId.ts`.
+    export function withVariantLabel(name: string, label: unknown): string;
 }

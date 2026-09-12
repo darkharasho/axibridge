@@ -139,6 +139,32 @@ describe('applyEiCompatShims', () => {
         expect(details.zone).toBe('Obsidian Sanctum');
     });
 
+    it("bakes axilog's variant_label into skillMap names, idempotently", () => {
+        const details: any = {
+            players: [],
+            skillMap: {
+                s72911: { name: "Harrier's Toss" },
+                s73006: { name: "Harrier's Toss" },
+                s73024: { name: "Harrier's Toss" },
+            },
+            native: {
+                axilog: {},
+                catalogs: {
+                    skills: {
+                        72911: { name: "Harrier's Toss", variant_label: 'Adrenaline 1' },
+                        73006: { name: "Harrier's Toss", variant_label: 'Adrenaline 3' },
+                        73024: { name: "Harrier's Toss" },
+                    },
+                },
+            },
+        };
+        applyEiCompatShims(details, FIXTURE);
+        applyEiCompatShims(details, FIXTURE);
+        expect(details.skillMap.s72911.name).toBe("Harrier's Toss (Adrenaline 1)");
+        expect(details.skillMap.s73006.name).toBe("Harrier's Toss (Adrenaline 3)");
+        expect(details.skillMap.s73024.name).toBe("Harrier's Toss");
+    });
+
     it('leaves a map axilog CAN name alone', () => {
         const details: any = {
             fightName: 'Detailed WvW - Green Alpine Borderlands',

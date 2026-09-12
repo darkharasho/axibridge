@@ -1,4 +1,5 @@
 import { decodeSeries, type NativeSeries } from './nativeSeries';
+import { withVariantLabel } from './skillCanonicalId';
 
 export interface NativeSkillRow {
     skillId: number;
@@ -24,7 +25,8 @@ const seriesOf = (details: any, entityId: number): any =>
 
 export const resolveSkillMeta = (details: any, skillId: number | string): { name: string; icon?: string } => {
     const entry = nativeOf(details)?.catalogs?.skills?.[String(skillId)];
-    return { name: entry?.name ? String(entry.name) : `Skill ${skillId}`, icon: entry?.icon };
+    const name = entry?.name ? String(entry.name) : `Skill ${skillId}`;
+    return { name: withVariantLabel(name, entry?.variant_label), icon: entry?.icon };
 };
 
 export const getEntityDamageSeries = (details: any, entityId: number): number[] =>

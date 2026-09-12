@@ -6,6 +6,7 @@ import { DisruptionMethod } from './metricsSettings';
 import { buildConditionIconMap, computeOutgoingConditions, getDefaultConditionIcon, normalizeConditionLabel, resolveBuffMetaById } from './conditionsMetrics';
 import { NON_DAMAGING_CONDITIONS, OFFENSE_METRICS, DEFENSE_METRICS, SUPPORT_METRICS } from './statsMetrics';
 import { isResUtilitySkill } from './resUtility';
+import { canonicalSkillId } from './skillCanonicalId';
 import { PlayerSkillDamageEntry, PlayerHealingSkillEntry } from './aggregationTypes';
 import { PROFESSION_COLORS } from './professionUtils';
 import { resolveFightTimestamp } from './timestampUtils';
@@ -1272,7 +1273,7 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
             const amount = Number(entry[totalField] || 0);
             if (!Number.isFinite(amount) || amount <= 0) return;
             const { name, icon } = resolveSkillMeta(entry);
-            const skillId = `s${entry.id}`;
+            const skillId = `s${canonicalSkillId(details, entry.id)}`;
             let existing = skillMap.get(skillId);
             if (!existing) {
                 existing = { id: skillId, name, icon, total: 0, hits: 0, max: 0 };
@@ -1294,10 +1295,11 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
         const pushSkillDamageEntry = (entry: any) => {
             if (!entry?.id) return;
             const { name, icon } = resolveSkillMeta(entry);
-            if (!acc.skillDamageMap[entry.id]) acc.skillDamageMap[entry.id] = { name, icon, damage: 0, hits: 0, downContribution: 0 };
-            if (acc.skillDamageMap[entry.id].name.startsWith('Skill ') && !name.startsWith('Skill ')) acc.skillDamageMap[entry.id].name = name;
-            if (!acc.skillDamageMap[entry.id].icon && icon) acc.skillDamageMap[entry.id].icon = icon;
-            acc.skillDamageMap[entry.id].damage += Number(entry.totalDamage || 0);
+            const key = canonicalSkillId(details, entry.id);
+            if (!acc.skillDamageMap[key]) acc.skillDamageMap[key] = { name, icon, damage: 0, hits: 0, downContribution: 0 };
+            if (acc.skillDamageMap[key].name.startsWith('Skill ') && !name.startsWith('Skill ')) acc.skillDamageMap[key].name = name;
+            if (!acc.skillDamageMap[key].icon && icon) acc.skillDamageMap[key].icon = icon;
+            acc.skillDamageMap[key].damage += Number(entry.totalDamage || 0);
             // `?? entry.hits`, and unguarded arithmetic was rendering "NaN hits".
             //
             // `targetDamageDist` rows carry no `connectedHits` -- axilog's
@@ -1310,8 +1312,8 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
             // LANDED hits, which is precisely what EI calls `connectedHits`
             // (EI's own `hits` is the attempt count, native's `attempt_hits`).
             // So a per-target row's `hits` already IS the value this wants.
-            acc.skillDamageMap[entry.id].hits += Number(entry.connectedHits ?? entry.hits ?? 0);
-            acc.skillDamageMap[entry.id].downContribution += Number(entry.downContribution || 0);
+            acc.skillDamageMap[key].hits += Number(entry.connectedHits ?? entry.hits ?? 0);
+            acc.skillDamageMap[key].downContribution += Number(entry.downContribution || 0);
         };
         const playerKey = identity.key;
         let playerBreakdown = acc.playerSkillBreakdownMap.get(playerKey);
@@ -1334,7 +1336,7 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
         const pushPlayerSkillEntry = (entry: any) => {
             if (!entry?.id) return;
             const { name, icon } = resolveSkillMeta(entry);
-            const skillId = `s${entry.id}`;
+            const skillId = `s${canonicalSkillId(details, entry.id)}`;
             let skillEntry = playerBreakdown!.skills.get(skillId);
             if (!skillEntry) {
                 skillEntry = { id: skillId, name, icon, damage: 0, downContribution: 0, hits: 0, casts: 0, min: Infinity, max: 0 };
@@ -1417,7 +1419,7 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
                 if (!rot?.id) return;
                 const count = rot.skills?.length || 0;
                 if (count <= 0) return;
-                const skillId = `s${rot.id}`;
+                const skillId = `s${canonicalSkillId(details, rot.id)}`;
                 const skillEntry = playerBreakdown!.skills.get(skillId);
                 if (skillEntry) {
                     skillEntry.casts += count;
@@ -1453,11 +1455,12 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
                         name = buffMeta.name;
                         icon = buffMeta.icon || icon;
                     }
-                    if (!acc.incomingSkillDamageMap[entry.id]) acc.incomingSkillDamageMap[entry.id] = { name, icon, damage: 0, hits: 0, playerDamage: 0, splitDamage: 0 };
-                    if (!acc.incomingSkillDamageMap[entry.id].name.startsWith('Skill ') || name.startsWith('Skill ')) acc.incomingSkillDamageMap[entry.id].name = name;
-                    if (!acc.incomingSkillDamageMap[entry.id].icon && icon) acc.incomingSkillDamageMap[entry.id].icon = icon;
-                    acc.incomingSkillDamageMap[entry.id].damage += entry.totalDamage;
-                    acc.incomingSkillDamageMap[entry.id].hits += entry.hits;
+                    const incomingKey = canonicalSkillId(details, entry.id);
+                    if (!acc.incomingSkillDamageMap[incomingKey]) acc.incomingSkillDamageMap[incomingKey] = { name, icon, damage: 0, hits: 0, playerDamage: 0, splitDamage: 0 };
+                    if (!acc.incomingSkillDamageMap[incomingKey].name.startsWith('Skill ') || name.startsWith('Skill ')) acc.incomingSkillDamageMap[incomingKey].name = name;
+                    if (!acc.incomingSkillDamageMap[incomingKey].icon && icon) acc.incomingSkillDamageMap[incomingKey].icon = icon;
+                    acc.incomingSkillDamageMap[incomingKey].damage += entry.totalDamage;
+                    acc.incomingSkillDamageMap[incomingKey].hits += entry.hits;
                     // axilog >= 1.13.1 refines `totalDamage` with `playerTotal`:
                     // the slice dealt by players and their minions, the rest
                     // being siege, guards and NPCs. It is a REFINEMENT, not a
@@ -1472,8 +1475,8 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
                     // coverage would silently understate the player total, so
                     // the UI hides the view rather than showing a wrong number.
                     if (typeof entry.playerTotal === 'number') {
-                        acc.incomingSkillDamageMap[entry.id].playerDamage += entry.playerTotal;
-                        acc.incomingSkillDamageMap[entry.id].splitDamage += entry.totalDamage;
+                        acc.incomingSkillDamageMap[incomingKey].playerDamage += entry.playerTotal;
+                        acc.incomingSkillDamageMap[incomingKey].splitDamage += entry.totalDamage;
                     }
                 });
             });
