@@ -7,6 +7,8 @@ import { LEGACY_THEME_TO_PALETTE } from '../../shared/webThemes';
 import { DEFAULT_DISRUPTION_METHOD, type DisruptionMethod } from '../../shared/metricsSettings';
 import { isR2SliceEnabled } from './githubHandlers';
 import { parseMaybeGzippedJson } from '../cloudflare/replaySidecar';
+import { resolvePartsJson } from '../partsReader';
+import { resolvePartUrl } from '../../shared/chunkedGzip';
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -373,26 +375,40 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
     ipcMain.handle('fetch-r2-json', async (_event, url: string) => {
         if (!url || typeof url !== 'string') return { success: false, error: 'Invalid URL.' };
         if (!/^https?:\/\//i.test(url)) return { success: false, error: 'Unsupported URL scheme.' };
-        return new Promise((resolve) => {
-            const lib = url.startsWith('https') ? https : http;
-            lib.get(url, (res) => {
-                // Chunks are collected as Buffers, not concatenated onto a
-                // string: replay objects arrive gzipped, and decoding binary
-                // bytes as UTF-8 mangles them past recovery.
+        // Chunks are collected as Buffers, not concatenated onto a string:
+        // replay objects arrive gzipped, and decoding binary bytes as UTF-8
+        // mangles them past recovery.
+        const getBuffer = (target: string) => new Promise<Buffer>((resolve, reject) => {
+            const lib = target.startsWith('https') ? https : http;
+            lib.get(target, (res) => {
                 const chunks: Buffer[] = [];
                 res.on('data', (chunk: Buffer) => chunks.push(chunk));
                 res.on('end', () => {
                     if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-                        try {
-                            resolve({ success: true, json: parseMaybeGzippedJson(Buffer.concat(chunks)) });
-                        } catch {
-                            resolve({ success: false, error: 'Response is not valid JSON.' });
-                        }
+                        resolve(Buffer.concat(chunks));
                     } else {
-                        resolve({ success: false, error: `HTTP ${res.statusCode}` });
+                        reject(new Error(`HTTP ${res.statusCode}`));
                     }
                 });
-            }).on('error', (err: Error) => resolve({ success: false, error: err.message }));
+            }).on('error', reject);
         });
+        let body: Buffer;
+        try {
+            body = await getBuffer(url);
+        } catch (err: any) {
+            return { success: false, error: err.message };
+        }
+        let json: any;
+        try {
+            json = parseMaybeGzippedJson(body);
+        } catch {
+            return { success: false, error: 'Response is not valid JSON.' };
+        }
+        try {
+            // Pages-hosted replays from 3.10+ are a manifest over gzipped parts.
+            return { success: true, json: await resolvePartsJson(json, (partPath) => getBuffer(resolvePartUrl(url, partPath))) };
+        } catch (err: any) {
+            return { success: false, error: err.message };
+        }
     });
 }

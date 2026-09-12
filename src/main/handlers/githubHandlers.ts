@@ -46,6 +46,7 @@ import {
     writeReplayParts,
     writeReportParts
 } from '../webReportParts';
+import { resolvePartsJson } from '../partsReader';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 // GitHub 422s a single blob somewhere between 38 MB and 40 MB raw (probed
@@ -284,6 +285,22 @@ const createGithubBlob = async (owner: string, repo: string, token: string, cont
         throw err;
     }
     return resp.data;
+};
+
+/**
+ * Read a repository file as bytes. The contents API inlines base64 only up to
+ * 1 MB; larger files (report parts are up to 4 MiB) come from the blob API,
+ * which has no read limit and never decodes binary as text.
+ */
+const readGithubFileBuffer = async (owner: string, repo: string, filePath: string, branch: string, token: string): Promise<Buffer | null> => {
+    const file = await getGithubFile(owner, repo, filePath, branch, token);
+    if (!file) return null;
+    if (file.content && file.encoding === 'base64') {
+        return Buffer.from(file.content, 'base64');
+    }
+    if (!file.sha) return null;
+    const blob = await getGithubBlob(owner, repo, file.sha, token);
+    return blob?.content ? Buffer.from(blob.content, 'base64') : null;
 };
 
 const isTransientBlobStatus = (status: number) => status === 401 || status >= 500;
@@ -1225,48 +1242,16 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             }
             const pagesPath = await resolveEffectivePagesPath(owner, repo, branch, token, isOverride);
             const filePath = withPagesPath(pagesPath, `reports/${reportId}/report.json`);
-            const file = await getGithubFile(owner, repo, filePath, branch, token);
-            if (!file) {
+            const reportBuffer = await readGithubFileBuffer(owner, repo, filePath, branch, token);
+            if (!reportBuffer) {
                 return { success: false, error: 'Report not found.' };
             }
-            let reportJson: string;
-            if (file.content) {
-                // File within 1MB Contents API limit — base64 encoded
-                reportJson = Buffer.from(file.content, 'base64').toString('utf8');
-            } else if (file.download_url) {
-                // File exceeds 1MB — fetch raw content via download_url
-                const rawResp = await new Promise<string>((resolve, reject) => {
-                    const url = new URL(file.download_url);
-                    https.get(
-                        { hostname: url.hostname, path: url.pathname + url.search, headers: { 'User-Agent': 'AxiBridge' } },
-                        (res) => {
-                            if (res.statusCode === 301 || res.statusCode === 302) {
-                                const redirect = res.headers.location;
-                                if (!redirect) return reject(new Error('Redirect with no location'));
-                                const rUrl = new URL(redirect);
-                                https.get(
-                                    { hostname: rUrl.hostname, path: rUrl.pathname + rUrl.search, headers: { 'User-Agent': 'AxiBridge' } },
-                                    (rRes) => {
-                                        let d = '';
-                                        rRes.setEncoding('utf8');
-                                        rRes.on('data', (c) => (d += c));
-                                        rRes.on('end', () => resolve(d));
-                                    }
-                                ).on('error', reject);
-                                return;
-                            }
-                            let d = '';
-                            res.setEncoding('utf8');
-                            res.on('data', (c) => (d += c));
-                            res.on('end', () => resolve(d));
-                        }
-                    ).on('error', reject);
-                });
-                reportJson = rawResp;
-            } else {
-                return { success: false, error: 'Report not found.' };
-            }
-            const report = JSON.parse(reportJson);
+            const reportDir = filePath.slice(0, filePath.lastIndexOf('/') + 1);
+            const report = await resolvePartsJson(JSON.parse(reportBuffer.toString('utf8')), async (partPath) => {
+                const part = await readGithubFileBuffer(owner, repo, `${reportDir}${partPath}`, branch, token);
+                if (!part) throw new Error(`Report part ${partPath} not found.`);
+                return part;
+            });
             return { success: true, report };
         } catch (err: any) {
             return { success: false, error: err?.message || 'Failed to load report.' };
