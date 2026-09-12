@@ -67,6 +67,17 @@ describe('fetchReportPayload', () => {
         await expect(fetchReportPayload(`${BASE}report.json`)).rejects.toThrow('sha256 mismatch');
     });
 
+    it('still loads a chunked report when crypto.subtle is unavailable (insecure context)', async () => {
+        vi.stubGlobal('crypto', {});
+        const { parts, manifest } = makeParts(REPORT);
+        const files: Record<string, Uint8Array> = {
+            [`${BASE}report.json`]: json({ meta: { title: 'stub' }, stats: {}, axibridgeParts: manifest })
+        };
+        parts.forEach((p) => { files[`${BASE}${p.path}`] = p.data; });
+        serveFiles(files);
+        await expect(fetchReportPayload(`${BASE}report.json`)).resolves.toEqual(REPORT);
+    });
+
     it('fails with the reload message on an unknown manifest version', async () => {
         const { manifest } = makeParts(REPORT);
         serveFiles({ [`${BASE}report.json`]: json({ meta: {}, stats: {}, axibridgeParts: { ...manifest, version: 2 } }) });

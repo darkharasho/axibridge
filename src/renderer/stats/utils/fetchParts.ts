@@ -15,7 +15,25 @@ export const inflateGzipToText = async (bytes: ArrayBuffer | Uint8Array): Promis
     return new Response(stream).text();
 };
 
-export const sha256Hex = async (bytes: Uint8Array): Promise<string> => {
+let warnedNoSubtle = false;
+
+/**
+ * `crypto.subtle` is only exposed in secure contexts (https, or localhost).
+ * A report site on a plain-http custom domain, or `dev:web` reached over a
+ * LAN IP, is an insecure context, so subtle is undefined there. In that case
+ * skip hash verification rather than throwing on every load — the manifest's
+ * per-part and total length checks in `joinParts`, plus gzip's own CRC32
+ * trailer (validated by `DecompressionStream`), still guard against
+ * truncated or corrupt parts.
+ */
+export const sha256Hex = async (bytes: Uint8Array): Promise<string | null> => {
+    if (!globalThis.crypto?.subtle) {
+        if (!warnedNoSubtle) {
+            warnedNoSubtle = true;
+            console.warn('[fetchParts] crypto.subtle unavailable (insecure context); skipping report part hash verification.');
+        }
+        return null;
+    }
     const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes as BufferSource);
     return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
 };
@@ -28,12 +46,20 @@ const fetchBytes = async (url: string): Promise<Uint8Array> => {
 
 export const fetchPartsJson = async (manifestUrl: string, manifest: PartsManifest): Promise<any> => {
     assertSupportedManifest(manifest);
-    const chunks = await Promise.all(manifest.parts.map((part) => fetchBytes(resolvePartUrl(manifestUrl, part.path))));
-    const gzip = joinParts(chunks, manifest);
-    if ((await sha256Hex(gzip)) !== manifest.sha256) {
+    // Scoped so the per-part chunk array can be garbage-collected once `gzip`
+    // is assembled, instead of staying reachable (alongside the joined
+    // buffer, the inflated Blob, and the decoded text) for the rest of the
+    // function.
+    const gzip = await (async () => {
+        const chunks = await Promise.all(manifest.parts.map((part) => fetchBytes(resolvePartUrl(manifestUrl, part.path))));
+        return joinParts(chunks, manifest);
+    })();
+    const hash = await sha256Hex(gzip);
+    if (hash !== null && hash !== manifest.sha256) {
         throw new Error('Report parts corrupt: sha256 mismatch');
     }
-    return JSON.parse(await inflateGzipToText(gzip));
+    const text = await inflateGzipToText(gzip);
+    return JSON.parse(text);
 };
 
 /**
