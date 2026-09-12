@@ -1501,6 +1501,12 @@ export function ReportApp() {
             setExpandedGroups((prev) => ({ ...prev, [groupId]: false }));
         };
         const handleSubNavClick = (groupId: string, id: string) => {
+            // Cancel any in-flight group scroll-to-top animation so its trailing
+            // `scrollTo({ top: 0 })` can't override the section jump below.
+            if (groupTopScrollRafRef.current !== null) {
+                cancelAnimationFrame(groupTopScrollRafRef.current);
+                groupTopScrollRafRef.current = null;
+            }
             if (!expandedGroups[groupId]) {
                 expandOnlyGroup(groupId);
             }
