@@ -1,4 +1,4 @@
-import { classifyResurrectSkill } from '@axiapps/bridge-metrics';
+import { canonicalSkillId, classifyResurrectSkill } from '@axiapps/bridge-metrics';
 import { SkillUsageLogRecord, SkillUsagePlayer, SkillUsageSummary } from './statsTypes';
 import { resolveFightTimestamp } from './utils/timestampUtils';
 
@@ -81,10 +81,12 @@ export function ingestLogSkillUsage(log: any, acc: SkillUsageAccumulator): void 
             if (!rot?.id) return;
             const count = rot.skills?.length || 0;
             if (count <= 0) return;
-            const sId = `s${rot.id}`;
+            // Same-name ids (a cast id and its hit id) share one row.
+            const skillId = canonicalSkillId(details, rot.id);
+            const sId = `s${skillId}`;
             const mappedName = skillMap[sId]?.name;
-            const sName = isPlaceholderSkillName(mappedName, rot.id)
-                ? (SPECIAL_SKILL_NAMES[rot.id] || `Skill ${rot.id}`)
+            const sName = isPlaceholderSkillName(mappedName, skillId)
+                ? (SPECIAL_SKILL_NAMES[skillId] || `Skill ${skillId}`)
                 : mappedName;
             const sIcon = skillMap[sId]?.icon;
             pr!.skillTotals[sId] = (pr!.skillTotals[sId] || 0) + count;

@@ -18,6 +18,7 @@
 import type { ParserSettings } from './parserSettings';
 import { buildNativeCarrySet } from './nativeCarrySet';
 import { normalizeAccountName } from '@axiapps/bridge-metrics/playerIdentity';
+import { withVariantLabel } from '@axiapps/bridge-metrics';
 import { applyLearnedSkillNames, getSkillNameCache, learnSkillNames } from './skillNameCache';
 
 // ─── Settings mapping ─────────────────────────────────────────────────────────
@@ -218,6 +219,22 @@ export const applyEiCompatShims = (details: any, _logPath: string): any => {
     const nameCache = getSkillNameCache();
     learnSkillNames(details, nameCache);
     applyLearnedSkillNames(details, nameCache);
+
+    // Variant labels: axilog (>= 1.14.0) tags same-name ids it can tell apart
+    // -- warrior burst adrenaline tiers, primal bursts, attunement variants --
+    // with a curated `variant_label`. Bake it into the EI-shaped name so every
+    // per-skill table renders "Harrier's Toss (Adrenaline 2)" as its own row,
+    // while unlabelled same-name ids (a cast id plus its hit id) merge through
+    // `canonicalSkillId`. After the name cache on purpose: the cache must keep
+    // learning base names, not labelled ones.
+    const skillCatalog = details.native?.catalogs?.skills;
+    if (details.skillMap && skillCatalog && typeof skillCatalog === 'object') {
+        for (const [key, entry] of Object.entries<any>(details.skillMap)) {
+            if (!entry || typeof entry.name !== 'string') continue;
+            const label = skillCatalog[String(key).replace(/^s/, '')]?.variant_label;
+            entry.name = withVariantLabel(entry.name, label);
+        }
+    }
 
     // Boon-strip down contribution: axilog's EI-shaped `support` projects the
     // DAMAGE arm of down contribution (it lands on `statsAll.downContribution`,

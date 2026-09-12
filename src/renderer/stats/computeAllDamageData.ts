@@ -102,15 +102,29 @@ function getBuckets(values: number[], bucketSize: number): number[] {
  */
 function extractSkillRows(details: any, entityId: number): AllDamagePlayerBucket['skillRows'] {
     const downBySkill = getEntityDownContributionBySkill(details, entityId);
-    return getEntitySkillRows(details, entityId, { perTarget: true })
-        .filter((row) => !row.indirect)
-        .map((row) => ({
-            skillName: row.skillName,
-            damage: row.damage,
-            downContribution: downBySkill.get(row.skillId) ?? 0,
-            hits: row.hits,
-            icon: row.icon,
-        }))
+    // Same-name ids (a cast id and its hit id) fold into one row; variant ids
+    // already carry distinct "Name (Label)" names from the parse shim.
+    const byName = new Map<string, AllDamagePlayerBucket['skillRows'][number]>();
+    for (const row of getEntitySkillRows(details, entityId, { perTarget: true })) {
+        if (row.indirect) continue;
+        const downContribution = downBySkill.get(row.skillId) ?? 0;
+        const existing = byName.get(row.skillName);
+        if (existing) {
+            existing.damage += row.damage;
+            existing.downContribution += downContribution;
+            existing.hits += row.hits;
+            if (!existing.icon && row.icon) existing.icon = row.icon;
+        } else {
+            byName.set(row.skillName, {
+                skillName: row.skillName,
+                damage: row.damage,
+                downContribution,
+                hits: row.hits,
+                icon: row.icon,
+            });
+        }
+    }
+    return Array.from(byName.values())
         .filter((row) => row.damage > 0 || row.downContribution > 0)
         .sort((a, b) => b.damage - a.damage);
 }
