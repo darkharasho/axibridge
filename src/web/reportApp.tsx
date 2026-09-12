@@ -22,6 +22,7 @@ import type { SliceSidecar } from '../renderer/stats/slice/sliceTypes';
 import { useSliceRecompute } from './hooks/useSliceRecompute';
 import { computeIncludedOrdinals } from '../renderer/stats/slice/computeIncludedOrdinals';
 import { fetchReportPayload } from '../renderer/stats/utils/fetchParts';
+import { UNSUPPORTED_PARTS_VERSION_MESSAGE } from '../shared/chunkedGzip';
 import { useSliceSidecarLoader } from './hooks/useSliceSidecarLoader';
 import {
     ShieldCheck,
@@ -1017,10 +1018,12 @@ export function ReportApp() {
                     setIndex(entries);
                 })
                 .catch(() => {});
-            loadReport().catch(() => {
+            loadReport().catch((err) => {
                 if (reportId) {
                     if (!isMounted) return;
-                    setError('Report not found yet. It may still be deploying.');
+                    setError(err instanceof Error && err.message === UNSUPPORTED_PARTS_VERSION_MESSAGE
+                        ? UNSUPPORTED_PARTS_VERSION_MESSAGE
+                        : 'Report not found yet. It may still be deploying.');
                 }
                 loadIndex();
             });
@@ -1032,9 +1035,11 @@ export function ReportApp() {
         // For the hosted root page, prefer the report index first. This prevents any
         // legacy root-level report.json file from hijacking the site and hiding newer uploads.
         loadIndex(true).catch(() => {
-            loadReport().catch(() => {
+            loadReport().catch((err) => {
                 if (!isMounted) return;
-                setError('No report data found.');
+                setError(err instanceof Error && err.message === UNSUPPORTED_PARTS_VERSION_MESSAGE
+                    ? UNSUPPORTED_PARTS_VERSION_MESSAGE
+                    : 'No report data found.');
             });
         });
         return () => {
