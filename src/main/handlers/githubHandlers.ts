@@ -39,12 +39,20 @@ import {
     getAccessToken as getCloudflareAccessToken,
     isSessionConnected
 } from '../cloudflare/session';
+import {
+    REPLAY_PARTS_MANIFEST_FILENAME,
+    readLocalReport,
+    writeLocalReportCopy,
+    writeReplayParts,
+    writeReportParts
+} from '../webReportParts';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-// GitHub's blob API encodes content as base64, adding ~33% overhead.
-// A 50 MB raw file becomes ~67 MB base64 — safely under GitHub's ~100 MB request limit.
-// 90 MB was too large: it produced ~120 MB base64 payloads that GitHub rejects with 422.
-export const MAX_GITHUB_BLOB_BYTES = 50 * 1024 * 1024;
+// GitHub 422s a single blob somewhere between 38 MB and 40 MB raw (probed
+// 2026-09-12). Report and Pages-replay uploads are split into 4 MiB parts
+// regardless (see webReportParts.ts); this still bounds the uncompressed
+// report the viewer has to hold, and single template/logo files.
+export const MAX_GITHUB_BLOB_BYTES = 35 * 1024 * 1024;
 const MAX_GITHUB_REPORT_JSON_BYTES = MAX_GITHUB_BLOB_BYTES;
 const GITHUB_DEVICE_CLIENT_ID = process.env.GITHUB_DEVICE_CLIENT_ID || 'Ov23liFh1ih9LAcnLACw';
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'] || 'http://localhost:5173';
@@ -671,7 +679,7 @@ export const planSidecarHosting = ({ kind, bytes, r2Url, reportId, baseUrl }: {
                 `Configure Cloudflare R2 in Settings to keep replays on large sessions.`
         };
     }
-    const relativePath = `reports/${reportId}/${REPLAY_SIDECAR_FILENAME}`;
+    const relativePath = `reports/${reportId}/${REPLAY_PARTS_MANIFEST_FILENAME}`;
     return {
         mode: 'pages',
         url: baseUrl ? `${baseUrl.replace(/\/$/, '')}/${relativePath}` : relativePath,
@@ -1939,8 +1947,8 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             fs.rmSync(stagingRoot, { recursive: true, force: true });
             fs.mkdirSync(stagingRoot, { recursive: true });
             if (replayBuffer && replayHostedOnPages) {
-                // Lands in reports/<id>/replay.json.gz via the staging-dir upload below.
-                fs.writeFileSync(path.join(stagingRoot, REPLAY_SIDECAR_FILENAME), replayBuffer);
+                // Lands in reports/<id>/replay.parts.json + replay.json.gz.NNN via the staging-dir upload below.
+                writeReplayParts(stagingRoot, replayBuffer);
             }
             if (builtReport.trimmedSections.length > 0) {
                 console.warn(
@@ -1948,7 +1956,14 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                     `(${formatBytes(builtReport.jsonBuffer.length)})`
                 );
             }
-            fs.writeFileSync(path.join(stagingRoot, 'report.json'), builtReport.jsonBuffer);
+            // report.json is a stub over gzipped parts; the plain payload stays local
+            // for the rollup/attendance builders and is never uploaded.
+            const reportParts = writeReportParts(stagingRoot, builtReport.jsonBuffer, builtReport.payload);
+            writeLocalReportCopy(app.getPath('userData'), reportMeta.id, builtReport.jsonBuffer);
+            log.info(
+                `[Main] Report ${reportMeta.id}: ${formatBytes(builtReport.jsonBuffer.length)} → `
+                + `${formatBytes(reportParts.totalBytes)} gzipped in ${reportParts.parts.length} part(s).`
+            );
             const redirectHtml = `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -2108,17 +2123,8 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                     }
                 }
                 // Backfill reports published before rollup.json existed from local staging copies.
-                const stagingParent = path.join(app.getPath('userData'), 'web-report-staging');
-                const loadLocalReport = (id: string): RollupReportPayload | null => {
-                    const localReportPath = path.join(stagingParent, id, 'report.json');
-                    if (!fs.existsSync(localReportPath)) return null;
-                    try {
-                        return JSON.parse(fs.readFileSync(localReportPath, 'utf8'));
-                    } catch {
-                        // Unreadable local copy — the viewer fetches this report directly instead.
-                        return null;
-                    }
-                };
+                const loadLocalReport = (id: string): RollupReportPayload | null =>
+                    readLocalReport(app.getPath('userData'), id);
                 const rollupFile = updateRollupSourcesForPublish({
                     existingSources,
                     currentReport: builtReport.payload as RollupReportPayload,
@@ -2152,16 +2158,8 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 }
                 // Backfill raids predating attendance.json from local staging copies,
                 // so the first publish reconstructs the full history (mirrors rollup).
-                const attendanceStagingParent = path.join(app.getPath('userData'), 'web-report-staging');
-                const loadLocalAttendanceReport = (id: string): RollupReportPayload | null => {
-                    const localReportPath = path.join(attendanceStagingParent, id, 'report.json');
-                    if (!fs.existsSync(localReportPath)) return null;
-                    try {
-                        return JSON.parse(fs.readFileSync(localReportPath, 'utf8'));
-                    } catch {
-                        return null;
-                    }
-                };
+                const loadLocalAttendanceReport = (id: string): RollupReportPayload | null =>
+                    readLocalReport(app.getPath('userData'), id);
                 const attendanceFile = updateAttendanceForPublish({
                     existingRaids,
                     currentReport: builtReport.payload as RollupReportPayload,

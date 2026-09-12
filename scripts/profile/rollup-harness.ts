@@ -1,14 +1,15 @@
 /**
- * Profiling harness: runs buildRollupData over the real published reports in
- * web-report-staging, replicating what the browser does on every "All Reports"
- * view (fetch all report.json files, parse, aggregate).
+ * Profiling harness: runs buildRollupData over the real published reports kept
+ * locally in web-report-local (plain JSON; web-report-staging holds stub +
+ * gzipped parts since 3.10), replicating what the browser does on every
+ * "All Reports" view (fetch all report.json files, parse, aggregate).
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { buildRollupData } from '../../src/web/rollup';
 
-const stagingDir = process.argv[2] || `${process.env.HOME}/.config/axibridge/web-report-staging`;
+const stagingDir = process.argv[2] || `${process.env.HOME}/.config/axibridge/web-report-local`;
 
 const dirs = fs.readdirSync(stagingDir).filter((d) => {
     try {

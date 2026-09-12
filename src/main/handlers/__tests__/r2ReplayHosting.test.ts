@@ -86,7 +86,7 @@ describe('planSidecarHosting', () => {
     it('falls back to Pages for a replay with no R2, pointing at the gzipped object', () => {
         const plan = planSidecarHosting({ kind: 'replay', bytes: 1024, r2Url: null, reportId: 'a', baseUrl: BASE });
         expect(plan.mode).toBe('pages');
-        expect(plan.url).toBe(`${BASE}/reports/a/replay.json.gz`);
+        expect(plan.url).toBe(`${BASE}/reports/a/replay.parts.json`);
     });
 
     it('drops an oversized Pages replay rather than failing the upload with a 422', () => {
@@ -121,9 +121,9 @@ describe('planSidecarHosting', () => {
 });
 
 describe('MAX_GITHUB_BLOB_BYTES', () => {
-    // base64 inflates by ~33%; GitHub rejects requests past ~100 MB with a 422.
-    it('leaves the base64-encoded blob under 100 MB', () => {
-        expect(Math.ceil(MAX_GITHUB_BLOB_BYTES / 3) * 4).toBeLessThan(100 * 1024 * 1024);
+    // Probed 2026-09-12: GitHub 422s a blob between 38 MB and 40 MB raw.
+    it('stays under the measured single-blob ceiling', () => {
+        expect(MAX_GITHUB_BLOB_BYTES).toBeLessThanOrEqual(35 * 1024 * 1024);
     });
 });
 
