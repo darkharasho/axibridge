@@ -286,6 +286,35 @@ const createGithubBlob = async (owner: string, repo: string, token: string, cont
     return resp.data;
 };
 
+const isTransientBlobStatus = (status: number) => status === 401 || status >= 500;
+
+/**
+ * GitHub answers `401 Bad credentials` (sometimes a 5xx) when a blob POST body
+ * takes longer than ~60 s to arrive, even though the token is fine. Retry once;
+ * if it happens again, say what actually went wrong so users stop re-authorizing.
+ */
+export const uploadBlobWithRetry = async <T>(attempt: () => Promise<T>, blobPath: string, bytes: number): Promise<T> => {
+    try {
+        return await attempt();
+    } catch (err: any) {
+        if (!isTransientBlobStatus(Number(err?.status))) throw err;
+        log.warn(`[Main] Blob upload for ${blobPath} failed with ${err.status}; retrying once.`);
+    }
+    try {
+        return await attempt();
+    } catch (err: any) {
+        const status = Number(err?.status);
+        if (!isTransientBlobStatus(status)) throw err;
+        const timeout = new Error(
+            `GitHub timed out receiving ${blobPath} (${formatBytes(bytes)}). `
+            + 'This usually means the upload connection is too slow for the file; try again or enable R2 hosting.'
+        );
+        (timeout as any).status = status;
+        (timeout as any).cause = err;
+        throw timeout;
+    }
+};
+
 const createGithubTree = async (owner: string, repo: string, token: string, baseTree: string, entries: Array<{ path: string; sha: string | null }>) => {
     const resp = await githubApiRequest('POST', `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}/git/trees`, token, {
         base_tree: baseTree,
@@ -2197,7 +2226,11 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             sendWebUploadStatus('Uploading', 'Uploading changes...', 75);
             const blobEntries: Array<{ path: string; sha: string }> = [];
             for (const entry of pendingEntries) {
-                const blob = await createGithubBlob(owner, repo, token, entry.contentBase64, entry.path);
+                const blob = await uploadBlobWithRetry(
+                    () => createGithubBlob(owner, repo, token, entry.contentBase64, entry.path),
+                    entry.path,
+                    Math.floor(entry.contentBase64.length * 3 / 4)
+                );
                 blobEntries.push({ path: entry.path, sha: blob.sha });
             }
             const commitEntries: Array<{ path: string; sha: string | null }> = [...blobEntries, ...deleteEntries];
