@@ -1,8 +1,10 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { gzipSync } from 'node:zlib';
+import { createHash } from 'node:crypto';
 
 import { fetchReplayJson } from '../fetchReplayJson';
+import { splitIntoParts } from '../../../../shared/chunkedGzip';
 
 const PAYLOAD = { replayFights: [{ id: 'fight-1', movementData: { positions: [1, 2] } }] };
 
@@ -50,5 +52,23 @@ describe('fetchReplayJson', () => {
             electronAPI: { fetchR2Json: vi.fn(async () => ({ success: false, error: 'HTTP 403' })) }
         });
         await expect(fetchReplayJson('https://pub-x.r2.dev/reports/a/replay.json.gz')).rejects.toThrow('HTTP 403');
+    });
+
+    it('follows a Pages replay parts manifest', async () => {
+        const gzBytes = gz(PAYLOAD);
+        const sha = createHash('sha256').update(gzBytes).digest('hex');
+        const { parts, manifest } = splitIntoParts(gzBytes, 'replay.json.gz', sha, 16);
+        const base = 'https://user.github.io/repo/reports/a/';
+        const files: Record<string, Uint8Array> = {
+            [`${base}replay.parts.json`]: plain(manifest)
+        };
+        parts.forEach((p) => { files[`${base}${p.path}`] = p.data; });
+        vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+            const body = files[url];
+            return body
+                ? { ok: true, status: 200, arrayBuffer: async () => body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength) }
+                : { ok: false, status: 404, arrayBuffer: async () => new ArrayBuffer(0) };
+        }));
+        await expect(fetchReplayJson(`${base}replay.parts.json`)).resolves.toEqual(PAYLOAD);
     });
 });
