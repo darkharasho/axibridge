@@ -27,7 +27,9 @@ describe('splitIntoParts / joinParts', () => {
             expect(parts.every((p) => p.data.length <= PART_BYTES)).toBe(true);
             expect(manifest.totalBytes).toBe(size);
             expect(manifest.parts.map((p) => p.bytes)).toEqual(parts.map((p) => p.data.length));
-            expect(Array.from(joinParts(parts.map((p) => p.data), manifest))).toEqual(Array.from(input));
+            // Buffer.equals, not toEqual on arrays: a 12MB deep compare times out on CI runners.
+            const joined = joinParts(parts.map((p) => p.data), manifest);
+            expect(Buffer.from(joined).equals(Buffer.from(input))).toBe(true);
         }
     );
 
