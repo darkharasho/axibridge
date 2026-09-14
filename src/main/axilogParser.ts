@@ -253,14 +253,14 @@ export const applyEiCompatShims = (details: any, _logPath: string): any => {
     // There is NO native counterpart for EI's `boonStripDownContributionTime`,
     // so it stays absent rather than being derived from a strips ratio.
     // Only ever FILLS a missing value, like the icon backfill above.
+    const entityIdByInstid = new Map<number, number>();
+    for (const entity of nativeEntities) {
+        if (isFiniteNumber(entity?.instid) && isFiniteNumber(entity?.id)) {
+            entityIdByInstid.set(entity.instid, entity.id);
+        }
+    }
     const contributionByEntity = details.native?.blocks?.contribution?.by_entity;
     if (contributionByEntity && typeof contributionByEntity === 'object') {
-        const entityIdByInstid = new Map<number, number>();
-        for (const entity of nativeEntities) {
-            if (isFiniteNumber(entity?.instid) && isFiniteNumber(entity?.id)) {
-                entityIdByInstid.set(entity.instid, entity.id);
-            }
-        }
         for (const player of players) {
             const support = Array.isArray(player?.support) ? player.support[0] : player?.support;
             if (!support || typeof support !== 'object') continue;
@@ -269,6 +269,32 @@ export const applyEiCompatShims = (details: any, _logPath: string): any => {
             if (entityId === undefined) continue;
             const strips = (contributionByEntity as any)[String(entityId)]?.downs_contribution?.strips;
             if (isFiniteNumber(strips)) support.boonStripDownContribution = strips;
+        }
+    }
+
+    // Player down/dead intervals. Coarse-mode pruning (the default
+    // `parseCombatReplay: false`) used to delete players' whole
+    // `combatReplayData`, and pruned details are what the cache stores — so
+    // every such log read as "predates revive tracking" in the Revives section.
+    // `blocks.replay.by_entity` survived that pruning and carries the same
+    // intervals (50/50 squad players identical on a real log), so a cached log
+    // repairs itself on its next read. An entity with no row was never downed
+    // or killed. Only ever FILLS, like the backfills above.
+    const replayByEntity = details.native?.blocks?.replay?.by_entity;
+    if (replayByEntity && typeof replayByEntity === 'object') {
+        for (const player of players) {
+            if (!player || typeof player !== 'object') continue;
+            const existing = player.combatReplayData;
+            if (Array.isArray(existing?.down) && Array.isArray(existing?.dead)) continue;
+            const entityId = entityIdByInstid.get(Number(player.instanceID));
+            if (entityId === undefined) continue;
+            const row = (replayByEntity as any)[String(entityId)];
+            const base = existing && typeof existing === 'object' && !Array.isArray(existing) ? existing : {};
+            player.combatReplayData = {
+                ...base,
+                down: Array.isArray(base.down) ? base.down : (Array.isArray(row?.down) ? row.down : []),
+                dead: Array.isArray(base.dead) ? base.dead : (Array.isArray(row?.dead) ? row.dead : []),
+            };
         }
     }
 

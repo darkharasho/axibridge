@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, CloudOff } from 'lucide-react';
 import { STATS_CATEGORIES } from './statsTaxonomy';
 import { useStatsStore } from './statsStore';
 import { SectionSubnav } from './SectionSubnav';
@@ -21,6 +21,9 @@ const LAYOUT_T = `${LAYOUT_DUR} ${LAYOUT_EASE}`;
 export interface CategoryBarProps {
     onSectionVisibilityChange?: (fn: (id: string) => boolean) => void;
     isSectionAllowed?: (id: string) => boolean;
+    /** Categories a web upload would leave out, marked so the omission is visible
+     *  before publishing rather than after. */
+    unpublishedCategoryIds?: ReadonlySet<string>;
 }
 
 /**
@@ -29,7 +32,7 @@ export interface CategoryBarProps {
  * the active category's SectionSubnav is always shown beneath it (no more open/closed
  * accordion — the active category IS the open one).
  */
-export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed }: CategoryBarProps) {
+export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed, unpublishedCategoryIds }: CategoryBarProps) {
     const activeCategory = useStatsStore((s) => s.activeCategory);
     const setActiveCategory = useStatsStore((s) => s.setActiveCategory);
     // Active-section highlight comes from the store, not local click-only state, so
@@ -167,6 +170,7 @@ export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed }: Cat
                     {visibleCategories.map((category) => {
                         const CategoryIcon = category.icon;
                         const isActiveCategory = category.id === activeCategoryDef?.id;
+                        const isUnpublished = unpublishedCategoryIds?.has(category.id) ?? false;
 
                         return (
                             <div key={category.id}>
@@ -174,6 +178,7 @@ export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed }: Cat
                                 <button
                                     type="button"
                                     onClick={() => handleCategoryClick(category.id)}
+                                    title={isUnpublished ? `${category.label} — not included in published reports` : undefined}
                                     className={`w-full h-9 flex items-center text-left rounded-sm ${isActiveCategory ? 'text-white' : 'text-[color:var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}
                                     style={{
                                         paddingLeft: expanded ? 12 : 20,
@@ -206,6 +211,13 @@ export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed }: Cat
                                     >
                                         {category.label}
                                     </motion.span>
+                                    {isUnpublished && expanded && (
+                                        <CloudOff
+                                            data-testid={`category-unpublished-${category.id}`}
+                                            aria-hidden="true"
+                                            className="w-3 h-3 shrink-0 ml-2 text-[color:var(--text-secondary)]"
+                                        />
+                                    )}
                                     {/* Chevron: maxWidth via CSS, opacity/scale/rotate via framer-motion (composited).
                                         Points down for the active category (its subnav is showing below), sideways
                                         for every other category (no accordion state to track anymore). */}

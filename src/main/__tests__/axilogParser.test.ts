@@ -312,6 +312,41 @@ describe('applyEiCompatShims', () => {
         expect(details.players[0].support[0].boonStripDownContribution).toBe(99);
     });
 
+    it('backfills player down/dead intervals from blocks.replay for cached coarse-mode logs', () => {
+        // Coarse-mode pruning used to delete players' whole combatReplayData,
+        // so every cached default-settings log read as "predates revive
+        // tracking". The native intervals survived and match EI's exactly
+        // (50/50 squad players on a real log).
+        const details: any = {
+            players: [
+                { account: 'A.1111', instanceID: 4704 },
+                { account: 'B.2222', instanceID: 4723, combatReplayData: { start: 0 } },
+            ],
+            native: {
+                axilog: {},
+                entities: [{ id: 0, instid: 4704 }, { id: 7, instid: 4723 }],
+                blocks: { replay: { by_entity: { '0': { down: [[1000, 4000]], dead: [] } } } },
+            },
+        };
+        applyEiCompatShims(details, FIXTURE);
+        expect(details.players[0].combatReplayData).toEqual({ down: [[1000, 4000]], dead: [] });
+        // No by_entity row means the entity was never downed or killed.
+        expect(details.players[1].combatReplayData).toEqual({ start: 0, down: [], dead: [] });
+    });
+
+    it('never overwrites down/dead intervals the parser supplied', () => {
+        const details: any = {
+            players: [{ account: 'A.1111', instanceID: 4704, combatReplayData: { down: [[5, 6]], dead: [[6, 9]] } }],
+            native: {
+                axilog: {},
+                entities: [{ id: 0, instid: 4704 }],
+                blocks: { replay: { by_entity: { '0': { down: [[1, 2]], dead: [] } } } },
+            },
+        };
+        applyEiCompatShims(details, FIXTURE);
+        expect(details.players[0].combatReplayData).toEqual({ down: [[5, 6]], dead: [[6, 9]] });
+    });
+
     it('leaves boonStripDownContribution alone when the native block is absent', () => {
         const details: any = { players: [{ account: 'A.1111', instanceID: 4704, support: [{ boonStrips: 40 }] }] };
         applyEiCompatShims(details, FIXTURE);
@@ -488,7 +523,10 @@ describe.runIf(binding && fs.existsSync(FIXTURE))('axilog real parse (anonymized
         expect(getDistanceScalars(kept).size).toBeGreaterThan(0);
 
         const coarse = pruneDetailsForStats(details, { keepReplayPositions: false });
-        expect(coarse.players[0].combatReplayData).toBeUndefined();
+        // Positions go; the down/dead intervals stay because revive tracking needs them.
+        expect(coarse.players[0].combatReplayData.positions).toBeUndefined();
+        expect(Array.isArray(coarse.players[0].combatReplayData.down)).toBe(true);
+        expect(Array.isArray(coarse.players[0].combatReplayData.dead)).toBe(true);
         // Coarse mode must drop BOTH sample surfaces, or it would be larger
         // after the migration than before it — 284 KB of native tracks against
         // 6.0 KB of intervals on this fixture.

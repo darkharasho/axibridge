@@ -8,6 +8,7 @@ import { DEFAULT_STATS_VIEW_SETTINGS, type IParserSettings } from '../../global.
 const PARSER_SETTINGS: IParserSettings = {
     computeDamageModifiers: true,
     parseCombatReplay: true,
+    keepCombatReplayLocally: true,
     rawTimelineArrays: false,
 };
 

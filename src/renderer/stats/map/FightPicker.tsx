@@ -79,11 +79,11 @@ export const FightPicker: React.FC<FightPickerProps> = ({ fights, onSelect }) =>
                     No replay data available
                 </div>
                 <div style={{ fontSize: 12, maxWidth: 340, lineHeight: 1.6 }}>
-                    Enable <strong style={{ color: 'var(--text-primary, #e2e8f0)' }}>Detailed Combat Replay</strong> in{' '}
-                    <code style={{ fontSize: 11, background: 'rgba(255,255,255,0.07)', padding: '1px 5px', borderRadius: 3 }}>Settings</code>
-                    {' › '}
-                    <code style={{ fontSize: 11, background: 'rgba(255,255,255,0.07)', padding: '1px 5px', borderRadius: 3 }}>EI Parser</code>
-                    , then re-upload your logs to generate position data.
+                    These logs were processed without position data, either before replay was kept by
+                    default or with{' '}
+                    <strong style={{ color: 'var(--text-primary, #e2e8f0)' }}>Keep Combat Replay Locally</strong> off.
+                    Re-process them to generate it; published reports only include replay when{' '}
+                    <strong style={{ color: 'var(--text-primary, #e2e8f0)' }}>Publish Combat Replay</strong> is on.
                 </div>
             </div>
         );

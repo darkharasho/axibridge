@@ -189,9 +189,12 @@ export const pruneDetailsForStats = (details: any, options: PruneDetailsOptions 
             };
             // Drop the heavy per-player replay positions in coarse mode. The
             // distToCom/stackDist scalars in statsAll are untouched, so Closest to
-            // Tag still resolves (just without precise per-tick distance).
+            // Tag still resolves (just without precise per-tick distance). The
+            // down/dead intervals are kept: revive tracking needs them, and
+            // deleting the whole object marked every log parsed with the
+            // default setting as having no revive data.
             if (!keepReplayPositions && out.combatReplayData) {
-                delete out.combatReplayData;
+                out.combatReplayData = pruneCombatReplayData(out.combatReplayData, false);
             }
             return out;
         });
