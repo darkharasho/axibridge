@@ -53,6 +53,8 @@ type FightMetricSectionProps = {
 
     formatValue: (n: number) => string;
     valueSuffix?: string;
+    /** Label for the selected player's headline value in the summary row. */
+    summaryValueLabel?: string;
 
     // Fight selection
     selectedFightIndex?: number | null;
@@ -110,6 +112,7 @@ export const FightMetricSection = ({
     chartMaxY,
     formatValue,
     valueSuffix = '',
+    summaryValueLabel = 'Peak',
     selectedFightIndex = null,
     setSelectedFightIndex,
     headerExtras,
@@ -277,7 +280,7 @@ export const FightMetricSection = ({
                                     {renderProfessionIcon(selectedPlayer.profession, selectedPlayer.professionList, 'w-4 h-4')}
                                     <span className="text-slate-200 font-medium">{selectedPlayer.displayName}</span>
                                     <span className="text-slate-500">|</span>
-                                    <span>Peak: <strong className="text-indigo-300">{formatValue(selectedPlayer.value)}</strong>{valueSuffix ? ` ${valueSuffix}` : ''}</span>
+                                    <span>{summaryValueLabel}: <strong className="text-indigo-300">{formatValue(selectedPlayer.value)}</strong>{valueSuffix ? ` ${valueSuffix}` : ''}</span>
                                     {selectedPlayer.peakFightLabel && (
                                         <span className="text-slate-500">in {sanitizeWvwLabel(selectedPlayer.peakFightLabel)}</span>
                                     )}

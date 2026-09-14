@@ -75,3 +75,27 @@ export const computeBoonUptimePercentByPlayer = (
     });
     return map;
 };
+
+/**
+ * One fight's uptime percentage for the Boon Uptime chart.
+ *
+ * The chart used to count the share of 5s buckets holding any of the boon, so
+ * a bucket covered for 1ms read as covered for all 5s. On a subgroup row --
+ * whose buckets are member averages -- one member holding the boon marked the
+ * whole subgroup covered, so the per-fight line and its "Avg per fight" sat
+ * far above the overall figure beside it (29.8% against 17.0%).
+ */
+export const computeFightUptimePercent = (
+    value: { buckets?: number[]; weightedMs?: number } | undefined,
+    durationMs: number,
+): number => {
+    if (!value || !(durationMs > 0)) return 0;
+    const weightedMs = Number(value.weightedMs);
+    if (Number.isFinite(weightedMs) && weightedMs > 0) {
+        return Math.min(100, (weightedMs / durationMs) * 100);
+    }
+    const buckets = Array.isArray(value.buckets) ? value.buckets : [];
+    if (buckets.length === 0) return 0;
+    const mean = buckets.reduce((sum, bucket) => sum + Math.min(1, Math.max(0, Number(bucket || 0))), 0) / buckets.length;
+    return mean * 100;
+};

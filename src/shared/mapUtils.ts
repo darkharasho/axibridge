@@ -29,13 +29,19 @@ const MAP_ID_TO_KEY: Record<number, WvwMap> = {
     1099: WvwMap.RedBorderlands,
 };
 
+/**
+ * Whole-word match. A bare substring test let PvE encounter names through:
+ * "Conjured Amalgamate" contains "red" and was labelled Red BL.
+ */
+const hasWord = (clean: string, word: string) => new RegExp(`\\b${word}\\b`).test(clean);
+
 export function resolveMapFromZone(zone: string): WvwMap | null {
     const clean = stripPrefix(zone).toLowerCase();
-    if (clean.includes('eternal') || clean === 'ebg') return WvwMap.EternalBattlegrounds;
-    if (clean.includes('obsidian') || clean.includes('sanctum') || clean === 'os') return WvwMap.ObsidianSanctum;
-    if (clean.includes('green')) return WvwMap.GreenBorderlands;
-    if (clean.includes('blue')) return WvwMap.BlueBorderlands;
-    if (clean.includes('red')) return WvwMap.RedBorderlands;
+    if (hasWord(clean, 'eternal') || clean === 'ebg') return WvwMap.EternalBattlegrounds;
+    if (hasWord(clean, 'obsidian') || hasWord(clean, 'sanctum') || clean === 'os') return WvwMap.ObsidianSanctum;
+    if (hasWord(clean, 'green')) return WvwMap.GreenBorderlands;
+    if (hasWord(clean, 'blue')) return WvwMap.BlueBorderlands;
+    if (hasWord(clean, 'red')) return WvwMap.RedBorderlands;
     return null;
 }
 
@@ -55,21 +61,21 @@ export function resolveMapFromDetails(details: any, zone: string): WvwMap | null
 
 export function normalizeMapName(zone: string): string {
     const clean = stripPrefix(zone).toLowerCase();
-    if (clean.includes('eternal')) return 'Eternal Battlegrounds';
-    if (clean.includes('obsidian') || clean.includes('sanctum')) return 'Obsidian Sanctum';
-    if (clean.includes('green')) return 'Green Borderlands';
-    if (clean.includes('blue')) return 'Blue Borderlands';
-    if (clean.includes('red')) return 'Red Borderlands';
+    if (hasWord(clean, 'eternal')) return 'Eternal Battlegrounds';
+    if (hasWord(clean, 'obsidian') || hasWord(clean, 'sanctum')) return 'Obsidian Sanctum';
+    if (hasWord(clean, 'green')) return 'Green Borderlands';
+    if (hasWord(clean, 'blue')) return 'Blue Borderlands';
+    if (hasWord(clean, 'red')) return 'Red Borderlands';
     return stripPrefix(zone);
 }
 
 export function normalizeMapNameShort(zone: string): string {
     const clean = stripPrefix(zone).toLowerCase();
-    if (clean.includes('eternal') || clean === 'ebg') return 'EBG';
-    if (clean.includes('obsidian') || clean.includes('sanctum')) return 'OS';
-    if (clean.includes('green')) return 'Green BL';
-    if (clean.includes('blue')) return 'Blue BL';
-    if (clean.includes('red')) return 'Red BL';
+    if (hasWord(clean, 'eternal') || clean === 'ebg') return 'EBG';
+    if (hasWord(clean, 'obsidian') || hasWord(clean, 'sanctum')) return 'OS';
+    if (hasWord(clean, 'green')) return 'Green BL';
+    if (hasWord(clean, 'blue')) return 'Blue BL';
+    if (hasWord(clean, 'red')) return 'Red BL';
     return stripPrefix(zone);
 }
 

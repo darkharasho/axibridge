@@ -26,6 +26,12 @@ describe('resolveMapFromZone', () => {
         expect(resolveMapFromZone('Raids Wing 7')).toBeNull();
         expect(resolveMapFromZone('')).toBeNull();
     });
+
+    it('does not match a colour buried inside a PvE encounter name', () => {
+        // "Conjured" contains "red" -- it used to resolve to Red Borderlands.
+        expect(resolveMapFromZone('Conjured Amalgamate')).toBeNull();
+        expect(resolveMapFromZone('Conjured Amalgamate CM')).toBeNull();
+    });
 });
 
 describe('normalizeMapNameShort', () => {
@@ -43,6 +49,7 @@ describe('normalizeMapNameShort', () => {
 
     it('returns the sanitized zone for unknown zones', () => {
         expect(normalizeMapNameShort('Raids Wing 7')).toBe('Raids Wing 7');
+        expect(normalizeMapNameShort('Conjured Amalgamate')).toBe('Conjured Amalgamate');
     });
 
     it('returns empty string for empty input', () => {

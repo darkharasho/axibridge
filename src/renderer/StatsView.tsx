@@ -40,7 +40,7 @@ import { PlayerBreakdownSection } from './stats/sections/PlayerBreakdownSection'
 import { DamageBreakdownSection } from './stats/sections/DamageBreakdownSection';
 import { BoonTimelineSection } from './stats/sections/BoonTimelineSection';
 import { BoonUptimeSection } from './stats/sections/BoonUptimeSection';
-import { computeBoonUptimePercentByPlayer } from './stats/utils/boonUptimeAggregate';
+import { computeBoonUptimePercentByPlayer, computeFightUptimePercent } from './stats/utils/boonUptimeAggregate';
 import type { BoonHeatmapOverlay } from './stats/sections/boonHeatmapOverlay';
 import { resolveIncomingStrips, resolveIncomingCc, CONTROL_BUCKET_MS } from './stats/computeControlTimeline';
 import { OffenseSection } from './stats/sections/OffenseSection';
@@ -3682,7 +3682,11 @@ type SpikeFight = {
                     professionList: Array.isArray(player?.professionList) ? player.professionList.map((entry: any) => String(entry || '')) : [],
                     logs: Number(player?.logs || 0),
                     total: Math.max(0, Number(player?.total || 0)),
-                    peak: Math.max(0, Number(player?.peak || 0))
+                    peak: Math.max(0, Number(player?.peak || 0)),
+                    // Dropping these forced every row onto the legacy
+                    // bucket-grid rebuild in computeBoonUptimePercentByPlayer.
+                    weightedMs: Math.max(0, Number(player?.weightedMs || 0)),
+                    attendedMs: Math.max(0, Number(player?.attendedMs || 0))
                 }))
                 .filter((player: any) => player.key && player.key !== '__all__'),
             fights: (Array.isArray(boon?.fights) ? boon.fights : []).map((fight: any, index: number) => ({
@@ -3698,6 +3702,7 @@ type SpikeFight = {
                         {
                             total: Math.max(0, Number(value?.total || 0)),
                             peak: Math.max(0, Number(value?.peak || 0)),
+                            weightedMs: Math.max(0, Number(value?.weightedMs || 0)),
                             buckets: Array.isArray(value?.buckets) ? value.buckets.map((entry: any) => Math.max(0, Number(entry || 0))) : []
                         }
                     ]))
@@ -3952,9 +3957,7 @@ type SpikeFight = {
                 1
             );
             const playerAverage = Math.max(0, Number(playerValue?.total || 0)) / playerBucketCount;
-            const playerActiveBuckets = Array.from({ length: playerBucketCount }, (_, i) => Math.max(0, Number(playerBuckets[i] || 0)))
-                .reduce((sum: number, value: number) => sum + (value > 0 ? 1 : 0), 0);
-            const playerUptimePercent = (playerActiveBuckets / playerBucketCount) * 100;
+            const playerUptimePercent = computeFightUptimePercent(playerValue, Number(fight?.durationMs || 0));
             const computedFightMax = Object.entries((fight?.values && typeof fight.values === 'object') ? fight.values : {})
                 .filter(([key]) => String(key || '') !== '__all__')
                 .reduce((best: number, [, value]: [string, any]) => Math.max(best, Math.max(0, Number(value?.peak || 0))), 0);
@@ -3972,18 +3975,9 @@ type SpikeFight = {
                 }, 0);
             const computedFightUptimePercentMax = Object.entries((fight?.values && typeof fight.values === 'object') ? fight.values : {})
                 .filter(([key]) => String(key || '') !== '__all__')
-                .reduce((best: number, [, value]: [string, any]) => {
-                    const buckets = Array.isArray(value?.buckets) ? value.buckets : [];
-                    const bucketCount = Math.max(
-                        buckets.length,
-                        Math.ceil(Math.max(0, Number(fight?.durationMs || 0)) / (activeBoonUptime?.intervalMs || 5000)),
-                        1
-                    );
-                    const activeBuckets = Array.from({ length: bucketCount }, (_, i) => Math.max(0, Number(buckets[i] || 0)))
-                        .reduce((sum: number, bucketValue: number) => sum + (bucketValue > 0 ? 1 : 0), 0);
-                    const percent = (activeBuckets / bucketCount) * 100;
-                    return Math.max(best, percent);
-                }, 0);
+                .reduce((best: number, [, value]: [string, any]) => (
+                    Math.max(best, computeFightUptimePercent(value, Number(fight?.durationMs || 0)))
+                ), 0);
             return {
                 index,
                 fightId: String(fight?.id || ''),

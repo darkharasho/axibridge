@@ -320,6 +320,9 @@ export const BoonUptimeSection = ({
             chartData={mappedChartData}
             chartMaxY={showStackCapLine ? Math.ceil(Math.max(1, chartMaxY) + 3) : chartMaxY}
             formatValue={formatValue}
+            // The headline is time-weighted uptime across attended fights, not
+            // the best single fight -- "Peak" read lower than the per-fight Avg.
+            summaryValueLabel="Overall"
             referenceLineY={showStackCapLine ? 25 : undefined}
             referenceLineLabel={showStackCapLine ? '25' : undefined}
             selectedFightIndex={selectedFightIndex}

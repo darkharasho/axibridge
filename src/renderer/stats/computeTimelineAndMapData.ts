@@ -97,11 +97,11 @@ export function computeTimelineAndMapData(logs: any[], validLogs: any[], splitPl
             let color = '#64748b';
             if (isEbg) {
                 color = '#ffffff';
-            } else if (/red/i.test(label)) {
+            } else if (/\bred\b/i.test(label)) {
                 color = '#ef4444';
-            } else if (/blue/i.test(label)) {
+            } else if (/\bblue\b/i.test(label)) {
                 color = '#3b82f6';
-            } else if (/green/i.test(label)) {
+            } else if (/\bgreen\b/i.test(label)) {
                 color = '#22c55e';
             }
             return { name, value, color };
