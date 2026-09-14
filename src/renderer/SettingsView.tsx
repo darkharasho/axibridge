@@ -2842,8 +2842,16 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         onChange={(v) => saveParserSetting('computeDamageModifiers', v)}
                                     />
                                     <Toggle
-                                        label="Detailed Combat Replay (required for Map Replay)"
-                                        description="Keeps per-player position tracks. Off still computes distance-to-tag; it only drops the position arrays, which are the bulk of a report's size."
+                                        label="Keep Combat Replay Locally"
+                                        description="Keeps player positions for Map Replay, tag distance, On Tag Review and stability performance. Off saves memory and cache space but leaves those empty. Applies to logs processed from now on."
+                                        enabled={parserSettings.keepCombatReplayLocally}
+                                        onChange={(v) => saveParserSetting('keepCombatReplayLocally', v)}
+                                    />
+                                    <Toggle
+                                        label="Publish Combat Replay"
+                                        description={parserSettings.keepCombatReplayLocally
+                                            ? "Includes Map Replay in uploaded web reports. Off leaves it out of uploads, where it is the bulk of a report's size."
+                                            : 'Has no effect while Keep Combat Replay Locally is off — there is no replay data to publish.'}
                                         enabled={parserSettings.parseCombatReplay}
                                         onChange={(v) => saveParserSetting('parseCombatReplay', v)}
                                     />

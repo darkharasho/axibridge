@@ -319,6 +319,16 @@ describe('pruneDetailsForStats', () => {
             expect(pruned.players[0].combatReplayData?.positions).toBeUndefined();
             expect(pruned.targets[0].combatReplayData?.[0]?.positions).toBeUndefined();
         });
+
+        // parseCombatReplay defaults to false, and revive tracking needs the
+        // players' down/dead intervals. Dropping the whole object made every
+        // default-settings log read as "predates revive tracking".
+        it('keeps player down/dead intervals when keepReplayPositions=false', () => {
+            const details: any = makeDetails();
+            details.players[0].combatReplayData = { start: 0, down: [[1000, 4000]], dead: [], positions: [[1, 2]] };
+            const pruned = pruneDetailsForStats(details, { keepReplayPositions: false });
+            expect(pruned.players[0].combatReplayData).toEqual({ start: 0, down: [[1000, 4000]], dead: [] });
+        });
     });
 
     it('handles missing players / targets arrays gracefully', () => {

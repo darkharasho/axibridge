@@ -47,6 +47,7 @@ import {
     writeReportParts
 } from '../webReportParts';
 import { resolvePartsJson } from '../partsReader';
+import { PARSER_SETTINGS_STORE_KEY, resolveParserSettings, type ParserSettings } from '../parserSettings';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 // GitHub 422s a single blob somewhere between 38 MB and 40 MB raw (probed
@@ -574,6 +575,19 @@ export const isR2ReplayEnabled = (store: any): boolean => store.get('r2HostingEn
 export const isR2SliceEnabled = (store: any): boolean => {
     const raw = store.get('r2SliceEnabled');
     return typeof raw === 'boolean' ? raw : isR2ReplayEnabled(store);
+};
+
+/**
+ * Whether a published web report carries combat replay.
+ *
+ * `parseCombatReplay` governs publishing, because replay is the bulk of a
+ * report's upload size. It needs the positions `keepCombatReplayLocally`
+ * retains, so it reads as off while retention is off. Unsaved settings read as
+ * the defaults (publish off, retain on).
+ */
+export const isReplayPublishEnabled = (store: any): boolean => {
+    const settings = resolveParserSettings(store.get(PARSER_SETTINGS_STORE_KEY) as Partial<ParserSettings> | undefined);
+    return settings.parseCombatReplay && settings.keepCombatReplayLocally;
 };
 
 export const resolveR2AuthMode = (store: any): R2AuthMode =>
@@ -1831,7 +1845,14 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             // always split out and lazy-loaded by the viewer: uploaded to R2 when configured,
             // otherwise hosted on Pages next to report.json.
             let replayBuffer: Buffer | null = null;
-            const rawReplayFights = Array.isArray(sourceStats.replayFights) ? sourceStats.replayFights : [];
+            const publishReplay = isReplayPublishEnabled(store);
+            const rawReplayFights = publishReplay && Array.isArray(sourceStats.replayFights) ? sourceStats.replayFights : [];
+            if (!publishReplay && 'replayFights' in sourceStats) {
+                // Replay is always available locally; publishing it is opt-in.
+                sourceStats = { ...sourceStats };
+                delete sourceStats.replayFights;
+                log.info('[Main] Combat Replay publishing is off — omitting replay data from the web report.');
+            }
             if (rawReplayFights.length > 0) {
                 // Compressed for both destinations: it is what R2 stores and what
                 // has to clear the Pages blob limit. The viewer inflates it.
@@ -1844,9 +1865,9 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                     + `(${formatBytes(prepared.rawBytes)} → ${formatBytes(replayBuffer.length)} gzipped) `
                     + `— splitting out of report.json.`
                 );
-            } else if (r2ForReplay) {
-                log.info('[Main] R2 configured but no replay fights found in stats — skipping R2 upload. Enable Combat Replay in Parser Settings and re-process logs.');
-                sendWebUploadStatus('Packaging', 'R2 configured — no replay data found (Combat Replay may be disabled in Parser Settings)', 39);
+            } else if (r2ForReplay && publishReplay) {
+                log.info('[Main] R2 configured but no replay fights found in stats — skipping R2 upload. Logs processed before replay was always retained need re-processing.');
+                sendWebUploadStatus('Packaging', 'R2 configured — no replay data found (older logs may need re-processing)', 39);
             }
 
             const builtReport = buildWebReportPayload(

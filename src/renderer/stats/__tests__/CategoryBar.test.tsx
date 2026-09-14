@@ -74,6 +74,16 @@ describe('CategoryBar', () => {
         expect(screen.getByRole('button', { name: /On Tag Review/i })).toBeTruthy();
     });
 
+    it('marks categories a web upload would leave out', () => {
+        render(<CategoryBar unpublishedCategoryIds={new Set(['replay'])} />);
+        const rail = screen.getByRole('button', { name: 'Replay' }).closest('aside')!;
+        // The icon only renders on the expanded rail; the tooltip is always there.
+        fireEvent.mouseEnter(rail.querySelector('.stats-dashboard-nav-panel')!);
+        expect(screen.getByTestId('category-unpublished-replay')).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'Replay' }).getAttribute('title')).toMatch(/not included in published reports/);
+        expect(screen.queryByTestId('category-unpublished-overview')).toBeNull();
+    });
+
     it('hides categories with no allowed sections', () => {
         render(<CategoryBar isSectionAllowed={(id) => !id.startsWith('commander')} />);
         expect(screen.queryByRole('button', { name: /Commander/i })).toBeNull();

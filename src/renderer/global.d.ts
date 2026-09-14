@@ -511,6 +511,7 @@ export interface IEliteInsightsRemoval {
 /** Mirrors `ParserSettings` in `src/main/parserSettings.ts`. */
 export interface IParserSettings {
     parseCombatReplay: boolean;
+    keepCombatReplayLocally: boolean;
     computeDamageModifiers: boolean;
     rawTimelineArrays: boolean;
 }

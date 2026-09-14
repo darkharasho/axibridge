@@ -30,6 +30,7 @@ import type { PlayerSkillBreakdown, PlayerSkillDamageEntry, SkillUsageSummary } 
 import { getDefaultConditionIcon, normalizeConditionLabel } from '../shared/conditionsMetrics';
 import { DetailsCacheContext } from './cache/DetailsCacheContext';
 import { AxilogCoverageBanner } from './stats/ui/AxilogCoverageBanner';
+import { UnpublishedSectionNotice } from './stats/ui/UnpublishedSectionNotice';
 import { fetchReplayJson } from './stats/replay/fetchReplayJson';
 import { useAxilogHeal } from './stats/hooks/useAxilogHeal';
 import { EMPTY_AXILOG_COVERAGE, type AxilogCoverage } from './stats/utils/axilogCoverage';
@@ -149,6 +150,10 @@ interface StatsViewProps {
      *  so the pill/tray/banner should render even though the view is embedded.
      *  A historical FightReportHistoryView (also embedded) leaves this unset. */
     sliceEnabled?: boolean;
+    /** Desktop only: whether a web upload would include Map Replay. When it
+     *  would not, the Replay page says so. Unset (History, the web report)
+     *  shows nothing. */
+    replayPublishing?: { published: boolean; onEnable?: () => void };
     /** Published web report only: awaited before the tray opens, so the first
      *  open is what triggers the sidecar fetch (Task 18) rather than report load. */
     onOpenSliceTray?: () => Promise<unknown>;
@@ -287,7 +292,7 @@ function resolveReplayFights(stats: any): any[] {
 export const deriveStatsViewLogs = (logs: any[], excluded: Set<string>, embedded: boolean): any[] =>
     embedded ? logs : selectSlicedLogs(logs, excluded);
 
-export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, onRequestCategory, onSearchAvailable, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult, onLogsHealed, sliceEnabled = false, onOpenSliceTray, onCopySliceLink, sliceUnavailable = false }: StatsViewProps) {
+export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, onRequestCategory, onSearchAvailable, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult, onLogsHealed, sliceEnabled = false, onOpenSliceTray, onCopySliceLink, sliceUnavailable = false, replayPublishing }: StatsViewProps) {
     // Defer heavy section rendering by one frame so the header + progress bar can paint first.
     const [sectionsDeferred, setSectionsDeferred] = useState(!embedded);
     useEffect(() => {
@@ -4531,7 +4536,15 @@ type SpikeFight = {
                 #replay anchor (matches the SectionPanel-rendered id used everywhere else)
                 so deep links / search-jump can still target this category in desktop mode. */}
             {!embedded && !sectionsDeferred && activeCategory === 'replay' && (
-                <div id="replay" className="flex-1 min-h-0 flex" style={{ minHeight: 0 }}>
+                <div id="replay" className="flex-1 min-h-0 flex flex-col" style={{ minHeight: 0 }}>
+                    {replayPublishing && !replayPublishing.published && getReplayFights().length > 0 && (
+                        <UnpublishedSectionNotice
+                            sectionLabel="Map Replay"
+                            settingLabel="Publish Combat Replay"
+                            onEnable={replayPublishing.onEnable}
+                        />
+                    )}
+                    <div className="flex-1 min-h-0 flex">
                     {r2ReplayStatus === 'error' ? (
                         <div className="flex flex-col items-center justify-center w-full gap-1">
                             <span className="text-sm text-rose-400">Failed to load replay data.</span>
@@ -4549,6 +4562,7 @@ type SpikeFight = {
                             <ReplaySection fights={getReplayFights()} />
                         </div>
                     )}
+                    </div>
                 </div>
             )}
 

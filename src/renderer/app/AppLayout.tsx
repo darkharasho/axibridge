@@ -20,6 +20,8 @@ import { CommanderView } from '../commander/CommanderView';
 import { useParticleEffect, PRESETS } from '../particles';
 import { TRANSITION } from '../motion';
 
+const UNPUBLISHED_REPLAY: ReadonlySet<string> = new Set(['replay']);
+
 
 export function AppLayout({ ctx }: { ctx: any }) {
     const {
@@ -105,9 +107,21 @@ export function AppLayout({ ctx }: { ctx: any }) {
         setR2SliceEnabled,
         refreshR2Status,
         setParserSettings,
+        parserSettings,
+        setParserSetting,
     } = ctx;
 
     const [activeNavView, setActiveNavView] = useState(view);
+
+    // Replay is kept locally but published only on opt-in; the stats view marks
+    // it until then. Unknown settings (still loading) read as published, so
+    // nothing flashes. Retention off means no replay at all, so no marker either.
+    const replayPublishing = useMemo(() => ({
+        published: !parserSettings
+            || parserSettings.parseCombatReplay
+            || parserSettings.keepCombatReplayLocally === false,
+        onEnable: () => setParserSetting('parseCombatReplay', true),
+    }), [parserSettings, setParserSetting]);
     const navSwitchRafRef = useRef<number | null>(null);
 
     const [maximized, setMaximized] = useState(false);
@@ -384,7 +398,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                whole app — header included. With it, the width stops here and
                                `#stats-dashboard-container` scrolls horizontally instead. */
                             <div className="flex-1 min-h-0 min-w-0 flex gap-3">
-                                <CategoryBar />
+                                <CategoryBar unpublishedCategoryIds={replayPublishing.published ? undefined : UNPUBLISHED_REPLAY} />
                                 <div className="flex-1 min-w-0 min-h-0 flex flex-col">
                                     <StatsErrorBoundary>
                                         <StatsView
@@ -400,6 +414,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                             webUploadState={webUploadState}
                                             onWebUpload={handleWebUpload}
                                             webUploadLogEntries={webUploadLogEntries}
+                                            replayPublishing={replayPublishing}
                                         />
                                     </StatsErrorBoundary>
                                 </div>

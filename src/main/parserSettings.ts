@@ -14,24 +14,41 @@
  */
 export interface ParserSettings {
     /**
-     * Compute combat-replay positions.
+     * Publish combat replay with web reports.
      *
-     * NOT a pure performance toggle: it governs whether the app KEEPS the
-     * positions (`pruneDetailsForStats`), not whether axilog computes them.
+     * Only decides whether `replayFights` is uploaded (`isReplayPublishEnabled`);
+     * local retention is `keepCombatReplayLocally`. Publishing needs the local
+     * positions, so it is a no-op while retention is off.
      * axilog is always asked for `replay: true`, because turning it off also
      * drops `dist_to_com`/`stack_dist` and zeroes Closest-to-Tag for the whole
      * squad (issue #31).
      */
     parseCombatReplay: boolean;
+    /**
+     * Keep replay positions in the cached details (`statsPruneOptions`).
+     *
+     * On by default: Map Replay and the position-derived sections (tag
+     * distance, On Tag Review, stability performance) read them. Off coarse-
+     * prunes positions to save memory and cache size; Revives still works from
+     * the retained down/dead timings.
+     */
+    keepCombatReplayLocally: boolean;
     computeDamageModifiers: boolean;
     rawTimelineArrays: boolean;
 }
 
 export const DEFAULT_PARSER_SETTINGS: ParserSettings = {
     parseCombatReplay: false,
+    keepCombatReplayLocally: true,
     computeDamageModifiers: true,
     rawTimelineArrays: true,
 };
 
 /** The `electron-store` key. Retained from the Elite Insights era on purpose. */
 export const PARSER_SETTINGS_STORE_KEY = 'eiParserSettings';
+
+/** A persisted (possibly partial, possibly older) settings object over the defaults. */
+export const resolveParserSettings = (saved: Partial<ParserSettings> | undefined | null): ParserSettings => ({
+    ...DEFAULT_PARSER_SETTINGS,
+    ...(saved ?? {}),
+});

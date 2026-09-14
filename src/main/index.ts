@@ -86,7 +86,7 @@ import { registerReparseHandlers } from './handlers/reparseHandlers';
 import { AxilogManager } from './axilogParser';
 import { getSkillNameCache, initSkillNameCache } from './skillNameCache';
 import { removeEliteInsights } from './eliteInsightsRemoval';
-import { DEFAULT_PARSER_SETTINGS, PARSER_SETTINGS_STORE_KEY, type ParserSettings } from './parserSettings';
+import { DEFAULT_PARSER_SETTINGS, PARSER_SETTINGS_STORE_KEY, resolveParserSettings, type ParserSettings } from './parserSettings';
 import { parseCliFlags } from './cliFlags';
 
 const cliFlags = parseCliFlags(process.argv);
@@ -273,14 +273,15 @@ const isLocalParserAvailable = (): boolean => Boolean(axilogManager?.isInstalled
  */
 const activeParserVersion = (): string | null => getActiveParser()?.getStatus().version ?? null;
 
-// We always parse combat replay (EI v3.24+ only emits the distToCom/stackDist
-// distance scalars when it does; axilog never emits them and axilogParser.ts
-// derives them from the same replay positions), but only RETAIN the heavy
-// position arrays when the user's `parseCombatReplay` setting is on. Off =
-// coarse mode: keep the scalars (Closest to Tag still works), drop positions to
-// keep payloads small.
+// We always parse combat replay. Whether the position arrays are RETAINED locally
+// is `keepCombatReplayLocally` (default on), so Map Replay and the position-derived
+// sections work out of the box. `parseCombatReplay` only decides whether replay is
+// PUBLISHED with a web report (see githubHandlers). Coarse pruning used to be the
+// default and silently emptied features that read replay data (Revives).
 const statsPruneOptions = (): { keepReplayPositions: boolean } => ({
-    keepReplayPositions: Boolean(getActiveParser()?.getSettings().parseCombatReplay),
+    keepReplayPositions: resolveParserSettings(
+        store.get(PARSER_SETTINGS_STORE_KEY) as Partial<ParserSettings> | undefined
+    ).keepCombatReplayLocally,
 });
 let autoUpdateRetryAttempts = 0;
 let autoUpdateRetryTimer: NodeJS.Timeout | null = null;

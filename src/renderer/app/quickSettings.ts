@@ -94,11 +94,15 @@ const statsViewToggle = (
  * renders whatever this list holds and knows nothing about individual keys.
  */
 export const QUICK_SETTINGS: QuickSetting[] = [
-    parserToggle(
-        'parseCombatReplay',
-        'Combat Replay',
-        'Keep per-player position data. Required for Map Replay; off shrinks each log considerably.',
-    ),
+    {
+        ...parserToggle(
+            'parseCombatReplay',
+            'Publish Combat Replay',
+            'Include Map Replay in uploaded web reports. Off shrinks uploads considerably.',
+        ),
+        // Nothing to publish while positions are not kept locally.
+        isRelevant: (ctx) => ctx.parserSettings?.keepCombatReplayLocally !== false,
+    },
     statsViewToggle(
         'noEgoMode',
         'No Ego Mode',

@@ -16,6 +16,7 @@ import {
     describeR2Status,
     isR2ReplayEnabled,
     isR2SliceEnabled,
+    isReplayPublishEnabled,
     planSidecarHosting,
     resolveR2Config,
     resolveR2Uploader
@@ -192,6 +193,23 @@ describe('resolveR2Uploader', () => {
         // Manual keys are all present, but the mode says OAuth and there is no
         // session — falling back to the old keys would be a silent mode switch.
         expect(uploader).toBeNull();
+    });
+});
+
+describe('isReplayPublishEnabled', () => {
+    it('defaults to off when the parser settings were never saved', () => {
+        expect(isReplayPublishEnabled(makeStore({}))).toBe(false);
+    });
+
+    it('follows the saved parseCombatReplay setting', () => {
+        expect(isReplayPublishEnabled(makeStore({ eiParserSettings: { parseCombatReplay: true } }))).toBe(true);
+        expect(isReplayPublishEnabled(makeStore({ eiParserSettings: { parseCombatReplay: false } }))).toBe(false);
+    });
+
+    it('reads as off when replay is not kept locally, since there is nothing to publish', () => {
+        expect(isReplayPublishEnabled(makeStore({
+            eiParserSettings: { parseCombatReplay: true, keepCombatReplayLocally: false }
+        }))).toBe(false);
     });
 });
 

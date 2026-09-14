@@ -6,6 +6,7 @@ import type { IParserSettings } from '../../global.d';
 const PARSER_SETTINGS: IParserSettings = {
     computeDamageModifiers: true,
     parseCombatReplay: true,
+    keepCombatReplayLocally: true,
     rawTimelineArrays: false,
 };
 
@@ -52,6 +53,14 @@ describe('QUICK_SETTINGS registry', () => {
             r2HostingEnabled: false,
             r2SliceEnabled: true,
         });
+    });
+
+    it('hides Publish Combat Replay while replay is not kept locally', () => {
+        const publish = QUICK_SETTINGS.find((s) => s.id === 'parseCombatReplay')!;
+        expect(publish.isRelevant?.(makeContext())).toBe(true);
+        expect(publish.isRelevant?.(makeContext({
+            parserSettings: { ...PARSER_SETTINGS, keepCombatReplayLocally: false },
+        }))).toBe(false);
     });
 
     it('routes parser-backed writes to setParserSetting only', () => {

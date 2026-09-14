@@ -38,7 +38,7 @@ function makeElectronApiMock(settingsOverrides: Record<string, unknown> = {}) {
         }),
         ackEliteInsightsRemovalNotice: vi.fn(),
         getParserSettings: vi.fn().mockResolvedValue({
-            parseCombatReplay: false, computeDamageModifiers: true, rawTimelineArrays: true,
+            parseCombatReplay: false, keepCombatReplayLocally: true, computeDamageModifiers: true, rawTimelineArrays: true,
         }),
         saveParserSettings: vi.fn(),
         onParserSettingsChanged: vi.fn(() => () => {}),
