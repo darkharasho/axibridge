@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeBoonUptimePercentByPlayer } from '../boonUptimeAggregate';
+import { computeBoonUptimePercentByPlayer, computeFightUptimePercent } from '../boonUptimeAggregate';
 
 const FIGHTS = [
     { durationMs: 10_000, values: { 'Regular.1111': { buckets: [1, 0] } } },
@@ -82,5 +82,27 @@ describe('computeBoonUptimePercentByPlayer', () => {
         });
         expect(map.has('Ghost.3333')).toBe(false);
         expect(map.has('__all__')).toBe(false);
+    });
+});
+
+describe('computeFightUptimePercent', () => {
+    it('uses exact time-weighted coverage, not the share of buckets that saw the boon at all', () => {
+        // One 5s bucket held for 500ms of a 20s fight is 2.5% uptime; counting
+        // any non-zero bucket as covered read it as 25%.
+        expect(computeFightUptimePercent({ buckets: [0.1, 0, 0, 0], weightedMs: 500 }, 20_000)).toBeCloseTo(2.5);
+    });
+
+    it('does not let one covered subgroup member mark the whole subgroup covered', () => {
+        // Subgroup buckets are member averages: 1 of 5 members holding the boon
+        // the whole fight is 20%, not 100%.
+        expect(computeFightUptimePercent({ buckets: [0.2, 0.2], weightedMs: 2_000 }, 10_000)).toBeCloseTo(20);
+    });
+
+    it('falls back to the bucket mean for reports published before weightedMs', () => {
+        expect(computeFightUptimePercent({ buckets: [1, 0.5, 0, 0] }, 20_000)).toBeCloseTo(37.5);
+    });
+
+    it('is zero without a value', () => {
+        expect(computeFightUptimePercent(undefined, 20_000)).toBe(0);
     });
 });

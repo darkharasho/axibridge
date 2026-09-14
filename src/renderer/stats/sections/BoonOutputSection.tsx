@@ -64,6 +64,13 @@ export const BoonOutputSection = ({
         renderProfessionIcon,
     });
     const isExpanded = expandedSection === 'boon-output';
+    // Outside Self, "uptime" is what this player alone gave each recipient on
+    // average -- in a 40-man squad that is single digits for everyone, and
+    // reading it as the squad's uptime is how it gets reported as a bug.
+    const uptimeLabel = activeBoonCategory === 'selfBuffs' ? 'Uptime' : 'Uptime / Member';
+    const uptimeTitle = activeBoonCategory === 'selfBuffs'
+        ? 'Uptime this player gave themselves'
+        : `Average uptime this player alone gave each ${activeBoonCategory === 'groupBuffs' ? 'subgroup' : 'squad'} member. Squad-wide uptime is in Boon Uptime.`;
     const boonColumnOptions = filteredBoonTables.map((boon: any) => ({
         id: boon.id,
         label: boon.name,
@@ -291,7 +298,7 @@ export const BoonOutputSection = ({
                             return (
                                 <DenseStatsTable
                                     title="Boon Output - Dense View"
-                                    subtitle={`${activeBoonCategory.replace('Buffs', '')} • ${activeBoonMetric === 'total' ? 'Total Gen' : activeBoonMetric === 'average' ? 'Gen/Sec' : 'Uptime'}`}
+                                    subtitle={`${activeBoonCategory.replace('Buffs', '')} • ${activeBoonMetric === 'total' ? 'Total Gen' : activeBoonMetric === 'average' ? 'Gen/Sec' : uptimeLabel}`}
                                     sortColumnId={resolvedSortColumnId}
                                     sortDirection={denseSort.dir}
                                     onSortColumn={(columnId) => {
@@ -379,6 +386,7 @@ export const BoonOutputSection = ({
                                         <button
                                             type="button"
                                             onClick={() => updateSort('value')}
+                                            title={activeBoonMetric === 'uptime' ? uptimeTitle : undefined}
                                             className="text-right transition-colors"
                                             style={{ color: sortState.key === 'value' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
                                         >
@@ -386,7 +394,7 @@ export const BoonOutputSection = ({
                                                 ? 'Total'
                                                 : activeBoonMetric === 'average'
                                                     ? 'Gen/Sec'
-                                                    : 'Uptime'}
+                                                    : uptimeLabel}
                                             {sortState.key === 'value' ? (sortState.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                         </button>
                                         <button
