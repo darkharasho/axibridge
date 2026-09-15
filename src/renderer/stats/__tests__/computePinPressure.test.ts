@@ -155,7 +155,7 @@ describe('finalizePinPressure', () => {
         expect(r.unmeasuredFightCount).toBe(0);
     });
 
-    it('sorts scored fights first, hardest convergence first', () => {
+    it('lists fights newest first, scored or not', () => {
         const r = finalizePinPressure([
             fight('mild.zevtc', 'Mild', [
                 { account: 'Tag.1234', downs: 1, preDownCasts: 2, isCommander: true },
@@ -170,7 +170,7 @@ describe('finalizePinPressure', () => {
                 ...squad(6, 1, 2),
             ]),
         ]);
-        expect(r.fights.map(f => f.label)).toEqual(['Hard', 'Mild', 'None']);
+        expect(r.fights.map(f => f.label)).toEqual(['Hard', 'None', 'Mild']);
     });
 
     it('reads the pre-down window off the document instead of hardcoding it', () => {

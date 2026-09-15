@@ -188,10 +188,9 @@ export const finalizePinPressure = (ingests: EnemyAttentionIngest[]): PinPressur
     const pooledTagPerDown = tagDowns > 0 ? tagCasts / tagDowns : 0;
     const pooledOtherPerDown = otherDowns > 0 ? otherCasts / otherDowns : 0;
 
-    fights.sort((a, b) => {
-        if (a.comparable !== b.comparable) return a.comparable ? -1 : 1;
-        return b.ratio - a.ratio || a.label.localeCompare(b.label);
-    });
+    // Ingests arrive oldest-first (the aggregator sorts them by timestamp);
+    // the table lists the most recent fight first.
+    fights.reverse();
 
     return {
         fights,
