@@ -39,10 +39,12 @@ const formatTimestamp = (timestamp: number) => {
 };
 
 export const SquadCompByFightSection = ({
-    fights,
+    fights: fightsOldestFirst,
     getProfessionIconPath
 }: SquadCompByFightSectionProps) => {
     useStatsSharedContext();
+    // Fights arrive oldest-first; tabs list (and default to) the newest.
+    const fights = useMemo(() => [...fightsOldestFirst].reverse(), [fightsOldestFirst]);
     const [activeFightId, setActiveFightId] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const normalizedSearch = search.trim().toLowerCase();

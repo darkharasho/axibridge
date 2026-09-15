@@ -1,6 +1,11 @@
 import type { ReplayFightPayload } from './replayTypes';
 import type { SquadMemberMovement } from '../../../shared/movementData';
 
+/** Newest fight first; ties broken by the later ingest index. Returns a new array. */
+export function sortFightsNewestFirst(fights: ReplayFightPayload[]): ReplayFightPayload[] {
+    return [...fights].sort((a, b) => (b.timestampMs - a.timestampMs) || (b.fightIndex - a.fightIndex));
+}
+
 export function pickDefaultFightId(fights: ReplayFightPayload[]): string | null {
     if (!fights.length) return null;
     let best = fights[0];

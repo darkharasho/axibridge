@@ -20,7 +20,11 @@ type TargetSortKey = 'aDamage' | 'aShare' | 'bDamage' | 'bShare' | 'shareDelta';
 
 export const FightDiffModeSection = () => {
     const { stats, formatWithCommas, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection } = useStatsSharedContext();
-    const fights = (Array.isArray(stats?.fightDiffMode) ? stats.fightDiffMode : []) as DiffFightRow[];
+    // Stored oldest-first; the dropdowns list newest-first.
+    const fights = useMemo(
+        () => (Array.isArray(stats?.fightDiffMode) ? [...stats.fightDiffMode].reverse() : []) as DiffFightRow[],
+        [stats?.fightDiffMode]
+    );
     const fightDiffMissingFromDataset = !Array.isArray(stats?.fightDiffMode) && Array.isArray(stats?.fightBreakdown) && stats.fightBreakdown.length > 0;
     const [fightAId, setFightAId] = useState<string>('');
     const [fightBId, setFightBId] = useState<string>('');
@@ -32,15 +36,17 @@ export const FightDiffModeSection = () => {
             setFightBId('');
             return;
         }
-        const firstId = String(fights[0]?.id || '');
-        const secondId = String(fights[1]?.id || fights[0]?.id || '');
+        // B defaults to the newest fight and A to the one before it, so the
+        // deltas still read as "what changed since the previous fight".
+        const newestId = String(fights[0]?.id || '');
+        const previousId = String(fights[1]?.id || fights[0]?.id || '');
         setFightAId((prev) => {
             if (prev && fights.some((fight) => String(fight.id) === prev)) return prev;
-            return firstId;
+            return previousId;
         });
         setFightBId((prev) => {
             if (prev && fights.some((fight) => String(fight.id) === prev)) return prev;
-            return secondId;
+            return newestId;
         });
     }, [fights]);
 

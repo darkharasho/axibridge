@@ -15,6 +15,7 @@
 import { readEntitySeries } from '@axiapps/bridge-metrics';
 import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
 import { buildFightLabelV2, computeFightAvgPosition } from './utils/labelUtils';
+import { resolveFightTimestamp } from './utils/timestampUtils';
 
 export const CONTROL_BUCKET_MS = 5000;
 const NATIVE_INTERVAL_MS = 1000;
@@ -82,6 +83,12 @@ export type ControlFightData = {
      * this field existed, which is falsy, which is the honest answer.
      */
     ccInRecorded: boolean;
+    /**
+     * Fight start, for chronological ordering (F1 = earliest, matching Fight
+     * Breakdown). Absent on a `report.json` written before this field
+     * existed; those keep their stored order.
+     */
+    timestampMs?: number;
 };
 
 export type ControlTimelineAccumulator = {
@@ -194,6 +201,7 @@ export function ingestLogControlTimeline(log: any, acc: ControlTimelineAccumulat
     acc.fights.push({
         id: fightId, label, bucketCount, durationMs, players: playersOut,
         recorded: sawLane, ccInRecorded: sawCcIn,
+        timestampMs: resolveFightTimestamp(details, log),
     });
 }
 
@@ -216,7 +224,15 @@ export function mergeControlTimelineFrame(
 export function finalizeControlTimeline(
     acc: ControlTimelineAccumulator,
 ): { fights: ControlFightData[]; recorded: boolean } {
-    return { fights: acc.fights, recorded: acc.recorded };
+    // Worker frames merge in completion order, not fight order. Stable sort,
+    // so fights without a timestamp keep their relative order.
+    const fights = [...acc.fights].sort((a, b) => {
+        const aTs = Number(a.timestampMs) || 0;
+        const bTs = Number(b.timestampMs) || 0;
+        if (aTs > 0 && bTs > 0) return aTs - bTs;
+        return aTs > 0 ? -1 : bTs > 0 ? 1 : 0;
+    });
+    return { fights, recorded: acc.recorded };
 }
 
 export type IncomingLaneScope = 'player' | 'squad';

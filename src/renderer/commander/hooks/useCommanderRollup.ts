@@ -62,6 +62,9 @@ export function useCommanderRollup(logs: ILogData[]): CommanderRollup | null {
       contributions.push(contrib);
     }
     if (contributions.length === 0) return null;
+    // `logs` is newest-first (by arrival); the sparkline and span read
+    // oldest-to-newest by fight start.
+    contributions.sort((a, b) => a.startedAt - b.startedAt);
 
     const kills = contributions.reduce((a, c) => a + c.kills, 0);
     const squadDeaths = contributions.reduce((a, c) => a + c.squadDeaths, 0);

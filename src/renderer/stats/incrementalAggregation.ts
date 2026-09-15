@@ -222,7 +222,10 @@ export function buildReplayFightPayload(log: any, fightIndex: number, opts?: { p
         fightId,
         fightIndex,
         label,
-        timestampMs: Number(log?.uploadTime ? log.uploadTime * 1000 : log?.timestampMs ?? 0),
+        // Fight start, not upload time: logs uploaded or parsed in one batch
+        // share near-identical upload times, which picked the wrong "newest".
+        timestampMs: resolveFightTimestamp(details, log)
+            || Number(log?.uploadTime ? log.uploadTime * 1000 : log?.timestampMs ?? 0),
         durationMs: Number(details?.durationMS) || 0,
         mapKey,
         mapImageUrl: arena?.image_url ?? null,

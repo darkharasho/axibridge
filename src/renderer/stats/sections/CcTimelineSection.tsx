@@ -37,7 +37,7 @@ export const CcTimelineSection: React.FC<CcTimelineSectionProps> = ({
     const resolvedFightId = internalFightId;
 
     const fight = useMemo(
-        () => fights.find(f => f.id === resolvedFightId) || fights[0] || null,
+        () => fights.find(f => f.id === resolvedFightId) || fights[fights.length - 1] || null,
         [fights, resolvedFightId],
     );
 

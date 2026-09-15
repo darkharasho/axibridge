@@ -73,9 +73,11 @@ export function FightPicker<T extends TimelinePickerFight>({ fights, selectedId,
             className="fight-diff-select rounded-[var(--radius-md)] border border-[color:var(--border-default)] px-3 py-1 text-xs focus:outline-none"
             style={{ background: 'var(--bg-input)', color: 'var(--text-primary)' }}
         >
+            {/* `fights` is oldest-first (F1 = earliest); options list newest-first
+                but keep their chronological F-number. */}
             {fights.map((f, i) => (
                 <option key={f.id} value={f.id}>{fightPickerLabel(f, i)}</option>
-            ))}
+            )).reverse()}
         </select>
     );
 }
