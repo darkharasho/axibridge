@@ -113,6 +113,10 @@ type CommanderStatsSectionProps = {
     getProfessionIconPath: (profession: string) => string | null;
 };
 
+// fightsData is stored oldest-first (shortLabel F1 = earliest); every
+// per-fight list here shows the newest fight first.
+const newestFirst = (fights: CommanderFightRow[] | undefined): CommanderFightRow[] => [...(fights || [])].reverse();
+
 const formatDuration = (timeMs: number) => {
     const totalSeconds = Math.max(0, Math.floor(Number(timeMs || 0) / 1000));
     const hours = Math.floor(totalSeconds / 3600);
@@ -233,7 +237,7 @@ export const CommanderTargetConversionSection = ({
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {(selectedCommander.fightsData || []).map((fight) => (
+                                    {newestFirst(selectedCommander.fightsData).map((fight) => (
                                         <tr key={`${fight.id}-target-conversion`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
                                             <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</td>
                                             <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(fight.downs)}</td>
@@ -352,7 +356,7 @@ export const CommanderTagMovementSection = ({
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {(selectedCommander.fightsData || []).map((fight) => (
+                                    {newestFirst(selectedCommander.fightsData).map((fight) => (
                                         <tr key={`${fight.id}-tag-movement`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
                                             <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</td>
                                             <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(fight.distanceTraveled, 0)}</td>
@@ -399,7 +403,7 @@ export const CommanderTagDeathResponseSection = ({
         [rows, selectedCommanderKey]
     );
     const deathFights = useMemo(
-        () => (selectedCommander?.fightsData || []).filter((fight) => fight.commanderDiedAtMs !== null),
+        () => newestFirst(selectedCommander?.fightsData).filter((fight) => fight.commanderDiedAtMs !== null),
         [selectedCommander]
     );
     const hasPostDeathEnemyData = useMemo(
@@ -612,7 +616,7 @@ export const CommanderPushTimingSection = ({
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {(selectedCommander.fightsData || []).map((fight) => (
+                                    {newestFirst(selectedCommander.fightsData).map((fight) => (
                                         <tr key={`${fight.id}-push-timing`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
                                             <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</td>
                                             <td className={`py-2 px-3 text-right font-semibold ${fight.isWin ? 'text-emerald-300' : 'text-rose-300'}`}>
@@ -893,7 +897,7 @@ export const CommanderStatsSection = ({
                                                 onChange={(event) => setSelectedFightId(event.target.value)}
                                                 className="bg-[var(--bg-card-inner)] border border-[color:var(--border-default)] rounded-md px-2 py-1 text-xs text-[color:var(--text-primary)]"
                                             >
-                                                {(selectedCommander.fightsData || []).map((fight) => (
+                                                {newestFirst(selectedCommander.fightsData).map((fight) => (
                                                     <option key={fight.id} value={fight.id}>{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</option>
                                                 ))}
                                             </select>

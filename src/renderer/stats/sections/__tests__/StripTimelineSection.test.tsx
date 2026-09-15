@@ -77,10 +77,11 @@ describe('StripTimelineSection', () => {
             },
         ];
         render(<StripTimelineSection fights={multiFights as any} recorded selectedFightId={null} />);
-        expect(screen.getByTitle(/Alice — 0:00: 3/)).toBeTruthy();
-        const picker = screen.getByRole('combobox') as HTMLSelectElement;
-        fireEvent.change(picker, { target: { value: 'logs/fight-two.zevtc' } });
+        // Opens on the newest (last) fight.
         expect(screen.getByTitle(/Alice — 0:00: 9/)).toBeTruthy();
+        const picker = screen.getByRole('combobox') as HTMLSelectElement;
+        fireEvent.change(picker, { target: { value: 'logs/fight-one.zevtc' } });
+        expect(screen.getByTitle(/Alice — 0:00: 3/)).toBeTruthy();
     });
 
     it('says why there is nothing to show when a trimmed report leaves no fights', () => {

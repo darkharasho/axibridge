@@ -17,7 +17,7 @@ import { FullscreenPortal } from './FullscreenPortal';
 import { useReplayPlayback } from './hooks/useReplayPlayback';
 import { useReplayViewport } from './hooks/useReplayViewport';
 import { useMovementData } from './hooks/useMovementData';
-import { pickDefaultFightId, findClosestMember } from './replaySelectors';
+import { pickDefaultFightId, findClosestMember, sortFightsNewestFirst } from './replaySelectors';
 import { sampleAt } from './layers/MemberLayer';
 import { ReplayMapContent } from './ReplayMapContent';
 import type { MemberHoverInfo } from './layers/MemberLayer';
@@ -87,10 +87,24 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
     // Stable ref so the drag handler can read followMember without being recreated.
     const followMemberRef = useRef<SquadMemberMovement | null>(null);
 
+    // Picker cards list newest-first; the ◀ ▶ pill keeps chronological order
+    // so "previous" still means the earlier fight.
+    const fightsNewestFirst = useMemo(() => sortFightsNewestFirst(fights), [fights]);
+    const fightsChronological = useMemo(() => [...fightsNewestFirst].reverse(), [fightsNewestFirst]);
+
+    // The selection lives in the store and outlives the fight list, so pick
+    // the newest fight when nothing valid is selected, and follow the newest
+    // when a fight arrives while the user is still on the auto-picked one.
+    const autoPickedIdRef = useRef<string | null>(null);
     useEffect(() => {
-        if (!selectedId && fights.length) {
-            const def = pickDefaultFightId(fights);
-            if (def) setSelectedReplayFight(def);
+        if (!fights.length) return;
+        const def = pickDefaultFightId(fights);
+        if (!def) return;
+        const selectionValid = !!selectedId && fights.some(f => f.fightId === selectedId);
+        const onAutoPick = !!selectedId && selectedId === autoPickedIdRef.current;
+        if ((!selectionValid || onAutoPick) && def !== selectedId) {
+            autoPickedIdRef.current = def;
+            setSelectedReplayFight(def);
         }
     }, [selectedId, fights, setSelectedReplayFight]);
 
@@ -365,7 +379,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                         ✕ Close
                                     </button>
                                 </div>
-                                <FightPicker fights={fights} onSelect={() => setPickerCollapsed(true)} />
+                                <FightPicker fights={fightsNewestFirst} onSelect={() => setPickerCollapsed(true)} />
                             </div>
                         )}
 
@@ -402,7 +416,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
 
                         {/* 4. Fight identity, centred */}
                         <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 15 }}>
-                            <FightIdentityPill fights={fights} onOpenPicker={openPicker} />
+                            <FightIdentityPill fights={fightsChronological} onOpenPicker={openPicker} />
                         </div>
 
                         {/* 5. Layers + legend/scale, merged into one left column so an

@@ -34,10 +34,12 @@ const formatTimestamp = (timestamp: number) => {
 };
 
 export const FightCompSection = ({
-    fights,
+    fights: fightsOldestFirst,
     getProfessionIconPath
 }: FightCompSectionProps) => {
     useStatsSharedContext();
+    // Fights arrive oldest-first; tabs list (and default to) the newest.
+    const fights = useMemo(() => [...fightsOldestFirst].reverse(), [fightsOldestFirst]);
     const [activeFightId, setActiveFightId] = useState<string | null>(null);
 
     useEffect(() => {

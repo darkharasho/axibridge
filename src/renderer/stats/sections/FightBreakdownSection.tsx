@@ -35,7 +35,12 @@ export const FightBreakdownSection = ({
     const { stats, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection } = useStatsSharedContext();
     const sectionId = 'fight-breakdown';
     const isExpanded = expandedSection === sectionId;
-    const fights = Array.isArray(stats?.fightBreakdown) ? stats.fightBreakdown : [];
+    // Stored oldest-first (F1 = earliest); listed newest-first. Row numbers
+    // keep the chronological F-number, so they count down.
+    const fights = useMemo(
+        () => (Array.isArray(stats?.fightBreakdown) ? [...stats.fightBreakdown].reverse() : []),
+        [stats?.fightBreakdown]
+    );
 
     // Team columns are keyed by real color (Red/Green/Blue/Unknown) and ordered
     // canonically. Same-color enemy teams across fights merge into one column.
@@ -192,7 +197,7 @@ export const FightBreakdownSection = ({
                 id: String(fight.id || `${fight.label}-${idx}`),
                 label: (
                     <div className="min-w-0">
-                        <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-muted)]">{idx + 1}</div>
+                        <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-muted)]">{fights.length - idx}</div>
                         {renderReportCell(fight)}
                     </div>
                 ),
@@ -318,7 +323,7 @@ export const FightBreakdownSection = ({
                                 <tbody>
                                     {fights.map((fight: any, idx: number) => (
                                         <tr key={fight.id || `${fight.label}-${idx}`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-muted)] w-8">{idx + 1}</td>
+                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-muted)] w-8">{fights.length - idx}</td>
                                             <td className="py-2 px-3 w-[240px]">{renderReportCell(fight)}</td>
                                             <td className="py-2 px-3 text-[color:var(--text-primary)] w-20">{fight.duration || '--:--'}</td>
                                             <td
