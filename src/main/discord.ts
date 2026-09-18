@@ -1368,14 +1368,20 @@ export class DiscordNotifier {
                         try {
                             await this.postEmbedsWithImage(embeds, slicePng);
                         } catch (err: any) {
-                            // A relay that predates the `image` whitelist entry 400s here.
-                            // The report still matters; the picture does not.
+                            // The slice is decorative: ANY failure to post it — a
+                            // relay 400 (predates the `image` whitelist entry), a
+                            // timeout, a 5xx, a 413 on the multipart body, a bare
+                            // network error — must fall back to the plain payload
+                            // rather than lose the whole report. If that retry also
+                            // fails, let it propagate: at that point it's a genuine
+                            // destination failure, not a slice failure, and the
+                            // existing sendLog retry/classify logic needs to see it.
                             if (err?.response?.status === 400) {
                                 console.warn('[Discord] destination rejected the map slice; sending without it.');
-                                await this.postPayload({ embeds });
                             } else {
-                                throw err;
+                                console.warn('[Discord] failed to post the map slice; sending without it.', err?.message || err);
                             }
+                            await this.postPayload({ embeds });
                         }
                     } else {
                         await this.postPayload({ embeds });
