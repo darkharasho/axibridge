@@ -79,4 +79,21 @@ describe('resolveTiles', () => {
         expect(fetcher).not.toHaveBeenCalled();
     });
 
+    it('resolves by deadlineMs instead of waiting on a slow-but-not-hung fetch, keeping only what finished', async () => {
+        const fetcher = vi.fn((url: string) => {
+            if (url.includes('slow')) return new Promise<Buffer>(() => {}); // never settles within the test
+            return Promise.resolve(PNG);
+        });
+        const start = Date.now();
+        const out = await resolveTiles(
+            [placement('https://x/fast.jpg'), placement('https://x/slow.jpg')],
+            { cacheDir: dir, fetcher, concurrency: 2, deadlineMs: 30 },
+        );
+        const elapsed = Date.now() - start;
+        // Generous upper bound: proves resolveTiles did not fall back to
+        // waiting on the hung fetch (which never resolves at all).
+        expect(elapsed).toBeLessThan(2000);
+        expect(out).toHaveLength(1);
+        expect(out[0].url.startsWith('data:')).toBe(true);
+    });
 });
