@@ -10,6 +10,9 @@ export interface BuildMapSliceDeps {
     cacheDir: string;
     timeoutMs?: number;
     resolveTilesFn?: typeof resolveTiles;
+    /** Injection seam for tests: lets the skip paths past `buildSliceDrawList`
+     *  be exercised without a real position track. Production callers omit it. */
+    buildDrawListFn?: typeof buildSliceDrawList;
 }
 
 type Pending = (png: Uint8Array | null) => void;
@@ -47,7 +50,8 @@ export async function buildMapSlice(
     deps: BuildMapSliceDeps,
 ): Promise<Buffer | null> {
     try {
-        const drawList = buildSliceDrawList(details, zone);
+        const buildDrawListFn = deps.buildDrawListFn ?? buildSliceDrawList;
+        const drawList = buildDrawListFn(details, zone);
         if (!drawList) return null;
 
         const resolveTilesFn = deps.resolveTilesFn ?? resolveTiles;
@@ -70,9 +74,16 @@ export async function buildMapSlice(
                 resolve(result);
             });
 
-            if (!deps.requestPaint(requestId, { ...drawList, tiles })) {
+            try {
+                if (!deps.requestPaint(requestId, { ...drawList, tiles })) {
+                    clearTimeout(timer);
+                    pending.delete(requestId);
+                    resolve(null);
+                }
+            } catch (err) {
                 clearTimeout(timer);
                 pending.delete(requestId);
+                console.warn('[MapSlice] requestPaint threw; skipping the image.', err);
                 resolve(null);
             }
         });
