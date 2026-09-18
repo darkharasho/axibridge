@@ -9,7 +9,9 @@ const bridgeWebhook: Webhook = {
     relayUrl: 'https://bot.example.com',
     token: 'axb1.secret',
     guildName: 'Vigil Keep',
-    channelName: 'wvw-reports'
+    channelName: 'wvw-reports',
+    guildId: 'guild-111',
+    channelId: 'chan-222'
 };
 
 describe('WebhookModal — AxiTools bridge link flow', () => {
@@ -103,12 +105,19 @@ describe('WebhookModal — AxiTools bridge link flow', () => {
     // I5, second half: re-linking the same guild+channel (the expected
     // recovery path after a revoke) must replace the token on the existing
     // row rather than append a second entry for the same destination.
-    it('replaces the token on an existing row when guild+channel match, instead of adding a second entry', async () => {
+    //
+    // N3: the match must survive a rename between link attempts, which a
+    // name-based comparison cannot -- so this now asserts the match happens
+    // via `guildId`/`channelId` even though the display names returned by
+    // this link attempt differ from what's stored on the row.
+    it('replaces the token on an existing row when the channel was renamed since the original link (IDs still match)', async () => {
         (window as any).electronAPI.linkBridgeChannel = vi.fn().mockResolvedValue({
             ok: true,
-            guildName: 'Vigil Keep',
-            channelName: 'wvw-reports',
-            relayUrl: 'https://bot.example.com'
+            guildName: 'Vigil Keep Renamed',
+            channelName: 'wvw-reports-v2',
+            relayUrl: 'https://bot.example.com',
+            guildId: 'guild-111',
+            channelId: 'chan-222'
         });
         const revokedWebhook: Webhook = { ...bridgeWebhook, token: undefined };
         const onSave = vi.fn();
@@ -126,5 +135,86 @@ describe('WebhookModal — AxiTools bridge link flow', () => {
         expect(savedWebhooks[0].id).toBe(revokedWebhook.id);
         expect(savedWebhooks[0].token).toBe('axb1.aGVsbG8.newsecretnewsecretnewsecretnewsecret');
         expect(selectedId).toBe(revokedWebhook.id);
+    });
+
+    // N3: two guilds can share a display name (Discord allows duplicates).
+    // A name-based match would target the wrong guild's row and overwrite a
+    // working pairing's token with another guild's. Matching on `guildId`/
+    // `channelId` must keep the two rows independent even when their names
+    // (guild AND channel) are identical.
+    it('does not touch a different guild\'s row when two guilds share a display name', async () => {
+        const rowA: Webhook = { ...bridgeWebhook, id: 'row-a', guildId: 'guild-A', channelId: 'chan-A', token: 'axb1.rowA-secret' };
+        const rowB: Webhook = { ...bridgeWebhook, id: 'row-b', guildId: 'guild-B', channelId: 'chan-B', token: undefined };
+        (window as any).electronAPI.linkBridgeChannel = vi.fn().mockResolvedValue({
+            ok: true,
+            guildName: 'Vigil Keep', // same display name as rowA
+            channelName: 'wvw-reports', // same display name as rowA
+            relayUrl: 'https://bot.example.com',
+            guildId: 'guild-B',
+            channelId: 'chan-B'
+        });
+        const onSave = vi.fn();
+
+        render(<WebhookModal isOpen webhooks={[rowA, rowB]} onClose={() => {}} onSave={onSave} />);
+
+        fireEvent.click(screen.getByText('Link AxiTools channel'));
+        fireEvent.change(screen.getByPlaceholderText('axb1.…'), { target: { value: 'axb1.aGVsbG8.newsecretnewsecretnewsecretnewsecret' } });
+        fireEvent.click(screen.getByText('Link Channel'));
+
+        await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+
+        const [savedWebhooks] = onSave.mock.calls[0];
+        expect(savedWebhooks).toHaveLength(2);
+        const savedA = savedWebhooks.find((w: Webhook) => w.id === 'row-a');
+        const savedB = savedWebhooks.find((w: Webhook) => w.id === 'row-b');
+        // rowA's working token must survive untouched.
+        expect(savedA.token).toBe('axb1.rowA-secret');
+        // rowB is the one that got re-linked.
+        expect(savedB.token).toBe('axb1.aGVsbG8.newsecretnewsecretnewsecretnewsecret');
+    });
+
+    // N3 backward compatibility: entries persisted before this round have no
+    // stored `guildId`/`channelId` at all -- a user upgrading mid-feature has
+    // exactly this shape. The match must fall back to names for those (and
+    // only those) rows, without throwing, and the freshly-returned IDs get
+    // adopted so subsequent re-links use the stronger key.
+    it('still matches a legacy entry with no stored IDs by name, without throwing', async () => {
+        const legacyWebhook: Webhook = {
+            id: 'legacy-1',
+            name: 'Vigil Keep › #wvw-reports',
+            kind: 'bridge',
+            relayUrl: 'https://bot.example.com',
+            token: undefined,
+            guildName: 'Vigil Keep',
+            channelName: 'wvw-reports'
+            // no guildId / channelId -- pre-N3 persisted shape
+        };
+        (window as any).electronAPI.linkBridgeChannel = vi.fn().mockResolvedValue({
+            ok: true,
+            guildName: 'Vigil Keep',
+            channelName: 'wvw-reports',
+            relayUrl: 'https://bot.example.com',
+            guildId: 'guild-999',
+            channelId: 'chan-999'
+        });
+        const onSave = vi.fn();
+
+        expect(() => {
+            render(<WebhookModal isOpen webhooks={[legacyWebhook]} onClose={() => {}} onSave={onSave} />);
+        }).not.toThrow();
+
+        fireEvent.click(screen.getByText('Link AxiTools channel'));
+        fireEvent.change(screen.getByPlaceholderText('axb1.…'), { target: { value: 'axb1.aGVsbG8.legacysecretlegacysecretlegacysecret' } });
+        fireEvent.click(screen.getByText('Link Channel'));
+
+        await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+
+        const [savedWebhooks, selectedId] = onSave.mock.calls[0];
+        expect(savedWebhooks).toHaveLength(1);
+        expect(savedWebhooks[0].id).toBe('legacy-1');
+        expect(savedWebhooks[0].token).toBe('axb1.aGVsbG8.legacysecretlegacysecretlegacysecret');
+        expect(savedWebhooks[0].guildId).toBe('guild-999');
+        expect(savedWebhooks[0].channelId).toBe('chan-999');
+        expect(selectedId).toBe('legacy-1');
     });
 });

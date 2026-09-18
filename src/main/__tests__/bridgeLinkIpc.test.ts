@@ -33,7 +33,7 @@ describe('linkBridgeChannel', () => {
     it('validates the key against the relay and returns display labels', async () => {
         vi.mocked(axios.get).mockReset();
         vi.mocked(axios.get).mockResolvedValue({
-            data: { guild_name: 'Vigil Keep', channel_name: 'wvw-reports' },
+            data: { guild_name: 'Vigil Keep', channel_name: 'wvw-reports', guild_id: '111', channel_id: '222' },
         } as never);
 
         const result = await linkBridgeChannel(key);
@@ -42,6 +42,8 @@ describe('linkBridgeChannel', () => {
             relayUrl: 'https://bot.example.com',
             guildName: 'Vigil Keep',
             channelName: 'wvw-reports',
+            guildId: '111',
+            channelId: '222',
         });
         expect(vi.mocked(axios.get).mock.calls[0][0]).toBe('https://bot.example.com/bridge/whoami');
     });

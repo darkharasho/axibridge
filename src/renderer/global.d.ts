@@ -14,6 +14,13 @@ export interface IWebhook {
     token?: string;
     guildName?: string;
     channelName?: string;
+    /**
+     * N3: stable identity for re-link matching. Not secrets -- fine to
+     * persist and display. Absent on entries persisted before this field
+     * existed.
+     */
+    guildId?: string;
+    channelId?: string;
 }
 
 // Discord embed stat toggle settings
@@ -497,7 +504,7 @@ export interface IElectronAPI {
 
     // AxiTools bridge — link a Discord channel paired via `/bridge pair`.
     linkBridgeChannel: (key: string) => Promise<
-        | { ok: true; guildName: string; channelName: string; relayUrl: string }
+        | { ok: true; guildName: string; channelName: string; relayUrl: string; guildId: string; channelId: string }
         | { ok: false; error: string }
     >;
     onDiscordDestinationStatus: (callback: (payload: { webhookId: string | null; reason: string; message: string }) => void) => () => void;

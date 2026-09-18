@@ -72,6 +72,8 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
                     token: w.token,
                     guildName: w.guildName,
                     channelName: w.channelName,
+                    guildId: w.guildId,
+                    channelId: w.channelId,
                 })));
             }
             if (settings.selectedWebhookId) {

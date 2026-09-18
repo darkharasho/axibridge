@@ -14,6 +14,13 @@ export interface Webhook {
     token?: string;
     guildName?: string;
     channelName?: string;
+    /**
+     * N3: stable identity for re-link matching. Not secrets -- fine to
+     * persist and display. Absent on entries persisted before this field
+     * existed; see the fallback in `handleLinkSubmit`.
+     */
+    guildId?: string;
+    channelId?: string;
 }
 
 interface WebhookModalProps {
@@ -123,14 +130,29 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
             // I5, second half: re-linking the SAME guild+channel (the common
             // recovery path after a revoke) should replace the token on the
             // existing row, not append a second entry for the same
-            // destination. Match on the identity `/bridge pair` already
-            // scopes a key to, not on name (which the user could have
-            // renamed) or id.
-            const existing = localWebhooks.find((w) =>
-                w.kind === 'bridge' && w.guildName === result.guildName && w.channelName === result.channelName
-            );
+            // destination.
+            //
+            // N3: match on `guild_id`/`channel_id` -- the identity
+            // `/bridge/whoami` scopes a key to -- rather than on display
+            // names. Names can be renamed between link attempts, and two
+            // guilds can share a display name, either of which mis-targets a
+            // name-based match (append a dead duplicate, or overwrite a
+            // different guild's row).
+            //
+            // Fallback: entries persisted before this field existed have no
+            // stored `guildId`/`channelId` at all. For those, and ONLY those,
+            // fall back to the old name comparison so a legacy row can still
+            // be re-linked in place instead of permanently duplicating on
+            // every user's first re-link after the upgrade.
+            const existing = localWebhooks.find((w) => {
+                if (w.kind !== 'bridge') return false;
+                if (w.guildId && w.channelId) {
+                    return w.guildId === result.guildId && w.channelId === result.channelId;
+                }
+                return w.guildName === result.guildName && w.channelName === result.channelName;
+            });
             const linked: Webhook = existing
-                ? { ...existing, relayUrl: result.relayUrl, token: key }
+                ? { ...existing, relayUrl: result.relayUrl, token: key, guildId: result.guildId, channelId: result.channelId }
                 : {
                     id: crypto.randomUUID(),
                     name: `${result.guildName} › #${result.channelName}`,
@@ -138,7 +160,9 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                     relayUrl: result.relayUrl,
                     token: key,
                     guildName: result.guildName,
-                    channelName: result.channelName
+                    channelName: result.channelName,
+                    guildId: result.guildId,
+                    channelId: result.channelId
                 };
             const next = existing
                 ? localWebhooks.map((w) => (w.id === existing.id ? linked : w))
