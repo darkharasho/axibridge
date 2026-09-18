@@ -53,6 +53,8 @@ export interface IEmbedStatSettings {
     showDamageMitigation: boolean;
     maxTopListRows: number;
     classDisplay: 'off' | 'short' | 'emoji';
+    /** Attach a map slice showing where the fight happened. */
+    includeMapSlice: boolean;
 }
 
 export interface IMvpWeights {
@@ -181,6 +183,7 @@ export const DEFAULT_EMBED_STATS: IEmbedStatSettings = {
     showDamageMitigation: false,
     maxTopListRows: 10,
     classDisplay: 'off',
+    includeMapSlice: true,
 };
 
 export const DEFAULT_MVP_WEIGHTS: IMvpWeights = {
