@@ -73,6 +73,7 @@ function App() {
         particlesEnabled, setParticlesEnabled,
         webhooks, setWebhooks,
         selectedWebhookId, setSelectedWebhookId,
+        discordDestinationStatus, setDiscordDestinationStatus,
         handleUpdateSettings,
         handleSelectDirectory,
         whatsNewVersion,
@@ -850,6 +851,18 @@ function App() {
                         </button>
                     </ParticleHover>
                 </div>
+                {discordDestinationStatus && (
+                    <div className="mt-2 flex items-start justify-between gap-2 rounded-[3px] border border-rose-400/25 bg-rose-400/5 px-2 py-1.5">
+                        <p className="text-[11px] text-rose-300">{discordDestinationStatus.message}</p>
+                        <button
+                            type="button"
+                            onClick={() => setDiscordDestinationStatus(null)}
+                            className="shrink-0 text-[10px] text-gray-500 hover:text-gray-300"
+                        >
+                            Dismiss
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Session card */}

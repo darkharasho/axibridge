@@ -494,6 +494,13 @@ export interface IElectronAPI {
     saveParserSettings: (settings: Partial<IParserSettings>) => void;
     onParserSettingsChanged: (callback: (settings: IParserSettings) => void) => () => void;
     onParseProgress: (callback: (data: { logId: string; message: string }) => void) => () => void;
+
+    // AxiTools bridge — link a Discord channel paired via `/bridge pair`.
+    linkBridgeChannel: (key: string) => Promise<
+        | { ok: true; guildName: string; channelName: string; relayUrl: string }
+        | { ok: false; error: string }
+    >;
+    onDiscordDestinationStatus: (callback: (payload: { webhookId: string | null; reason: string; message: string }) => void) => () => void;
 }
 
 /** Payload of the `parser:get-status` IPC handler. */
