@@ -372,7 +372,8 @@ export class DiscordNotifier {
         } catch (error) {
             const result = this.classify(error);
             if (result.reason === 'rate-limited' || result.reason === 'network') {
-                const parsedRetryAfter = Number((error as any)?.response?.headers?.['retry-after']);
+                const rawRetryAfter = String((error as any)?.response?.headers?.['retry-after'] ?? '').trim();
+                const parsedRetryAfter = rawRetryAfter === '' ? NaN : Number(rawRetryAfter);
                 const waited = Number.isFinite(parsedRetryAfter) && parsedRetryAfter >= 0 ? parsedRetryAfter : 2;
                 await new Promise(resolve => setTimeout(resolve, waited * 1000));
                 try {

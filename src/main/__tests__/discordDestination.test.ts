@@ -184,6 +184,25 @@ describe('DiscordNotifier destination dispatch', () => {
         expect(elapsed).toBeLessThan(1800);
     });
 
+    it('retries a 429 once, falling back to the 2s default when Retry-After is empty', async () => {
+        vi.mocked(axios.post)
+            .mockRejectedValueOnce({ response: { status: 429, headers: { 'retry-after': '' } } } as never)
+            .mockResolvedValueOnce({ status: 202, data: { queued: true } } as never);
+        const notifier = new DiscordNotifier();
+        notifier.setDestination({ kind: 'bridge', relayUrl: 'https://b', token: 't' });
+
+        const start = Date.now();
+        const result = await notifier.sendLog(logData, details);
+        const elapsed = Date.now() - start;
+
+        expect(result).toEqual({ ok: true });
+        expect(vi.mocked(axios.post)).toHaveBeenCalledTimes(2);
+        // `Number('')` is `0`, which is finite and >= 0 — an empty header
+        // must NOT be read as "retry immediately"; it must fall back to the
+        // 2s default like a missing/unparsable header would.
+        expect(elapsed).toBeGreaterThanOrEqual(1800);
+    });
+
     it('never falls back to another destination after a bridge failure', async () => {
         vi.mocked(axios.post).mockRejectedValue({ response: { status: 500 } } as never);
         const notifier = new DiscordNotifier();
