@@ -127,6 +127,58 @@ const DISCORD_EMBED_CHAR_LIMIT = 6000;
 const DISCORD_EMBED_FIELD_LIMIT = 25;
 const DISCORD_MAX_EMBEDS = 10;
 
+/**
+ * Characters the AxiTools relay *adds* when it substitutes one `{{spec:key}}`
+ * token for a real application emoji.
+ *
+ * `{{spec:<key>}}` is `9 + key.length`; the rendered `<:<key>:<id>>` is
+ * `4 + key.length + id.length`. The key cancels, so the growth is exactly
+ * `id.length - 5` for every spec — 14 for the 19-digit snowflakes every live
+ * emoji currently has. We budget 15 so a future 20-digit id cannot quietly
+ * push a report back over the line.
+ */
+const BRIDGE_TOKEN_GROWTH = 15;
+const BRIDGE_TOKEN_PATTERN = /\{\{spec:[a-z0-9]+\}\}/g;
+
+/**
+ * Length of `text` as Discord will count it *after* the relay substitutes.
+ *
+ * Embed packing happens here, on pre-substitution text, but the character
+ * limit is enforced on what the relay actually posts — and the relay's
+ * overflow behaviour is to drop the offending field and every field after it
+ * without telling anyone (Discord still answers 200). Budgeting for the growth
+ * up front keeps that arithmetic honest: a worst-case bridged report with all
+ * eight stat lists at ten rows grows by ~1,500 characters, which is the
+ * difference between fitting and silently losing the last board.
+ */
+export const getSubstitutedLength = (text: string | undefined, isBridge: boolean): number => {
+    const length = text?.length || 0;
+    if (!isBridge || length === 0) return length;
+    const tokens = text!.match(BRIDGE_TOKEN_PATTERN)?.length || 0;
+    return length + (tokens * BRIDGE_TOKEN_GROWTH);
+};
+
+/**
+ * Drop trailing newline-separated rows from `value` until its substituted
+ * length fits `limit`, returning '' if nothing fits.
+ *
+ * Rows are never split, so a `{{spec:x}}` token can never be cut in half.
+ * A fenced value is all-or-nothing: shedding rows from a ```-wrapped block
+ * would take the closing fence with them and render the rest as prose.
+ */
+export const trimFieldValueToLength = (value: string | undefined, limit: number, isBridge: boolean): string => {
+    const text = value || '';
+    if (getSubstitutedLength(text, isBridge) <= limit) return text;
+    if (text.startsWith('```')) return '';
+    const rows = text.split('\n');
+    while (rows.length > 0) {
+        rows.pop();
+        const candidate = rows.join('\n');
+        if (getSubstitutedLength(candidate, isBridge) <= limit) return candidate;
+    }
+    return '';
+};
+
 const resolveFightTimestampMs = (jsonDetails: any, logData: any) => {
     const raw = jsonDetails?.timeStartStd
         ?? jsonDetails?.timeStart
@@ -1186,14 +1238,12 @@ export class DiscordNotifier {
                         }
                     };
 
-                    const getEmbedBaseCharCount = (embed: typeof baseEmbed) => {
-                        return (embed.title?.length || 0)
-                            + (embed.description?.length || 0)
-                            + (embed.footer?.text?.length || 0);
-                    };
+                    const isBridge = this.isBridge;
 
-                    const getFieldCharCount = (field: { name?: string; value?: string }) => {
-                        return (field.name?.length || 0) + (field.value?.length || 0);
+                    const getEmbedBaseCharCount = (embed: typeof baseEmbed) => {
+                        return getSubstitutedLength(embed.title, isBridge)
+                            + getSubstitutedLength(embed.description, isBridge)
+                            + getSubstitutedLength(embed.footer?.text, isBridge);
                     };
 
                     const buildEmbeds = (fields: any[]) => {
@@ -1203,31 +1253,49 @@ export class DiscordNotifier {
                         const embeds: any[] = [];
                         const baseCharCount = getEmbedBaseCharCount(baseEmbed);
                         let currentFields: any[] = [];
-                        let currentCharCount = baseCharCount;
+                        // Discord's 6000-character cap is a whole-message total across
+                        // every embed, not a per-embed allowance, so this budget is
+                        // charged down once for the entire post and each additional
+                        // embed re-pays the base cost it repeats.
+                        let remaining = DISCORD_EMBED_CHAR_LIMIT - baseCharCount;
 
                         const flush = () => {
                             if (currentFields.length === 0) return;
                             embeds.push({ ...baseEmbed, fields: currentFields });
                             currentFields = [];
-                            currentCharCount = baseCharCount;
                         };
 
                         const pushField = (field: any) => {
                             const isBlank = field.name === '\u200b' && field.value === '\u200b';
-                            const fieldCharCount = getFieldCharCount(field);
-                            const wouldExceedFieldLimit = currentFields.length >= DISCORD_EMBED_FIELD_LIMIT;
-                            const wouldExceedCharLimit = currentCharCount + fieldCharCount > DISCORD_EMBED_CHAR_LIMIT;
 
-                            if ((wouldExceedFieldLimit || wouldExceedCharLimit) && currentFields.length > 0) {
+                            if (currentFields.length >= DISCORD_EMBED_FIELD_LIMIT) {
                                 flush();
+                                remaining -= baseCharCount;
                             }
 
                             if (isBlank && currentFields.length === 0) {
                                 return;
                             }
 
+                            const nameCharCount = getSubstitutedLength(field.name, isBridge);
+                            let value = field.value;
+
+                            if (nameCharCount + getSubstitutedLength(value, isBridge) > remaining) {
+                                // Trim here rather than letting the relay do it: its
+                                // overflow rule drops this field and every field after
+                                // it, silently, so a report one row over budget loses
+                                // whole boards instead of that one row.
+                                value = trimFieldValueToLength(value, Math.max(0, remaining - nameCharCount), isBridge);
+                                if (!value) {
+                                    console.warn(`[Discord] Dropping field "${field.name}" \u2014 no room left in the 6000-character message budget.`);
+                                    return;
+                                }
+                                console.warn(`[Discord] Trimmed field "${field.name}" to fit the 6000-character message budget.`);
+                                field = { ...field, value };
+                            }
+
+                            remaining -= nameCharCount + getSubstitutedLength(value, isBridge);
                             currentFields.push(field);
-                            currentCharCount += fieldCharCount;
                         };
 
                         for (const field of fields) {
