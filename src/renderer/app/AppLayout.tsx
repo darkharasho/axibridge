@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BarChart3, Clock3, LayoutDashboard, Minus, RefreshCw, Settings as SettingsIcon, Square, X } from 'lucide-react';
+import { AlertTriangle, BarChart3, Clock3, LayoutDashboard, Minus, RefreshCw, Settings as SettingsIcon, Square, X, Zap } from 'lucide-react';
 import { CommanderIcon } from '../commander/CommanderIcon';
 import { Terminal as TerminalIcon } from 'lucide-react';
 import { SettingsView } from '../SettingsView';
@@ -494,25 +494,41 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         >
                             Disabled
                         </button>
-                        {webhooks.map((hook: any) => (
-                            <button
-                                key={hook.id}
-                                type="button"
-                                onClick={() => {
-                                    setSelectedWebhookId(hook.id);
-                                    handleUpdateSettings({ selectedWebhookId: hook.id });
-                                    setWebhookDropdownOpen(false);
-                                }}
-                                className="w-full px-3 py-2 text-left text-sm transition-colors"
-                                style={selectedWebhookId === hook.id
-                                    ? { background: 'var(--accent-bg)', color: 'var(--brand-primary)' }
-                                    : { color: 'var(--text-secondary)' }}
-                                role="option"
-                                aria-selected={selectedWebhookId === hook.id}
-                            >
-                                {hook.name}
-                            </button>
-                        ))}
+                        {webhooks.map((hook: any) => {
+                            // Mirror the modal's bridge affordances (WebhookModal.tsx):
+                            // a revoked bridge keeps its row but loses its token.
+                            const isBridge = hook.kind === 'bridge';
+                            const needsRelink = isBridge && !hook.token;
+                            return (
+                                <button
+                                    key={hook.id}
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedWebhookId(hook.id);
+                                        handleUpdateSettings({ selectedWebhookId: hook.id });
+                                        setWebhookDropdownOpen(false);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-sm transition-colors flex items-center gap-2"
+                                    style={selectedWebhookId === hook.id
+                                        ? { background: 'var(--accent-bg)', color: 'var(--brand-primary)' }
+                                        : { color: 'var(--text-secondary)' }}
+                                    role="option"
+                                    aria-selected={selectedWebhookId === hook.id}
+                                >
+                                    {needsRelink
+                                        ? <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-400" aria-hidden="true" />
+                                        : isBridge && <Zap className="w-3.5 h-3.5 shrink-0 text-purple-300" aria-hidden="true" />}
+                                    <span className="truncate">{hook.name}</span>
+                                    {isBridge && (
+                                        <span
+                                            className={`ml-auto shrink-0 px-1.5 py-0.5 rounded-[3px] text-[9px] font-semibold uppercase tracking-wide ${needsRelink ? 'bg-amber-500/20 text-amber-300' : 'bg-purple-500/20 text-purple-300'}`}
+                                        >
+                                            {needsRelink ? 'Re-link' : 'Bridge'}
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>,
                 document.body

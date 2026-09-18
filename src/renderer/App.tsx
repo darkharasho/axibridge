@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParticleEffect, PRESETS, ParticleHover } from './particles';
 import { useStatsStore, hashAggregationSettings } from './stats/statsStore';
 import { AnimatePresence, motion } from 'framer-motion';
-import { FolderOpen, UploadCloud, FileText, Settings, ChevronDown, Trash2, FilePlus2, Clipboard, Check, AlertTriangle } from 'lucide-react';
+import { FolderOpen, UploadCloud, FileText, Settings, ChevronDown, Trash2, FilePlus2, Clipboard, Check, AlertTriangle, Zap } from 'lucide-react';
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { useStatsAggregationWorker } from './stats/hooks/useStatsAggregationWorker';
 import { AppLayout } from './app/AppLayout';
@@ -842,8 +842,10 @@ function App() {
                             aria-expanded={webhookDropdownOpen}
                         >
                             <span className="truncate flex items-center gap-1.5">
-                                {selectedWebhookNeedsRelink && <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-400" />}
-                                {selectedWebhook?.name || 'Disabled'}
+                                {selectedWebhookNeedsRelink
+                                    ? <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                                    : selectedWebhook?.kind === 'bridge' && <Zap className="w-3.5 h-3.5 shrink-0 text-purple-300" />}
+                                <span className="truncate">{selectedWebhook?.name || 'Disabled'}</span>
                             </span>
                             <ChevronDown className={`w-4 h-4 text-gray-500 shrink-0 transition-transform ${webhookDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
