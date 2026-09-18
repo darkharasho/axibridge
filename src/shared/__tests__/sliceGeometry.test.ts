@@ -1,4 +1,30 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+// A pass-through spy on the one expensive step past map resolution. The
+// unknown-map guard is a SHORT-CIRCUIT: with it deleted, buildSliceDrawList
+// still returns null (eiPixelToContinent returns null with no tile data), so
+// an output-only assertion cannot be load-bearing. What the guard actually
+// buys is not walking a real log's position tracks for a map we can never
+// draw, and that is what this spy observes.
+const mapUtilsHooks = vi.hoisted(() => ({
+    squadPixelTracksSpy: vi.fn(),
+    /** When set, stands in for the real tracks so a synthetic (e.g. NaN-bearing)
+     *  track can be pushed through the real projection + framing code. */
+    trackOverride: null as null | Array<Array<[number, number, number]>>,
+}));
+const { squadPixelTracksSpy } = mapUtilsHooks;
+vi.mock('../mapUtils', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../mapUtils')>();
+    return {
+        ...actual,
+        squadPixelTracks: (details: any) => {
+            mapUtilsHooks.squadPixelTracksSpy(details);
+            return mapUtilsHooks.trackOverride ?? actual.squadPixelTracks(details);
+        },
+    };
+});
 import { WvwMap } from '../wvwLandmarks';
 import {
     eiPixelToContinent, centroidPath, frameForPath, continentToOutput,
@@ -74,6 +100,28 @@ describe('frameForPath', () => {
         const f = frameForPath([[10000, 14000], [10400, 14050]])!;
         expect((f.cx1 + f.cx2) / 2).toBeCloseTo(10200, 6);
         expect((f.cy1 + f.cy2) / 2).toBeCloseTo(14025, 6);
+    });
+
+    it('takes the beacon from the first FINITE point, not points[0]', () => {
+        // One NaN sample landing in bin 0 gave `[NaN, NaN]` as the beacon,
+        // which made both clamp bounds NaN -> a NaN frame -> tilesForFrame
+        // returns [] -> no image at all, despite every other bin being good.
+        const path: Array<[number, number]> = [
+            [NaN, NaN], [10000, 14000], [10050, 14500], [10100, 15000],
+        ];
+        const f = frameForPath(path)!;
+        expect(f).not.toBeNull();
+        for (const v of [f.cx1, f.cy1, f.cx2, f.cy2]) expect(Number.isFinite(v)).toBe(true);
+
+        // The beacon constraint is applied to the first GOOD point.
+        const [bx, by] = continentToOutput(f, 10000, 14000);
+        expect(bx).toBeGreaterThanOrEqual(SLICE_MARGIN_PX - 1e-6);
+        expect(bx).toBeLessThanOrEqual(SLICE_WIDTH - SLICE_MARGIN_PX + 1e-6);
+        expect(by).toBeGreaterThanOrEqual(SLICE_MARGIN_PX - 1e-6);
+        expect(by).toBeLessThanOrEqual(SLICE_HEIGHT - SLICE_MARGIN_PX + 1e-6);
+
+        // ...and the frame is usable: tiles come back for it.
+        expect(tilesForFrame(WvwMap.EternalBattlegrounds, f).length).toBeGreaterThan(0);
     });
 
     it('keeps the beacon in frame when the path is far longer than the crop', () => {
@@ -177,7 +225,66 @@ describe('buildSliceDrawList', () => {
         expect(buildSliceDrawList({}, 'Eternal Battlegrounds')).toBeNull();
     });
 
-    it('returns null for an unknown map', () => {
-        expect(buildSliceDrawList({}, 'Some Raid Boss')).toBeNull();
+    // `{}` short-circuits on the no-positions check first, so it proves nothing
+    // about the unknown-map guard. This needs a details object that really does
+    // carry position tracks. Only `test-fixtures/native/*.json` drives the
+    // pipeline at all: squadPixelTracks reads `details.native` exclusively, so
+    // an EI-engine log yields no tracks no matter how much replay data it has.
+    // readFileSync rather than a static import: a static import of a fixture
+    // this size OOMs `tsc --noEmit` and breaks `npm run validate`.
+    const nativeFixture = () => JSON.parse(readFileSync(
+        join(__dirname, '../../../test-fixtures/native/20260117-180826.json'),
+        'utf8',
+    ));
+
+    it('builds a draw list from a real native fixture (positive control)', () => {
+        squadPixelTracksSpy.mockClear();
+        const drawList = buildSliceDrawList(nativeFixture(), 'Green Alpine Borderlands');
+        expect(drawList).not.toBeNull();
+        expect(drawList!.tiles.length).toBeGreaterThan(0);
+        expect(drawList!.path.length).toBeGreaterThan(1);
+        // The same fixture DOES reach the track walk when the map resolves —
+        // so the unknown-map case below is null for the map, not for want of
+        // positions.
+        expect(squadPixelTracksSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('drops a NaN sample from the path instead of drawing it', () => {
+        // A non-finite pixel projects to [NaN, NaN], which is TRUTHY and so
+        // passed the old `if (c)` check, putting a NaN vertex in the draw list.
+        mapUtilsHooks.trackOverride = [[
+            [0, NaN, NaN],
+            [1000, 287, 314],
+            [2000, 300, 330],
+            [3000, 320, 350],
+        ]];
+        try {
+            const drawList = buildSliceDrawList({}, 'Eternal Battlegrounds')!;
+            expect(drawList).not.toBeNull();
+            expect(drawList.path.length).toBeGreaterThan(1);
+            for (const [x, y] of drawList.path) {
+                expect(Number.isFinite(x)).toBe(true);
+                expect(Number.isFinite(y)).toBe(true);
+            }
+            expect(drawList.tiles.length).toBeGreaterThan(0);
+        } finally {
+            mapUtilsHooks.trackOverride = null;
+        }
+    });
+
+    it('returns null for an unknown map even when positions exist', () => {
+        const details = nativeFixture();
+        // The map id is AUTHORITATIVE over the zone string
+        // (resolveMapFromDetails tries native.encounter.map_id first), so both
+        // have to be non-WvW or this still resolves to Green Alpine.
+        details.native.encounter.map_id = 1062;      // Bastion of the Penitent
+        details.native.encounter.map = 'Vale Guardian';
+        details.fightName = 'Vale Guardian';
+        details.zone = 'Vale Guardian';
+
+        squadPixelTracksSpy.mockClear();
+        expect(buildSliceDrawList(details, 'Vale Guardian')).toBeNull();
+        // Short-circuited at map resolution: the track walk never ran.
+        expect(squadPixelTracksSpy).not.toHaveBeenCalled();
     });
 });

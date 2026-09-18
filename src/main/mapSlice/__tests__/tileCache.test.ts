@@ -96,4 +96,28 @@ describe('resolveTiles', () => {
         expect(out).toHaveLength(1);
         expect(out[0].url.startsWith('data:')).toBe(true);
     });
+
+    it('still prunes to the budget on a pass that hit the deadline', async () => {
+        // Tiles are written regardless of the deadline, so gating the prune on
+        // "completed in time" meant a connection slow enough to hit the
+        // deadline regularly grew the cache without bound and the 200MB budget
+        // never applied. maxBytes: 1 makes any written tile over budget.
+        const fetcher = vi.fn((url: string) => {
+            if (url.includes('slow')) return new Promise<Buffer>(() => {});
+            return Promise.resolve(PNG);
+        });
+
+        const out = await resolveTiles(
+            [placement('https://x/fast.jpg'), placement('https://x/slow.jpg')],
+            { cacheDir: dir, fetcher, concurrency: 2, deadlineMs: 30, maxBytes: 1 },
+        );
+        expect(out).toHaveLength(1);       // the deadline really was hit
+
+        // The prune is fire-and-forget, so poll for it rather than awaiting.
+        const deadline = Date.now() + 2000;
+        while (readdirSync(dir).length > 0 && Date.now() < deadline) {
+            await new Promise((r) => setTimeout(r, 10));
+        }
+        expect(readdirSync(dir)).toEqual([]);
+    });
 });

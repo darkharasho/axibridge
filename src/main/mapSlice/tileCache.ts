@@ -113,7 +113,7 @@ export async function resolveTiles(
         deadlineTimer = setTimeout(() => resolve(false), deadlineMs);
     });
 
-    const completedInTime = await Promise.race([workersDone, deadlineHit]);
+    await Promise.race([workersDone, deadlineHit]);
     clearTimeout(deadlineTimer!);
 
     // Snapshot now, before any late worker can touch `resolved` further —
@@ -122,7 +122,14 @@ export async function resolveTiles(
     // writing into `resolved` after this point.
     const result = resolved.filter((t): t is SliceTilePlacement => t !== null);
 
-    if (completedInTime && fetched > 0) {
+    // Pruned on ANY pass that fetched, deadline hit or not: gating this on
+    // `completedInTime` meant that on a connection slow enough to hit the
+    // deadline regularly the cache grew without bound and the budget never
+    // applied, even though tiles were being written the whole time.
+    // Pruning concurrently with a late worker's write is acceptable: the
+    // worst case is a half-written tile being unlinked, and a missing tile
+    // is simply refetched on the next slice.
+    if (fetched > 0) {
         void pruneCache(cacheDir, options.maxBytes ?? DEFAULT_MAX_BYTES);
     }
 
