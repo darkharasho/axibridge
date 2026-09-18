@@ -672,7 +672,15 @@ export class DiscordNotifier {
                     }
 
                     const formatClassLines = (counts: Record<string, number>, useAbbrev = true, maxItems?: number, includeSummary?: boolean, maxColumns?: number) => {
-                        const entries = Object.entries(counts)
+                        // An entry carries its count as a number rather than baked into
+                        // its label. The overflow totals below used to recover the count
+                        // by string-parsing the rendered label (`Number(entry.split(':')[1])`),
+                        // which works for the webhook label `FRB: 4` but yields NaN for
+                        // every bridge label -- `'{{spec:firebrand}} 4'.split(':')[1]` is
+                        // `'firebrand}} 4'` -- so a bridged overflow row rendered as the
+                        // literal `+ NaN`. Summing a real field cannot drift that way.
+                        type ClassEntry = { label: string; count: number; overflow?: boolean };
+                        const entries: ClassEntry[] = Object.entries(counts)
                             .filter(([, count]) => count > 0)
                             .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]))
                             .map(([profession, count]) => {
@@ -682,26 +690,25 @@ export class DiscordNotifier {
                                 // relay substitutes real per-spec icons, so it
                                 // gets a token instead regardless of classDisplay.
                                 if (this.isBridge) {
-                                    return `${getProfessionEmojiToken(profession)} ${count}`;
+                                    return { label: getProfessionEmojiToken(profession), count };
                                 }
                                 const labelText = useAbbrev
                                     ? getProfessionAbbrev(profession).toUpperCase().padEnd(3, ' ')
                                     : profession.toUpperCase();
-                                const label = `${labelText}:`;
-                                return `${label} ${count}`;
+                                return { label: `${labelText}:`, count };
                             });
                         if (entries.length === 0) return 'No Data';
 
-                        let limitedEntries = (() => {
+                        let limitedEntries: ClassEntry[] = (() => {
                             if (!maxItems || entries.length <= maxItems) {
                                 return entries;
                             }
                             const overflowTotal = entries
                                 .slice(maxItems)
-                                .reduce((sum, entry) => sum + Number(entry.split(':')[1] || 0), 0);
+                                .reduce((sum, entry) => sum + entry.count, 0);
                             const base = entries.slice(0, maxItems);
                             if (!includeSummary || overflowTotal <= 0) return base;
-                            return [...base, `+ ${overflowTotal}`];
+                            return [...base, { label: '+', count: overflowTotal, overflow: true }];
                         })();
 
                         const maxRows = 5;
@@ -711,23 +718,38 @@ export class DiscordNotifier {
                                 const overflowStart = Math.max(0, maxVisibleEntries - 1);
                                 const overflowTotal = limitedEntries
                                     .slice(overflowStart)
-                                    .reduce((sum, entry) => {
-                                        if (entry.startsWith('+')) {
-                                            return sum + Number(entry.replace('+', '').trim() || 0);
-                                        }
-                                        return sum + Number(entry.split(':')[1] || 0);
-                                    }, 0);
+                                    .reduce((sum, entry) => sum + entry.count, 0);
                                 limitedEntries = [
                                     ...limitedEntries.slice(0, overflowStart),
-                                    `+ ${overflowTotal}`
+                                    { label: '+', count: overflowTotal, overflow: true }
                                 ];
                             }
                         }
-                        const columns: string[][] = [];
-                        for (let i = 0; i < limitedEntries.length; i += maxRows) {
-                            columns.push(limitedEntries.slice(i, i + maxRows));
+
+                        // Ruling K / option D2: on the bridge path each row is
+                        // `{{spec:x}} \`N\`` -- the token sits OUTSIDE the code span so
+                        // the relay's custom emoji actually renders, while the count keeps
+                        // a monospace cell. There is deliberately no fence and no padded
+                        // column grid here: a fence turns every custom emoji into literal
+                        // `<:name:id>` text, and space padding buys nothing once the text
+                        // is laid out in Discord's proportional body font. Rows are
+                        // space-joined and left to wrap.
+                        if (this.isBridge) {
+                            return limitedEntries
+                                .map(entry => (entry.overflow
+                                    ? `\`+ ${entry.count}\``
+                                    : `${entry.label} \`${entry.count}\``))
+                                .join('  ');
                         }
-                        const colWidth = Math.max(...limitedEntries.map(entry => entry.length)) + 2;
+
+                        const rendered = limitedEntries.map(entry => (entry.overflow
+                            ? `+ ${entry.count}`
+                            : `${entry.label} ${entry.count}`));
+                        const columns: string[][] = [];
+                        for (let i = 0; i < rendered.length; i += maxRows) {
+                            columns.push(rendered.slice(i, i + maxRows));
+                        }
+                        const colWidth = Math.max(...rendered.map(entry => entry.length)) + 2;
                         const lines: string[] = [];
                         for (let row = 0; row < maxRows; row += 1) {
                             const line = columns
@@ -739,6 +761,14 @@ export class DiscordNotifier {
                         return lines.join('\n').trimEnd();
                     };
 
+                    // Bridge class rows carry custom-emoji tokens, which render as literal
+                    // `<:name:id>` text inside a fence -- so they ship unfenced. The webhook
+                    // path keeps the fence: its unicode emoji render fine inside one, and the
+                    // padded column grid needs a monospace font to mean anything.
+                    const classFieldValue = (body: string) => (this.isBridge
+                        ? body
+                        : `\`\`\`\n${body}\n\`\`\``);
+
                     if (settings.showClassSummary && (settings.showSquadSummary || settings.showEnemySummary)) {
                         embedFields.push({ name: '\u200b', value: '\u200b', inline: false });
                     }
@@ -746,7 +776,7 @@ export class DiscordNotifier {
                     if (settings.showClassSummary && settings.showSquadSummary) {
                         embedFields.push({
                             name: "Squad Classes:",
-                            value: `\`\`\`\n${formatClassLines(squadClassCounts)}\n\`\`\``,
+                            value: classFieldValue(formatClassLines(squadClassCounts)),
                             inline: true
                         });
                     }
@@ -756,14 +786,14 @@ export class DiscordNotifier {
                             enemyTeams.forEach((team) => {
                                 embedFields.push({
                                     name: `${WVW_TEAM_COLOR_META[team.color].label} classes:`,
-                                    value: `\`\`\`\n${formatClassLines(team.classCounts, true, undefined, true, 2)}\n\`\`\``,
+                                    value: classFieldValue(formatClassLines(team.classCounts, true, undefined, true, 2)),
                                     inline: true
                                 });
                             });
                         } else {
                             embedFields.push({
                                 name: "Enemy Classes:",
-                                value: `\`\`\`\n${formatClassLines(enemyClassCounts, true, 14, true)}\n\`\`\``,
+                                value: classFieldValue(formatClassLines(enemyClassCounts, true, 14, true)),
                                 inline: true
                             });
                         }
@@ -854,7 +884,26 @@ export class DiscordNotifier {
                         const MAX_LINE_WIDTH = 23
                         const RANK_WIDTH = 3; // "10 " = 3 chars
                         const MIN_SEPARATOR = 1; // At least 1 space between name and value
-                        const availableWidth = MAX_LINE_WIDTH - RANK_WIDTH - MIN_SEPARATOR;
+
+                        // Ruling K / option D2. A bridged row's class cell is a
+                        // `{{spec:x}}` token the relay turns into a custom application
+                        // emoji, and a custom emoji inside a fence renders as literal
+                        // `<:name:id>` text -- so a fully fenced row can have aligned
+                        // columns or icons, never both. D2 splits the row into per-segment
+                        // inline code spans with the token BETWEEN them:
+                        //     `RR` {{spec:x}} `Name - Value`
+                        // Each span is monospace, and because every custom emoji renders
+                        // at one uniform glyph width the trailing span starts at the same
+                        // offset on every row, so the name/value columns still line up.
+                        // Only the bridge emoji path takes this layout: `classDisplay`
+                        // 'short'/'off' emit plain text that a fence renders correctly,
+                        // and the webhook path's unicode emoji render inside a fence too.
+                        const useSpanLayout = this.isBridge && classDisplay === 'emoji';
+                        const SPAN_TOKEN_WIDTH = 2; // one emoji glyph + separator space
+                        const SPAN_VALUE_SEPARATOR = ' - ';
+                        const availableWidth = useSpanLayout
+                            ? MAX_LINE_WIDTH - RANK_WIDTH - SPAN_TOKEN_WIDTH - SPAN_VALUE_SEPARATOR.length
+                            : MAX_LINE_WIDTH - RANK_WIDTH - MIN_SEPARATOR;
                         const nameWidth = Math.max(0, availableWidth - maxValueWidth);
 
                         let str = "";
@@ -870,34 +919,35 @@ export class DiscordNotifier {
                                 )
                                 : (val > 0 || (typeof val === 'string' && val !== '0' && val !== ''));
                             if (!shouldRenderValue) continue;
-                            const rank = (i + 1).toString().padEnd(2);
                             const fullName = p.name || p.character_name || p.account || 'Unknown';
                             const classToken = getClassToken(p);
+                            const vStr = formattedValues[i]?.padStart(maxValueWidth) || ''.padStart(maxValueWidth);
+
+                            if (useSpanLayout) {
+                                // The token leaves the padded text entirely, so nothing here
+                                // has to model its rendered width -- the span holds only real
+                                // monospace characters. A row with no resolvable spec still
+                                // pads to `nameWidth`, keeping the value column aligned with
+                                // its neighbours instead of sliding one glyph left.
+                                const rank = (i + 1).toString().padStart(2);
+                                const spanName = fullName.substring(0, nameWidth).padEnd(nameWidth);
+                                const tokenCell = classToken ? `${classToken} ` : '';
+                                str += `\`${rank}\` ${tokenCell}\`${spanName}${SPAN_VALUE_SEPARATOR}${vStr}\`\n`;
+                                continue;
+                            }
+
+                            const rank = (i + 1).toString().padEnd(2);
                             const classCell = classToken
                                 ? (classDisplay === 'emoji' ? `${classToken} ` : `[${classToken}] `)
                                 : '';
-                            // On the bridge path `classToken` is an opaque `{{spec:firebrand}}`
-                            // token (~18-20 source chars) that AxiTools substitutes server-side
-                            // into a single custom emoji glyph -- it never renders as its source
-                            // text. Measuring `classCell.length` here charges the name column for
-                            // ~19 characters that occupy one glyph on screen, which starves
-                            // `availableNameWidth` to 0 and drops the player name entirely
-                            // (verified: a firebrand row rendered with no name at all). Measure
-                            // the bridge token cell at its rendered width instead: one glyph plus
-                            // the trailing separator space.
-                            const BRIDGE_TOKEN_RENDERED_WIDTH = 2;
-                            const classCellWidth = (classDisplay === 'emoji' && this.isBridge && classToken)
-                                ? BRIDGE_TOKEN_RENDERED_WIDTH
-                                : classCell.length;
-                            const availableNameWidth = Math.max(0, nameWidth - classCellWidth);
+                            const availableNameWidth = Math.max(0, nameWidth - classCell.length);
                             const trimmedName = fullName.substring(0, availableNameWidth).padEnd(availableNameWidth);
                             const name = `${classCell}${trimmedName}`.padEnd(nameWidth);
-                            const vStr = formattedValues[i]?.padStart(maxValueWidth) || ''.padStart(maxValueWidth);
                             str += `${rank} ${name} ${vStr}\n`;
                         }
                         embedFields.push({
                             name: title + ":",
-                            value: `\`\`\`\n${str}\`\`\``,
+                            value: useSpanLayout ? str.trimEnd() : `\`\`\`\n${str}\`\`\``,
                             inline: true
                         });
                     };

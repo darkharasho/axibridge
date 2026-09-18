@@ -150,6 +150,119 @@ describe('DiscordNotifier destination dispatch', () => {
         expect(field.value).toContain('Bob');
     });
 
+    // Ruling K / option D2. A custom application emoji renders as literal
+    // `<:name:id>` text inside a code fence, so the bridge path cannot ship a
+    // fenced row and a rendered icon at the same time. Bridged rows are split
+    // into per-segment inline code spans with the token BETWEEN them. Assert
+    // the shape, not merely the absence of a fence: a row that lost its spans
+    // would still pass a bare `not.toContain('```')`.
+    it('renders bridged top-list rows as per-segment code spans with the token outside them', async () => {
+        const notifier = new DiscordNotifier();
+        notifier.setEmbedStatSettings({ classDisplay: 'emoji' } as never);
+        notifier.setDestination({
+            kind: 'bridge',
+            relayUrl: 'https://bot.example.com',
+            token: 'axb1.x.y',
+        });
+
+        await notifier.sendLog(logData, detailsWithDamage);
+
+        const embeds = (vi.mocked(axios.post).mock.calls[0][1] as any).embeds;
+        const fields = embeds[0].fields as Array<{ name: string; value: string }>;
+        const field = fields.find(f => f.name === 'Damage:');
+        if (!field) throw new Error('Damage: field not found in embed');
+
+        expect(field.value).not.toContain('```');
+        // `RR` {{spec:ranger}} `Name - Value` -- the token sits between the spans,
+        // never inside one, which is the whole point of the layout.
+        expect(field.value).toMatch(/^` 1` \{\{spec:ranger\}\} `Bob\s+-\s+[\d,]+`$/m);
+    });
+
+    // The webhook path keeps the fence: unicode emoji render inside one, and the
+    // padded columns are meaningless without a monospace font. D2 must not leak
+    // across destinations.
+    it('keeps webhook top-list rows fenced', async () => {
+        const notifier = new DiscordNotifier();
+        notifier.setEmbedStatSettings({ classDisplay: 'emoji' } as never);
+        notifier.setDestination({ kind: 'webhook', url: 'https://discord.com/api/webhooks/1/x' });
+
+        await notifier.sendLog(logData, detailsWithDamage);
+
+        const embeds = (vi.mocked(axios.post).mock.calls[0][1] as any).embeds;
+        const fields = embeds[0].fields as Array<{ name: string; value: string }>;
+        const field = fields.find(f => f.name === 'Damage:');
+        if (!field) throw new Error('Damage: field not found in embed');
+
+        expect(field.value.startsWith('```')).toBe(true);
+        // No span layout leaked in: a D2 row would open with a backtick-wrapped rank.
+        expect(field.value).not.toMatch(/^` *\d+` /m);
+    });
+
+    it('renders the bridged class summary unfenced with the count in its own span', async () => {
+        const notifier = new DiscordNotifier();
+        notifier.setEmbedStatSettings({ classDisplay: 'emoji' } as never);
+        notifier.setDestination({
+            kind: 'bridge',
+            relayUrl: 'https://bot.example.com',
+            token: 'axb1.x.y',
+        });
+
+        await notifier.sendLog(logData, details);
+
+        const embeds = (vi.mocked(axios.post).mock.calls[0][1] as any).embeds;
+        const fields = embeds[0].fields as Array<{ name: string; value: string }>;
+        const field = fields.find(f => f.name === 'Squad Classes:');
+        if (!field) throw new Error('Squad Classes: field not found in embed');
+
+        expect(field.value).not.toContain('```');
+        expect(field.value).toBe('{{spec:firebrand}} `1`');
+    });
+
+    // The overflow row used to recover its count by string-parsing the rendered
+    // label: `Number(entry.split(':')[1])`. That reads `4` out of the webhook
+    // label `FRB: 4`, but out of the bridge label `{{spec:firebrand}} 4` it reads
+    // `firebrand}} 4` -- NaN -- and `NaN <= 0` is false, so the guard let it
+    // through and the field rendered a literal `+ NaN`. Needs >14 distinct enemy
+    // professions to reach the overflow branch at all.
+    it('sums a bridged class-summary overflow row instead of rendering + NaN', async () => {
+        const professions = [
+            'Firebrand', 'Scourge', 'Spellbreaker', 'Herald', 'Tempest',
+            'Chronomancer', 'Druid', 'Vindicator', 'Reaper', 'Weaver',
+            'Berserker', 'Dragonhunter', 'Mirage', 'Harbinger', 'Willbender',
+            'Catalyst',
+        ];
+        const detailsWithManyEnemies = {
+            players: [
+                { account: 'Alice.1234', name: 'Alice', profession: 'Firebrand', notInSquad: false },
+                ...professions.map((profession, i) => ({
+                    account: `Enemy${i}.0001`,
+                    name: `Enemy${i}`,
+                    profession,
+                    notInSquad: true,
+                })),
+            ],
+        };
+
+        const notifier = new DiscordNotifier();
+        notifier.setEmbedStatSettings({ classDisplay: 'emoji' } as never);
+        notifier.setDestination({
+            kind: 'bridge',
+            relayUrl: 'https://bot.example.com',
+            token: 'axb1.x.y',
+        });
+
+        await notifier.sendLog(logData, detailsWithManyEnemies);
+
+        const embeds = (vi.mocked(axios.post).mock.calls[0][1] as any).embeds;
+        const fields = embeds[0].fields as Array<{ name: string; value: string }>;
+        const field = fields.find(f => f.name === 'Enemy Classes:');
+        if (!field) throw new Error('Enemy Classes: field not found in embed');
+
+        expect(field.value).not.toContain('NaN');
+        // 16 professions, 14 shown, so the overflow row carries the last 2.
+        expect(field.value).toContain('`+ 2`');
+    });
+
     it('classifies a 401 as revoked and does not retry', async () => {
         vi.mocked(axios.post).mockRejectedValue({ response: { status: 401 } } as never);
         const notifier = new DiscordNotifier();
