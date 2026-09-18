@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Trash2, Edit2, Check, Link, Zap } from 'lucide-react';
+import { X, Plus, Trash2, Edit2, Check, Link, Zap, AlertTriangle } from 'lucide-react';
 
 export interface Webhook {
     id: string;
@@ -120,16 +120,29 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                 setBridgeLinkError(result.error);
                 return;
             }
-            const linked: Webhook = {
-                id: crypto.randomUUID(),
-                name: `${result.guildName} › #${result.channelName}`,
-                kind: 'bridge',
-                relayUrl: result.relayUrl,
-                token: key,
-                guildName: result.guildName,
-                channelName: result.channelName
-            };
-            const next = [...localWebhooks, linked];
+            // I5, second half: re-linking the SAME guild+channel (the common
+            // recovery path after a revoke) should replace the token on the
+            // existing row, not append a second entry for the same
+            // destination. Match on the identity `/bridge pair` already
+            // scopes a key to, not on name (which the user could have
+            // renamed) or id.
+            const existing = localWebhooks.find((w) =>
+                w.kind === 'bridge' && w.guildName === result.guildName && w.channelName === result.channelName
+            );
+            const linked: Webhook = existing
+                ? { ...existing, relayUrl: result.relayUrl, token: key }
+                : {
+                    id: crypto.randomUUID(),
+                    name: `${result.guildName} › #${result.channelName}`,
+                    kind: 'bridge',
+                    relayUrl: result.relayUrl,
+                    token: key,
+                    guildName: result.guildName,
+                    channelName: result.channelName
+                };
+            const next = existing
+                ? localWebhooks.map((w) => (w.id === existing.id ? linked : w))
+                : [...localWebhooks, linked];
             setLocalWebhooks(next);
             // Linking is immediate rather than staged: it must reach the
             // store (and re-derive the active destination) right away, not
@@ -198,6 +211,12 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
 
                             {localWebhooks.map(webhook => {
                                 const isBridge = webhook.kind === 'bridge';
+                                // A revoked bridge token clears `token` but leaves the row
+                                // in place (see `handleDiscordSendResult` in
+                                // `discordDestinationResolver.ts`). Derive the re-link state
+                                // purely from the persisted entry -- not from any in-memory
+                                // send-status -- so it survives a restart.
+                                const needsRelink = isBridge && !webhook.token;
                                 return (
                                     <div
                                         key={webhook.id}
@@ -242,10 +261,17 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                                                     <div className="min-w-0 flex-1">
                                                         <div className="font-medium text-white truncate">{webhook.name}</div>
                                                         {isBridge ? (
-                                                            <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-[3px] text-[10px] font-semibold uppercase tracking-wide bg-purple-500/20 text-purple-300">
-                                                                <Zap className="w-3 h-3" />
-                                                                Bridge
-                                                            </span>
+                                                            needsRelink ? (
+                                                                <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-[3px] text-[10px] font-semibold uppercase tracking-wide bg-amber-500/20 text-amber-300">
+                                                                    <AlertTriangle className="w-3 h-3" />
+                                                                    Re-link required
+                                                                </span>
+                                                            ) : (
+                                                                <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-[3px] text-[10px] font-semibold uppercase tracking-wide bg-purple-500/20 text-purple-300">
+                                                                    <Zap className="w-3 h-3" />
+                                                                    Bridge
+                                                                </span>
+                                                            )
                                                         ) : (
                                                             <div className="text-xs text-gray-500 font-mono truncate">{webhook.url}</div>
                                                         )}
@@ -269,7 +295,12 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                                                         </button>
                                                     </div>
                                                 </div>
-                                                {isBridge && (
+                                                {isBridge && needsRelink && (
+                                                    <p className="mt-2 text-[11px] text-amber-300">
+                                                        This link was revoked. Run <code className="rounded-[3px] border border-white/10 bg-black/40 px-1 text-purple-300">/bridge pair</code> in Discord again and paste the new key below to restore delivery.
+                                                    </p>
+                                                )}
+                                                {isBridge && !needsRelink && (
                                                     <>
                                                         <p className="mt-2 text-[11px] text-gray-500">
                                                             Also run <code className="rounded-[3px] border border-white/10 bg-black/40 px-1 text-purple-300">/bridge revoke</code> in Discord to invalidate the key.

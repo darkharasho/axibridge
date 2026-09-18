@@ -42,7 +42,7 @@ export type DiscordDestination =
     | { kind: 'webhook'; url: string }
     | { kind: 'bridge'; relayUrl: string; token: string };
 
-export type SendFailureReason = 'revoked' | 'forbidden' | 'rate-limited' | 'network';
+export type SendFailureReason = 'revoked' | 'forbidden' | 'rate-limited' | 'rejected' | 'network';
 
 export type SendResult =
     | { ok: true }
@@ -348,6 +348,14 @@ export class DiscordNotifier {
         }
         if (status === 429) {
             return { ok: false, reason: 'rate-limited', message: 'Too many reports — try again shortly.' };
+        }
+        // Minor 16: a 400 is the relay's deterministic validation rejection
+        // (e.g. `validate_report`'s "report is empty") -- retrying it can
+        // only ever fail the same way again. Mapping it to 'network' put it
+        // through the 2s-sleep-then-retry branch below, costing every
+        // rejected report two round-trips instead of surfacing immediately.
+        if (status === 400) {
+            return { ok: false, reason: 'rejected', message: relayMessage || 'The relay rejected this report.' };
         }
         return { ok: false, reason: 'network', message: relayMessage || String(error?.message || error) };
     }
@@ -868,7 +876,20 @@ export class DiscordNotifier {
                             const classCell = classToken
                                 ? (classDisplay === 'emoji' ? `${classToken} ` : `[${classToken}] `)
                                 : '';
-                            const availableNameWidth = Math.max(0, nameWidth - classCell.length);
+                            // On the bridge path `classToken` is an opaque `{{spec:firebrand}}`
+                            // token (~18-20 source chars) that AxiTools substitutes server-side
+                            // into a single custom emoji glyph -- it never renders as its source
+                            // text. Measuring `classCell.length` here charges the name column for
+                            // ~19 characters that occupy one glyph on screen, which starves
+                            // `availableNameWidth` to 0 and drops the player name entirely
+                            // (verified: a firebrand row rendered with no name at all). Measure
+                            // the bridge token cell at its rendered width instead: one glyph plus
+                            // the trailing separator space.
+                            const BRIDGE_TOKEN_RENDERED_WIDTH = 2;
+                            const classCellWidth = (classDisplay === 'emoji' && this.isBridge && classToken)
+                                ? BRIDGE_TOKEN_RENDERED_WIDTH
+                                : classCell.length;
+                            const availableNameWidth = Math.max(0, nameWidth - classCellWidth);
                             const trimmedName = fullName.substring(0, availableNameWidth).padEnd(availableNameWidth);
                             const name = `${classCell}${trimmedName}`.padEnd(nameWidth);
                             const vStr = formattedValues[i]?.padStart(maxValueWidth) || ''.padStart(maxValueWidth);

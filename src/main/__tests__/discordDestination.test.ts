@@ -126,6 +126,30 @@ describe('DiscordNotifier destination dispatch', () => {
         expect(bridgeDamageField).toContain('{{spec:ranger}}');
     });
 
+    // C2 fix: the bridge `classCell` is `"{{spec:ranger}} "` -- 17 source
+    // chars -- but renders as a single emoji glyph. Measuring it at source
+    // length starved `availableNameWidth` to 0 and silently dropped the
+    // player name from every bridged top-list row. Assert the name substring
+    // survives, not merely that the row is non-empty.
+    it('keeps the player name in a bridged top-list row despite the wide emoji token', async () => {
+        const notifier = new DiscordNotifier();
+        notifier.setEmbedStatSettings({ classDisplay: 'emoji' } as never);
+        notifier.setDestination({
+            kind: 'bridge',
+            relayUrl: 'https://bot.example.com',
+            token: 'axb1.x.y',
+        });
+
+        await notifier.sendLog(logData, detailsWithDamage);
+
+        const embeds = (vi.mocked(axios.post).mock.calls[0][1] as any).embeds;
+        const fields = embeds[0].fields as Array<{ name: string; value: string }>;
+        const field = fields.find(f => f.name === 'Damage:');
+        if (!field) throw new Error('Damage: field not found in embed');
+
+        expect(field.value).toContain('Bob');
+    });
+
     it('classifies a 401 as revoked and does not retry', async () => {
         vi.mocked(axios.post).mockRejectedValue({ response: { status: 401 } } as never);
         const notifier = new DiscordNotifier();
@@ -134,6 +158,25 @@ describe('DiscordNotifier destination dispatch', () => {
         const result = await notifier.sendLog(logData, details);
         expect(result).toMatchObject({ ok: false, reason: 'revoked' });
         expect(vi.mocked(axios.post)).toHaveBeenCalledTimes(1);
+    });
+
+    // Minor 16: a 400 is a deterministic validation rejection (e.g. an empty
+    // report) -- retrying it cannot change the outcome. It must NOT go
+    // through the rate-limited/network retry branch, which slept 2s and
+    // retried once before this fix, costing every rejected report two
+    // round-trips for a failure that was already final on the first one.
+    it('classifies a 400 as rejected and does not retry', async () => {
+        vi.mocked(axios.post).mockRejectedValue({ response: { status: 400, data: { error: 'report is empty' } } } as never);
+        const notifier = new DiscordNotifier();
+        notifier.setDestination({ kind: 'bridge', relayUrl: 'https://b', token: 't' });
+
+        const start = Date.now();
+        const result = await notifier.sendLog(logData, details);
+        const elapsed = Date.now() - start;
+
+        expect(result).toMatchObject({ ok: false, reason: 'rejected' });
+        expect(vi.mocked(axios.post)).toHaveBeenCalledTimes(1);
+        expect(elapsed).toBeLessThan(500);
     });
 
     it('classifies a 403 as forbidden and surfaces the relay message', async () => {
