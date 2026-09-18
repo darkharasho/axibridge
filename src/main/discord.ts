@@ -27,6 +27,7 @@ import {
 import { deriveReviveLogSummary, reviveePlayerKey, type ReviveLogSummary } from '@axiapps/bridge-metrics';
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
 import { getProfessionAbbrev, getProfessionBase, getProfessionEmoji } from '../shared/professionUtils';
+import { getProfessionEmojiToken } from '@axiapps/bridge-metrics/professionUtils';
 import { partitionSquadPlayers } from '../shared/playerIdentity';
 import { resolveEnemyClassLabel } from '../shared/computePlayerAggregation';
 import { Player } from '../shared/dpsReportTypes';
@@ -36,6 +37,16 @@ import { getWvwTeamColor, teamMapFromLog, WVW_TEAM_COLOR_META, WVW_TEAM_COLOR_OR
 import { buildFightMitigationByAccount } from './embedMitigation';
 
 export const DISCORD_WEBHOOK_AVATAR_URL = 'https://raw.githubusercontent.com/darkharasho/axibridge/main/public/img/AxiBridge-glyph.png';
+
+export type DiscordDestination =
+    | { kind: 'webhook'; url: string }
+    | { kind: 'bridge'; relayUrl: string; token: string };
+
+export type SendFailureReason = 'revoked' | 'forbidden' | 'rate-limited' | 'rejected' | 'network';
+
+export type SendResult =
+    | { ok: true }
+    | { ok: false; reason: SendFailureReason; message: string };
 
 // `deriveReviveLogSummary` walks the whole roster's rotation/replay data --
 // skip it entirely when the Revives column is disabled, matching the sibling
@@ -115,6 +126,58 @@ export const toReportLink = (permalink?: string): string | undefined => {
 const DISCORD_EMBED_CHAR_LIMIT = 6000;
 const DISCORD_EMBED_FIELD_LIMIT = 25;
 const DISCORD_MAX_EMBEDS = 10;
+
+/**
+ * Characters the AxiTools relay *adds* when it substitutes one `{{spec:key}}`
+ * token for a real application emoji.
+ *
+ * `{{spec:<key>}}` is `9 + key.length`; the rendered `<:<key>:<id>>` is
+ * `4 + key.length + id.length`. The key cancels, so the growth is exactly
+ * `id.length - 5` for every spec — 14 for the 19-digit snowflakes every live
+ * emoji currently has. We budget 15 so a future 20-digit id cannot quietly
+ * push a report back over the line.
+ */
+const BRIDGE_TOKEN_GROWTH = 15;
+const BRIDGE_TOKEN_PATTERN = /\{\{spec:[a-z0-9]+\}\}/g;
+
+/**
+ * Length of `text` as Discord will count it *after* the relay substitutes.
+ *
+ * Embed packing happens here, on pre-substitution text, but the character
+ * limit is enforced on what the relay actually posts — and the relay's
+ * overflow behaviour is to drop the offending field and every field after it
+ * without telling anyone (Discord still answers 200). Budgeting for the growth
+ * up front keeps that arithmetic honest: a worst-case bridged report with all
+ * eight stat lists at ten rows grows by ~1,500 characters, which is the
+ * difference between fitting and silently losing the last board.
+ */
+export const getSubstitutedLength = (text: string | undefined, isBridge: boolean): number => {
+    const length = text?.length || 0;
+    if (!isBridge || length === 0) return length;
+    const tokens = text!.match(BRIDGE_TOKEN_PATTERN)?.length || 0;
+    return length + (tokens * BRIDGE_TOKEN_GROWTH);
+};
+
+/**
+ * Drop trailing newline-separated rows from `value` until its substituted
+ * length fits `limit`, returning '' if nothing fits.
+ *
+ * Rows are never split, so a `{{spec:x}}` token can never be cut in half.
+ * A fenced value is all-or-nothing: shedding rows from a ```-wrapped block
+ * would take the closing fence with them and render the rest as prose.
+ */
+export const trimFieldValueToLength = (value: string | undefined, limit: number, isBridge: boolean): string => {
+    const text = value || '';
+    if (getSubstitutedLength(text, isBridge) <= limit) return text;
+    if (text.startsWith('```')) return '';
+    const rows = text.split('\n');
+    while (rows.length > 0) {
+        rows.pop();
+        const candidate = rows.join('\n');
+        if (getSubstitutedLength(candidate, isBridge) <= limit) return candidate;
+    }
+    return '';
+};
 
 const resolveFightTimestampMs = (jsonDetails: any, logData: any) => {
     const raw = jsonDetails?.timeStartStd
@@ -276,7 +339,7 @@ const computeEnemyTeamBreakdown = (players: any[], targets: any[], durationSec: 
 };
 
 export class DiscordNotifier {
-    private webhookUrl: string | null = null;
+    private destination: DiscordDestination | null = null;
     private embedStatSettings: IEmbedStatSettings = DEFAULT_EMBED_STATS;
     private disruptionMethod: DisruptionMethod = DEFAULT_DISRUPTION_METHOD;
 
@@ -284,7 +347,69 @@ export class DiscordNotifier {
     }
 
     public setWebhookUrl(url: string | null) {
-        this.webhookUrl = url;
+        this.destination = url ? { kind: 'webhook', url } : null;
+    }
+
+    public setDestination(dest: DiscordDestination | null) {
+        this.destination = dest;
+    }
+
+    private get isBridge(): boolean {
+        return this.destination?.kind === 'bridge';
+    }
+
+    /** Post an embed/content payload to the active destination. */
+    private async postPayload(payload: Record<string, unknown>): Promise<void> {
+        const dest = this.destination!;
+        if (dest.kind === 'webhook') {
+            await axios.post(dest.url, {
+                username: "AxiBridge",
+                avatar_url: DISCORD_WEBHOOK_AVATAR_URL,
+                ...payload
+            });
+            return;
+        }
+        // A bot cannot override username/avatar_url — bridged reports post as the
+        // bot itself, and the relay rejects unknown keys.
+        await axios.post(`${dest.relayUrl}/bridge/report`, payload, {
+            headers: { Authorization: `Bearer ${dest.token}` }
+        });
+    }
+
+    /** Post a multipart (PNG attachment) payload to the active destination. */
+    private async postForm(form: FormData): Promise<void> {
+        const dest = this.destination!;
+        if (dest.kind === 'webhook') {
+            await axios.post(dest.url, form, { headers: form.getHeaders() });
+            return;
+        }
+        await axios.post(`${dest.relayUrl}/bridge/report`, form, {
+            headers: { ...form.getHeaders(), Authorization: `Bearer ${dest.token}` }
+        });
+    }
+
+    /** Map a thrown axios error to a SendResult. */
+    private classify(error: any): { ok: false; reason: SendFailureReason; message: string } {
+        const status = error?.response?.status;
+        const relayMessage = error?.response?.data?.error;
+        if (status === 401) {
+            return { ok: false, reason: 'revoked', message: 'This link was revoked — pair again.' };
+        }
+        if (status === 403) {
+            return { ok: false, reason: 'forbidden', message: relayMessage || 'Axi cannot post in that channel.' };
+        }
+        if (status === 429) {
+            return { ok: false, reason: 'rate-limited', message: 'Too many reports — try again shortly.' };
+        }
+        // Minor 16: a 400 is the relay's deterministic validation rejection
+        // (e.g. `validate_report`'s "report is empty") -- retrying it can
+        // only ever fail the same way again. Mapping it to 'network' put it
+        // through the 2s-sleep-then-retry branch below, costing every
+        // rejected report two round-trips instead of surfacing immediately.
+        if (status === 400) {
+            return { ok: false, reason: 'rejected', message: relayMessage || 'The relay rejected this report.' };
+        }
+        return { ok: false, reason: 'network', message: relayMessage || String(error?.message || error) };
     }
 
     public setEmbedStatSettings(settings: IEmbedStatSettings) {
@@ -295,16 +420,45 @@ export class DiscordNotifier {
         this.disruptionMethod = method || DEFAULT_DISRUPTION_METHOD;
     }
 
-    public async sendLog(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean }, jsonDetails?: any) {
-        if (!this.webhookUrl) {
-            console.log("No webhook URL configured, skipping Discord notification.");
-            return;
+    public async sendLog(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean }, jsonDetails?: any): Promise<SendResult> {
+        if (!this.destination) {
+            console.log("No Discord destination configured, skipping notification.");
+            return { ok: true };
         }
 
+        try {
+            await this.resend(logData, jsonDetails);
+            return { ok: true };
+        } catch (error) {
+            const result = this.classify(error);
+            if (result.reason === 'rate-limited' || result.reason === 'network') {
+                const rawRetryAfter = String((error as any)?.response?.headers?.['retry-after'] ?? '').trim();
+                const parsedRetryAfter = rawRetryAfter === '' ? NaN : Number(rawRetryAfter);
+                const waited = Number.isFinite(parsedRetryAfter) && parsedRetryAfter >= 0 ? parsedRetryAfter : 2;
+                await new Promise(resolve => setTimeout(resolve, waited * 1000));
+                try {
+                    await this.resend(logData, jsonDetails);
+                    return { ok: true };
+                } catch (retryError) {
+                    return this.classify(retryError);
+                }
+            }
+            // Never log the raw error: it carries `config.headers.Authorization`
+            // with the bridge token verbatim (`util.inspect`, which
+            // `console.error` uses, serializes it in full), and 401/403 —
+            // the exact non-retry branch that reaches here — is the first
+            // thing a revoked/forbidden bridge link hits. Match
+            // index.ts:800/952's `error?.message || error` pattern instead.
+            console.error("Failed to send Discord notification:", (error as any)?.message || error);
+            return result;
+        }
+    }
+
+    private async resend(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean }, jsonDetails?: any): Promise<void> {
         const mode = logData.imageBuffer ? 'image' : (logData.mode || 'embed');
         console.log(`[Discord] sending log. Mode: ${mode}`);
 
-        try {
+        {
             if (mode === 'image' && (logData.imageBuffer || logData.imageBuffers)) {
                 // IMAGE MODE: Plain text with suppression + PNG attachment
                 const form = new FormData();
@@ -322,10 +476,11 @@ export class DiscordNotifier {
                     }
                 }
 
-                const payload: any = {
-                    username: "AxiBridge",
-                    avatar_url: DISCORD_WEBHOOK_AVATAR_URL
-                };
+                const payload: any = {};
+                if (!this.isBridge) {
+                    payload.username = "AxiBridge";
+                    payload.avatar_url = DISCORD_WEBHOOK_AVATAR_URL;
+                }
 
                 if (content) {
                     payload.content = content;
@@ -347,9 +502,7 @@ export class DiscordNotifier {
                     });
                 }
 
-                await axios.post(this.webhookUrl, form, {
-                    headers: form.getHeaders()
-                });
+                await this.postForm(form);
                 console.log("Sent Discord notification with image.");
             } else {
                 // EMBED MODE: Complex Rich Embed based on GitHub reference
@@ -571,28 +724,43 @@ export class DiscordNotifier {
                     }
 
                     const formatClassLines = (counts: Record<string, number>, useAbbrev = true, maxItems?: number, includeSummary?: boolean, maxColumns?: number) => {
-                        const entries = Object.entries(counts)
+                        // An entry carries its count as a number rather than baked into
+                        // its label. The overflow totals below used to recover the count
+                        // by string-parsing the rendered label (`Number(entry.split(':')[1])`),
+                        // which works for the webhook label `FRB: 4` but yields NaN for
+                        // every bridge label -- `'{{spec:firebrand}} 4'.split(':')[1]` is
+                        // `'firebrand}} 4'` -- so a bridged overflow row rendered as the
+                        // literal `+ NaN`. Summing a real field cannot drift that way.
+                        type ClassEntry = { label: string; count: number; overflow?: boolean };
+                        const entries: ClassEntry[] = Object.entries(counts)
                             .filter(([, count]) => count > 0)
                             .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]))
                             .map(([profession, count]) => {
+                                // A webhook can never render Discord application
+                                // emoji, so this stays plain-text abbrev there
+                                // (byte-identical to today's output). The bridge
+                                // relay substitutes real per-spec icons, so it
+                                // gets a token instead regardless of classDisplay.
+                                if (this.isBridge) {
+                                    return { label: getProfessionEmojiToken(profession), count };
+                                }
                                 const labelText = useAbbrev
                                     ? getProfessionAbbrev(profession).toUpperCase().padEnd(3, ' ')
                                     : profession.toUpperCase();
-                                const label = `${labelText}:`;
-                                return `${label} ${count}`;
+                                return { label: `${labelText}:`, count };
                             });
                         if (entries.length === 0) return 'No Data';
 
-                        let limitedEntries = (() => {
+                        let limitedEntries: ClassEntry[] = (() => {
                             if (!maxItems || entries.length <= maxItems) {
                                 return entries;
                             }
                             const overflowTotal = entries
                                 .slice(maxItems)
-                                .reduce((sum, entry) => sum + Number(entry.split(':')[1] || 0), 0);
+                                .reduce((sum, entry) => sum + entry.count, 0);
                             const base = entries.slice(0, maxItems);
                             if (!includeSummary || overflowTotal <= 0) return base;
-                            return [...base, `+ ${overflowTotal}`];
+                            return [...base, { label: '+', count: overflowTotal, overflow: true }];
                         })();
 
                         const maxRows = 5;
@@ -602,23 +770,38 @@ export class DiscordNotifier {
                                 const overflowStart = Math.max(0, maxVisibleEntries - 1);
                                 const overflowTotal = limitedEntries
                                     .slice(overflowStart)
-                                    .reduce((sum, entry) => {
-                                        if (entry.startsWith('+')) {
-                                            return sum + Number(entry.replace('+', '').trim() || 0);
-                                        }
-                                        return sum + Number(entry.split(':')[1] || 0);
-                                    }, 0);
+                                    .reduce((sum, entry) => sum + entry.count, 0);
                                 limitedEntries = [
                                     ...limitedEntries.slice(0, overflowStart),
-                                    `+ ${overflowTotal}`
+                                    { label: '+', count: overflowTotal, overflow: true }
                                 ];
                             }
                         }
-                        const columns: string[][] = [];
-                        for (let i = 0; i < limitedEntries.length; i += maxRows) {
-                            columns.push(limitedEntries.slice(i, i + maxRows));
+
+                        // Ruling K / option D2: on the bridge path each row is
+                        // `{{spec:x}} \`N\`` -- the token sits OUTSIDE the code span so
+                        // the relay's custom emoji actually renders, while the count keeps
+                        // a monospace cell. There is deliberately no fence and no padded
+                        // column grid here: a fence turns every custom emoji into literal
+                        // `<:name:id>` text, and space padding buys nothing once the text
+                        // is laid out in Discord's proportional body font. Rows are
+                        // space-joined and left to wrap.
+                        if (this.isBridge) {
+                            return limitedEntries
+                                .map(entry => (entry.overflow
+                                    ? `\`+ ${entry.count}\``
+                                    : `${entry.label} \`${entry.count}\``))
+                                .join('  ');
                         }
-                        const colWidth = Math.max(...limitedEntries.map(entry => entry.length)) + 2;
+
+                        const rendered = limitedEntries.map(entry => (entry.overflow
+                            ? `+ ${entry.count}`
+                            : `${entry.label} ${entry.count}`));
+                        const columns: string[][] = [];
+                        for (let i = 0; i < rendered.length; i += maxRows) {
+                            columns.push(rendered.slice(i, i + maxRows));
+                        }
+                        const colWidth = Math.max(...rendered.map(entry => entry.length)) + 2;
                         const lines: string[] = [];
                         for (let row = 0; row < maxRows; row += 1) {
                             const line = columns
@@ -630,6 +813,14 @@ export class DiscordNotifier {
                         return lines.join('\n').trimEnd();
                     };
 
+                    // Bridge class rows carry custom-emoji tokens, which render as literal
+                    // `<:name:id>` text inside a fence -- so they ship unfenced. The webhook
+                    // path keeps the fence: its unicode emoji render fine inside one, and the
+                    // padded column grid needs a monospace font to mean anything.
+                    const classFieldValue = (body: string) => (this.isBridge
+                        ? body
+                        : `\`\`\`\n${body}\n\`\`\``);
+
                     if (settings.showClassSummary && (settings.showSquadSummary || settings.showEnemySummary)) {
                         embedFields.push({ name: '\u200b', value: '\u200b', inline: false });
                     }
@@ -637,7 +828,7 @@ export class DiscordNotifier {
                     if (settings.showClassSummary && settings.showSquadSummary) {
                         embedFields.push({
                             name: "Squad Classes:",
-                            value: `\`\`\`\n${formatClassLines(squadClassCounts)}\n\`\`\``,
+                            value: classFieldValue(formatClassLines(squadClassCounts)),
                             inline: true
                         });
                     }
@@ -647,14 +838,14 @@ export class DiscordNotifier {
                             enemyTeams.forEach((team) => {
                                 embedFields.push({
                                     name: `${WVW_TEAM_COLOR_META[team.color].label} classes:`,
-                                    value: `\`\`\`\n${formatClassLines(team.classCounts, true, undefined, true, 2)}\n\`\`\``,
+                                    value: classFieldValue(formatClassLines(team.classCounts, true, undefined, true, 2)),
                                     inline: true
                                 });
                             });
                         } else {
                             embedFields.push({
                                 name: "Enemy Classes:",
-                                value: `\`\`\`\n${formatClassLines(enemyClassCounts, true, 14, true)}\n\`\`\``,
+                                value: classFieldValue(formatClassLines(enemyClassCounts, true, 14, true)),
                                 inline: true
                             });
                         }
@@ -716,6 +907,10 @@ export class DiscordNotifier {
                             }
                             if (classDisplay === 'emoji') {
                                 const profession = p.profession || 'Unknown';
+                                // On the bridge path AxiTools substitutes a real
+                                // per-spec emoji, so the colour-collision hacks
+                                // below are unnecessary.
+                                if (this.isBridge) return getProfessionEmojiToken(profession);
                                 const professionBase = getProfessionBase(profession);
                                 if (professionBase === 'Ranger') return '🟩';
                                 if (professionBase === 'Revenant') return '🟥';
@@ -741,7 +936,26 @@ export class DiscordNotifier {
                         const MAX_LINE_WIDTH = 23
                         const RANK_WIDTH = 3; // "10 " = 3 chars
                         const MIN_SEPARATOR = 1; // At least 1 space between name and value
-                        const availableWidth = MAX_LINE_WIDTH - RANK_WIDTH - MIN_SEPARATOR;
+
+                        // Ruling K / option D2. A bridged row's class cell is a
+                        // `{{spec:x}}` token the relay turns into a custom application
+                        // emoji, and a custom emoji inside a fence renders as literal
+                        // `<:name:id>` text -- so a fully fenced row can have aligned
+                        // columns or icons, never both. D2 splits the row into per-segment
+                        // inline code spans with the token BETWEEN them:
+                        //     `RR` {{spec:x}} `Name - Value`
+                        // Each span is monospace, and because every custom emoji renders
+                        // at one uniform glyph width the trailing span starts at the same
+                        // offset on every row, so the name/value columns still line up.
+                        // Only the bridge emoji path takes this layout: `classDisplay`
+                        // 'short'/'off' emit plain text that a fence renders correctly,
+                        // and the webhook path's unicode emoji render inside a fence too.
+                        const useSpanLayout = this.isBridge && classDisplay === 'emoji';
+                        const SPAN_TOKEN_WIDTH = 2; // one emoji glyph + separator space
+                        const SPAN_VALUE_SEPARATOR = ' - ';
+                        const availableWidth = useSpanLayout
+                            ? MAX_LINE_WIDTH - RANK_WIDTH - SPAN_TOKEN_WIDTH - SPAN_VALUE_SEPARATOR.length
+                            : MAX_LINE_WIDTH - RANK_WIDTH - MIN_SEPARATOR;
                         const nameWidth = Math.max(0, availableWidth - maxValueWidth);
 
                         let str = "";
@@ -757,21 +971,44 @@ export class DiscordNotifier {
                                 )
                                 : (val > 0 || (typeof val === 'string' && val !== '0' && val !== ''));
                             if (!shouldRenderValue) continue;
-                            const rank = (i + 1).toString().padEnd(2);
                             const fullName = p.name || p.character_name || p.account || 'Unknown';
                             const classToken = getClassToken(p);
+                            const vStr = formattedValues[i]?.padStart(maxValueWidth) || ''.padStart(maxValueWidth);
+
+                            if (useSpanLayout) {
+                                // The token leaves the padded text entirely, so nothing here
+                                // has to model its rendered width -- the span holds only real
+                                // monospace characters. A row with no resolvable spec still
+                                // pads to `nameWidth`, keeping the value column aligned with
+                                // its neighbours instead of sliding one glyph left.
+                                const rank = (i + 1).toString().padStart(2);
+                                const spanName = fullName.substring(0, nameWidth).padEnd(nameWidth);
+                                const tokenCell = classToken ? `${classToken} ` : '';
+                                str += `\`${rank}\` ${tokenCell}\`${spanName}${SPAN_VALUE_SEPARATOR}${vStr}\`\n`;
+                                continue;
+                            }
+
+                            const rank = (i + 1).toString().padEnd(2);
                             const classCell = classToken
                                 ? (classDisplay === 'emoji' ? `${classToken} ` : `[${classToken}] `)
                                 : '';
                             const availableNameWidth = Math.max(0, nameWidth - classCell.length);
                             const trimmedName = fullName.substring(0, availableNameWidth).padEnd(availableNameWidth);
                             const name = `${classCell}${trimmedName}`.padEnd(nameWidth);
-                            const vStr = formattedValues[i]?.padStart(maxValueWidth) || ''.padStart(maxValueWidth);
                             str += `${rank} ${name} ${vStr}\n`;
                         }
+                        // A board whose every row was filtered out (all-zero stat, or a
+                        // metric this parse cannot populate) leaves `str` empty. The fenced
+                        // webhook value still has its backticks, but a span-layout value
+                        // would be the empty string -- and Discord rejects an empty
+                        // `field.value` with a 400 for the whole message. The relay happens
+                        // to drop empty-valued fields before posting, but that is its
+                        // leniency, not a contract: emit an explicit placeholder instead,
+                        // matching `formatClassLines`' own empty case.
+                        const spanValue = str.trimEnd() || 'No Data';
                         embedFields.push({
                             name: title + ":",
-                            value: `\`\`\`\n${str}\`\`\``,
+                            value: useSpanLayout ? spanValue : `\`\`\`\n${str}\`\`\``,
                             inline: true
                         });
                     };
@@ -1010,14 +1247,12 @@ export class DiscordNotifier {
                         }
                     };
 
-                    const getEmbedBaseCharCount = (embed: typeof baseEmbed) => {
-                        return (embed.title?.length || 0)
-                            + (embed.description?.length || 0)
-                            + (embed.footer?.text?.length || 0);
-                    };
+                    const isBridge = this.isBridge;
 
-                    const getFieldCharCount = (field: { name?: string; value?: string }) => {
-                        return (field.name?.length || 0) + (field.value?.length || 0);
+                    const getEmbedBaseCharCount = (embed: typeof baseEmbed) => {
+                        return getSubstitutedLength(embed.title, isBridge)
+                            + getSubstitutedLength(embed.description, isBridge)
+                            + getSubstitutedLength(embed.footer?.text, isBridge);
                     };
 
                     const buildEmbeds = (fields: any[]) => {
@@ -1027,31 +1262,49 @@ export class DiscordNotifier {
                         const embeds: any[] = [];
                         const baseCharCount = getEmbedBaseCharCount(baseEmbed);
                         let currentFields: any[] = [];
-                        let currentCharCount = baseCharCount;
+                        // Discord's 6000-character cap is a whole-message total across
+                        // every embed, not a per-embed allowance, so this budget is
+                        // charged down once for the entire post and each additional
+                        // embed re-pays the base cost it repeats.
+                        let remaining = DISCORD_EMBED_CHAR_LIMIT - baseCharCount;
 
                         const flush = () => {
                             if (currentFields.length === 0) return;
                             embeds.push({ ...baseEmbed, fields: currentFields });
                             currentFields = [];
-                            currentCharCount = baseCharCount;
                         };
 
                         const pushField = (field: any) => {
                             const isBlank = field.name === '\u200b' && field.value === '\u200b';
-                            const fieldCharCount = getFieldCharCount(field);
-                            const wouldExceedFieldLimit = currentFields.length >= DISCORD_EMBED_FIELD_LIMIT;
-                            const wouldExceedCharLimit = currentCharCount + fieldCharCount > DISCORD_EMBED_CHAR_LIMIT;
 
-                            if ((wouldExceedFieldLimit || wouldExceedCharLimit) && currentFields.length > 0) {
+                            if (currentFields.length >= DISCORD_EMBED_FIELD_LIMIT) {
                                 flush();
+                                remaining -= baseCharCount;
                             }
 
                             if (isBlank && currentFields.length === 0) {
                                 return;
                             }
 
+                            const nameCharCount = getSubstitutedLength(field.name, isBridge);
+                            let value = field.value;
+
+                            if (nameCharCount + getSubstitutedLength(value, isBridge) > remaining) {
+                                // Trim here rather than letting the relay do it: its
+                                // overflow rule drops this field and every field after
+                                // it, silently, so a report one row over budget loses
+                                // whole boards instead of that one row.
+                                value = trimFieldValueToLength(value, Math.max(0, remaining - nameCharCount), isBridge);
+                                if (!value) {
+                                    console.warn(`[Discord] Dropping field "${field.name}" \u2014 no room left in the 6000-character message budget.`);
+                                    return;
+                                }
+                                console.warn(`[Discord] Trimmed field "${field.name}" to fit the 6000-character message budget.`);
+                                field = { ...field, value };
+                            }
+
+                            remaining -= nameCharCount + getSubstitutedLength(value, isBridge);
                             currentFields.push(field);
-                            currentCharCount += fieldCharCount;
                         };
 
                         for (const field of fields) {
@@ -1070,17 +1323,11 @@ export class DiscordNotifier {
 
                     const embeds = buildEmbeds(embedFields);
 
-                    await axios.post(this.webhookUrl, {
-                        username: "AxiBridge",
-                        avatar_url: DISCORD_WEBHOOK_AVATAR_URL,
-                        embeds
-                    });
+                    await this.postPayload({ embeds });
                     console.log("Sent complex Discord notification.");
                 } else {
                     // Fallback Simple Embed
-                    await axios.post(this.webhookUrl, {
-                        username: "AxiBridge",
-                        avatar_url: DISCORD_WEBHOOK_AVATAR_URL,
+                    await this.postPayload({
                         embeds: [{
                             title: "Log Uploaded",
                             description: (() => {
@@ -1094,8 +1341,6 @@ export class DiscordNotifier {
                     });
                 }
             }
-        } catch (error) {
-            console.error("Failed to send Discord notification:", error);
         }
     }
 }

@@ -5,7 +5,22 @@ import type { SliceSidecar } from './stats/slice/sliceTypes';
 export interface IWebhook {
     id: string;
     name: string;
-    url: string;
+    /** Webhook destinations only. */
+    url?: string;
+    /** Absent means 'webhook', so stored destinations need no migration. */
+    kind?: 'webhook' | 'bridge';
+    /** Bridge destinations: decoded from the axb1 key at link time. */
+    relayUrl?: string;
+    token?: string;
+    guildName?: string;
+    channelName?: string;
+    /**
+     * N3: stable identity for re-link matching. Not secrets -- fine to
+     * persist and display. Absent on entries persisted before this field
+     * existed.
+     */
+    guildId?: string;
+    channelId?: string;
 }
 
 // Discord embed stat toggle settings
@@ -486,6 +501,13 @@ export interface IElectronAPI {
     saveParserSettings: (settings: Partial<IParserSettings>) => void;
     onParserSettingsChanged: (callback: (settings: IParserSettings) => void) => () => void;
     onParseProgress: (callback: (data: { logId: string; message: string }) => void) => () => void;
+
+    // AxiTools bridge — link a Discord channel paired via `/bridge pair`.
+    linkBridgeChannel: (key: string) => Promise<
+        | { ok: true; guildName: string; channelName: string; relayUrl: string; guildId: string; channelId: string }
+        | { ok: false; error: string }
+    >;
+    onDiscordDestinationStatus: (callback: (payload: { webhookId: string | null; reason: string; message: string }) => void) => () => void;
 }
 
 /** Payload of the `parser:get-status` IPC handler. */

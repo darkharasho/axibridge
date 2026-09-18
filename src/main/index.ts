@@ -12,6 +12,12 @@ import { LogWatcher } from './watcher'
 import { Uploader, UploadResult } from './uploader'
 import { waitForPermalink } from './permalinkWait'
 import { DiscordNotifier } from './discord';
+import { linkBridgeChannel } from './bridgeLink';
+import {
+    shouldSendDiscord as shouldSendDiscordFn,
+    applyDiscordDestination as applyDiscordDestinationFn,
+    handleDiscordSendResult as handleDiscordSendResultFn
+} from './discordDestinationResolver';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { DesktopIntegrator } from './integration';
@@ -256,6 +262,19 @@ let watcher: LogWatcher | null = null
 let uploader: Uploader | null = null
 let discord: DiscordNotifier | null = null
 let axilogManager: AxilogManager | null = null
+
+/**
+ * Local bindings of the pure, store/discord/window-injected helpers in
+ * `discordDestinationResolver.ts` to this module's own `store`, `discord` and
+ * `win`. Extracted to its own module (rather than closing over these three
+ * module-level bindings directly) so a unit test can drive the resolution
+ * logic against a fake store without booting the rest of this file's
+ * Electron-app side effects.
+ */
+const resolveShouldSendDiscord = () => shouldSendDiscordFn(store);
+const applyDiscordDestination = () => applyDiscordDestinationFn(store, discord);
+const handleDiscordSendResult = (sendResult: Awaited<ReturnType<DiscordNotifier['sendLog']>> | undefined) =>
+    handleDiscordSendResultFn(store, discord, win, sendResult);
 
 /**
  * The parser. `null` only until `app.whenReady`; after that a `null` binding is
@@ -737,9 +756,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
             };
             const globalSplitEnemiesByTeam = Boolean(store.get('discordSplitEnemiesByTeam', false));
             const splitEnemiesByTeam = globalSplitEnemiesByTeam || Boolean(enemySplitSettings.embed);
-            const selectedWebhookId = store.get('selectedWebhookId', null);
-            const webhookUrl = store.get('discordWebhookUrl', null);
-            const shouldSendDiscord = Boolean(selectedWebhookId) && typeof webhookUrl === 'string' && webhookUrl.length > 0;
+            const shouldSendDiscord = resolveShouldSendDiscord();
 
             // The parallel dps.report upload is what supplies the permalink the
             // Discord embed links its title to. It was started before the local
@@ -779,7 +796,8 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                                 }
                             }
                         }
-                        await discord?.sendLog({ ...syntheticResult, filePath, mode: 'embed', splitEnemiesByTeam }, prunedDetails);
+                        const sendResult = await discord?.sendLog({ ...syntheticResult, filePath, mode: 'embed', splitEnemiesByTeam }, prunedDetails);
+                        handleDiscordSendResult(sendResult);
                     }
                 } catch (discordError: any) {
                     console.error('[Main] Discord notification failed:', discordError?.message || discordError);
@@ -888,9 +906,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
 
         markUploadRetryResolved(filePath);
 
-        const selectedWebhookId = store.get('selectedWebhookId', null);
-        const webhookUrl = store.get('discordWebhookUrl', null);
-        const shouldSendDiscord = Boolean(selectedWebhookId) && typeof webhookUrl === 'string' && webhookUrl.length > 0;
+        const shouldSendDiscord = resolveShouldSendDiscord();
 
         if (shouldSendDiscord) {
             const enemySplitSettings = {
@@ -929,7 +945,8 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                     }
                     // `prunedDetails` is null when the local parse failed, which
                     // posts the link-only embed rather than nothing at all.
-                    await discord?.sendLog({ ...result, filePath, mode: 'embed', splitEnemiesByTeam }, prunedDetails);
+                    const sendResult = await discord?.sendLog({ ...result, filePath, mode: 'embed', splitEnemiesByTeam }, prunedDetails);
+                    handleDiscordSendResult(sendResult);
                 }
             } catch (discordError: any) {
                 console.error('[Main] Discord notification failed:', discordError?.message || discordError);
@@ -1240,11 +1257,11 @@ function initServices() {
         console.log(`[Main] Parser: axilog ${axilogManager.getStatus().version ?? 'unknown'}.`);
     }
 
-    // Initialize Discord config
-    const webhookUrl = store.get('discordWebhookUrl');
-    if (webhookUrl && typeof webhookUrl === 'string') {
-        discord.setWebhookUrl(webhookUrl);
-    }
+    // Initialize Discord config. Derived from webhooks[] + selectedWebhookId,
+    // falling back to the legacy discordWebhookUrl, so a bridge-only user
+    // boots with their destination active rather than needing to re-save
+    // settings before their first report after launch can send (Ruling F).
+    applyDiscordDestination();
 
     // Initialize embed stat settings
     const embedStatSettings = store.get('embedStatSettings');
@@ -1660,6 +1677,13 @@ if (!gotTheLock) {
             }
             if (settings.webhooks !== undefined) {
                 store.set('webhooks', settings.webhooks);
+                // The link flow appends a bridge entry and saves via
+                // `saveSettings({ webhooks })` alone, with no selectedWebhookId
+                // in the payload — re-derive here too, or a newly linked
+                // channel is stored but never activated (Ruling H). This also
+                // picks up a refreshed token on the already-selected entry,
+                // e.g. after a revoke-and-relink.
+                applyDiscordDestination();
             }
             if (settings.reportWebhooks !== undefined) {
                 store.set('reportWebhooks', settings.reportWebhooks);
@@ -1672,16 +1696,7 @@ if (!gotTheLock) {
             }
             if (settings.selectedWebhookId !== undefined) {
                 store.set('selectedWebhookId', settings.selectedWebhookId);
-                // Update the active webhook URL based on selected ID
-                const webhooks = store.get('webhooks', []) as any[];
-                const selected = webhooks.find((w: any) => w.id === settings.selectedWebhookId);
-                if (selected) {
-                    store.set('discordWebhookUrl', selected.url);
-                    discord?.setWebhookUrl(selected.url);
-                } else {
-                    store.set('discordWebhookUrl', null);
-                    discord?.setWebhookUrl('');
-                }
+                applyDiscordDestination();
             }
             if (settings.dpsReportToken !== undefined) {
                 store.set('dpsReportToken', settings.dpsReportToken);
@@ -1779,6 +1794,7 @@ if (!gotTheLock) {
         };
 
         // ─── Register IPC handlers ─────────────────────────────────────────────────
+        ipcMain.handle('bridge:link', async (_event, key: string) => linkBridgeChannel(key));
         registerFileHandlers({ getWindow: () => win });
         registerAppHandlers({ store, getWindow: () => win });
         registerDiscordHandlers({

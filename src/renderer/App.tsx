@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParticleEffect, PRESETS, ParticleHover } from './particles';
 import { useStatsStore, hashAggregationSettings } from './stats/statsStore';
 import { AnimatePresence, motion } from 'framer-motion';
-import { FolderOpen, UploadCloud, FileText, Settings, ChevronDown, Trash2, FilePlus2, Clipboard, Check } from 'lucide-react';
+import { FolderOpen, UploadCloud, FileText, Settings, ChevronDown, Trash2, FilePlus2, Clipboard, Check, AlertTriangle } from 'lucide-react';
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { useStatsAggregationWorker } from './stats/hooks/useStatsAggregationWorker';
 import { AppLayout } from './app/AppLayout';
@@ -73,6 +73,7 @@ function App() {
         particlesEnabled, setParticlesEnabled,
         webhooks, setWebhooks,
         selectedWebhookId, setSelectedWebhookId,
+        discordDestinationStatus, setDiscordDestinationStatus,
         handleUpdateSettings,
         handleSelectDirectory,
         whatsNewVersion,
@@ -461,6 +462,13 @@ function App() {
         () => webhooks.find((hook) => hook.id === selectedWebhookId) || null,
         [webhooks, selectedWebhookId]
     );
+    // A revoked bridge token clears `token` but leaves the entry (and its
+    // selection) in place, so a `discordDestinationStatus` banner is the only
+    // signal a live send failed -- and that state is renderer-only, so it is
+    // gone after a restart while the row still looks healthy and every report
+    // is silently dropped. Derive "needs re-link" purely from the persisted
+    // webhook entry so it survives a restart with no in-memory status.
+    const selectedWebhookNeedsRelink = selectedWebhook?.kind === 'bridge' && !selectedWebhook.token;
     const pendingStatsRemovalIdsRef = useRef<Set<string>>(new Set());
     const pendingStatsClearRef = useRef(false);
     const pendingStatsRemovalTimerRef = useRef<number | null>(null);
@@ -833,7 +841,8 @@ function App() {
                             aria-haspopup="listbox"
                             aria-expanded={webhookDropdownOpen}
                         >
-                            <span className="truncate">
+                            <span className="truncate flex items-center gap-1.5">
+                                {selectedWebhookNeedsRelink && <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-400" />}
                                 {selectedWebhook?.name || 'Disabled'}
                             </span>
                             <ChevronDown className={`w-4 h-4 text-gray-500 shrink-0 transition-transform ${webhookDropdownOpen ? 'rotate-180' : ''}`} />
@@ -850,6 +859,23 @@ function App() {
                         </button>
                     </ParticleHover>
                 </div>
+                {selectedWebhookNeedsRelink && (
+                    <div className="mt-2 flex items-start justify-between gap-2 rounded-[3px] border border-amber-400/25 bg-amber-400/5 px-2 py-1.5">
+                        <p className="text-[11px] text-amber-300">Re-link required — this bridge link was revoked. Reports are not being sent.</p>
+                    </div>
+                )}
+                {discordDestinationStatus && (
+                    <div className="mt-2 flex items-start justify-between gap-2 rounded-[3px] border border-rose-400/25 bg-rose-400/5 px-2 py-1.5">
+                        <p className="text-[11px] text-rose-300">{discordDestinationStatus.message}</p>
+                        <button
+                            type="button"
+                            onClick={() => setDiscordDestinationStatus(null)}
+                            className="shrink-0 text-[10px] text-gray-500 hover:text-gray-300"
+                        >
+                            Dismiss
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Session card */}

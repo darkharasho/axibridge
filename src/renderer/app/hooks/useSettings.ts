@@ -30,6 +30,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     const [particlesEnabled, setParticlesEnabled] = useState(DEFAULT_PARTICLES_ENABLED);
     const [webhooks, setWebhooks] = useState<Webhook[]>([]);
     const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
+    const [discordDestinationStatus, setDiscordDestinationStatus] = useState<{ webhookId: string | null; reason: string; message: string } | null>(null);
 
     // Init-time values consumed by useAppNavigation
     const [settingsLoaded, setSettingsLoaded] = useState(false);
@@ -62,7 +63,18 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
                 window.electronAPI.startWatching(settings.logDirectory);
             }
             if (settings.webhooks) {
-                setWebhooks(settings.webhooks);
+                setWebhooks(settings.webhooks.map(w => ({
+                    id: w.id,
+                    name: w.name,
+                    kind: w.kind,
+                    url: w.url,
+                    relayUrl: w.relayUrl,
+                    token: w.token,
+                    guildName: w.guildName,
+                    channelName: w.channelName,
+                    guildId: w.guildId,
+                    channelId: w.channelId,
+                })));
             }
             if (settings.selectedWebhookId) {
                 setSelectedWebhookId(settings.selectedWebhookId);
@@ -131,6 +143,23 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     }, []);
 
     useEffect(() => {
+        if (!window.electronAPI?.onDiscordDestinationStatus) return;
+        const cleanup = window.electronAPI.onDiscordDestinationStatus((payload) => {
+            setDiscordDestinationStatus(payload);
+            // Fix round 1, item 5: main clears the revoked token in the
+            // store but the event carries no webhook list, so the renderer's
+            // in-memory copy would still hold the live token — opening
+            // Manage Webhooks and clicking "Save Changes" would write it
+            // straight back and re-arm the dead credential (and re-log it,
+            // per item 4). Null it out locally for the affected entry too.
+            if (payload.reason === 'revoked' && payload.webhookId) {
+                setWebhooks((prev) => prev.map((w) => (w.id === payload.webhookId ? { ...w, token: undefined } : w)));
+            }
+        });
+        return cleanup;
+    }, []);
+
+    useEffect(() => {
         const body = document.body;
         for (const id of Object.keys(PALETTES)) body.classList.remove(`palette-${id}`);
         if (colorPalette !== 'electric-blue') {
@@ -158,6 +187,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         particlesEnabled, setParticlesEnabled,
         webhooks, setWebhooks,
         selectedWebhookId, setSelectedWebhookId,
+        discordDestinationStatus, setDiscordDestinationStatus,
         handleUpdateSettings,
         handleSelectDirectory,
         settingsLoaded,
@@ -168,7 +198,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     }), [
         logDirectory, notificationType, embedStatSettings, mvpWeights,
         statsViewSettings, disruptionMethod, allowLocalJson, r2PreciseReplay, r2HostingEnabled, r2SliceEnabled, colorPalette, glassSurfaces, glassmorphic, particlesEnabled,
-        webhooks, selectedWebhookId, handleUpdateSettings, handleSelectDirectory,
+        webhooks, selectedWebhookId, discordDestinationStatus, handleUpdateSettings, handleSelectDirectory,
         settingsLoaded, whatsNewVersion, whatsNewNotes, walkthroughSeen,
         shouldOpenWhatsNew,
     ]);
