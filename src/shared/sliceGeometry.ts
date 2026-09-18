@@ -24,6 +24,11 @@ export const SLICE_MARGIN_PX = 28;
 /** Bbox inflation that buys `SLICE_MARGIN_PX` on the binding axis. */
 const MARGIN_SCALE = SLICE_HEIGHT / (SLICE_HEIGHT - 2 * SLICE_MARGIN_PX);
 
+/** How far from either edge the beacon is held, as a fraction of the frame,
+ *  so it reads as the subject of the picture rather than something that drifted
+ *  into a corner. Must stay under 0.5 or the two bounds it implies cross. */
+export const BEACON_BAND_INSET = 0.33;
+
 export interface ContinentFrame { cx1: number; cy1: number; cx2: number; cy2: number; }
 
 /**
@@ -133,10 +138,39 @@ export function frameForPath(points: Array<[number, number]>): ContinentFrame | 
     // both clamp bounds NaN and poison an otherwise perfectly good frame.
     const beacon = points.find(([x, y]) => Number.isFinite(x) && Number.isFinite(y))!;
     const [beaconX, beaconY] = beacon;
-    const cx1 = clamp(midX - width / 2, beaconX + marginX - width, beaconX - marginX);
-    const cy1 = clamp(midY - height / 2, beaconY + marginY - height, beaconY - marginY);
+    const cx1 = placeAxis(midX - width / 2, beaconX, minX, maxX, width, marginX);
+    const cy1 = placeAxis(midY - height / 2, beaconY, minY, maxY, height, marginY);
 
     return { cx1, cy1, cx2: cx1 + width, cy2: cy1 + height };
+}
+
+/**
+ * Where one axis of the frame starts, given the path centred at `centred`.
+ *
+ * Two pulls, in priority order. The beacon is drawn toward the middle of the
+ * frame: holding it merely inside `margin` is enough to draw it whole, but on
+ * a real roaming report that put the ping in a top corner with the trail
+ * running off the edge -- it read as something that had drifted out of shot
+ * rather than as the subject. Against that, the whole path stays in frame
+ * whenever a crop this wide can hold it; centring the beacon by pushing the
+ * end of the trail off the image trades away the thing the trail is for.
+ *
+ * When the path is longer than the crop the fit bounds cross, there is no
+ * framing that holds all of it, and the beacon band wins uncontested.
+ */
+function placeAxis(
+    centred: number, beacon: number,
+    lo: number, hi: number,
+    span: number, margin: number,
+): number {
+    // Never closer to an edge than the margin that keeps the beacon whole,
+    // however the band is tuned.
+    const inset = Math.max(margin, span * BEACON_BAND_INSET);
+    const banded = clamp(centred, beacon + inset - span, beacon - inset);
+
+    const fitLo = hi + margin - span;
+    const fitHi = lo - margin;
+    return fitLo <= fitHi ? clamp(banded, fitLo, fitHi) : banded;
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);

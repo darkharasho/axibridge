@@ -29,7 +29,7 @@ import { WvwMap } from '../wvwLandmarks';
 import {
     eiPixelToContinent, centroidPath, frameForPath, continentToOutput,
     SLICE_ASPECT, SLICE_WIDTH, SLICE_HEIGHT, MIN_SLICE_UNITS, MAX_SLICE_UNITS,
-    pickSliceZoom, tilesForFrame, buildSliceDrawList, SLICE_MARGIN_PX,
+    pickSliceZoom, tilesForFrame, buildSliceDrawList, SLICE_MARGIN_PX, BEACON_BAND_INSET,
 } from '../sliceGeometry';
 import { MAX_TILE_ZOOM, MAX_HIRES_ZOOM } from '../wvwTiles';
 
@@ -96,10 +96,38 @@ describe('frameForPath', () => {
         expect(width(f)).toBeCloseTo(MAX_SLICE_UNITS, 6);
     });
 
-    it('centres the frame on a path that fits', () => {
-        const f = frameForPath([[10000, 14000], [10400, 14050]])!;
-        expect((f.cx1 + f.cx2) / 2).toBeCloseTo(10200, 6);
-        expect((f.cy1 + f.cy2) / 2).toBeCloseTo(14025, 6);
+    it('pulls the beacon toward the middle without pushing the path out', () => {
+        // The beacon sits at one corner of this bbox. Framing that only held
+        // it inside the margin left it at 13% of the width -- a ping in the
+        // corner. It is drawn toward the centre instead, but only as far as
+        // keeps the far end of the trail inside the margin, which is what
+        // stops it reaching the full 33% band here.
+        const path: Array<[number, number]> = [[10000, 14000], [10400, 14050]];
+        const f = frameForPath(path)!;
+
+        const [bx] = continentToOutput(f, path[0][0], path[0][1]);
+        expect(bx / SLICE_WIDTH).toBeGreaterThan(0.2);
+
+        for (const [cx, cy] of path) {
+            const [x, y] = continentToOutput(f, cx, cy);
+            expect(x).toBeGreaterThanOrEqual(SLICE_MARGIN_PX - 1e-6);
+            expect(x).toBeLessThanOrEqual(SLICE_WIDTH - SLICE_MARGIN_PX + 1e-6);
+            expect(y).toBeGreaterThanOrEqual(SLICE_MARGIN_PX - 1e-6);
+            expect(y).toBeLessThanOrEqual(SLICE_HEIGHT - SLICE_MARGIN_PX + 1e-6);
+        }
+    });
+
+    it('centres the beacon when the path is too long to fit anyway', () => {
+        // The case from the first real bridged report: a roaming fight no crop
+        // can hold, where the old framing parked the ping in a top corner. No
+        // framing keeps this path whole, so nothing competes with the band and
+        // the beacon lands on it exactly.
+        const path: Array<[number, number]> = [
+            [10000, 14000], [10050, 14500], [10100, 15000],
+        ];
+        const f = frameForPath(path)!;
+        const [, by] = continentToOutput(f, path[0][0], path[0][1]);
+        expect(by / SLICE_HEIGHT).toBeCloseTo(BEACON_BAND_INSET, 6);
     });
 
     it('takes the beacon from the first FINITE point, not points[0]', () => {
