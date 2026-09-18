@@ -3,7 +3,7 @@ import { WvwMap } from '../wvwLandmarks';
 import {
     eiPixelToContinent, centroidPath, frameForPath, continentToOutput,
     SLICE_ASPECT, SLICE_WIDTH, SLICE_HEIGHT, MIN_SLICE_UNITS, MAX_SLICE_UNITS,
-    pickSliceZoom, tilesForFrame, buildSliceDrawList,
+    pickSliceZoom, tilesForFrame, buildSliceDrawList, SLICE_MARGIN_PX,
 } from '../sliceGeometry';
 import { MAX_TILE_ZOOM, MAX_HIRES_ZOOM } from '../wvwTiles';
 
@@ -65,16 +65,53 @@ describe('frameForPath', () => {
         expect(width(f)).toBeCloseTo(MIN_SLICE_UNITS, 6);
     });
 
-    it('clamps a sprawling path down to the maximum width, keeping it centred', () => {
+    it('clamps a sprawling path down to the maximum width', () => {
         const f = frameForPath([[9000, 14000], [12000, 14000]])!;
         expect(width(f)).toBeCloseTo(MAX_SLICE_UNITS, 6);
-        expect((f.cx1 + f.cx2) / 2).toBeCloseTo(10500, 6);
     });
 
-    it('centres the frame on the path', () => {
-        const f = frameForPath([[10000, 14000], [10400, 14200]])!;
+    it('centres the frame on a path that fits', () => {
+        const f = frameForPath([[10000, 14000], [10400, 14050]])!;
         expect((f.cx1 + f.cx2) / 2).toBeCloseTo(10200, 6);
-        expect((f.cy1 + f.cy2) / 2).toBeCloseTo(14100, 6);
+        expect((f.cy1 + f.cy2) / 2).toBeCloseTo(14025, 6);
+    });
+
+    it('keeps the beacon in frame when the path is far longer than the crop', () => {
+        // A roaming fight: the route spans ~1000 continent units vertically,
+        // which no crop this wide can hold. Centring on the path midpoint put
+        // the beacon at y = -994 on a real Sunnyhill log -- a picture with no
+        // ping in it. The beacon is the point of the image, so it stays in.
+        const path: Array<[number, number]> = [
+            [10000, 14000], [10050, 14500], [10100, 15000],
+        ];
+        const f = frameForPath(path)!;
+        expect(width(f)).toBeCloseTo(MAX_SLICE_UNITS, 6);
+        const [bx, by] = continentToOutput(f, path[0][0], path[0][1]);
+        expect(bx).toBeGreaterThanOrEqual(SLICE_MARGIN_PX - 1e-6);
+        expect(bx).toBeLessThanOrEqual(SLICE_WIDTH - SLICE_MARGIN_PX + 1e-6);
+        expect(by).toBeGreaterThanOrEqual(SLICE_MARGIN_PX - 1e-6);
+        expect(by).toBeLessThanOrEqual(SLICE_HEIGHT - SLICE_MARGIN_PX + 1e-6);
+    });
+
+    it('keeps the whole path clear of the frame edge', () => {
+        // Fitting the bbox flush to the frame puts the beacon and the end
+        // marker half off the image — seen on a real Green Alpine log, whose
+        // end marker mapped to exactly y=0. Neither clamp binds at this size,
+        // so the margin is the only thing holding the path off the edge.
+        const path: Array<[number, number]> = [
+            [10000, 14000], [10150, 14050], [10300, 14100],
+        ];
+        const f = frameForPath(path)!;
+        // The binding axis lands exactly on the margin by construction, so
+        // allow a float epsilon; flush fitting would put these at 0 and 215.
+        const eps = 1e-6;
+        for (const [cx, cy] of path) {
+            const [x, y] = continentToOutput(f, cx, cy);
+            expect(x).toBeGreaterThanOrEqual(SLICE_MARGIN_PX - eps);
+            expect(x).toBeLessThanOrEqual(SLICE_WIDTH - SLICE_MARGIN_PX + eps);
+            expect(y).toBeGreaterThanOrEqual(SLICE_MARGIN_PX - eps);
+            expect(y).toBeLessThanOrEqual(SLICE_HEIGHT - SLICE_MARGIN_PX + eps);
+        }
     });
 
     it('returns null for an empty path', () => {
