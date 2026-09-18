@@ -272,6 +272,29 @@ describe('buildSliceDrawList', () => {
         }
     });
 
+    it('captions the first SURVIVING point, not a dropped NaN sample', () => {
+        // The caption must name the place the beacon is drawn at. Reading the
+        // raw first sample hands NaN to findNearestLandmark, whose `d < minDist`
+        // comparisons are then all false, so it returns its FIRST landmark --
+        // an embed captioned with an arbitrary place while the beacon sits
+        // somewhere else. Anzalias Pass is the verified projection anchor.
+        const good: Array<[number, number, number]> = [
+            [1000, 287, 314], [2000, 300, 330], [3000, 320, 350],
+        ];
+        try {
+            mapUtilsHooks.trackOverride = [good];
+            const clean = buildSliceDrawList({}, 'Eternal Battlegrounds')!;
+
+            mapUtilsHooks.trackOverride = [[[0, NaN, NaN], ...good]];
+            const withNaN = buildSliceDrawList({}, 'Eternal Battlegrounds')!;
+
+            expect(clean.caption).not.toBeNull();
+            expect(withNaN.caption).toBe(clean.caption);
+        } finally {
+            mapUtilsHooks.trackOverride = null;
+        }
+    });
+
     it('returns null for an unknown map even when positions exist', () => {
         const details = nativeFixture();
         // The map id is AUTHORITATIVE over the zone string

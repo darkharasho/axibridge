@@ -236,12 +236,19 @@ export function buildSliceDrawList(details: any, zone: string): SliceDrawList | 
         if (pixelPath.length === 0) return null;
 
         const continentPath: Array<[number, number]> = [];
+        // The pixel samples that survived projection, index-aligned with
+        // `continentPath`, so the caption can name the same point the beacon
+        // is drawn at rather than a sample that was thrown away.
+        const keptPixels: Array<[number, number]> = [];
         for (const [px, py] of pixelPath) {
             const c = eiPixelToContinent(map, px, py);
             // Both components must be finite, not merely `c` non-null: a NaN
             // sample projects to [NaN, NaN], which is truthy and would produce
             // a NaN frame -> no tiles -> no image at all.
-            if (c && Number.isFinite(c[0]) && Number.isFinite(c[1])) continentPath.push(c);
+            if (c && Number.isFinite(c[0]) && Number.isFinite(c[1])) {
+                continentPath.push(c);
+                keptPixels.push([px, py]);
+            }
         }
         if (continentPath.length === 0) return null;
 
@@ -251,8 +258,13 @@ export function buildSliceDrawList(details: any, zone: string): SliceDrawList | 
         const tiles = tilesForFrame(map, frame);
         if (tiles.length === 0) return null;
 
-        // The caption names where the fight STARTED, matching the beacon.
-        const [startPx, startPy] = pixelPath[0];
+        // The caption names where the fight STARTED, matching the beacon --
+        // which is the first point that SURVIVED projection, not the first
+        // sample. Reading `pixelPath[0]` here would hand a NaN pixel to
+        // `findNearestLandmark`, whose `d < minDist` comparisons are then all
+        // false, so it returns its first landmark: a caption naming an
+        // arbitrary place while the beacon is drawn somewhere else entirely.
+        const [startPx, startPy] = keptPixels[0];
         const landmark = findNearestLandmark(map, startPx, startPy);
 
         return {
