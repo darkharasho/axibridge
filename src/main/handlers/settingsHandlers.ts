@@ -36,6 +36,7 @@ export const DEFAULT_EMBED_STATS = {
     showDamageMitigation: false,
     maxTopListRows: 10,
     classDisplay: 'off',
+    includeMapSlice: true,
 };
 
 export const DEFAULT_MVP_WEIGHTS = {

@@ -2052,6 +2052,12 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 description="Squad and enemy class breakdowns"
                             />
                             <Toggle
+                                enabled={embedStats.includeMapSlice}
+                                onChange={(v) => updateEmbedStat('includeMapSlice', v)}
+                                label="Map Slice"
+                                description="A strip of the map showing where the fight happened"
+                            />
+                            <Toggle
                                 enabled={embedStats.showIncomingStats}
                                 onChange={(v) => updateEmbedStat('showIncomingStats', v)}
                                 label="Incoming Stats"

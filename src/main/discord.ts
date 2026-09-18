@@ -83,6 +83,8 @@ export interface IEmbedStatSettings {
     showDamageMitigation: boolean;
     maxTopListRows: number;
     classDisplay: 'off' | 'short' | 'emoji';
+    /** Attach a map slice showing where the fight happened. */
+    includeMapSlice: boolean;
 }
 
 // Default settings - all enabled except additional stats
@@ -110,6 +112,7 @@ const DEFAULT_EMBED_STATS: IEmbedStatSettings = {
     showDamageMitigation: false,
     maxTopListRows: 10,
     classDisplay: 'off',
+    includeMapSlice: true,
 };
 
 // Discord embed limits

@@ -818,3 +818,11 @@ describe('SettingsView', () => {
         });
     });
 });
+
+describe('includeMapSlice default', () => {
+    it('defaults on in every declaration site', () => {
+        // Check that DEFAULT_EMBED_STATS has the includeMapSlice field
+        expect(DEFAULT_EMBED_STATS).toHaveProperty('includeMapSlice');
+        expect((DEFAULT_EMBED_STATS as any).includeMapSlice).toBe(true);
+    });
+});
