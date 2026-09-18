@@ -567,7 +567,6 @@ export class DiscordNotifier {
                             squadDmg += dmg;
                         }
                         if (p.defenses && p.defenses.length > 0) {
-                            const d = p.defenses[0];
                             totalDowns += getPlayerDownsTaken(p);
                             totalDeaths += getPlayerDeaths(p);
                             totalDmgTaken += getPlayerDamageTaken(p);

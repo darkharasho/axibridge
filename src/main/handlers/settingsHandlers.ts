@@ -4,7 +4,7 @@ import https from 'node:https';
 import http from 'node:http';
 import path from 'node:path';
 import { LEGACY_THEME_TO_PALETTE } from '../../shared/webThemes';
-import { DEFAULT_DISRUPTION_METHOD, type DisruptionMethod } from '../../shared/metricsSettings';
+import { DEFAULT_DISRUPTION_METHOD } from '../../shared/metricsSettings';
 import { isR2SliceEnabled } from './githubHandlers';
 import { parseMaybeGzippedJson } from '../cloudflare/replaySidecar';
 import { resolvePartsJson } from '../partsReader';
