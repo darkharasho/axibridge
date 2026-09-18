@@ -4,6 +4,7 @@ import {
     handleDiscordSendResult,
     resolveDiscordDestination,
     shouldSendDiscord,
+    shouldBuildMapSlice,
     type DestinationStore,
     type StoredWebhookEntry
 } from '../discordDestinationResolver';
@@ -336,5 +337,24 @@ describe('handleDiscordSendResult', () => {
             reason: 'forbidden',
             message: 'Axi cannot post in that channel.'
         });
+    });
+});
+
+describe('shouldBuildMapSlice', () => {
+    it('is off only when includeMapSlice is explicitly false', () => {
+        const store = new FakeStore({ embedStatSettings: { includeMapSlice: false } });
+        expect(shouldBuildMapSlice(store)).toBe(false);
+    });
+
+    it('is on when includeMapSlice is true', () => {
+        const store = new FakeStore({ embedStatSettings: { includeMapSlice: true } });
+        expect(shouldBuildMapSlice(store)).toBe(true);
+    });
+
+    it('is on when the setting has never been written', () => {
+        // Both shapes of "never configured": no embedStatSettings at all, and
+        // an embedStatSettings that predates the key.
+        expect(shouldBuildMapSlice(new FakeStore({}))).toBe(true);
+        expect(shouldBuildMapSlice(new FakeStore({ embedStatSettings: {} }))).toBe(true);
     });
 });

@@ -7,8 +7,9 @@ import {
     formatWeight,
     extractHeadingText,
 } from '../SettingsView';
-import { DEFAULT_EMBED_STATS } from '../global.d';
-import { DEFAULT_MVP_WEIGHT_PROFILES } from '../global.d';
+import { DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHT_PROFILES } from '../global.d';
+import { DEFAULT_EMBED_STATS as RENDERER_DEFAULTS } from '../global.d';
+import { DEFAULT_EMBED_STATS as HANDLER_DEFAULTS } from '../../main/handlers/settingsHandlers';
 // Drift guard for SHIPPED_DEFAULT_BACKEND, the renderer-side hand-kept mirror
 // of the main-process default. The renderer cannot import from main at RUNTIME,
 // but a test can — so an owner flip that misses the mirror fails here.
@@ -816,5 +817,12 @@ describe('SettingsView', () => {
                 expect(screen.queryByTestId('elite-insights-removal-notice')).not.toBeInTheDocument());
             expect((window.electronAPI as any).ackEliteInsightsRemovalNotice).toHaveBeenCalled();
         });
+    });
+});
+
+describe('includeMapSlice default', () => {
+    it('defaults on in every declaration site', () => {
+        expect(RENDERER_DEFAULTS.includeMapSlice).toBe(true);
+        expect((HANDLER_DEFAULTS as any).includeMapSlice).toBe(true);
     });
 });

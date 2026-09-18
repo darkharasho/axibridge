@@ -6,6 +6,7 @@ import {
     formatDuration,
     computeFightAvgPosition,
     buildFightLabelV2,
+    squadPixelTracks,
 } from '../mapUtils';
 import { WvwMap } from '../wvwLandmarks';
 
@@ -170,5 +171,32 @@ describe('buildFightLabelV2', () => {
             zone: 'Detailed WvW - Custom Arena',
             durationMs: 60_000,
         })).toBe('Custom Arena (1:00)');
+    });
+});
+
+describe('squadPixelTracks', () => {
+    it('returns one pixel path per squad member with samples', () => {
+        const details = buildNativeLog([
+            { id: 1, role: 'squad', account: 'A.1', pixels: [[0, 0], [358, 375]] },
+            { id: 2, role: 'squad', account: 'B.2', pixels: [[716, 750]] },
+        ]);
+        const tracks = squadPixelTracks(details);
+        expect(tracks).toHaveLength(2);
+        // world (0, 75000) projects to pixel (0, 0) on the test arena
+        expect(tracks[0][0][1]).toBeCloseTo(0, 5);
+        expect(tracks[0][0][2]).toBeCloseTo(0, 5);
+        // Second sample at pixel (358, 375)
+        expect(tracks[0][1][1]).toBeCloseTo(358, 5);
+        expect(tracks[0][1][2]).toBeCloseTo(375, 5);
+        // Timestamps survive: start_ms (300) + 1 * poll_ms (300) = 600 for the second sample
+        expect(tracks[0][1][0]).toBe(600);
+        // Second squad member has one sample
+        expect(tracks[1]).toHaveLength(1);
+        expect(tracks[1][0][1]).toBeCloseTo(716, 5);
+        expect(tracks[1][0][2]).toBeCloseTo(750, 5);
+    });
+
+    it('returns [] when there is no arena', () => {
+        expect(squadPixelTracks({})).toEqual([]);
     });
 });
