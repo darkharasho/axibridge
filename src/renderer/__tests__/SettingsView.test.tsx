@@ -7,8 +7,9 @@ import {
     formatWeight,
     extractHeadingText,
 } from '../SettingsView';
-import { DEFAULT_EMBED_STATS } from '../global.d';
-import { DEFAULT_MVP_WEIGHT_PROFILES } from '../global.d';
+import { DEFAULT_EMBED_STATS, DEFAULT_MVP_WEIGHT_PROFILES } from '../global.d';
+import { DEFAULT_EMBED_STATS as RENDERER_DEFAULTS } from '../global.d';
+import { DEFAULT_EMBED_STATS as HANDLER_DEFAULTS } from '../../main/handlers/settingsHandlers';
 // Drift guard for SHIPPED_DEFAULT_BACKEND, the renderer-side hand-kept mirror
 // of the main-process default. The renderer cannot import from main at RUNTIME,
 // but a test can — so an owner flip that misses the mirror fails here.
@@ -820,18 +821,8 @@ describe('SettingsView', () => {
 });
 
 describe('includeMapSlice default', () => {
-    it('defaults on in every declaration site', async () => {
-        try {
-            // Try to import as a value module - may fail for .d.ts files
-            const module = await import('../global.d');
-            const RENDERER_DEFAULTS = (module as any).DEFAULT_EMBED_STATS;
-            expect(RENDERER_DEFAULTS.includeMapSlice).toBe(true);
-        } catch {
-            // If global.d.ts cannot be imported as value, skip that check
-        }
-        // Always check the handler defaults which are guaranteed to be importable
-        const handlerModule = await import('../../main/handlers/settingsHandlers');
-        const HANDLER_DEFAULTS = (handlerModule as any).DEFAULT_EMBED_STATS;
+    it('defaults on in every declaration site', () => {
+        expect(RENDERER_DEFAULTS.includeMapSlice).toBe(true);
         expect((HANDLER_DEFAULTS as any).includeMapSlice).toBe(true);
     });
 });
