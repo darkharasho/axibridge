@@ -16,6 +16,14 @@ export const MAX_SLICE_UNITS = 1000;
  *  so binning is what makes "the squad's position at time t" well defined. */
 export const CENTROID_BINS = 64;
 
+/** Output pixels kept clear between the path's bounding box and the frame
+ *  edge. Sized to the beacon's outermost ring (26px) plus a little, so an
+ *  endpoint at the extreme of the path still draws whole. */
+export const SLICE_MARGIN_PX = 28;
+
+/** Bbox inflation that buys `SLICE_MARGIN_PX` on the binding axis. */
+const MARGIN_SCALE = SLICE_HEIGHT / (SLICE_HEIGHT - 2 * SLICE_MARGIN_PX);
+
 export interface ContinentFrame { cx1: number; cy1: number; cx2: number; cy2: number; }
 
 /**
@@ -95,18 +103,39 @@ export function frameForPath(points: Array<[number, number]>): ContinentFrame | 
     const midX = (minX + maxX) / 2;
     const midY = (minY + maxY) / 2;
 
-    // The path must fit both axes before clamping decides the final width.
-    const needed = Math.max(maxX - minX, (maxY - minY) * SLICE_ASPECT);
+    // The path must fit both axes before clamping decides the final width,
+    // and it must fit INSIDE the margin: fitting the bbox flush to the frame
+    // puts the start beacon and end marker on the frame edge, where half of
+    // each is clipped away (verified by eye on a real Green Alpine log, whose
+    // end marker landed exactly on y=0). The margin is measured against the
+    // beacon's outermost ring, the largest thing drawn at a path endpoint.
+    const needed =
+        Math.max(maxX - minX, (maxY - minY) * SLICE_ASPECT) * MARGIN_SCALE;
+    // The clamps still win: a path so sprawling that MAX_SLICE_UNITS binds
+    // gives the margin up rather than zooming out past the legibility limit.
     const width = Math.min(MAX_SLICE_UNITS, Math.max(MIN_SLICE_UNITS, needed));
     const height = width / SLICE_ASPECT;
 
-    return {
-        cx1: midX - width / 2,
-        cy1: midY - height / 2,
-        cx2: midX + width / 2,
-        cy2: midY + height / 2,
-    };
+    // Centred on the path, then shifted the minimum distance that brings the
+    // beacon inside the margin. When MAX_SLICE_UNITS binds -- a roaming fight
+    // whose route is far longer than any crop this wide can hold -- centring
+    // on the path's midpoint puts the beacon off the image entirely: a real
+    // Sunnyhill log mapped its start to y = -994 of a 215px slice, so the
+    // picture showed a red streak and no ping at all. The beacon is the whole
+    // point of the image and the caption names its landmark, so it wins; the
+    // end marker and the far end of the trail are what run off the edge.
+    // A minimum shift rather than re-centring on the beacon keeps as much of
+    // the trail in frame as the crop allows.
+    const marginX = (SLICE_MARGIN_PX / SLICE_WIDTH) * width;
+    const marginY = (SLICE_MARGIN_PX / SLICE_HEIGHT) * height;
+    const [beaconX, beaconY] = points[0];
+    const cx1 = clamp(midX - width / 2, beaconX + marginX - width, beaconX - marginX);
+    const cy1 = clamp(midY - height / 2, beaconY + marginY - height, beaconY - marginY);
+
+    return { cx1, cy1, cx2: cx1 + width, cy2: cy1 + height };
 }
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
 /** Continent coordinate -> output pixel within the slice. */
 export function continentToOutput(frame: ContinentFrame, cx: number, cy: number): [number, number] {
