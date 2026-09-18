@@ -522,14 +522,24 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 isOpen={webhookModalOpen}
                 onClose={() => setWebhookModalOpen(false)}
                 webhooks={webhooks}
-                onSave={(newWebhooks) => {
+                onSave={(newWebhooks, selectId) => {
                     setWebhooks(newWebhooks);
-                    handleUpdateSettings({ webhooks: newWebhooks });
-                    // If the selected webhook was deleted, clear selection
+                    // Fix round 1, item 3: a freshly linked bridge entry must
+                    // be selected in the SAME save that stores it, or
+                    // `applyDiscordDestination()` re-derives against the old
+                    // selection and the newly linked channel never activates.
+                    if (selectId) {
+                        setSelectedWebhookId(selectId);
+                        handleUpdateSettings({ webhooks: newWebhooks, selectedWebhookId: selectId });
+                        return;
+                    }
+                    // If the selected webhook was deleted (or unlinked), clear selection
                     if (selectedWebhookId && !newWebhooks.find(w => w.id === selectedWebhookId)) {
                         setSelectedWebhookId(null);
-                        handleUpdateSettings({ selectedWebhookId: null });
+                        handleUpdateSettings({ webhooks: newWebhooks, selectedWebhookId: null });
+                        return;
                     }
+                    handleUpdateSettings({ webhooks: newWebhooks });
                 }}
             />
 

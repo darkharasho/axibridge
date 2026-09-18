@@ -3,6 +3,7 @@ import {
     applyDiscordDestination,
     handleDiscordSendResult,
     resolveDiscordDestination,
+    shouldSendDiscord,
     type DestinationStore,
     type StoredWebhookEntry
 } from '../discordDestinationResolver';
@@ -69,7 +70,8 @@ describe('resolveDiscordDestination', () => {
         });
     });
 
-    it('falls back to the legacy discordWebhookUrl when no selected entry resolves', () => {
+    it('falls back to the legacy discordWebhookUrl only when webhooks is genuinely empty', () => {
+        // An unmigrated, pre-webhooks[] store: honour the legacy field.
         const store = new FakeStore({
             webhooks: [],
             selectedWebhookId: null,
@@ -87,24 +89,75 @@ describe('resolveDiscordDestination', () => {
         expect(resolveDiscordDestination(store)).toBeNull();
     });
 
-    it('does not fall back to legacy when a selection is present but unresolvable', () => {
-        // A selectedWebhookId that no longer matches any entry (deleted) is a
-        // deliberate "nothing selected" state, not "ignore the selection" —
-        // matching the Step 5 selectedWebhookId branch, which sets null here.
+    // Fix round 1, item 1 (Critical): Ruling C's "fall back to legacy when
+    // unresolvable" and the mirror policy ("keep discordWebhookUrl in sync
+    // with the selection") were jointly unsatisfiable — the mirror write
+    // from a real webhook selection fed straight back into this fallback the
+    // moment the user picked "Disabled" (selectedWebhookId: null), silently
+    // re-arming a destination the UI showed as off. New ruling: with a
+    // non-empty webhooks list, an unresolvable or null selection means OFF.
+    it('does not fall back to legacy once webhooks[] is non-empty, even if a selection is missing', () => {
         const store = new FakeStore({
-            webhooks: [],
+            webhooks: [webhookEntry],
             selectedWebhookId: 'missing-id',
             discordWebhookUrl: 'https://discord.com/api/webhooks/legacy/y'
         });
 
-        // Per the required shared-helper shape, "no resolvable selected
-        // entry" also covers a selection pointing at a deleted webhook —
-        // the legacy field is still honoured so existing single-webhook
-        // users are unaffected regardless of a stray selectedWebhookId.
-        expect(resolveDiscordDestination(store)).toEqual({
-            kind: 'webhook',
-            url: 'https://discord.com/api/webhooks/legacy/y'
+        expect(resolveDiscordDestination(store)).toBeNull();
+    });
+
+    it('resolves to null for "Disabled" (selectedWebhookId: null) even with a mirrored legacy URL still in the store', () => {
+        // The exact reviewer repro: the mirror that a prior selection wrote
+        // into discordWebhookUrl must not resurrect a destination once the
+        // user has explicitly selected nothing.
+        const store = new FakeStore({
+            webhooks: [webhookEntry],
+            selectedWebhookId: null,
+            discordWebhookUrl: webhookEntry.url
         });
+
+        expect(resolveDiscordDestination(store)).toBeNull();
+    });
+});
+
+// Fix round 1, item 2: this is the exact seam `index.ts`'s two send-gate
+// call sites are wired to. There is no repo-wide test that imports
+// `main/index.ts` (it runs Electron-app side effects at module scope), so a
+// miswire at either call site can't be caught by exercising `index.ts`
+// directly — the mitigation is to make the gate a single exported,
+// independently-tested predicate that both call sites import and call
+// as-is, rather than each re-deriving `Boolean(resolveDiscordDestination())`
+// inline (which is itself un-reviewable boilerplate duplication).
+describe('shouldSendDiscord', () => {
+    it('is true for a resolvable bridge selection', () => {
+        const store = new FakeStore({ webhooks: [bridgeEntry], selectedWebhookId: 'bridge-1' });
+        expect(shouldSendDiscord(store)).toBe(true);
+    });
+
+    it('is true for a resolvable webhook selection', () => {
+        const store = new FakeStore({ webhooks: [webhookEntry], selectedWebhookId: 'webhook-1' });
+        expect(shouldSendDiscord(store)).toBe(true);
+    });
+
+    it('is true for a genuinely unmigrated legacy-only store', () => {
+        const store = new FakeStore({ webhooks: [], discordWebhookUrl: 'https://discord.com/api/webhooks/legacy/y' });
+        expect(shouldSendDiscord(store)).toBe(true);
+    });
+
+    // The Disabled case from item 1: a non-empty webhooks[] with no
+    // resolvable selection must gate sends off even if a stale legacy URL
+    // is still sitting in the store.
+    it('is false for "Disabled" despite a stale legacy discordWebhookUrl', () => {
+        const store = new FakeStore({
+            webhooks: [webhookEntry],
+            selectedWebhookId: null,
+            discordWebhookUrl: webhookEntry.url
+        });
+        expect(shouldSendDiscord(store)).toBe(false);
+    });
+
+    it('is false when nothing is configured', () => {
+        expect(shouldSendDiscord(new FakeStore({}))).toBe(false);
     });
 });
 
@@ -133,6 +186,23 @@ describe('applyDiscordDestination', () => {
         expect(store.get('discordWebhookUrl')).toBeNull();
     });
 
+    // Fix round 1, item 1: the reviewer's second manifestation — deleting or
+    // deselecting the active webhook must not leave the old mirror live to
+    // be resurrected by this same function on the next call (e.g. at boot).
+    it('clears the destination and the mirror when Disabled is selected despite a stale legacy URL', () => {
+        const store = new FakeStore({
+            webhooks: [webhookEntry],
+            selectedWebhookId: null,
+            discordWebhookUrl: webhookEntry.url
+        });
+        const setDestination = vi.fn();
+
+        applyDiscordDestination(store, { setDestination } as any);
+
+        expect(setDestination).toHaveBeenCalledWith(null);
+        expect(store.get('discordWebhookUrl')).toBeNull();
+    });
+
     it('mirrors a webhook destination back onto discordWebhookUrl', () => {
         const store = new FakeStore({ webhooks: [webhookEntry], selectedWebhookId: 'webhook-1' });
         const setDestination = vi.fn();
@@ -142,22 +212,38 @@ describe('applyDiscordDestination', () => {
         expect(store.get('discordWebhookUrl')).toBe(webhookEntry.url);
     });
 
-    // Ruling H: the link flow saves via `saveSettings({ webhooks })` alone,
-    // with no selectedWebhookId in the payload — applying the destination
-    // must not depend on a selection change being present in the same call.
-    it('activates a newly linked bridge entry from a webhooks-only update with no selection change', () => {
-        const store = new FakeStore({ webhooks: [], selectedWebhookId: 'bridge-1' });
+    // Ruling H, rebuilt on the real flow (fix round 1, item 3): the id of a
+    // newly linked entry is freshly generated by the renderer
+    // (`crypto.randomUUID()`), so `selectedWebhookId` can never already
+    // point at it before the link — the "renderer pre-selected it" premise
+    // the old version of this test relied on is impossible. The real flow
+    // is `applySettings` re-deriving twice for one `saveSettings({ webhooks,
+    // selectedWebhookId })` call: once when the `webhooks` field is applied
+    // (selection not yet updated), and again when the `selectedWebhookId`
+    // field is applied. This test would fail if the WebhookModal link flow's
+    // auto-selection (item 3) were removed — the first call demonstrates
+    // exactly that failure mode.
+    it('activates a newly linked bridge entry only once its own id is also selected', () => {
+        const store = new FakeStore({ webhooks: [], selectedWebhookId: null });
         const setDestination = vi.fn();
         const discord = { setDestination } as any;
 
-        // Simulates the `settings.webhooks !== undefined` branch: the
-        // selection was already pointed at this id (e.g. it's the only
-        // entry, or the renderer pre-selected it), but the entry itself only
-        // just landed in the store via a webhooks-only save.
+        // Step 1: the `webhooks` field lands first (as it does in
+        // `applySettings`'s field-by-field processing), before the
+        // `selectedWebhookId` field of the same save is applied. Per Ruling
+        // C (item 1), a non-empty webhooks[] with no resolvable selection is
+        // OFF — this is the "auto-selection removed" failure mode.
         store.set('webhooks', [bridgeEntry]);
         applyDiscordDestination(store, discord);
+        expect(setDestination).toHaveBeenLastCalledWith(null);
 
-        expect(setDestination).toHaveBeenCalledWith({
+        // Step 2: the `selectedWebhookId` field of the same save lands,
+        // naming the just-linked entry's own (freshly generated) id — this
+        // is what item 3's auto-selection actually does.
+        store.set('selectedWebhookId', 'bridge-1');
+        applyDiscordDestination(store, discord);
+
+        expect(setDestination).toHaveBeenLastCalledWith({
             kind: 'bridge',
             relayUrl: 'https://bot.example.com',
             token: 'axb1.secret'
@@ -199,6 +285,37 @@ describe('handleDiscordSendResult', () => {
             reason: 'revoked',
             message: 'This link was revoked — pair again.'
         });
+    });
+
+    // Fix round 1, item 13: `classify()` in discord.ts returns the same
+    // revoked/forbidden/rate-limited shapes for a webhook destination as for
+    // a bridge one, but the bridge-flavoured wording and unlink-on-revoke
+    // behaviour must not fire for a plain webhook — that keeps its
+    // pre-Task-9 console-only behaviour.
+    it('does nothing for a webhook destination, even on a "revoked" (401) result', () => {
+        const store = new FakeStore({ webhooks: [webhookEntry], selectedWebhookId: 'webhook-1' });
+        const discord = { setDestination: vi.fn() } as any;
+        const win = { webContents: { send: vi.fn() } };
+
+        handleDiscordSendResult(store, discord, win, {
+            ok: false,
+            reason: 'revoked',
+            message: 'This link was revoked — pair again.'
+        });
+
+        expect(discord.setDestination).not.toHaveBeenCalled();
+        expect(win.webContents.send).not.toHaveBeenCalled();
+        expect(store.get('webhooks')).toEqual([webhookEntry]);
+    });
+
+    it('does nothing when nothing is selected', () => {
+        const store = new FakeStore({ webhooks: [bridgeEntry], selectedWebhookId: null });
+        const discord = { setDestination: vi.fn() } as any;
+        const win = { webContents: { send: vi.fn() } };
+
+        handleDiscordSendResult(store, discord, win, { ok: false, reason: 'network', message: 'boom' });
+
+        expect(win.webContents.send).not.toHaveBeenCalled();
     });
 
     it('surfaces a non-revoked failure without touching the stored webhooks', () => {

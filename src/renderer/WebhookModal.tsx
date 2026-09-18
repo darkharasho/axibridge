@@ -20,7 +20,13 @@ interface WebhookModalProps {
     isOpen: boolean;
     onClose: () => void;
     webhooks: Webhook[];
-    onSave: (webhooks: Webhook[]) => void;
+    /**
+     * `selectId`, when present, asks the caller to also select that entry in
+     * the same save — used by the link flow so a freshly linked channel
+     * activates immediately rather than waiting on a separate selection
+     * change (fix round 1, item 3).
+     */
+    onSave: (webhooks: Webhook[], selectId?: string) => void;
 }
 
 export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModalProps) {
@@ -85,6 +91,19 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
         setLocalWebhooks(localWebhooks.filter(w => w.id !== id));
     };
 
+    /**
+     * Fix round 1, item 8: `handleDelete` only mutated local state, so
+     * Unlink needed a separate "Save Changes" click while Link committed
+     * instantly — closing the modal with the X after clicking Unlink left
+     * the bridge entry stored and still sending. Commit the same way Link
+     * does: mutate and save in one step.
+     */
+    const handleUnlink = (id: string) => {
+        const next = localWebhooks.filter(w => w.id !== id);
+        setLocalWebhooks(next);
+        onSave(next);
+    };
+
     const handleSaveAll = () => {
         onSave(localWebhooks);
         onClose();
@@ -115,9 +134,18 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
             // Linking is immediate rather than staged: it must reach the
             // store (and re-derive the active destination) right away, not
             // wait for a separate "Save Changes" click on unrelated edits.
-            onSave(next);
+            // Fix round 1, item 3: also select it in the same save, or
+            // `applyDiscordDestination()` re-derives against whatever was
+            // already selected and the newly linked channel never activates.
+            onSave(next, linked.id);
             setIsLinking(false);
             setBridgeKey('');
+        } catch (error: any) {
+            // Fix round 1, item 10: a rejected `bridge:link` invoke (e.g. the
+            // main process itself threw) was previously an unhandled
+            // rejection with no visible error — a swallowed failure in the
+            // one task about not swallowing failures.
+            setBridgeLinkError(String(error?.message || error));
         } finally {
             setBridgeLinking(false);
         }
@@ -233,7 +261,7 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                                                             </button>
                                                         )}
                                                         <button
-                                                            onClick={() => handleDelete(webhook.id)}
+                                                            onClick={() => (isBridge ? handleUnlink(webhook.id) : handleDelete(webhook.id))}
                                                             className="p-2 rounded-[4px] hover:bg-white/10 text-gray-400 hover:text-red-400 transition-colors"
                                                             title={isBridge ? 'Unlink' : 'Delete'}
                                                         >
@@ -242,9 +270,17 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                                                     </div>
                                                 </div>
                                                 {isBridge && (
-                                                    <p className="mt-2 text-[11px] text-gray-500">
-                                                        Also run <code className="rounded-[3px] border border-white/10 bg-black/40 px-1 text-purple-300">/bridge revoke</code> in Discord to invalidate the key.
-                                                    </p>
+                                                    <>
+                                                        <p className="mt-2 text-[11px] text-gray-500">
+                                                            Also run <code className="rounded-[3px] border border-white/10 bg-black/40 px-1 text-purple-300">/bridge revoke</code> in Discord to invalidate the key.
+                                                        </p>
+                                                        {/* Fix round 1, items 6/7: this note lived only inside the
+                                                            isLinking form, so it vanished the moment linking
+                                                            succeeded. Keep it visible on every bridge row. */}
+                                                        <p className="mt-1 text-[11px] text-amber-400/80">
+                                                            Bridged reports are posted by the Axi bot, so they appear as <span className="font-semibold">Axi</span> rather than AxiBridge. If the bot is offline, bridged reports are not delivered.
+                                                        </p>
+                                                    </>
                                                 )}
                                             </div>
                                         )}
