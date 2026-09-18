@@ -90,6 +90,22 @@ const hostileDetails = {
     durationMS: 60000,
 };
 
+// The same roster with every countable stat at zero: each top list keeps its
+// `enabled` gate but has no qualifying row to render.
+const zeroedDetails = {
+    ...hostileDetails,
+    players: hostileDetails.players.map(player => ({
+        ...player,
+        dpsAll: [{ damage: 0, dps: 0 }],
+        stabGeneration: 0,
+        support: [{ condiCleanse: 0, condiCleanseSelf: 0, boonStrips: 0, resurrects: 0, resurrectTime: 0 }],
+        statsAll: [{ downContribution: 0, killed: 0, downed: 0, distToCom: 0, stackDist: 0 }],
+        defenses: [{ damageTaken: 0, deadCount: 0, downCount: 0, dodgeCount: 0, breakbarDamage: 0, damageBarrier: 0 }],
+        extHealingStats: { outgoingHealing: [{ healing: 0, hps: 0 }], outgoingHealingAllies: [[{ healing: 0 }]] },
+        extBarrierStats: { outgoingBarrier: [{ barrier: 0 }], outgoingBarrierAllies: [[{ barrier: 0 }]] },
+    })),
+};
+
 const allStatsOn = {
     classDisplay: 'emoji',
     maxTopListRows: 10,
@@ -151,6 +167,24 @@ describe('embed character budget', () => {
         // the same budget the first one spent -- never restart it at 6000.
         expect(embeds.length).toBeGreaterThan(1);
         expect(messageCharCount(embeds, substitute)).toBeLessThanOrEqual(DISCORD_LIMIT);
+    });
+
+    it('never emits an empty field value for an all-zero board', async () => {
+        // Discord rejects a field whose value is the empty string with a 400 for
+        // the whole message. The bridge's span layout has no fence to fall back
+        // on, so a board every row of which was filtered out lands there unless
+        // it is given a placeholder.
+        const notifier = new DiscordNotifier();
+        notifier.setEmbedStatSettings(allStatsOn as never);
+        notifier.setDestination({ kind: 'bridge', relayUrl: 'https://bot.example.com', token: 'axb1.x.y' });
+        await notifier.sendLog(logData, zeroedDetails);
+        const embeds = (vi.mocked(axios.post).mock.calls[0][1] as any).embeds as any[];
+
+        const fields = embeds.flatMap(embed => embed.fields || []);
+        expect(fields.length).toBeGreaterThan(0);
+        for (const field of fields) {
+            expect(field.value).not.toBe('');
+        }
     });
 
     it('never inflates the webhook path, which has no tokens to substitute', async () => {
