@@ -195,6 +195,14 @@ export const HEALING_METRICS: Array<{
         { id: 'resUtility', label: 'Resurrect Utility', baseField: 'resUtility', perSecond: false, decimals: 0 }
     ];
 
+/**
+ * Full-phrase names for resurrect utilities, the fallback for a cast id the
+ * catalog does not know. Never a bare word: "renewal" alone would swallow
+ * Signet of Renewal, a condition cleanse.
+ *
+ * The four "renewal of <attunement>" entries are elementalist Glyph of Renewal,
+ * which never casts under its own name — see `resurrectCatalog.ts`.
+ */
 export const RES_UTILITY_NAME_MATCHES = [
     'battle standard',
     'glyph of renewal',
@@ -203,7 +211,12 @@ export const RES_UTILITY_NAME_MATCHES = [
     'spirit of nature',
     'nature spirit',
     'search and rescue',
-    'signet of mercy'
+    'signet of mercy',
+    'signet of undeath',
+    'renewal of air',
+    'renewal of earth',
+    'renewal of fire',
+    'renewal of water'
 ];
 
 export const RES_UTILITY_IDS = new Set<number>([10244]);

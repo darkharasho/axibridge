@@ -604,9 +604,21 @@ Recoveries are ground truth and require no heuristic.
 Each recovery is attributed through a four-tier ladder: hand resurrect (skill 1066, active at
 the moment of stand-up) → active resurrect utility within its effect window → self-resurrect
 (Bandage, skill 1175) → **unattributed**, which is reported in the UI rather than hidden.
-Catalogued resurrect utilities are Illusion of Life (10244), Spirit of Nature (12569), and
-Battle Standard (14419); others are recognized by name match. Skill 12502 ("Signet of Renewal")
-is a condition cleanse and is deliberately excluded from the resurrect catalog.
+Catalogued resurrect utilities are Spirit of Nature (12569 / 69300), Battle Standard (14419 /
+14569), Glyph of the Stars (31677 / 55024 / 55046), Illusion of Life (10244 / 25541), "Search
+and Rescue!" (30123 / 34309), Signet of Mercy (9163 / 24414), Signet of Undeath (10611 / 24544)
+and elementalist Glyph of Renewal (5760–5763, plus the duplicate ids 24407 / 24409 / 24410 /
+24411); others are recognized by full-phrase name match. Skill 12502 ("Signet of Renewal") is a
+condition cleanse and is deliberately excluded from the resurrect catalog.
+
+Utilities that revive at the instant of the cast — both signets and all four Glyph of Renewal
+attunement variants — use `INSTANT_UTILITY_WINDOW_MS` (2s, covering the cast animation, since
+the only timestamp the log gives us is the cast *start*). Ground-placed utilities keep their
+field lifetime as the window. Glyph of Renewal is catalogued by id because it never casts under
+its own name: it casts as "Renewal of Air/Earth/Fire/Water", so no name match could reach it.
+These ids match the set arcdps's own instant-res counter special-cases; arcdps credits the res
+*effect* within a single event tick, which we cannot see from EI-shaped JSON, so the short
+window stands in for it.
 
 A player's `totalRevives` is hand + utility attributions. Self-revives are excluded from a
 player's total — crediting someone for reviving themselves would distort the leaderboard — and
@@ -630,8 +642,11 @@ instead.
 
 Empirically validated against 324 real WvW logs (2026-09-09): of 3149 recovered downs, 35.41%
 were attributed to hand resurrects, 59.61% to utilities, 0.22% to self, and 4.76% were
-unattributed. Full methodology and per-log distribution are in
-`docs/superpowers/specs/2026-09-09-detailed-resurrects-design.md` ("Empirical validation").
+unattributed. Re-validated after the catalog expansion (2026-09-17) over 339 logs and 3225
+recoveries: 36.34% hand, 59.29% utility, 0.16% self, 4.22% unattributed. Full methodology and
+per-log distribution are in `docs/superpowers/specs/2026-09-09-detailed-resurrects-design.md`
+("Empirical validation", "Catalog expansion"). Re-run it with
+`node scripts/revive-validate.mjs extract` then `... report --gaps`.
 
 The Revives section (Defense category, section id `revive-detail`) surfaces squad totals, a
 per-player attempts-vs-completed table, a per-utility effectiveness table, and post–Illusion of

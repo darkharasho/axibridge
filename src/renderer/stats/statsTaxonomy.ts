@@ -76,7 +76,7 @@ export const STATS_CATEGORIES: readonly StatsCategory[] = [
         keywords: ['survivability', 'tanking'],
         sections: [
             { id: 'defense-detailed', label: 'Defense Detailed', icon: Shield, description: 'Full defensive stat table: damage taken, downs, deaths, dodges.', keywords: ['damage taken', 'deaths', 'downs', 'dodges'] },
-            { id: 'revive-detail', label: 'Revives', icon: HelpingHand, description: 'Completed revives, resurrect attempts, and which utilities picked people up.', keywords: ['revives', 'resurrects', 'resurrect attempts', 'battle standard', 'illusion of life', 'spirit of nature', 'banner', 'rally', 'picked up'] },
+            { id: 'revive-detail', label: 'Revives', icon: HelpingHand, description: 'Completed revives, resurrect attempts, and which utilities picked people up.', keywords: ['revives', 'resurrects', 'resurrect attempts', 'battle standard', 'illusion of life', 'spirit of nature', 'signet of undeath', 'signet of mercy', 'glyph of renewal', 'banner', 'rally', 'picked up'] },
             { id: 'incoming-strike-damage', label: 'Incoming Strike Damage', icon: ShieldAlert, description: 'Incoming pressure over time and per player.', keywords: ['pressure', 'focused'] },
             { id: 'enemy-attention', label: 'Enemy Attention', icon: Crosshair, description: 'Who the enemy actually aimed their casts at, and who they focused before a down.', keywords: ['focus', 'focused', 'targeted', 'aimed at', 'attention', 'threat', 'who gets hit'] },
             { id: 'incoming-damage-modifiers', label: 'Incoming Modifiers', icon: ShieldOff, description: 'Incoming damage modifier uptimes.', keywords: ['damage reduction'] },
