@@ -12,6 +12,7 @@ import { LogWatcher } from './watcher'
 import { Uploader, UploadResult } from './uploader'
 import { waitForPermalink } from './permalinkWait'
 import { DiscordNotifier } from './discord';
+import { buildMapSlice, registerMapSliceResult } from './mapSlice';
 import { linkBridgeChannel } from './bridgeLink';
 import {
     shouldSendDiscord as shouldSendDiscordFn,
@@ -275,6 +276,21 @@ const resolveShouldSendDiscord = () => shouldSendDiscordFn(store);
 const applyDiscordDestination = () => applyDiscordDestinationFn(store, discord);
 const handleDiscordSendResult = (sendResult: Awaited<ReturnType<DiscordNotifier['sendLog']>> | undefined) =>
     handleDiscordSendResultFn(store, discord, win, sendResult);
+
+const mapSliceCacheDir = () => path.join(app.getPath('userData'), 'map-tiles');
+
+/** Build the slice for a report, or null. Never throws. */
+const mapSliceFor = async (details: any, zone: string): Promise<Uint8Array | undefined> => {
+    const png = await buildMapSlice(details, zone, {
+        cacheDir: mapSliceCacheDir(),
+        requestPaint: (requestId, drawList) => {
+            if (!win || win.isDestroyed()) return false;
+            win.webContents.send('map-slice:paint', { requestId, drawList });
+            return true;
+        },
+    });
+    return png ? new Uint8Array(png) : undefined;
+};
 
 /**
  * The parser. `null` only until `app.whenReady`; after that a `null` binding is
@@ -796,7 +812,8 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                                 }
                             }
                         }
-                        const sendResult = await discord?.sendLog({ ...syntheticResult, filePath, mode: 'embed', splitEnemiesByTeam }, prunedDetails);
+                        const mapSlicePng = await mapSliceFor(prunedDetails, '');
+                        const sendResult = await discord?.sendLog({ ...syntheticResult, filePath, mode: 'embed', splitEnemiesByTeam, mapSlicePng }, prunedDetails);
                         handleDiscordSendResult(sendResult);
                     }
                 } catch (discordError: any) {
@@ -945,7 +962,8 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                     }
                     // `prunedDetails` is null when the local parse failed, which
                     // posts the link-only embed rather than nothing at all.
-                    const sendResult = await discord?.sendLog({ ...result, filePath, mode: 'embed', splitEnemiesByTeam }, prunedDetails);
+                    const mapSlicePng = await mapSliceFor(prunedDetails, '');
+                    const sendResult = await discord?.sendLog({ ...result, filePath, mode: 'embed', splitEnemiesByTeam, mapSlicePng }, prunedDetails);
                     handleDiscordSendResult(sendResult);
                 }
             } catch (discordError: any) {
@@ -1795,6 +1813,7 @@ if (!gotTheLock) {
 
         // ─── Register IPC handlers ─────────────────────────────────────────────────
         ipcMain.handle('bridge:link', async (_event, key: string) => linkBridgeChannel(key));
+        registerMapSliceResult(ipcMain);
         registerFileHandlers({ getWindow: () => win });
         registerAppHandlers({ store, getWindow: () => win });
         registerDiscordHandlers({
