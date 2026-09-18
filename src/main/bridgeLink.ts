@@ -2,7 +2,17 @@ import axios from 'axios';
 import { parseBridgeKey } from './axiToolsKey';
 
 export type LinkResult =
-    | { ok: true; relayUrl: string; guildName: string; channelName: string }
+    | {
+          ok: true;
+          relayUrl: string;
+          guildName: string;
+          channelName: string;
+          // N3: `/bridge/whoami` returns these alongside the display names.
+          // They are the stable key for re-link matching (names can be
+          // renamed or collide across guilds); they are not secrets.
+          guildId: string;
+          channelId: string;
+      }
     | { ok: false; error: string };
 
 /**
@@ -28,7 +38,9 @@ export async function linkBridgeChannel(key: string): Promise<LinkResult> {
             ok: true,
             relayUrl,
             guildName: String(response.data?.guild_name ?? 'Unknown server'),
-            channelName: String(response.data?.channel_name ?? 'unknown-channel')
+            channelName: String(response.data?.channel_name ?? 'unknown-channel'),
+            guildId: String(response.data?.guild_id ?? ''),
+            channelId: String(response.data?.channel_id ?? '')
         };
     } catch (error: any) {
         return { ok: false, error: String(error?.response?.data?.error ?? error?.message ?? error) };
