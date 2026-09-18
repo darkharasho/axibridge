@@ -12,6 +12,7 @@ import { Terminal } from '../Terminal';
 import { UpdateErrorModal } from '../UpdateErrorModal';
 import { WalkthroughModal } from '../WalkthroughModal';
 import { WebhookModal } from '../WebhookModal';
+import { resolveWebhookSaveIntent } from './webhookSaveIntent';
 import { WhatsNewModal } from '../WhatsNewModal';
 import { FilePickerModal } from './FilePickerModal';
 import { WebUploadOverlay } from './WebUploadOverlay';
@@ -523,23 +524,16 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 onClose={() => setWebhookModalOpen(false)}
                 webhooks={webhooks}
                 onSave={(newWebhooks, selectId) => {
-                    setWebhooks(newWebhooks);
-                    // Fix round 1, item 3: a freshly linked bridge entry must
-                    // be selected in the SAME save that stores it, or
-                    // `applyDiscordDestination()` re-derives against the old
-                    // selection and the newly linked channel never activates.
-                    if (selectId) {
-                        setSelectedWebhookId(selectId);
-                        handleUpdateSettings({ webhooks: newWebhooks, selectedWebhookId: selectId });
-                        return;
+                    // Fix round 2, item 1: this is now a thin wire onto a
+                    // directly-tested pure function (webhookSaveIntent.ts) —
+                    // see its docstring for why the selection must travel
+                    // with the save rather than as a separate one.
+                    const intent = resolveWebhookSaveIntent(selectedWebhookId, newWebhooks, selectId);
+                    setWebhooks(intent.webhooks);
+                    if (intent.selectedWebhookId !== undefined) {
+                        setSelectedWebhookId(intent.selectedWebhookId);
                     }
-                    // If the selected webhook was deleted (or unlinked), clear selection
-                    if (selectedWebhookId && !newWebhooks.find(w => w.id === selectedWebhookId)) {
-                        setSelectedWebhookId(null);
-                        handleUpdateSettings({ webhooks: newWebhooks, selectedWebhookId: null });
-                        return;
-                    }
-                    handleUpdateSettings({ webhooks: newWebhooks });
+                    handleUpdateSettings(intent);
                 }}
             />
 
