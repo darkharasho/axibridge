@@ -1,0 +1,157 @@
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { render, act } from '@testing-library/react';
+
+// Fix round 3, item 1: the activation glue (auto-select a newly linked
+// bridge entry in the same settings save, Ruling N) lives at the call site
+// in AppLayout.tsx's `WebhookModal.onSave` prop, not inside the hoisted
+// `resolveWebhookSaveIntent` function. Deleting the call to that function
+// leaves `resolveWebhookSaveIntent`'s own tests green while the call site's
+// behaviour silently reverts — item 2's "same computation" argument does not
+// apply here because auto-selection is a *call*, not a shared computation a
+// bypass would also have to perform to work. This test observes the call
+// site itself: it stubs `WebhookModal` to capture the `onSave` prop AppLayout
+// actually wires up, invokes it directly (as the real modal would on a
+// successful link), and asserts the observable outcome — `setSelectedWebhookId`
+// and `handleUpdateSettings` are called with the newly linked entry's id.
+let capturedOnSave: ((webhooks: any[], selectId?: string) => void) | null = null;
+
+vi.mock('../../WebhookModal', () => ({
+    WebhookModal: (props: { onSave: (webhooks: any[], selectId?: string) => void }) => {
+        capturedOnSave = props.onSave;
+        return null;
+    }
+}));
+
+// AppLayout always renders FilePickerModal with its own separate `ctx`
+// object (a much larger, unrelated prop surface for the file-picker
+// dialog). It's irrelevant to this test and gated behind its own
+// `filePickerOpen` flag, but stubbing it keeps this test's `ctx` to just
+// the props AppLayout itself destructures, per the brief's "minimal
+// stubbed ctx" instruction.
+vi.mock('../FilePickerModal', () => ({
+    FilePickerModal: () => null
+}));
+
+import { AppLayout } from '../AppLayout';
+
+const bridgeWebhook = {
+    id: 'bridge-1',
+    name: 'Vigil Keep › #wvw-reports',
+    kind: 'bridge' as const,
+    relayUrl: 'https://bot.example.com',
+    token: 'axb1.secret'
+};
+
+/** Minimal stub covering exactly the fields AppLayout.tsx destructures from `ctx`. */
+function makeCtx(overrides: Record<string, unknown> = {}) {
+    return {
+        shellClassName: '',
+        isDev: false,
+        axibridgeLogoStyle: {},
+        updateAvailable: false,
+        updateDownloaded: false,
+        updateProgress: null,
+        updateStatus: null,
+        autoUpdateSupported: true,
+        autoUpdateDisabledReason: null,
+        view: 'dashboard' as const,
+        settingsUpdateCheckRef: { current: false },
+        versionClickTimesRef: { current: [] as number[] },
+        versionClickTimeoutRef: { current: null },
+        setDeveloperSettingsTrigger: vi.fn(),
+        appVersion: '0.0.0',
+        setView: vi.fn(),
+        showTerminal: false,
+        setShowTerminal: vi.fn(),
+        webUploadState: { uploading: false, stage: null },
+        setWebUploadState: vi.fn(),
+        webUploadLogEntries: [],
+        logsForStats: [],
+        mvpWeights: {},
+        disruptionMethod: 'count',
+        statsViewSettings: {},
+        computedStats: null,
+        computedSkillUsageData: null,
+        aggregationProgress: null,
+        aggregationDiagnostics: null,
+        axilogCoverage: null,
+        handleLogsHealed: vi.fn(),
+        statsDataProgress: null,
+        setStatsViewSettings: vi.fn(),
+        setColorPalette: vi.fn(),
+        setGlassSurfaces: vi.fn(),
+        setGlassmorphic: vi.fn(),
+        particlesEnabled: false,
+        setParticlesEnabled: vi.fn(),
+        handleWebUpload: vi.fn(),
+        selectedWebhookId: null,
+        setEmbedStatSettings: vi.fn(),
+        setMvpWeights: vi.fn(),
+        setDisruptionMethod: vi.fn(),
+        developerSettingsTrigger: 0,
+        helpUpdatesFocusTrigger: 0,
+        handleHelpUpdatesFocusConsumed: vi.fn(),
+        parserSettingsFocusTrigger: 0,
+        handleParserSettingsFocusConsumed: vi.fn(),
+        howToTrigger: 0,
+        handleHowToConsumed: vi.fn(),
+        setWalkthroughOpen: vi.fn(),
+        setWhatsNewOpen: vi.fn(),
+        activityPanel: null,
+        configurationPanel: null,
+        filePickerCtx: {},
+        webhookDropdownOpen: false,
+        webhookDropdownStyle: null,
+        webhookDropdownPortalRef: { current: null },
+        webhooks: [],
+        handleUpdateSettings: vi.fn(),
+        setSelectedWebhookId: vi.fn(),
+        setWebhookDropdownOpen: vi.fn(),
+        webhookModalOpen: true,
+        setWebhookModalOpen: vi.fn(),
+        setWebhooks: vi.fn(),
+        showUpdateErrorModal: false,
+        setShowUpdateErrorModal: vi.fn(),
+        updateError: null,
+        whatsNewOpen: false,
+        handleWhatsNewClose: vi.fn(),
+        whatsNewVersion: '',
+        whatsNewNotes: null,
+        walkthroughOpen: false,
+        handleWalkthroughClose: vi.fn(),
+        handleWalkthroughLearnMore: vi.fn(),
+        isBulkUploadActive: false,
+        setAllowLocalJson: vi.fn(),
+        setR2PreciseReplay: vi.fn(),
+        setR2HostingEnabled: vi.fn(),
+        setR2SliceEnabled: vi.fn(),
+        refreshR2Status: vi.fn(),
+        setParserSettings: vi.fn(),
+        parserSettings: null,
+        setParserSetting: vi.fn(),
+        ...overrides
+    };
+}
+
+describe('AppLayout — bridge activation call site', () => {
+    beforeEach(() => {
+        capturedOnSave = null;
+    });
+
+    it('selects the newly linked entry when WebhookModal reports a successful link', () => {
+        const ctx = makeCtx();
+        render(<AppLayout ctx={ctx} />);
+
+        expect(capturedOnSave).not.toBeNull();
+
+        act(() => {
+            capturedOnSave!([bridgeWebhook], 'bridge-1');
+        });
+
+        expect(ctx.setSelectedWebhookId).toHaveBeenCalledWith('bridge-1');
+        expect(ctx.handleUpdateSettings).toHaveBeenCalledWith({
+            webhooks: [bridgeWebhook],
+            selectedWebhookId: 'bridge-1'
+        });
+    });
+});
