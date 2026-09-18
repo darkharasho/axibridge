@@ -997,9 +997,18 @@ export class DiscordNotifier {
                             const name = `${classCell}${trimmedName}`.padEnd(nameWidth);
                             str += `${rank} ${name} ${vStr}\n`;
                         }
+                        // A board whose every row was filtered out (all-zero stat, or a
+                        // metric this parse cannot populate) leaves `str` empty. The fenced
+                        // webhook value still has its backticks, but a span-layout value
+                        // would be the empty string -- and Discord rejects an empty
+                        // `field.value` with a 400 for the whole message. The relay happens
+                        // to drop empty-valued fields before posting, but that is its
+                        // leniency, not a contract: emit an explicit placeholder instead,
+                        // matching `formatClassLines`' own empty case.
+                        const spanValue = str.trimEnd() || 'No Data';
                         embedFields.push({
                             name: title + ":",
-                            value: useSpanLayout ? str.trimEnd() : `\`\`\`\n${str}\`\`\``,
+                            value: useSpanLayout ? spanValue : `\`\`\`\n${str}\`\`\``,
                             inline: true
                         });
                     };
