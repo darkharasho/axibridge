@@ -1,11 +1,19 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Trash2, Edit2, Check, Link } from 'lucide-react';
+import { X, Plus, Trash2, Edit2, Check, Link, Zap } from 'lucide-react';
 
 export interface Webhook {
     id: string;
     name: string;
-    url: string;
+    /** Webhook destinations only. */
+    url?: string;
+    /** Absent means 'webhook', so plain webhook entries need no migration. */
+    kind?: 'webhook' | 'bridge';
+    /** Bridge destinations: decoded from the axb1 key at link time. */
+    relayUrl?: string;
+    token?: string;
+    guildName?: string;
+    channelName?: string;
 }
 
 interface WebhookModalProps {
@@ -24,11 +32,19 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
     const [newName, setNewName] = useState('');
     const [newUrl, setNewUrl] = useState('');
 
+    const [isLinking, setIsLinking] = useState(false);
+    const [bridgeKey, setBridgeKey] = useState('');
+    const [bridgeLinking, setBridgeLinking] = useState(false);
+    const [bridgeLinkError, setBridgeLinkError] = useState<string | null>(null);
+
     useEffect(() => {
         if (isOpen) {
             setLocalWebhooks([...webhooks]);
             setIsAdding(false);
             setEditingId(null);
+            setIsLinking(false);
+            setBridgeKey('');
+            setBridgeLinkError(null);
         }
     }, [isOpen, webhooks]);
 
@@ -38,6 +54,7 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
         const newWebhook: Webhook = {
             id: Date.now().toString(),
             name: newName.trim(),
+            kind: 'webhook',
             url: newUrl.trim()
         };
 
@@ -50,7 +67,7 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
     const handleEdit = (webhook: Webhook) => {
         setEditingId(webhook.id);
         setEditName(webhook.name);
-        setEditUrl(webhook.url);
+        setEditUrl(webhook.url ?? '');
     };
 
     const handleSaveEdit = () => {
@@ -71,6 +88,39 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
     const handleSaveAll = () => {
         onSave(localWebhooks);
         onClose();
+    };
+
+    const handleLinkSubmit = async () => {
+        const key = bridgeKey.trim();
+        if (!key || !window.electronAPI?.linkBridgeChannel) return;
+        setBridgeLinking(true);
+        setBridgeLinkError(null);
+        try {
+            const result = await window.electronAPI.linkBridgeChannel(key);
+            if (!result.ok) {
+                setBridgeLinkError(result.error);
+                return;
+            }
+            const linked: Webhook = {
+                id: crypto.randomUUID(),
+                name: `${result.guildName} › #${result.channelName}`,
+                kind: 'bridge',
+                relayUrl: result.relayUrl,
+                token: key,
+                guildName: result.guildName,
+                channelName: result.channelName
+            };
+            const next = [...localWebhooks, linked];
+            setLocalWebhooks(next);
+            // Linking is immediate rather than staged: it must reach the
+            // store (and re-derive the active destination) right away, not
+            // wait for a separate "Save Changes" click on unrelated edits.
+            onSave(next);
+            setIsLinking(false);
+            setBridgeKey('');
+        } finally {
+            setBridgeLinking(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -110,7 +160,7 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                     <div className="p-6 max-h-[60vh] overflow-y-auto">
                         {/* Existing Webhooks */}
                         <div className="space-y-3 mb-4">
-                            {localWebhooks.length === 0 && !isAdding && (
+                            {localWebhooks.length === 0 && !isAdding && !isLinking && (
                                 <div className="text-center text-gray-500 py-8">
                                     <Link className="w-12 h-12 mx-auto mb-3 opacity-30" />
                                     <p>No webhooks configured</p>
@@ -118,75 +168,94 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                                 </div>
                             )}
 
-                            {localWebhooks.map(webhook => (
-                                <div
-                                    key={webhook.id}
-                                    className="rounded-[4px] p-4 group transition-colors"
-                                    style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}
-                                >
-                                    {editingId === webhook.id ? (
-                                        <div className="space-y-3">
-                                            <input
-                                                type="text"
-                                                value={editName}
-                                                onChange={(e) => setEditName(e.target.value)}
-                                                placeholder="Webhook name"
-                                                className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
-                                            />
-                                            <input
-                                                type="text"
-                                                value={editUrl}
-                                                onChange={(e) => setEditUrl(e.target.value)}
-                                                placeholder="https://discord.com/api/webhooks/..."
-                                                className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
-                                            />
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={handleSaveEdit}
-                                                    className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-500/20 text-green-400 rounded-[4px] hover:bg-green-500/30 transition-colors text-sm font-medium"
-                                                >
-                                                    <Check className="w-4 h-4" />
-                                                    Save
-                                                </button>
-                                                <button
-                                                    onClick={() => setEditingId(null)}
-                                                    className="flex-1 py-2 bg-white/5 text-gray-400 rounded-[4px] hover:bg-white/10 transition-colors text-sm"
-                                                >
-                                                    Cancel
-                                                </button>
+                            {localWebhooks.map(webhook => {
+                                const isBridge = webhook.kind === 'bridge';
+                                return (
+                                    <div
+                                        key={webhook.id}
+                                        className="rounded-[4px] p-4 group transition-colors"
+                                        style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}
+                                    >
+                                        {editingId === webhook.id ? (
+                                            <div className="space-y-3">
+                                                <input
+                                                    type="text"
+                                                    value={editName}
+                                                    onChange={(e) => setEditName(e.target.value)}
+                                                    placeholder="Webhook name"
+                                                    className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={editUrl}
+                                                    onChange={(e) => setEditUrl(e.target.value)}
+                                                    placeholder="https://discord.com/api/webhooks/..."
+                                                    className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
+                                                />
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={handleSaveEdit}
+                                                        className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-500/20 text-green-400 rounded-[4px] hover:bg-green-500/30 transition-colors text-sm font-medium"
+                                                    >
+                                                        <Check className="w-4 h-4" />
+                                                        Save
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setEditingId(null)}
+                                                        className="flex-1 py-2 bg-white/5 text-gray-400 rounded-[4px] hover:bg-white/10 transition-colors text-sm"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center justify-between">
-                                            <div className="min-w-0 flex-1">
-                                                <div className="font-medium text-white truncate">{webhook.name}</div>
-                                                <div className="text-xs text-gray-500 font-mono truncate">{webhook.url}</div>
+                                        ) : (
+                                            <div>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="font-medium text-white truncate">{webhook.name}</div>
+                                                        {isBridge ? (
+                                                            <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-[3px] text-[10px] font-semibold uppercase tracking-wide bg-purple-500/20 text-purple-300">
+                                                                <Zap className="w-3 h-3" />
+                                                                Bridge
+                                                            </span>
+                                                        ) : (
+                                                            <div className="text-xs text-gray-500 font-mono truncate">{webhook.url}</div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-1 ml-3">
+                                                        {!isBridge && (
+                                                            <button
+                                                                onClick={() => handleEdit(webhook)}
+                                                                className="p-2 rounded-[4px] hover:bg-white/10 text-gray-400 hover:text-blue-400 transition-colors"
+                                                                title="Edit"
+                                                            >
+                                                                <Edit2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={() => handleDelete(webhook.id)}
+                                                            className="p-2 rounded-[4px] hover:bg-white/10 text-gray-400 hover:text-red-400 transition-colors"
+                                                            title={isBridge ? 'Unlink' : 'Delete'}
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                {isBridge && (
+                                                    <p className="mt-2 text-[11px] text-gray-500">
+                                                        Also run <code className="rounded-[3px] border border-white/10 bg-black/40 px-1 text-purple-300">/bridge revoke</code> in Discord to invalidate the key.
+                                                    </p>
+                                                )}
                                             </div>
-                                            <div className="flex items-center gap-1 ml-3">
-                                                <button
-                                                    onClick={() => handleEdit(webhook)}
-                                                    className="p-2 rounded-[4px] hover:bg-white/10 text-gray-400 hover:text-blue-400 transition-colors"
-                                                    title="Edit"
-                                                >
-                                                    <Edit2 className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(webhook.id)}
-                                                    className="p-2 rounded-[4px] hover:bg-white/10 text-gray-400 hover:text-red-400 transition-colors"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
 
                         {/* Add New Webhook Form */}
-                        {isAdding ? (
-                            <div className="rounded-[4px] p-4 space-y-3" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                        {isAdding && (
+                            <div className="rounded-[4px] p-4 space-y-3 mb-3" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
                                 <div className="text-sm font-medium text-purple-300 mb-2">New Webhook</div>
                                 <input
                                     type="text"
@@ -220,14 +289,68 @@ export function WebhookModal({ isOpen, onClose, webhooks, onSave }: WebhookModal
                                     </button>
                                 </div>
                             </div>
-                        ) : (
-                            <button
-                                onClick={() => setIsAdding(true)}
-                                className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-[4px] text-gray-400 hover:text-blue-300 transition-colors" style={{ borderColor: 'var(--border-default)' }}
-                            >
-                                <Plus className="w-5 h-5" />
-                                Add New Webhook
-                            </button>
+                        )}
+
+                        {/* Link AxiTools Channel Form */}
+                        {isLinking && (
+                            <div className="rounded-[4px] p-4 space-y-3 mb-3" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                                <div className="text-sm font-medium text-purple-300 mb-2">Link AxiTools channel</div>
+                                <div>
+                                    <label className="block text-xs text-gray-400 mb-1">AxiTools bridge key</label>
+                                    <input
+                                        type="text"
+                                        value={bridgeKey}
+                                        onChange={(e) => { setBridgeKey(e.target.value); setBridgeLinkError(null); }}
+                                        placeholder="axb1.…"
+                                        className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
+                                        autoFocus
+                                    />
+                                    <p className="mt-1.5 text-xs text-gray-500">
+                                        In Discord, run <code className="rounded-[3px] border border-white/10 bg-black/40 px-1 text-purple-300">/bridge pair</code> in the channel that should receive reports, then paste the key here.
+                                    </p>
+                                </div>
+                                <p className="text-xs text-amber-400/80">
+                                    Bridged reports are posted by the Axi bot, so they appear as <span className="font-semibold">Axi</span> rather than AxiBridge. If the bot is offline, bridged reports are not delivered.
+                                </p>
+                                {bridgeLinkError && (
+                                    <p className="text-xs text-rose-300">{bridgeLinkError}</p>
+                                )}
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleLinkSubmit}
+                                        disabled={!bridgeKey.trim() || bridgeLinking}
+                                        className="flex-1 flex items-center justify-center gap-2 py-2 bg-purple-500/20 text-purple-300 rounded-[4px] hover:bg-purple-500/30 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <Zap className="w-4 h-4" />
+                                        {bridgeLinking ? 'Linking…' : 'Link Channel'}
+                                    </button>
+                                    <button
+                                        onClick={() => { setIsLinking(false); setBridgeKey(''); setBridgeLinkError(null); }}
+                                        className="flex-1 py-2 bg-white/5 text-gray-400 rounded-[4px] hover:bg-white/10 transition-colors text-sm"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {!isAdding && !isLinking && (
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setIsAdding(true)}
+                                    className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-[4px] text-gray-400 hover:text-blue-300 transition-colors" style={{ borderColor: 'var(--border-default)' }}
+                                >
+                                    <Plus className="w-5 h-5" />
+                                    Add New Webhook
+                                </button>
+                                <button
+                                    onClick={() => setIsLinking(true)}
+                                    className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-[4px] text-gray-400 hover:text-purple-300 transition-colors" style={{ borderColor: 'var(--border-default)' }}
+                                >
+                                    <Zap className="w-5 h-5" />
+                                    Link AxiTools channel
+                                </button>
+                            </div>
                         )}
                     </div>
 

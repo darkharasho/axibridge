@@ -181,4 +181,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     sendRendererDiagnostics: (payload: { heapUsed: number; heapTotal: number; heapLimit: number; logCount: number }) =>
         ipcRenderer.send('renderer-diagnostics', payload),
+
+    // AxiTools bridge — link a Discord channel paired via `/bridge pair`.
+    linkBridgeChannel: (key: string) => ipcRenderer.invoke('bridge:link', key),
+    onDiscordDestinationStatus: (callback: (payload: { webhookId: string | null; reason: string; message: string }) => void) => {
+        const listener = (_event: unknown, payload: any) => callback(payload);
+        ipcRenderer.on('discord-destination-status', listener);
+        return () => ipcRenderer.removeListener('discord-destination-status', listener);
+    },
 })

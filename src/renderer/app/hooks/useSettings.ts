@@ -30,6 +30,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     const [particlesEnabled, setParticlesEnabled] = useState(DEFAULT_PARTICLES_ENABLED);
     const [webhooks, setWebhooks] = useState<Webhook[]>([]);
     const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
+    const [discordDestinationStatus, setDiscordDestinationStatus] = useState<{ webhookId: string | null; reason: string; message: string } | null>(null);
 
     // Init-time values consumed by useAppNavigation
     const [settingsLoaded, setSettingsLoaded] = useState(false);
@@ -62,13 +63,15 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
                 window.electronAPI.startWatching(settings.logDirectory);
             }
             if (settings.webhooks) {
-                // IWebhook widened to cover bridge destinations (Task 8); this
-                // hook's local Webhook type is still webhook-URL-only until
-                // Task 9 teaches the UI about bridge destinations.
                 setWebhooks(settings.webhooks.map(w => ({
                     id: w.id,
                     name: w.name,
-                    url: w.kind === 'bridge' ? (w.relayUrl ?? '') : (w.url ?? ''),
+                    kind: w.kind,
+                    url: w.url,
+                    relayUrl: w.relayUrl,
+                    token: w.token,
+                    guildName: w.guildName,
+                    channelName: w.channelName,
                 })));
             }
             if (settings.selectedWebhookId) {
@@ -138,6 +141,14 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     }, []);
 
     useEffect(() => {
+        if (!window.electronAPI?.onDiscordDestinationStatus) return;
+        const cleanup = window.electronAPI.onDiscordDestinationStatus((payload) => {
+            setDiscordDestinationStatus(payload);
+        });
+        return cleanup;
+    }, []);
+
+    useEffect(() => {
         const body = document.body;
         for (const id of Object.keys(PALETTES)) body.classList.remove(`palette-${id}`);
         if (colorPalette !== 'electric-blue') {
@@ -165,6 +176,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         particlesEnabled, setParticlesEnabled,
         webhooks, setWebhooks,
         selectedWebhookId, setSelectedWebhookId,
+        discordDestinationStatus, setDiscordDestinationStatus,
         handleUpdateSettings,
         handleSelectDirectory,
         settingsLoaded,
@@ -175,7 +187,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     }), [
         logDirectory, notificationType, embedStatSettings, mvpWeights,
         statsViewSettings, disruptionMethod, allowLocalJson, r2PreciseReplay, r2HostingEnabled, r2SliceEnabled, colorPalette, glassSurfaces, glassmorphic, particlesEnabled,
-        webhooks, selectedWebhookId, handleUpdateSettings, handleSelectDirectory,
+        webhooks, selectedWebhookId, discordDestinationStatus, handleUpdateSettings, handleSelectDirectory,
         settingsLoaded, whatsNewVersion, whatsNewNotes, walkthroughSeen,
         shouldOpenWhatsNew,
     ]);
