@@ -14,7 +14,7 @@ import { waitForPermalink } from './permalinkWait'
 import { DiscordNotifier } from './discord';
 import { linkBridgeChannel } from './bridgeLink';
 import {
-    resolveDiscordDestination as resolveDiscordDestinationFn,
+    shouldSendDiscord as shouldSendDiscordFn,
     applyDiscordDestination as applyDiscordDestinationFn,
     handleDiscordSendResult as handleDiscordSendResultFn
 } from './discordDestinationResolver';
@@ -271,7 +271,7 @@ let axilogManager: AxilogManager | null = null
  * logic against a fake store without booting the rest of this file's
  * Electron-app side effects.
  */
-const resolveDiscordDestination = () => resolveDiscordDestinationFn(store);
+const resolveShouldSendDiscord = () => shouldSendDiscordFn(store);
 const applyDiscordDestination = () => applyDiscordDestinationFn(store, discord);
 const handleDiscordSendResult = (sendResult: Awaited<ReturnType<DiscordNotifier['sendLog']>> | undefined) =>
     handleDiscordSendResultFn(store, discord, win, sendResult);
@@ -756,7 +756,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
             };
             const globalSplitEnemiesByTeam = Boolean(store.get('discordSplitEnemiesByTeam', false));
             const splitEnemiesByTeam = globalSplitEnemiesByTeam || Boolean(enemySplitSettings.embed);
-            const shouldSendDiscord = Boolean(resolveDiscordDestination());
+            const shouldSendDiscord = resolveShouldSendDiscord();
 
             // The parallel dps.report upload is what supplies the permalink the
             // Discord embed links its title to. It was started before the local
@@ -906,7 +906,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
 
         markUploadRetryResolved(filePath);
 
-        const shouldSendDiscord = Boolean(resolveDiscordDestination());
+        const shouldSendDiscord = resolveShouldSendDiscord();
 
         if (shouldSendDiscord) {
             const enemySplitSettings = {

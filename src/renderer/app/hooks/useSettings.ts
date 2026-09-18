@@ -144,6 +144,15 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         if (!window.electronAPI?.onDiscordDestinationStatus) return;
         const cleanup = window.electronAPI.onDiscordDestinationStatus((payload) => {
             setDiscordDestinationStatus(payload);
+            // Fix round 1, item 5: main clears the revoked token in the
+            // store but the event carries no webhook list, so the renderer's
+            // in-memory copy would still hold the live token — opening
+            // Manage Webhooks and clicking "Save Changes" would write it
+            // straight back and re-arm the dead credential (and re-log it,
+            // per item 4). Null it out locally for the affected entry too.
+            if (payload.reason === 'revoked' && payload.webhookId) {
+                setWebhooks((prev) => prev.map((w) => (w.id === payload.webhookId ? { ...w, token: undefined } : w)));
+            }
         });
         return cleanup;
     }, []);

@@ -383,7 +383,13 @@ export class DiscordNotifier {
                     return this.classify(retryError);
                 }
             }
-            console.error("Failed to send Discord notification:", error);
+            // Never log the raw error: it carries `config.headers.Authorization`
+            // with the bridge token verbatim (`util.inspect`, which
+            // `console.error` uses, serializes it in full), and 401/403 —
+            // the exact non-retry branch that reaches here — is the first
+            // thing a revoked/forbidden bridge link hits. Match
+            // index.ts:800/952's `error?.message || error` pattern instead.
+            console.error("Failed to send Discord notification:", (error as any)?.message || error);
             return result;
         }
     }

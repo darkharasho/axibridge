@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import util from 'node:util';
 
 vi.mock('axios');
 import axios from 'axios';
@@ -212,5 +213,33 @@ describe('DiscordNotifier destination dispatch', () => {
         for (const call of vi.mocked(axios.post).mock.calls) {
             expect(call[0]).toBe('https://b/bridge/report');
         }
+    });
+
+    // Fix round 1, item 4: a 401/403 from the relay is exactly the
+    // non-retry branch that reaches `console.error(..., error)` with the raw
+    // axios error object. That error's `config.headers.Authorization`
+    // carries the bridge key verbatim, and `console.error` serializes
+    // objects with `util.inspect` — so the first bridged post to a revoked
+    // relay would print the secret to stdout. The global constraint is
+    // "keys are persisted as-is client-side but NEVER logged".
+    it('never logs the bridge token when a send fails with a classified (401/403) error', async () => {
+        const secretToken = 'axb1.aGVsbG8.SECRETSECRETSECRETSECRETSECRETSECRETSECRET';
+        vi.mocked(axios.post).mockRejectedValue({
+            response: { status: 401, data: {} },
+            config: { headers: { Authorization: `Bearer ${secretToken}` } },
+            message: 'Request failed with status code 401'
+        } as never);
+        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        const notifier = new DiscordNotifier();
+        notifier.setDestination({ kind: 'bridge', relayUrl: 'https://b', token: secretToken });
+        await notifier.sendLog(logData, details);
+
+        for (const call of consoleErrorSpy.mock.calls) {
+            const serialized = call.map((arg) => (typeof arg === 'string' ? arg : util.inspect(arg, { depth: 6 }))).join(' ');
+            expect(serialized).not.toContain(secretToken);
+        }
+
+        consoleErrorSpy.mockRestore();
     });
 });
