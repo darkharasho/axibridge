@@ -1,18 +1,19 @@
 # Release Notes
 
-Version v3.10.4 — September 17, 2026
+Version v3.11.0 — September 18, 2026
 
-## Resurrect credit goes to the right player
+## Send fight reports through the AxiTools bot
 
-Two revive skills were missing from the attribution list, so their revives were either landing in "unattributed" or being handed to whoever happened to have a banner or Spirit of Nature still ticking nearby.
+You can now link a Discord channel to the AxiTools bot instead of pasting a webhook URL. Open the destination manager, hit "Link AxiTools channel", run `/bridge pair` in the channel you want reports in, and paste the code it gives you. From then on reports post as the bot.
 
-- **Signet of Undeath** wasn't tracked at all.
-- **Glyph of Renewal** never showed up because the game casts it as Renewal of Air/Earth/Fire/Water, not under the glyph's own name.
+The reason this matters: webhooks can't use a server's custom emoji, so class columns in a bridged report show real profession and elite spec icons instead of plain text. Everything else about the report is unchanged — same stats, same layout, same settings.
 
-Both are now tracked, along with the alternate skill ids the game uses for Battle Standard, Spirit of Nature, Illusion of Life, Signet of Mercy and Glyph of the Stars — those used to match by name only, which was fragile.
+Webhooks still work exactly as before, and you can mix both. Bridged destinations are marked with a bolt in the dropdown so you can tell them apart at a glance.
 
-Instant-cast revive utilities also get a tight 2-second attribution window instead of the long ground-field windows, so a Spirit of Nature planted 40 seconds ago no longer steals credit for a signet pickup.
+NOTE: The bot has to already be in your server for pairing to work. If someone revokes the link on the Discord side, the destination turns amber with a "Re-link" tag and stops sending until you pair it again — it won't silently drop reports.
 
-Checked against 339 real WvW logs: unattributed revives dropped from 4.28% to 4.22%, but the bigger change is credit moving onto the player who actually did the rez. This applies to reports as you view them, so old logs get the new attribution too.
+## Fixes
 
-NOTE: Function Gyro still isn't tracked — it flies out before it channels, so the cast time alone isn't enough to attribute it. That one needs more work.
+- A field with nothing in it no longer breaks a Discord post outright.
+- Long rosters get budgeted against what actually gets posted, so a big fight report won't get rejected for being over Discord's character limit.
+- Discord rate limits with an empty or zero retry hint are handled instead of retried immediately.
