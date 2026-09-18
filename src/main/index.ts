@@ -281,6 +281,12 @@ const mapSliceCacheDir = () => path.join(app.getPath('userData'), 'map-tiles');
 
 /** Build the slice for a report, or null. Never throws. */
 const mapSliceFor = async (details: any, zone: string): Promise<Uint8Array | undefined> => {
+    // Skip the tile fetch + renderer round trip entirely when the user turned
+    // the slice off — only an explicit `false` counts as off, matching the
+    // `includeMapSlice !== false` convention in discord.ts.
+    if ((store.get('embedStatSettings') as any)?.includeMapSlice === false) {
+        return undefined;
+    }
     const png = await buildMapSlice(details, zone, {
         cacheDir: mapSliceCacheDir(),
         requestPaint: (requestId, drawList) => {
@@ -812,7 +818,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                                 }
                             }
                         }
-                        const mapSlicePng = await mapSliceFor(prunedDetails, '');
+                        const mapSlicePng = await mapSliceFor(prunedDetails, prunedDetails?.fightName ?? '');
                         const sendResult = await discord?.sendLog({ ...syntheticResult, filePath, mode: 'embed', splitEnemiesByTeam, mapSlicePng }, prunedDetails);
                         handleDiscordSendResult(sendResult);
                     }
@@ -962,7 +968,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                     }
                     // `prunedDetails` is null when the local parse failed, which
                     // posts the link-only embed rather than nothing at all.
-                    const mapSlicePng = await mapSliceFor(prunedDetails, '');
+                    const mapSlicePng = await mapSliceFor(prunedDetails, prunedDetails?.fightName ?? '');
                     const sendResult = await discord?.sendLog({ ...result, filePath, mode: 'embed', splitEnemiesByTeam, mapSlicePng }, prunedDetails);
                     handleDiscordSendResult(sendResult);
                 }
