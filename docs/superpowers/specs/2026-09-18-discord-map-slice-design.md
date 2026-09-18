@@ -34,8 +34,9 @@ bounding box of a roaming fight destroys it. During mockup work a
 fight that moved ~350 units framed to its bbox already pulled 105
 tiles and lost most of the detail; unclamped roaming fights are worse.
 
-Minimum crop width is also clamped (a stationary fight must not zoom
-to a single tile of dirt). Target output is roughly 1120x215.
+Minimum crop width is clamped to **400 continent units**, so a
+stationary fight does not zoom into a single tile of dirt. Output is
+1120x215 pixels.
 
 ### Marker
 
@@ -208,8 +209,9 @@ Reduced-quality cases still render:
 
 ## Settings
 
-One toggle, default on, alongside the existing Discord report options.
-Off means main never asks the renderer for a slice.
+One toggle, `includeMapSlice`, default on, alongside the existing
+Discord report options. Off means main never asks the renderer for a
+slice.
 
 ## Testing
 
