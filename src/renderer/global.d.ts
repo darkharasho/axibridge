@@ -53,6 +53,8 @@ export interface IEmbedStatSettings {
     showDamageMitigation: boolean;
     maxTopListRows: number;
     classDisplay: 'off' | 'short' | 'emoji';
+    /** Attach a map slice showing where the fight happened. */
+    includeMapSlice: boolean;
 }
 
 export interface IMvpWeights {
@@ -181,6 +183,7 @@ export const DEFAULT_EMBED_STATS: IEmbedStatSettings = {
     showDamageMitigation: false,
     maxTopListRows: 10,
     classDisplay: 'off',
+    includeMapSlice: true,
 };
 
 export const DEFAULT_MVP_WEIGHTS: IMvpWeights = {
@@ -315,6 +318,8 @@ export interface IElectronAPI {
     onUploadComplete: (callback: (data: any) => void) => () => void;
     onUploadPermalink: (callback: (data: { id: string; filePath: string; permalink: string }) => void) => () => void;
     onUploadStatus: (callback: (data: any) => void) => () => void;
+    onMapSlicePaint: (callback: (value: { requestId: string; drawList: import('../shared/sliceGeometry').SliceDrawList }) => void) => () => void;
+    sendMapSliceResult: (payload: { requestId: string; png: Uint8Array | null }) => void;
     resolveDroppedFilePath: (file: File) => string;
     setDiscordWebhook: (url: string) => void;
     windowControl: (action: 'minimize' | 'maximize' | 'close') => void;

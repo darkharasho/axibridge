@@ -28,6 +28,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.removeAllListeners('upload-status')
         }
     },
+    onMapSlicePaint: (callback: (value: { requestId: string; drawList: any }) => void) => {
+        const listener = (_event: any, value: any) => callback(value);
+        ipcRenderer.on('map-slice:paint', listener);
+        return () => { ipcRenderer.removeListener('map-slice:paint', listener); };
+    },
+    sendMapSliceResult: (payload: { requestId: string; png: Uint8Array | null }) =>
+        ipcRenderer.send('map-slice:result', payload),
     resolveDroppedFilePath: (file: File) => webUtils.getPathForFile(file),
     setDiscordWebhook: (url: string) => ipcRenderer.send('set-discord-webhook', url),
     windowControl: (action: 'minimize' | 'maximize' | 'close') => ipcRenderer.send('window-control', action),

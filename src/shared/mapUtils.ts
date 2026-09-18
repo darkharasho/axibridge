@@ -94,6 +94,36 @@ function medianPosition(positions: Array<[number, number]>): [number, number] | 
     return [xs[mid], ys[mid]];
 }
 
+/** A squad member's replay path: `[t_ms, pixelX, pixelY]` per sample, EI canvas pixel space. */
+export type PixelSample = [number, number, number];
+
+/**
+ * Every squad member's replay path, in EI canvas pixel space.
+ *
+ * Pixels rather than world inches because that is the space
+ * `wvwLandmarks.ts` and `wvwTiles.ts`'s `pixelOffset` are calibrated in;
+ * see REPLAY_CANVAS_MAX in nativePositioning for why.
+ */
+export function squadPixelTracks(details: any): PixelSample[][] {
+    const arena = getArena(details);
+    if (!arena) return [];
+    const tracks = getPositionTracks(details);
+    if (tracks.size === 0) return [];
+    const canvas = replayCanvas(arena);
+    const report = details?.native ?? {};
+
+    const out: PixelSample[][] = [];
+    for (const entity of squadEntities(report)) {
+        const samples = tracks.get(entity.id)?.samples;
+        if (!samples?.length) continue;
+        out.push(samples.map(([t, x, y]) => {
+            const [px, py] = worldToPixel(arena, x, y, canvas);
+            return [t, px, py] as PixelSample;
+        }));
+    }
+    return out;
+}
+
 /**
  * A representative position for the fight, in render-canvas pixels.
  *

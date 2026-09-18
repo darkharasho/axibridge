@@ -83,6 +83,8 @@ export interface IEmbedStatSettings {
     showDamageMitigation: boolean;
     maxTopListRows: number;
     classDisplay: 'off' | 'short' | 'emoji';
+    /** Attach a map slice showing where the fight happened. */
+    includeMapSlice: boolean;
 }
 
 // Default settings - all enabled except additional stats
@@ -110,6 +112,7 @@ const DEFAULT_EMBED_STATS: IEmbedStatSettings = {
     showDamageMitigation: false,
     maxTopListRows: 10,
     classDisplay: 'off',
+    includeMapSlice: true,
 };
 
 // Discord embed limits
@@ -177,6 +180,26 @@ export const trimFieldValueToLength = (value: string | undefined, limit: number,
         if (getSubstitutedLength(candidate, isBridge) <= limit) return candidate;
     }
     return '';
+};
+
+/**
+ * Build the embed payload for a report that carries a map slice.
+ *
+ * Only the `attachment://` scheme is used: the relay's whitelist accepts
+ * nothing else, deliberately, so a paired client cannot make the bot
+ * render an arbitrary remote image.
+ */
+export const buildSlicePayloadJson = (embeds: any[], isBridge: boolean): Record<string, unknown> => {
+    const withImage = embeds.map((embed, i) =>
+        i === embeds.length - 1
+            ? { ...embed, image: { url: 'attachment://slice.png' } }
+            : embed);
+    const payload: Record<string, unknown> = { embeds: withImage };
+    if (!isBridge) {
+        payload.username = 'AxiBridge';
+        payload.avatar_url = DISCORD_WEBHOOK_AVATAR_URL;
+    }
+    return payload;
 };
 
 const resolveFightTimestampMs = (jsonDetails: any, logData: any) => {
@@ -388,6 +411,22 @@ export class DiscordNotifier {
         });
     }
 
+    /**
+     * Post embeds plus a PNG attachment referenced as `attachment://slice.png`.
+     *
+     * Only the `attachment://` scheme is used: the relay's whitelist accepts
+     * nothing else, deliberately, so a paired client cannot make the bot
+     * render an arbitrary remote image.
+     */
+    private async postEmbedsWithImage(embeds: any[], png: Buffer): Promise<void> {
+        const payload = buildSlicePayloadJson(embeds, this.isBridge);
+
+        const form = new FormData();
+        form.append('payload_json', JSON.stringify(payload));
+        form.append('file', png, { filename: 'slice.png', contentType: 'image/png' });
+        await this.postForm(form);
+    }
+
     /** Map a thrown axios error to a SendResult. */
     private classify(error: any): { ok: false; reason: SendFailureReason; message: string } {
         const status = error?.response?.status;
@@ -420,7 +459,7 @@ export class DiscordNotifier {
         this.disruptionMethod = method || DEFAULT_DISRUPTION_METHOD;
     }
 
-    public async sendLog(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean }, jsonDetails?: any): Promise<SendResult> {
+    public async sendLog(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean, mapSlicePng?: Uint8Array }, jsonDetails?: any): Promise<SendResult> {
         if (!this.destination) {
             console.log("No Discord destination configured, skipping notification.");
             return { ok: true };
@@ -454,7 +493,7 @@ export class DiscordNotifier {
         }
     }
 
-    private async resend(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean }, jsonDetails?: any): Promise<void> {
+    private async resend(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean, mapSlicePng?: Uint8Array }, jsonDetails?: any): Promise<void> {
         const mode = logData.imageBuffer ? 'image' : (logData.mode || 'embed');
         console.log(`[Discord] sending log. Mode: ${mode}`);
 
@@ -564,7 +603,6 @@ export class DiscordNotifier {
                             squadDmg += dmg;
                         }
                         if (p.defenses && p.defenses.length > 0) {
-                            const d = p.defenses[0];
                             totalDowns += getPlayerDownsTaken(p);
                             totalDeaths += getPlayerDeaths(p);
                             totalDmgTaken += getPlayerDamageTaken(p);
@@ -1323,7 +1361,31 @@ export class DiscordNotifier {
 
                     const embeds = buildEmbeds(embedFields);
 
-                    await this.postPayload({ embeds });
+                    const slicePng = this.embedStatSettings.includeMapSlice !== false && logData.mapSlicePng?.length
+                        ? Buffer.from(logData.mapSlicePng)
+                        : null;
+                    if (slicePng && embeds.length > 0) {
+                        try {
+                            await this.postEmbedsWithImage(embeds, slicePng);
+                        } catch (err: any) {
+                            // The slice is decorative: ANY failure to post it — a
+                            // relay 400 (predates the `image` whitelist entry), a
+                            // timeout, a 5xx, a 413 on the multipart body, a bare
+                            // network error — must fall back to the plain payload
+                            // rather than lose the whole report. If that retry also
+                            // fails, let it propagate: at that point it's a genuine
+                            // destination failure, not a slice failure, and the
+                            // existing sendLog retry/classify logic needs to see it.
+                            if (err?.response?.status === 400) {
+                                console.warn('[Discord] destination rejected the map slice; sending without it.');
+                            } else {
+                                console.warn('[Discord] failed to post the map slice; sending without it.', err?.message || err);
+                            }
+                            await this.postPayload({ embeds });
+                        }
+                    } else {
+                        await this.postPayload({ embeds });
+                    }
                     console.log("Sent complex Discord notification.");
                 } else {
                     // Fallback Simple Embed

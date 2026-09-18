@@ -20,6 +20,7 @@ import { FightReportHistoryView } from '../FightReportHistoryView';
 import { CommanderView } from '../commander/CommanderView';
 import { useParticleEffect, PRESETS } from '../particles';
 import { TRANSITION } from '../motion';
+import { useMapSlicePainter } from '../mapSlice/useMapSlicePainter';
 
 const UNPUBLISHED_REPLAY: ReadonlySet<string> = new Set(['replay']);
 
@@ -142,6 +143,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
             }
         };
     }, []);
+
+    useMapSlicePainter();
 
     const { emitterNode: tabEmitter, trigger: triggerTabTransition } = useParticleEffect();
     const prevViewRef = useRef(view);

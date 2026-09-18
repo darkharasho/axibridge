@@ -70,6 +70,22 @@ export function shouldSendDiscord(store: DestinationStore): boolean {
 }
 
 /**
+ * Whether to build the map slice for a report at all.
+ *
+ * Lives here rather than inline in `mapSliceFor` so a unit test can drive it
+ * against a fake store without booting index.ts's Electron side effects.
+ * Only an explicit `false` means off — `undefined` (never configured) and
+ * `true` both mean on, matching the `includeMapSlice !== false` convention in
+ * discord.ts. `false` must skip the whole tile fetch + renderer round trip,
+ * not merely suppress the attachment: discord.ts's guard is defence in depth
+ * for a mid-flight settings change, and does not prevent the work.
+ */
+export function shouldBuildMapSlice(store: DestinationStore): boolean {
+    const settings = store.get('embedStatSettings') as { includeMapSlice?: boolean } | undefined;
+    return settings?.includeMapSlice !== false;
+}
+
+/**
  * Apply `resolveDiscordDestination()` to the live notifier, and keep the
  * legacy `discordWebhookUrl` mirror in sync: settingsHandlers.ts still
  * returns it to the renderer as "Legacy single webhook URL" (SettingsView.tsx),
