@@ -341,3 +341,65 @@ later, not blocking:
   additive-field edit sites, and graceful degradation for logs parsed by older versions —
   for which the TypeScript derivation here remains the fallback path.
 - Resurrect timeline chart.
+
+## Catalog expansion, 2026-09-17 (arcdps-parity pass)
+
+The arcdps author shared the instant-res detection from arcdps itself. It credits the res
+**effect**, not the cast: on each squad `CHANGEUP` it consumes at most one pending attribution,
+in fixed priority — Battle Standard → Spirit of Nature → Signet of Undeath → Illusion of Life →
+Signet of Mercy — where each pending attribution was armed by that skill's effect-GUID create
+and is cleared at the next message boundary. Elementalist Glyph of Renewal has no usable
+effect, so it is detected the other way: `ANIMATIONSTOP` (non-cancel) on ids 5760–5763, then a
+200ms readback for a squad `CHANGEUP` within 1300 units, with each rally flagged so it cannot be
+credited twice.
+
+Two genuine holes in our catalog fell out of that:
+
+1. **Signet of Undeath was absent entirely** — not by id, not in the name list.
+2. **Glyph of Renewal could never match.** The name list carried `'glyph of renewal'`, but the
+   glyph casts as its four attunement variants, *named* "Renewal of Air/Earth/Fire/Water"
+   (5760–5763). Base id 5573 never appears as a cast.
+
+Both are now catalogued by id, along with the duplicate ids the game also emits (Battle Standard
+14569, Spirit of Nature 69300, Illusion of Life 25541, Signet of Mercy 24414, Signet of Undeath
+24544, Glyph of Renewal 24407/24409/24410/24411) and the previously name-only utilities
+(Signet of Mercy, "Search and Rescue!", Glyph of the Stars). Instant utilities — both signets
+and all four glyph variants — use a new `INSTANT_UTILITY_WINDOW_MS` of 2s rather than the 5s
+default: our clock is the cast START, so the window covers the cast animation and nothing more.
+
+### Re-validation
+
+`scripts/revive-validate.mjs` (added with this change) re-runs the gate. It extracts a compact
+per-log core once — roster, `down`/`dead` intervals, and the rotation entries for every skill
+that could plausibly revive — then re-derives from the cores, so a catalog change can be
+measured without re-parsing. Cores land in /tmp and are never committed: they carry real
+account names.
+
+Sample: 339 logs, stride-13 across 4398 files in the arcdps folder, 0 parse failures, 0 logs
+without revive data. 6615 downs, 3225 recovered, 3390 died.
+
+| Bucket | Before | After |
+|---|---|---|
+| hand | 1172 (36.34%) | 1172 (36.34%) |
+| utility | 1910 (59.22%) | 1912 (59.29%) |
+| self | 5 (0.16%) | 5 (0.16%) |
+| **unattributed** | **138 (4.28%)** | **136 (4.22%)** |
+
+**The bucket split barely moves, and that is the honest result.** The newly catalogued skills
+are rare in this squad's comps: 10 Renewal of Water casts, 3 Renewal of Earth, 1 Renewal of Air,
+3 Signet of Undeath, 0 Signet of Mercy across 339 logs. What the change actually does is move
+*credit to the right player*: of the 6 revives the new entries claimed, 4 were previously
+credited to a Spirit of Nature or Battle Standard that merely happened to still be inside its
+45–60s window (Spirit of Nature 1452 → 1450 revives, Battle Standard 427 → 425). Per-log p75
+unattributed improved 7.14% → 5.56%.
+
+The window values hold up against the cast → next-squad-stand-up delays measured over the same
+sample: Renewal variants cluster at 0/832/942/1197/1378/1966ms, inside the 2s window.
+
+### Open follow-up: Function Gyro
+
+The delay probe surfaced **Function Gyro** (56920/72114) at 54 casts — more than every newly
+catalogued skill combined — and it is still uncatalogued. It is deliberately left out: the gyro
+flies to the target and then channels, so its delay profile is long and diffuse (median 6.6s,
+p90 25s) and a cast-start window models it badly. Attributing it properly needs the gyro's own
+agent, not the caster's cast time. Same shape of problem as `"Search and Rescue!"`.
