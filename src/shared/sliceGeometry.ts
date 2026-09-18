@@ -1,6 +1,6 @@
-import { WvwMap } from './wvwLandmarks';
-import { WVW_TILE_DATA } from './wvwTiles';
-import type { PixelSample } from './mapUtils';
+import { WvwMap, findNearestLandmark } from './wvwLandmarks';
+import { WVW_TILE_DATA, MAX_TILE_ZOOM, MAX_HIRES_ZOOM, HIRES_TILE_BASE } from './wvwTiles';
+import { resolveMapFromDetails, squadPixelTracks, type PixelSample } from './mapUtils';
 
 export const SLICE_WIDTH = 1120;
 export const SLICE_HEIGHT = 215;
@@ -116,4 +116,117 @@ export function continentToOutput(frame: ContinentFrame, cx: number, cy: number)
         (cx - frame.cx1) / w * SLICE_WIDTH,
         (cy - frame.cy1) / h * SLICE_HEIGHT,
     ];
+}
+
+const TILE_SIZE = 256;
+const CONTINENT_ID = 2;
+const FLOOR_ID = 3;
+const GW2_TILE_BASE = 'https://tiles.guildwars2.com';
+const MIN_SLICE_ZOOM = 3;
+
+export interface SliceTilePlacement { url: string; x: number; y: number; width: number; height: number; }
+
+export interface SliceDrawList {
+    width: number;
+    height: number;
+    tiles: SliceTilePlacement[];
+    /** Output pixels. `path[0]` is the beacon; the last entry is the end marker. */
+    path: Array<[number, number]>;
+    caption: string | null;
+}
+
+/**
+ * The lowest zoom whose art is at least as dense as the output.
+ *
+ * A tile covers `TILE_SIZE * 2^(MAX_TILE_ZOOM - z)` continent units in
+ * `TILE_SIZE` pixels, so zoom z supplies `2^(z - MAX_TILE_ZOOM)` px/unit.
+ * We need `SLICE_WIDTH / frameWidthUnits`.
+ */
+export function pickSliceZoom(map: WvwMap, frameWidthUnits: number): number {
+    const data = WVW_TILE_DATA[map];
+    const cap = Math.min(data?.maxZoom ?? MAX_HIRES_ZOOM, MAX_HIRES_ZOOM);
+    if (!(frameWidthUnits > 0)) return cap;
+    const needed = SLICE_WIDTH / frameWidthUnits;
+    const zoom = MAX_TILE_ZOOM + Math.ceil(Math.log2(needed));
+    return Math.min(cap, Math.max(MIN_SLICE_ZOOM, zoom));
+}
+
+/** Every tile overlapping the frame, placed in output pixel coordinates. */
+export function tilesForFrame(map: WvwMap, frame: ContinentFrame): SliceTilePlacement[] {
+    const data = WVW_TILE_DATA[map];
+    if (!data) return [];
+
+    const frameW = frame.cx2 - frame.cx1;
+    const frameH = frame.cy2 - frame.cy1;
+    if (!(frameW > 0) || !(frameH > 0)) return [];
+
+    const zoom = pickSliceZoom(map, frameW);
+    const span = TILE_SIZE * Math.pow(2, MAX_TILE_ZOOM - zoom);
+    const base = zoom > MAX_TILE_ZOOM ? HIRES_TILE_BASE : GW2_TILE_BASE;
+
+    const txMin = Math.floor(frame.cx1 / span);
+    const txMax = Math.floor((frame.cx2 - 1e-6) / span);
+    const tyMin = Math.floor(frame.cy1 / span);
+    const tyMax = Math.floor((frame.cy2 - 1e-6) / span);
+
+    const scaleX = SLICE_WIDTH / frameW;
+    const scaleY = SLICE_HEIGHT / frameH;
+
+    const tiles: SliceTilePlacement[] = [];
+    for (let ty = tyMin; ty <= tyMax; ty++) {
+        for (let tx = txMin; tx <= txMax; tx++) {
+            if (tx < 0 || ty < 0) continue;
+            tiles.push({
+                url: `${base}/${CONTINENT_ID}/${FLOOR_ID}/${zoom}/${tx}/${ty}.jpg`,
+                x: (tx * span - frame.cx1) * scaleX,
+                y: (ty * span - frame.cy1) * scaleY,
+                width: span * scaleX,
+                height: span * scaleY,
+            });
+        }
+    }
+    return tiles;
+}
+
+/**
+ * The complete draw list for a fight, or `null` if no slice is possible.
+ *
+ * Never throws: a slice is decorative, so every unusable input is a `null`
+ * the caller skips over.
+ */
+export function buildSliceDrawList(details: any, zone: string): SliceDrawList | null {
+    try {
+        const map = resolveMapFromDetails(details, zone);
+        if (!map || !WVW_TILE_DATA[map]) return null;
+
+        const pixelPath = centroidPath(squadPixelTracks(details));
+        if (pixelPath.length === 0) return null;
+
+        const continentPath: Array<[number, number]> = [];
+        for (const [px, py] of pixelPath) {
+            const c = eiPixelToContinent(map, px, py);
+            if (c) continentPath.push(c);
+        }
+        if (continentPath.length === 0) return null;
+
+        const frame = frameForPath(continentPath);
+        if (!frame) return null;
+
+        const tiles = tilesForFrame(map, frame);
+        if (tiles.length === 0) return null;
+
+        // The caption names where the fight STARTED, matching the beacon.
+        const [startPx, startPy] = pixelPath[0];
+        const landmark = findNearestLandmark(map, startPx, startPy);
+
+        return {
+            width: SLICE_WIDTH,
+            height: SLICE_HEIGHT,
+            tiles,
+            path: continentPath.map(([cx, cy]) => continentToOutput(frame, cx, cy)),
+            caption: landmark?.name ?? null,
+        };
+    } catch {
+        return null;
+    }
 }
