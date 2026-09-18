@@ -195,6 +195,19 @@ export function getProfessionEmoji(profession: string): string {
     return PROFESSION_EMOJI[base] || PROFESSION_EMOJI.Unknown;
 }
 
+/**
+ * Semantic token for a relayed Discord report, e.g. `{{spec:firebrand}}`.
+ *
+ * Unlike getProfessionEmoji (which collapses to the base profession because a
+ * Unicode circle is all it has), this keys on the elite spec itself — AxiTools
+ * has one application emoji per spec and substitutes at send time. Non-alpha
+ * characters are stripped so the token always matches the relay's grammar.
+ */
+export function getProfessionEmojiToken(profession: string): string {
+    const key = (profession || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    return `{{spec:${key || 'unknown'}}}`;
+}
+
 
 const SUPERSCRIPT_MAP: Record<string, string> = {
     a: 'ᵃ',

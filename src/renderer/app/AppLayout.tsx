@@ -12,6 +12,7 @@ import { Terminal } from '../Terminal';
 import { UpdateErrorModal } from '../UpdateErrorModal';
 import { WalkthroughModal } from '../WalkthroughModal';
 import { WebhookModal } from '../WebhookModal';
+import { resolveWebhookSaveIntent } from './webhookSaveIntent';
 import { WhatsNewModal } from '../WhatsNewModal';
 import { FilePickerModal } from './FilePickerModal';
 import { WebUploadOverlay } from './WebUploadOverlay';
@@ -522,14 +523,17 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 isOpen={webhookModalOpen}
                 onClose={() => setWebhookModalOpen(false)}
                 webhooks={webhooks}
-                onSave={(newWebhooks) => {
-                    setWebhooks(newWebhooks);
-                    handleUpdateSettings({ webhooks: newWebhooks });
-                    // If the selected webhook was deleted, clear selection
-                    if (selectedWebhookId && !newWebhooks.find(w => w.id === selectedWebhookId)) {
-                        setSelectedWebhookId(null);
-                        handleUpdateSettings({ selectedWebhookId: null });
+                onSave={(newWebhooks, selectId) => {
+                    // Fix round 2, item 1: this is now a thin wire onto a
+                    // directly-tested pure function (webhookSaveIntent.ts) —
+                    // see its docstring for why the selection must travel
+                    // with the save rather than as a separate one.
+                    const intent = resolveWebhookSaveIntent(selectedWebhookId, newWebhooks, selectId);
+                    setWebhooks(intent.webhooks);
+                    if (intent.selectedWebhookId !== undefined) {
+                        setSelectedWebhookId(intent.selectedWebhookId);
                     }
+                    handleUpdateSettings(intent);
                 }}
             />
 
