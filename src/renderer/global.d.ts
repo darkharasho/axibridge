@@ -5,7 +5,15 @@ import type { SliceSidecar } from './stats/slice/sliceTypes';
 export interface IWebhook {
     id: string;
     name: string;
-    url: string;
+    /** Webhook destinations only. */
+    url?: string;
+    /** Absent means 'webhook', so stored destinations need no migration. */
+    kind?: 'webhook' | 'bridge';
+    /** Bridge destinations: decoded from the axb1 key at link time. */
+    relayUrl?: string;
+    token?: string;
+    guildName?: string;
+    channelName?: string;
 }
 
 // Discord embed stat toggle settings

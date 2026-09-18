@@ -62,7 +62,14 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
                 window.electronAPI.startWatching(settings.logDirectory);
             }
             if (settings.webhooks) {
-                setWebhooks(settings.webhooks);
+                // IWebhook widened to cover bridge destinations (Task 8); this
+                // hook's local Webhook type is still webhook-URL-only until
+                // Task 9 teaches the UI about bridge destinations.
+                setWebhooks(settings.webhooks.map(w => ({
+                    id: w.id,
+                    name: w.name,
+                    url: w.kind === 'bridge' ? (w.relayUrl ?? '') : (w.url ?? ''),
+                })));
             }
             if (settings.selectedWebhookId) {
                 setSelectedWebhookId(settings.selectedWebhookId);
