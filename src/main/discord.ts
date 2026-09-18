@@ -27,6 +27,7 @@ import {
 import { deriveReviveLogSummary, reviveePlayerKey, type ReviveLogSummary } from '@axiapps/bridge-metrics';
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
 import { getProfessionAbbrev, getProfessionBase, getProfessionEmoji } from '../shared/professionUtils';
+import { getProfessionEmojiToken } from '@axiapps/bridge-metrics/professionUtils';
 import { partitionSquadPlayers } from '../shared/playerIdentity';
 import { resolveEnemyClassLabel } from '../shared/computePlayerAggregation';
 import { Player } from '../shared/dpsReportTypes';
@@ -36,6 +37,16 @@ import { getWvwTeamColor, teamMapFromLog, WVW_TEAM_COLOR_META, WVW_TEAM_COLOR_OR
 import { buildFightMitigationByAccount } from './embedMitigation';
 
 export const DISCORD_WEBHOOK_AVATAR_URL = 'https://raw.githubusercontent.com/darkharasho/axibridge/main/public/img/AxiBridge-glyph.png';
+
+export type DiscordDestination =
+    | { kind: 'webhook'; url: string }
+    | { kind: 'bridge'; relayUrl: string; token: string };
+
+export type SendFailureReason = 'revoked' | 'forbidden' | 'rate-limited' | 'network';
+
+export type SendResult =
+    | { ok: true }
+    | { ok: false; reason: SendFailureReason; message: string };
 
 // `deriveReviveLogSummary` walks the whole roster's rotation/replay data --
 // skip it entirely when the Revives column is disabled, matching the sibling
@@ -276,7 +287,7 @@ const computeEnemyTeamBreakdown = (players: any[], targets: any[], durationSec: 
 };
 
 export class DiscordNotifier {
-    private webhookUrl: string | null = null;
+    private destination: DiscordDestination | null = null;
     private embedStatSettings: IEmbedStatSettings = DEFAULT_EMBED_STATS;
     private disruptionMethod: DisruptionMethod = DEFAULT_DISRUPTION_METHOD;
 
@@ -284,7 +295,61 @@ export class DiscordNotifier {
     }
 
     public setWebhookUrl(url: string | null) {
-        this.webhookUrl = url;
+        this.destination = url ? { kind: 'webhook', url } : null;
+    }
+
+    public setDestination(dest: DiscordDestination | null) {
+        this.destination = dest;
+    }
+
+    private get isBridge(): boolean {
+        return this.destination?.kind === 'bridge';
+    }
+
+    /** Post an embed/content payload to the active destination. */
+    private async postPayload(payload: Record<string, unknown>): Promise<void> {
+        const dest = this.destination!;
+        if (dest.kind === 'webhook') {
+            await axios.post(dest.url, {
+                username: "AxiBridge",
+                avatar_url: DISCORD_WEBHOOK_AVATAR_URL,
+                ...payload
+            });
+            return;
+        }
+        // A bot cannot override username/avatar_url — bridged reports post as the
+        // bot itself, and the relay rejects unknown keys.
+        await axios.post(`${dest.relayUrl}/bridge/report`, payload, {
+            headers: { Authorization: `Bearer ${dest.token}` }
+        });
+    }
+
+    /** Post a multipart (PNG attachment) payload to the active destination. */
+    private async postForm(form: FormData): Promise<void> {
+        const dest = this.destination!;
+        if (dest.kind === 'webhook') {
+            await axios.post(dest.url, form, { headers: form.getHeaders() });
+            return;
+        }
+        await axios.post(`${dest.relayUrl}/bridge/report`, form, {
+            headers: { ...form.getHeaders(), Authorization: `Bearer ${dest.token}` }
+        });
+    }
+
+    /** Map a thrown axios error to a SendResult. */
+    private classify(error: any): { ok: false; reason: SendFailureReason; message: string } {
+        const status = error?.response?.status;
+        const relayMessage = error?.response?.data?.error;
+        if (status === 401) {
+            return { ok: false, reason: 'revoked', message: 'This link was revoked — pair again.' };
+        }
+        if (status === 403) {
+            return { ok: false, reason: 'forbidden', message: relayMessage || 'Axi cannot post in that channel.' };
+        }
+        if (status === 429) {
+            return { ok: false, reason: 'rate-limited', message: 'Too many reports — try again shortly.' };
+        }
+        return { ok: false, reason: 'network', message: relayMessage || String(error?.message || error) };
     }
 
     public setEmbedStatSettings(settings: IEmbedStatSettings) {
@@ -295,16 +360,37 @@ export class DiscordNotifier {
         this.disruptionMethod = method || DEFAULT_DISRUPTION_METHOD;
     }
 
-    public async sendLog(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean }, jsonDetails?: any) {
-        if (!this.webhookUrl) {
-            console.log("No webhook URL configured, skipping Discord notification.");
-            return;
+    public async sendLog(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean }, jsonDetails?: any): Promise<SendResult> {
+        if (!this.destination) {
+            console.log("No Discord destination configured, skipping notification.");
+            return { ok: true };
         }
 
+        try {
+            await this.resend(logData, jsonDetails);
+            return { ok: true };
+        } catch (error) {
+            const result = this.classify(error);
+            if (result.reason === 'rate-limited' || result.reason === 'network') {
+                const waited = Number((error as any)?.response?.headers?.['retry-after']) || 2;
+                await new Promise(resolve => setTimeout(resolve, waited * 1000));
+                try {
+                    await this.resend(logData, jsonDetails);
+                    return { ok: true };
+                } catch (retryError) {
+                    return this.classify(retryError);
+                }
+            }
+            console.error("Failed to send Discord notification:", error);
+            return result;
+        }
+    }
+
+    private async resend(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean }, jsonDetails?: any): Promise<void> {
         const mode = logData.imageBuffer ? 'image' : (logData.mode || 'embed');
         console.log(`[Discord] sending log. Mode: ${mode}`);
 
-        try {
+        {
             if (mode === 'image' && (logData.imageBuffer || logData.imageBuffers)) {
                 // IMAGE MODE: Plain text with suppression + PNG attachment
                 const form = new FormData();
@@ -322,10 +408,11 @@ export class DiscordNotifier {
                     }
                 }
 
-                const payload: any = {
-                    username: "AxiBridge",
-                    avatar_url: DISCORD_WEBHOOK_AVATAR_URL
-                };
+                const payload: any = {};
+                if (!this.isBridge) {
+                    payload.username = "AxiBridge";
+                    payload.avatar_url = DISCORD_WEBHOOK_AVATAR_URL;
+                }
 
                 if (content) {
                     payload.content = content;
@@ -347,9 +434,7 @@ export class DiscordNotifier {
                     });
                 }
 
-                await axios.post(this.webhookUrl, form, {
-                    headers: form.getHeaders()
-                });
+                await this.postForm(form);
                 console.log("Sent Discord notification with image.");
             } else {
                 // EMBED MODE: Complex Rich Embed based on GitHub reference
@@ -575,6 +660,14 @@ export class DiscordNotifier {
                             .filter(([, count]) => count > 0)
                             .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]))
                             .map(([profession, count]) => {
+                                // A webhook can never render Discord application
+                                // emoji, so this stays plain-text abbrev there
+                                // (byte-identical to today's output). The bridge
+                                // relay substitutes real per-spec icons, so it
+                                // gets a token instead regardless of classDisplay.
+                                if (this.isBridge) {
+                                    return `${getProfessionEmojiToken(profession)} ${count}`;
+                                }
                                 const labelText = useAbbrev
                                     ? getProfessionAbbrev(profession).toUpperCase().padEnd(3, ' ')
                                     : profession.toUpperCase();
@@ -716,6 +809,10 @@ export class DiscordNotifier {
                             }
                             if (classDisplay === 'emoji') {
                                 const profession = p.profession || 'Unknown';
+                                // On the bridge path AxiTools substitutes a real
+                                // per-spec emoji, so the colour-collision hacks
+                                // below are unnecessary.
+                                if (this.isBridge) return getProfessionEmojiToken(profession);
                                 const professionBase = getProfessionBase(profession);
                                 if (professionBase === 'Ranger') return '🟩';
                                 if (professionBase === 'Revenant') return '🟥';
@@ -1070,17 +1167,11 @@ export class DiscordNotifier {
 
                     const embeds = buildEmbeds(embedFields);
 
-                    await axios.post(this.webhookUrl, {
-                        username: "AxiBridge",
-                        avatar_url: DISCORD_WEBHOOK_AVATAR_URL,
-                        embeds
-                    });
+                    await this.postPayload({ embeds });
                     console.log("Sent complex Discord notification.");
                 } else {
                     // Fallback Simple Embed
-                    await axios.post(this.webhookUrl, {
-                        username: "AxiBridge",
-                        avatar_url: DISCORD_WEBHOOK_AVATAR_URL,
+                    await this.postPayload({
                         embeds: [{
                             title: "Log Uploaded",
                             description: (() => {
@@ -1094,8 +1185,6 @@ export class DiscordNotifier {
                     });
                 }
             }
-        } catch (error) {
-            console.error("Failed to send Discord notification:", error);
         }
     }
 }
