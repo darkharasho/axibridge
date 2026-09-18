@@ -128,7 +128,11 @@ export function frameForPath(points: Array<[number, number]>): ContinentFrame | 
     // the trail in frame as the crop allows.
     const marginX = (SLICE_MARGIN_PX / SLICE_WIDTH) * width;
     const marginY = (SLICE_MARGIN_PX / SLICE_HEIGHT) * height;
-    const [beaconX, beaconY] = points[0];
+    // The first FINITE point, not `points[0]`: the bbox loop above already
+    // skips non-finite samples, so a single NaN in bin 0 would otherwise make
+    // both clamp bounds NaN and poison an otherwise perfectly good frame.
+    const beacon = points.find(([x, y]) => Number.isFinite(x) && Number.isFinite(y))!;
+    const [beaconX, beaconY] = beacon;
     const cx1 = clamp(midX - width / 2, beaconX + marginX - width, beaconX - marginX);
     const cy1 = clamp(midY - height / 2, beaconY + marginY - height, beaconY - marginY);
 
@@ -234,7 +238,10 @@ export function buildSliceDrawList(details: any, zone: string): SliceDrawList | 
         const continentPath: Array<[number, number]> = [];
         for (const [px, py] of pixelPath) {
             const c = eiPixelToContinent(map, px, py);
-            if (c) continentPath.push(c);
+            // Both components must be finite, not merely `c` non-null: a NaN
+            // sample projects to [NaN, NaN], which is truthy and would produce
+            // a NaN frame -> no tiles -> no image at all.
+            if (c && Number.isFinite(c[0]) && Number.isFinite(c[1])) continentPath.push(c);
         }
         if (continentPath.length === 0) return null;
 

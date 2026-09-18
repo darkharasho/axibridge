@@ -16,6 +16,7 @@ import { buildMapSlice, registerMapSliceResult } from './mapSlice';
 import { linkBridgeChannel } from './bridgeLink';
 import {
     shouldSendDiscord as shouldSendDiscordFn,
+    shouldBuildMapSlice as shouldBuildMapSliceFn,
     applyDiscordDestination as applyDiscordDestinationFn,
     handleDiscordSendResult as handleDiscordSendResultFn
 } from './discordDestinationResolver';
@@ -282,11 +283,9 @@ const mapSliceCacheDir = () => path.join(app.getPath('userData'), 'map-tiles');
 /** Build the slice for a report, or null. Never throws. */
 const mapSliceFor = async (details: any, zone: string): Promise<Uint8Array | undefined> => {
     // Skip the tile fetch + renderer round trip entirely when the user turned
-    // the slice off — only an explicit `false` counts as off, matching the
-    // `includeMapSlice !== false` convention in discord.ts.
-    if ((store.get('embedStatSettings') as any)?.includeMapSlice === false) {
-        return undefined;
-    }
+    // the slice off. The predicate lives in discordDestinationResolver.ts so it
+    // is unit-testable against a fake store; see shouldBuildMapSlice.
+    if (!shouldBuildMapSliceFn(store)) return undefined;
     const png = await buildMapSlice(details, zone, {
         cacheDir: mapSliceCacheDir(),
         requestPaint: (requestId, drawList) => {

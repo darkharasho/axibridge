@@ -2,13 +2,27 @@ import { randomUUID } from 'node:crypto';
 import { buildSliceDrawList, type SliceDrawList } from '../../shared/sliceGeometry';
 import { resolveTiles } from './tileCache';
 
-const DEFAULT_TIMEOUT_MS = 10_000;
+/**
+ * ONE overall wall-clock budget for the whole slice build.
+ *
+ * Tile resolution and the renderer round trip run sequentially, so two
+ * independent deadlines (8s + 10s) meant a worst case of ~18s of blocking
+ * latency on every report — e.g. right after app start, where `win` exists
+ * and `requestPaint` returns true but `useMapSlicePainter` has not mounted,
+ * so no reply ever comes and the full paint timeout is spent on top of the
+ * tile deadline. A single budget makes the worst case the budget.
+ */
+const DEFAULT_BUDGET_MS = 8000;
 
 export interface BuildMapSliceDeps {
     /** Send the paint request to the renderer; `false` when no window exists. */
     requestPaint: (requestId: string, drawList: SliceDrawList) => boolean;
     cacheDir: string;
+    /** Explicit override for the paint wait only. Omit in production: the
+     *  paint wait is then whatever is left of `budgetMs`. */
     timeoutMs?: number;
+    /** Overall wall-clock budget for tiles + paint. Defaults to 8s. */
+    budgetMs?: number;
     resolveTilesFn?: typeof resolveTiles;
     /** Injection seam for tests: lets the skip paths past `buildSliceDrawList`
      *  be exercised without a real position track. Production callers omit it. */
@@ -49,15 +63,30 @@ export async function buildMapSlice(
     zone: string,
     deps: BuildMapSliceDeps,
 ): Promise<Buffer | null> {
+    const startedAt = Date.now();
+    const budgetMs = deps.budgetMs ?? DEFAULT_BUDGET_MS;
+    const remainingBudget = () => Math.max(0, budgetMs - (Date.now() - startedAt));
+
     try {
         const buildDrawListFn = deps.buildDrawListFn ?? buildSliceDrawList;
         const drawList = buildDrawListFn(details, zone);
         if (!drawList) return null;
 
         const resolveTilesFn = deps.resolveTilesFn ?? resolveTiles;
-        const tiles = await resolveTilesFn(drawList.tiles, { cacheDir: deps.cacheDir });
+        const tiles = await resolveTilesFn(drawList.tiles, {
+            cacheDir: deps.cacheDir,
+            deadlineMs: remainingBudget(),
+        });
         if (tiles.length === 0) {
             console.warn('[MapSlice] no tiles could be fetched; skipping the image.');
+            return null;
+        }
+
+        // Whatever the tiles did not spend is what the paint wait gets. Nothing
+        // left means skip the image rather than paint past the budget.
+        const paintTimeoutMs = deps.timeoutMs ?? remainingBudget();
+        if (paintTimeoutMs <= 0) {
+            console.warn('[MapSlice] budget exhausted fetching tiles; skipping the image.');
             return null;
         }
 
@@ -67,7 +96,7 @@ export async function buildMapSlice(
                 if (!pending.delete(requestId)) return;
                 console.warn('[MapSlice] renderer did not answer in time; skipping the image.');
                 resolve(null);
-            }, deps.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+            }, paintTimeoutMs);
 
             pending.set(requestId, (result) => {
                 clearTimeout(timer);
