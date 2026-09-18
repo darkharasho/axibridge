@@ -315,6 +315,8 @@ export interface IElectronAPI {
     onUploadComplete: (callback: (data: any) => void) => () => void;
     onUploadPermalink: (callback: (data: { id: string; filePath: string; permalink: string }) => void) => () => void;
     onUploadStatus: (callback: (data: any) => void) => () => void;
+    onMapSlicePaint: (callback: (value: { requestId: string; drawList: import('../shared/sliceGeometry').SliceDrawList }) => void) => () => void;
+    sendMapSliceResult: (payload: { requestId: string; png: Uint8Array | null }) => void;
     resolveDroppedFilePath: (file: File) => string;
     setDiscordWebhook: (url: string) => void;
     windowControl: (action: 'minimize' | 'maximize' | 'close') => void;
