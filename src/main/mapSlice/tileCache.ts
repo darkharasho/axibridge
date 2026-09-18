@@ -11,11 +11,14 @@ export interface TileCacheOptions {
     fetcher?: TileFetcher;
     concurrency?: number;
     maxBytes?: number;
+    /** Overall wall-clock budget for the whole call, in ms. See resolveTiles. */
+    deadlineMs?: number;
 }
 
 const DEFAULT_CONCURRENCY = 6;
 const DEFAULT_MAX_BYTES = 200 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 8000;
+const DEFAULT_DEADLINE_MS = 8000;
 
 const httpFetcher: TileFetcher = async (url) => {
     const res = await axios.get<ArrayBuffer>(url, {
@@ -40,6 +43,16 @@ const toDataUrl = (buffer: Buffer) => `data:image/jpeg;base64,${buffer.toString(
  *
  * A tile that cannot be fetched is omitted rather than fatal — a missing tile
  * is a gap in a decorative image, and this function never throws.
+ *
+ * The whole call is also bounded by `deadlineMs` (default 8s): if fetching
+ * every tile would take too long — e.g. a slow-but-not-hung tile host, where
+ * each of ~60 tiles legitimately takes close to its own per-request timeout —
+ * `resolveTiles` still resolves on time with whatever tiles finished first.
+ * This is the same "omit what didn't make it" contract as any other partial
+ * failure, not a new outcome. Work still in flight when the deadline fires
+ * keeps running in the background (its own errors are already caught inside
+ * the worker), but it can never mutate the array already handed back to the
+ * caller — that array is a fresh copy taken at the deadline.
  */
 export async function resolveTiles(
     tiles: SliceTilePlacement[],
@@ -48,6 +61,7 @@ export async function resolveTiles(
     if (tiles.length === 0) return [];
     const { cacheDir, fetcher = httpFetcher } = options;
     const concurrency = Math.max(1, options.concurrency ?? DEFAULT_CONCURRENCY);
+    const deadlineMs = Math.max(0, options.deadlineMs ?? DEFAULT_DEADLINE_MS);
 
     try {
         await fs.mkdir(cacheDir, { recursive: true });
@@ -90,15 +104,29 @@ export async function resolveTiles(
         }
     };
 
-    await Promise.all(
+    const workersDone = Promise.all(
         Array.from({ length: Math.min(concurrency, tiles.length) }, worker),
-    );
+    ).then(() => true as const);
 
-    if (fetched > 0) {
-        await pruneCache(cacheDir, options.maxBytes ?? DEFAULT_MAX_BYTES);
+    let deadlineTimer: NodeJS.Timeout;
+    const deadlineHit = new Promise<false>((resolve) => {
+        deadlineTimer = setTimeout(() => resolve(false), deadlineMs);
+    });
+
+    const completedInTime = await Promise.race([workersDone, deadlineHit]);
+    clearTimeout(deadlineTimer!);
+
+    // Snapshot now, before any late worker can touch `resolved` further —
+    // this filtered copy is a distinct array, so it is safe to return even
+    // though background workers (on the deadline-hit path) may still be
+    // writing into `resolved` after this point.
+    const result = resolved.filter((t): t is SliceTilePlacement => t !== null);
+
+    if (completedInTime && fetched > 0) {
+        void pruneCache(cacheDir, options.maxBytes ?? DEFAULT_MAX_BYTES);
     }
 
-    return resolved.filter((t): t is SliceTilePlacement => t !== null);
+    return result;
 }
 
 /** Drop the least recently used tiles until the cache fits its budget. */
