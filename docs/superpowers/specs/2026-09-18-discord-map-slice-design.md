@@ -56,12 +56,11 @@ No minimap inset. At Discord's embed width an inset renders around
 
 ### Where the image is composed
 
-**In the renderer, over IPC.** `src/main/index.ts` requests a slice
-from the renderer, which composes it on a DOM canvas and returns a PNG
-buffer.
+**Geometry and tiles in main; pixels in the renderer, over IPC.**
+Main builds a complete draw list and fetches the tiles, then asks the
+renderer to paint it on a DOM canvas and return a PNG buffer.
 
-The alternative — compositing in the main process — needs a native
-image library. The project has none: no `sharp`, `canvas`,
+Painting in main instead would need a native image library. The project has none: no `sharp`, `canvas`,
 `@napi-rs/canvas`, `jimp`, or `pureimage` in `package.json`. Adding
 one means per-platform prebuilt binaries, `asarUnpack` configuration,
 and a new failure surface in electron-builder for both the Linux
@@ -78,21 +77,37 @@ main sends the embed without an image.
 
 ### Modules
 
-**`src/renderer/mapSlice/`** — new, owns composition:
+Main owns all the logic. The renderer owns only the canvas.
 
-- `sliceGeometry.ts` — pure functions. Squad centroid path from replay
-  samples, EI-pixel to continent projection, bbox, clamp, aspect
-  forcing, continent-to-output-pixel transform. No canvas, no network,
-  fully unit-testable.
-- `sliceTiles.ts` — resolves the tile set for a crop and fetches it,
-  through a disk cache.
-- `sliceRender.ts` — draws tiles, trail, beacon, end marker, caption
-  to a canvas; returns a PNG buffer.
-- `index.ts` — the IPC handler entry: details in, PNG or null out.
+This split is forced by CORS: `tiles.guildwars2.com` sends no
+`Access-Control-Allow-Origin` header (the hi-res GitHub Pages host
+sends `*`). Drawing a GW2 CDN tile into a renderer canvas taints it,
+and `canvas.toBlob()` then throws `SecurityError` — which would break
+precisely the fallback path for maps without hi-res art. Main fetches
+tiles over Node HTTP where CORS does not apply, and passes the
+renderer **data URLs**, which are same-origin and never taint.
 
-Keeping geometry separate from rendering is what makes the hard part
-testable. The projection is the part that can be silently wrong, and
-it is the part with no pixels in it.
+Main also owns the disk cache, since it is the side with `fs`.
+
+**`src/shared/sliceGeometry.ts`** — pure functions, no canvas, no
+network, no Electron. Squad centroid path, EI-pixel to continent
+projection, bbox, clamping, aspect forcing, and the continent-to-output
+transform. Produces a `SliceDrawList`: output size, tile placements
+(with URLs), the path in output pixels, and the caption. This is the
+part that can be silently wrong and the part with no pixels in it, so
+it is the part under test.
+
+**`src/main/mapSlice/tileCache.ts`** — fetches tile URLs through a
+disk cache, returns data URLs.
+
+**`src/main/mapSlice/index.ts`** — orchestration: details in, PNG
+buffer or null out. Builds the draw list, resolves tiles to data URLs,
+asks the renderer to paint it, applies the timeout.
+
+**`src/renderer/mapSlice/paintSlice.ts`** — takes a draw list whose
+tiles are data URLs, paints tiles, trail, beacon, end marker and
+caption to an offscreen canvas, returns PNG bytes. No map knowledge,
+no projection, no network.
 
 ### Coordinate pipeline
 
@@ -132,6 +147,9 @@ Zoom is chosen for the crop, preferring the AxiBridge hi-res tile pack
 (`HIRES_TILE_BASE`, up to `MAX_HIRES_ZOOM` = 9) and falling back to
 `tiles.guildwars2.com` for zoom <= `MAX_TILE_ZOOM` (7). Tile URL shape
 is `{base}/2/3/{z}/{tx}/{ty}.jpg`.
+
+Tiles are fetched in main and handed to the renderer as `data:` URLs
+(see Modules for why).
 
 A clamped crop pulls on the order of 40 tiles (~1 MB). Without caching
 that is per-fight network traffic all raid night, so tiles are cached
