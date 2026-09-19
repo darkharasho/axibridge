@@ -215,26 +215,30 @@ describe('SettingsView', () => {
             expect(await screen.findByRole('heading', { name: 'Settings', level: 2 })).toBeInTheDocument();
         });
 
-        it('renders all major section headings across their categories', async () => {
+        // One case per category rather than one test walking all five: five
+        // full SettingsView renders in a single test ran ~3x the length of any
+        // other here and timed out on the slower Windows runner.
+        it('renders the Discord section headings on the landing category', async () => {
             renderSettings();
             // Discord is the default landing category — its sections need no navigation.
             expect(await screen.findByRole('heading', { name: /Summary Sections/i })).toBeInTheDocument();
             expect(screen.getByRole('heading', { name: /Top Stats Lists/i })).toBeInTheDocument();
+        });
 
-            selectSettingsCategory('Web Report');
-            expect(screen.getByRole('heading', { name: /GitHub Pages Web Reports/i })).toBeInTheDocument();
+        it.each([
+            ['Web Report', [/GitHub Pages Web Reports/i]],
+            ['Stats', [/Top Stats & MVP/i, /MVP Weighting/i]],
+            ['Logs', [/dps\.report User Token/i]],
+            ['Application', ['Appearance', /Help & Updates/i, /Window & Close Behavior/i]],
+        ] as const)('renders the %s section headings once its category is selected', async (category, headings) => {
+            renderSettings();
+            await screen.findByRole('heading', { name: /Summary Sections/i });
 
-            selectSettingsCategory('Stats');
-            expect(screen.getByRole('heading', { name: /Top Stats & MVP/i })).toBeInTheDocument();
-            expect(screen.getByRole('heading', { name: /MVP Weighting/i })).toBeInTheDocument();
+            selectSettingsCategory(category);
 
-            selectSettingsCategory('Logs');
-            expect(screen.getByRole('heading', { name: /dps\.report User Token/i })).toBeInTheDocument();
-
-            selectSettingsCategory('Application');
-            expect(screen.getByRole('heading', { name: 'Appearance' })).toBeInTheDocument();
-            expect(screen.getByRole('heading', { name: /Help & Updates/i })).toBeInTheDocument();
-            expect(screen.getByRole('heading', { name: /Window & Close Behavior/i })).toBeInTheDocument();
+            for (const name of headings) {
+                expect(screen.getByRole('heading', { name })).toBeInTheDocument();
+            }
         });
 
         it('calls getSettings on mount', async () => {

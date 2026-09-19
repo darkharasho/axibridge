@@ -56,3 +56,22 @@ export async function getAPICallLog(page: Page): Promise<Array<{ method: string;
 export async function clearAPICallLog(page: Page) {
     await page.evaluate(() => { (window as any).electronAPI._callLog.length = 0; });
 }
+
+/**
+ * Open a Settings category pane and wait for it to expand.
+ *
+ * Settings only mounts the selected category's sections, so anything outside
+ * the landing category (Discord) has to be navigated to before it exists in
+ * the DOM at all.
+ */
+export async function openSettingsCategory(
+    page: Page,
+    category: 'Discord' | 'Web Report' | 'Stats' | 'Logs' | 'Application'
+) {
+    const button = page
+        .getByRole('navigation', { name: 'Settings categories' })
+        .getByRole('button', { name: new RegExp(`^${category}`, 'i') })
+        .first();
+    await button.click();
+    await expect(button).toHaveAttribute('aria-expanded', 'true');
+}
