@@ -331,6 +331,7 @@ export interface IElectronAPI {
         discordSplitEnemiesByTeam?: boolean;
         webhooks: IWebhook[];
         selectedWebhookId: string | null;
+        enabledWebhookIds?: string[];
         dpsReportToken: string | null;
         closeBehavior: 'minimize' | 'quit';
         embedStatSettings: IEmbedStatSettings;

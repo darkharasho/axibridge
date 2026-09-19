@@ -1,9 +1,11 @@
 import { memo, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Swords, Shield, Hammer, Wind } from 'lucide-react';
+import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Swords, Shield, Hammer, Wind, MessageSquare } from 'lucide-react';
 import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeightProfiles, DEFAULT_MVP_WEIGHT_PROFILES, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, IParserSettings, IParserStatus } from './global.d';
 import { normalizeMvpWeightProfiles } from './stats/mvpWeightProfiles';
 import { ReportWebhooksCard } from './ReportWebhooksCard';
+import { DestinationsCard } from './settings/DestinationsCard';
+import type { Webhook } from './WebhookModal';
 import type { IReportWebhook } from '../shared/reportWebhooks';
 import { DEFAULT_COMMANDER_THRESHOLDS, type CommanderThresholds } from '../shared/commanderThresholds';
 import { METRICS_SPEC } from '../shared/metricsSettings';
@@ -131,6 +133,10 @@ interface SettingsViewProps {
     isBulkUploadActive?: boolean;
     /** Marks re-parsed logs as axilog-sourced in the owning state. */
     onLogsHealed?: (filePaths: string[]) => void;
+    webhooks: Webhook[];
+    enabledWebhookIds: string[];
+    onSaveWebhooks: (webhooks: Webhook[], selectId?: string) => void;
+    onSetDestinationEnabled: (id: string, enabled: boolean) => void;
 }
 
 // Toggle switch component — memoized with a custom comparator that ignores onChange reference
@@ -208,7 +214,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onParserSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2SliceEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onParserSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2SliceEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed, webhooks, enabledWebhookIds, onSaveWebhooks, onSetDestinationEnabled }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [reportWebhooks, setReportWebhooks] = useState<IReportWebhook[]>([]);
@@ -1587,7 +1593,18 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         data-settings-pane="discord"
                         style={{ display: selectedCategoryId === 'discord' ? undefined : 'none' }}
                     >
-                    {/* Discord: Destinations and Report Links arrive in Task 9 */}
+                    <SettingsSection title="Destinations" icon={MessageSquare} delay={0.02} sectionId="destinations">
+                        <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+                            Every destination switched on here receives each fight report.
+                        </p>
+                        <DestinationsCard
+                            webhooks={webhooks}
+                            enabledWebhookIds={enabledWebhookIds}
+                            onSave={onSaveWebhooks}
+                            onSetEnabled={onSetDestinationEnabled}
+                        />
+                    </SettingsSection>
+
                     {/* Discord Embed Stats - Summary Sections */}
                     <SettingsSection title="Summary Sections" icon={Users} delay={0.1} sectionId="embed-summary">
                         <p className="text-sm text-gray-400 mb-4">
@@ -1814,6 +1831,16 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 />
                             </div>
                         </div>
+                    </SettingsSection>
+
+                    <SettingsSection title="Report Links" icon={LinkIcon} delay={0.16} sectionId="report-links">
+                        <ReportWebhooksCard
+                            reportWebhooks={reportWebhooks}
+                            onChange={(next) => {
+                                setReportWebhooks(next);
+                                window.electronAPI?.saveSettings?.({ reportWebhooks: next });
+                            }}
+                        />
                     </SettingsSection>
                     </div>
 
@@ -2123,13 +2150,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 </div>
                             )}
                         </div>
-                        <ReportWebhooksCard
-                            reportWebhooks={reportWebhooks}
-                            onChange={(next) => {
-                                setReportWebhooks(next);
-                                window.electronAPI?.saveSettings?.({ reportWebhooks: next });
-                            }}
-                        />
                     </SettingsSection>
 
                     {/* Cloudflare R2 — hosts the out-of-band report sidecars */}

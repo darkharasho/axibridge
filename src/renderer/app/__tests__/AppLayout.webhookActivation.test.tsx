@@ -1,18 +1,16 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, act } from '@testing-library/react';
 
-// Fix round 3, item 1: the activation glue (auto-select a newly linked
-// bridge entry in the same settings save, Ruling N) lives at the call site
-// in AppLayout.tsx's `WebhookModal.onSave` prop, not inside the hoisted
-// `resolveWebhookSaveIntent` function. Deleting the call to that function
-// leaves `resolveWebhookSaveIntent`'s own tests green while the call site's
-// behaviour silently reverts — item 2's "same computation" argument does not
-// apply here because auto-selection is a *call*, not a shared computation a
-// bypass would also have to perform to work. This test observes the call
-// site itself: it stubs `WebhookModal` to capture the `onSave` prop AppLayout
-// actually wires up, invokes it directly (as the real modal would on a
-// successful link), and asserts the observable outcome — `setSelectedWebhookId`
-// and `handleUpdateSettings` are called with the newly linked entry's id.
+// Fix round 3, item 1 (updated for Task 9): the activation glue (auto-select
+// a newly linked bridge entry in the same settings save) now lives in
+// `handleSaveWebhooks`, owned by App.tsx and threaded through `ctx`.
+// AppLayout's only remaining job is to wire that handler straight onto
+// `WebhookModal`'s `onSave` prop. This test observes that call site: it
+// stubs `WebhookModal` to capture the `onSave` prop AppLayout actually wires
+// up, invokes it directly (as the real modal would on a successful link),
+// and asserts the observable outcome — `ctx.handleSaveWebhooks` is called
+// with the newly linked entry's webhooks and id. If AppLayout stops wiring
+// this prop through, this test goes red.
 let capturedOnSave: ((webhooks: any[], selectId?: string) => void) | null = null;
 
 vi.mock('../../WebhookModal', () => ({
@@ -129,6 +127,9 @@ function makeCtx(overrides: Record<string, unknown> = {}) {
         setParserSettings: vi.fn(),
         parserSettings: null,
         setParserSetting: vi.fn(),
+        enabledWebhookIds: [],
+        handleSetDestinationEnabled: vi.fn(),
+        handleSaveWebhooks: vi.fn(),
         ...overrides
     };
 }
@@ -138,7 +139,7 @@ describe('AppLayout — bridge activation call site', () => {
         capturedOnSave = null;
     });
 
-    it('selects the newly linked entry when WebhookModal reports a successful link', () => {
+    it('wires WebhookModal.onSave to the shared handleSaveWebhooks handler', () => {
         const ctx = makeCtx();
         render(<AppLayout ctx={ctx} />);
 
@@ -148,10 +149,6 @@ describe('AppLayout — bridge activation call site', () => {
             capturedOnSave!([bridgeWebhook], 'bridge-1');
         });
 
-        expect(ctx.setSelectedWebhookId).toHaveBeenCalledWith('bridge-1');
-        expect(ctx.handleUpdateSettings).toHaveBeenCalledWith({
-            webhooks: [bridgeWebhook],
-            selectedWebhookId: 'bridge-1'
-        });
+        expect(ctx.handleSaveWebhooks).toHaveBeenCalledWith([bridgeWebhook], 'bridge-1');
     });
 });

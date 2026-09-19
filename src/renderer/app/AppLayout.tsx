@@ -12,7 +12,6 @@ import { Terminal } from '../Terminal';
 import { UpdateErrorModal } from '../UpdateErrorModal';
 import { WalkthroughModal } from '../WalkthroughModal';
 import { WebhookModal } from '../WebhookModal';
-import { resolveWebhookSaveIntent } from './webhookSaveIntent';
 import { WhatsNewModal } from '../WhatsNewModal';
 import { FilePickerModal } from './FilePickerModal';
 import { WebUploadOverlay } from './WebUploadOverlay';
@@ -91,7 +90,6 @@ export function AppLayout({ ctx }: { ctx: any }) {
         setWebhookDropdownOpen,
         webhookModalOpen,
         setWebhookModalOpen,
-        setWebhooks,
         showUpdateErrorModal,
         setShowUpdateErrorModal,
         updateError,
@@ -111,6 +109,9 @@ export function AppLayout({ ctx }: { ctx: any }) {
         setParserSettings,
         parserSettings,
         setParserSetting,
+        enabledWebhookIds,
+        handleSetDestinationEnabled,
+        handleSaveWebhooks,
     } = ctx;
 
     const [activeNavView, setActiveNavView] = useState(view);
@@ -458,6 +459,10 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 helpUpdatesFocusTrigger={helpUpdatesFocusTrigger}
                                 onHelpUpdatesFocusConsumed={handleHelpUpdatesFocusConsumed}
                                 parserSettingsFocusTrigger={parserSettingsFocusTrigger}
+                                webhooks={webhooks}
+                                enabledWebhookIds={enabledWebhookIds}
+                                onSaveWebhooks={handleSaveWebhooks}
+                                onSetDestinationEnabled={handleSetDestinationEnabled}
                                 onParserSettingsFocusConsumed={handleParserSettingsFocusConsumed}
                                 howToTrigger={howToTrigger}
                                 onHowToConsumed={handleHowToConsumed}
@@ -542,28 +547,9 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 isOpen={webhookModalOpen}
                 onClose={() => setWebhookModalOpen(false)}
                 webhooks={webhooks}
-                // Single-selection stopgap: the store only tracks one active
-                // destination (`selectedWebhookId`) until Task 11 lands the
-                // real multi-select, so the enabled set here is derived from
-                // it rather than being its own persisted list.
-                enabledWebhookIds={selectedWebhookId ? [selectedWebhookId] : []}
-                onSetEnabled={(id, enabled) => {
-                    const next = enabled ? [id] : [];
-                    setSelectedWebhookId(next[0] ?? null);
-                    handleUpdateSettings({ enabledWebhookIds: next, selectedWebhookId: next[0] ?? null });
-                }}
-                onSave={(newWebhooks, selectId) => {
-                    // Fix round 2, item 1: this is now a thin wire onto a
-                    // directly-tested pure function (webhookSaveIntent.ts) —
-                    // see its docstring for why the selection must travel
-                    // with the save rather than as a separate one.
-                    const intent = resolveWebhookSaveIntent(selectedWebhookId, newWebhooks, selectId);
-                    setWebhooks(intent.webhooks);
-                    if (intent.selectedWebhookId !== undefined) {
-                        setSelectedWebhookId(intent.selectedWebhookId);
-                    }
-                    handleUpdateSettings(intent);
-                }}
+                enabledWebhookIds={enabledWebhookIds}
+                onSave={handleSaveWebhooks}
+                onSetEnabled={handleSetDestinationEnabled}
             />
 
             {/* Update Error Modal */}
