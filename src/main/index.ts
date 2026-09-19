@@ -1823,7 +1823,10 @@ if (!gotTheLock) {
         // ─── Register IPC handlers ─────────────────────────────────────────────────
         ipcMain.handle('bridge:link', async (_event, key: string) => linkBridgeChannel(key));
         registerMapSliceResult(ipcMain);
-        registerFileHandlers({ getWindow: () => win });
+        registerFileHandlers({
+            getWindow: () => win,
+            getLogDirectory: () => (store.get('logDirectory', null) as string | null),
+        });
         registerAppHandlers({ store, getWindow: () => win });
         registerDiscordHandlers({
             store,
