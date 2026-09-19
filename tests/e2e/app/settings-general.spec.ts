@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { setupAppPage, navigateTo, expectAPICalled } from './helpers/appTestHelpers';
+import { setupAppPage, navigateTo, expectAPICalled, openSettingsCategory } from './helpers/appTestHelpers';
 
 test.describe('Settings — General Behavior (SET-001–003)', () => {
     test('SET-001: settings load on mount', async ({ page }) => {
@@ -33,6 +33,7 @@ test.describe('Settings — Appearance (SET-010–013)', () => {
     test('SET-010: color palette selection triggers save', async ({ page }) => {
         await setupAppPage(page);
         await navigateTo(page, 'Settings');
+        await openSettingsCategory(page, 'Application');
         const appearance = page.locator('[data-settings-label="Appearance"]');
         await appearance.scrollIntoViewIfNeeded();
         // Find palette buttons/swatches and click a non-active one
@@ -48,6 +49,7 @@ test.describe('Settings — Appearance (SET-010–013)', () => {
     test('SET-011: multiple palette options are visible', async ({ page }) => {
         await setupAppPage(page);
         await navigateTo(page, 'Settings');
+        await openSettingsCategory(page, 'Application');
         const appearance = page.locator('[data-settings-label="Appearance"]');
         await appearance.scrollIntoViewIfNeeded();
         await expect(appearance).toBeVisible();
@@ -56,6 +58,7 @@ test.describe('Settings — Appearance (SET-010–013)', () => {
     test('SET-012: glass surfaces toggle triggers save', async ({ page }) => {
         await setupAppPage(page);
         await navigateTo(page, 'Settings');
+        await openSettingsCategory(page, 'Application');
         const appearance = page.locator('[data-settings-label="Appearance"]');
         await appearance.scrollIntoViewIfNeeded();
         const glassToggle = appearance.locator('.toggle-track').first();
@@ -77,6 +80,7 @@ test.describe('Settings — dps.report Token (SET-020–022)', () => {
     test('SET-020: set token triggers save', async ({ page }) => {
         await setupAppPage(page);
         await navigateTo(page, 'Settings');
+        await openSettingsCategory(page, 'Logs');
         const tokenSection = page.locator('[data-settings-label="dps.report User Token"]');
         await tokenSection.scrollIntoViewIfNeeded();
         const tokenInput = tokenSection.locator('input').first();
@@ -90,6 +94,7 @@ test.describe('Settings — dps.report Token (SET-020–022)', () => {
     test('SET-021: clear token', async ({ page }) => {
         await setupAppPage(page, { settings: { dpsReportToken: 'existing-token' } });
         await navigateTo(page, 'Settings');
+        await openSettingsCategory(page, 'Logs');
         const tokenSection = page.locator('[data-settings-label="dps.report User Token"]');
         await tokenSection.scrollIntoViewIfNeeded();
         const clearBtn = tokenSection.getByRole('button').first();
@@ -102,6 +107,7 @@ test.describe('Settings — dps.report Token (SET-020–022)', () => {
     test('SET-022: token section renders', async ({ page }) => {
         await setupAppPage(page, { settings: { dpsReportToken: 'secret-token' } });
         await navigateTo(page, 'Settings');
+        await openSettingsCategory(page, 'Logs');
         const tokenSection = page.locator('[data-settings-label="dps.report User Token"]');
         await tokenSection.scrollIntoViewIfNeeded();
         await expect(tokenSection).toBeVisible();
