@@ -51,3 +51,44 @@ export function resolveWebhookSaveIntent(
     }
     return { webhooks: newWebhooks };
 }
+
+/**
+ * Task 9 fix round 1, Ruling M: the enabled-destination-list reconciliation
+ * that runs alongside a webhook save. Hoisted out of `App.tsx`'s
+ * `handleSaveWebhooks` for the same reason `resolveWebhookSaveIntent` was
+ * hoisted out of `AppLayout.tsx` — an untested inline branch is easy to
+ * accidentally delete without any test noticing.
+ *
+ * A freshly linked bridge must be enabled in the same save, or the main
+ * process re-derives the destination list without it and the newly linked
+ * channel never activates — the worst failure mode here, because the UI
+ * looks correct (the row appears) while nothing is ever sent. When there is
+ * no `selectId`, this instead prunes ids whose webhook no longer exists in
+ * `nextWebhooks` (e.g. it was deleted), so the enabled list doesn't grow
+ * unbounded with dangling ids `resolveDiscordDestinations` would otherwise
+ * silently ignore forever.
+ */
+export function reconcileEnabledWebhookIds(
+    enabledWebhookIds: string[],
+    nextWebhooks: Webhook[],
+    selectId?: string
+): string[] {
+    return selectId
+        ? [...enabledWebhookIds.filter((id) => id !== selectId), selectId]
+        : enabledWebhookIds.filter((id) => nextWebhooks.some((w) => w.id === id));
+}
+
+/**
+ * Task 9 fix round 1, Ruling M: per-destination enable/disable toggle logic,
+ * hoisted out of `App.tsx`'s `handleSetDestinationEnabled` for direct
+ * testing (see `reconcileEnabledWebhookIds` above for why).
+ */
+export function toggleEnabledWebhookId(
+    enabledWebhookIds: string[],
+    id: string,
+    enabled: boolean
+): string[] {
+    return enabled
+        ? [...enabledWebhookIds.filter((existing) => existing !== id), id]
+        : enabledWebhookIds.filter((existing) => existing !== id);
+}

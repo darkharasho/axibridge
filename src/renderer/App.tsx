@@ -27,7 +27,7 @@ import { useSectorOwners } from './app/hooks/useSectorOwners';
 import { extractDroppedLogFiles } from './app/utils/droppedFiles';
 import { DetailsCache } from './cache/DetailsCache';
 import { DetailsCacheProvider } from './cache/DetailsCacheContext';
-import { resolveWebhookSaveIntent } from './app/webhookSaveIntent';
+import { resolveWebhookSaveIntent, reconcileEnabledWebhookIds, toggleEnabledWebhookId } from './app/webhookSaveIntent';
 import type { Webhook } from './WebhookModal';
 
 /** Strip details from log entries — logsForStats is metadata-only. */
@@ -466,9 +466,8 @@ function App() {
         [webhooks, selectedWebhookId]
     );
     const handleSetDestinationEnabled = useCallback((id: string, enabled: boolean) => {
-        const next = enabled
-            ? [...enabledWebhookIds.filter((existing) => existing !== id), id]
-            : enabledWebhookIds.filter((existing) => existing !== id);
+        // See `toggleEnabledWebhookId` (webhookSaveIntent.ts) for the logic.
+        const next = toggleEnabledWebhookId(enabledWebhookIds, id, enabled);
         setEnabledWebhookIds(next);
         // `selectedWebhookId` travels with the save: settingsHandlers still
         // returns it and the export/import list still reads it, so it mirrors
@@ -480,12 +479,8 @@ function App() {
     const handleSaveWebhooks = useCallback((nextWebhooks: Webhook[], selectId?: string) => {
         const intent = resolveWebhookSaveIntent(selectedWebhookId, nextWebhooks, selectId);
         setWebhooks(intent.webhooks);
-        // A freshly linked bridge must be enabled in the same save, or the
-        // main process re-derives the destination list without it and the
-        // newly linked channel never activates.
-        const nextEnabled = selectId
-            ? [...enabledWebhookIds.filter((id) => id !== selectId), selectId]
-            : enabledWebhookIds.filter((id) => nextWebhooks.some((w) => w.id === id));
+        // See `reconcileEnabledWebhookIds` (webhookSaveIntent.ts) for the logic.
+        const nextEnabled = reconcileEnabledWebhookIds(enabledWebhookIds, nextWebhooks, selectId);
         setEnabledWebhookIds(nextEnabled);
         if (intent.selectedWebhookId !== undefined) setSelectedWebhookId(intent.selectedWebhookId);
         handleUpdateSettings({ ...intent, enabledWebhookIds: nextEnabled });
