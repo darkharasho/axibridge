@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DestinationsCard, type DestinationsCardProps } from '../DestinationsCard';
 import type { Webhook } from '../../WebhookModal';
@@ -36,8 +36,19 @@ describe('DestinationsCard', () => {
     it('lists every destination with its kind', () => {
         renderCard();
         expect(screen.getByText('Raid Channel')).toBeInTheDocument();
-        expect(screen.getByText('Axi › #reports')).toBeInTheDocument();
-        expect(screen.getByText(/bridge/i)).toBeInTheDocument();
+        const bridgeName = screen.getByText('Axi › #reports');
+        expect(bridgeName).toBeInTheDocument();
+        // Scoped to the bridge entry's own row rather than a document-wide
+        // getByText(/bridge/i): the row also carries a "run /bridge revoke"
+        // instruction and a "Bridged reports are posted by..." disclaimer,
+        // each of which independently contains the substring "bridge" and
+        // would make an unscoped query ambiguous. Walking up to the row
+        // container (".group", the row's own class) and asserting the kind
+        // badge specifically -- rather than widening to getAllByText -- keeps
+        // this proving what it's meant to: that badge sits on THIS row.
+        const bridgeRow = bridgeName.closest('.group') as HTMLElement;
+        expect(bridgeRow).not.toBeNull();
+        expect(within(bridgeRow).getByText('Bridge')).toBeInTheDocument();
     });
 
     it('reflects the enabled state per row', () => {
