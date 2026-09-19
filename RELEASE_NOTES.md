@@ -1,25 +1,27 @@
 # Release Notes
 
-Version v3.13.0 — September 19, 2026
+Version v3.14.0 — September 19, 2026
 
-## Logs in subfolders are visible again
+## Updating no longer dead-ends
 
-If your arcdps folder is bucketed into per-encounter subdirectories, the "add logs" picker used to open to an empty list — it only ever read the top level, even though the live watcher has always walked the tree. It now walks the same depth the watcher does, and each row shows the folder it came from so two logs with the same filename stay tellable apart.
+If the AppImage you launched from got replaced or deleted while AxiBridge was still
+running, every update attempt died with a raw `ENOENT ... unlink` and there was no way
+out of it — retrying just produced the same error forever. AxiBridge now puts that path
+back before handing off to the installer, so the update goes through. Same guard on the
+install-on-quit path, which used to fail silently on the way out.
 
-## Picker search covers the whole folder
+## AxiBridge shows its name on Discord posts
 
-The search box used to filter only the logs already loaded into the picker's rolling window. Typing the name of an older fight read as "no such log" when it just wasn't loaded yet. Search now runs over every log in the folder, and "Load older logs" hides while you're searching since the results already span everything.
+Fight embeds now carry "AxiBridge" and the logo in the header, so it's obvious where a
+post came from in a busy channel.
 
-## Reports say when a log didn't make it in
+## File pickers remember where you were
 
-A 51-fight report could publish totals over 45 of them without a word. Logs whose details couldn't be read back showed up as a "--" row with an odd duration, sorted to the end, contributing nothing to any total. Those rows now carry a real start time (recovered from the filename and the fight length) and the coverage banner names the logs that were left out, with the same re-parse button that fixes them.
-
-## Fewer logs go missing in the first place
-
-The details cache used to mark a log as cached the moment it hit memory, whether or not the write to durable storage actually landed. When the browser store rejected a write, the log quietly disappeared from every total once memory filled up. A log is only recorded as cached once the write lands; otherwise it gets retried, and if the store keeps refusing, the log shows up in the coverage banner instead of vanishing.
-
-NOTE: reports already published are unchanged — this affects reports you build from here on.
+Picking a log folder, importing settings, saving an export — each dialog now reopens
+where you last left it instead of dumping you in Downloads. Electron 44 stopped letting
+the OS remember this on its own, so AxiBridge tracks it per dialog: choosing a settings
+file won't move where the log-folder picker opens next.
 
 ## Fixes
 
-- Picker rows no longer sit ragged when only some logs in a folder are nested.
+- Cleared the fixable dependency security advisories.
