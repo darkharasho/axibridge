@@ -60,6 +60,82 @@ const isValidLoc = (loc: string): boolean => {
 const key = (code: string) => `p:${code}`;
 
 /**
+ * The live last-seen timestamp lives in its OWN key, never inside the pointer
+ * record, so the unauthenticated read path never has to write `p:<code>`.
+ * See the comment on `stampLastSeen` for why that separation is load-bearing.
+ */
+const seenKey = (code: string) => `s:${code}`;
+
+/**
+ * Reads a request body while refusing to buffer more than `max` bytes.
+ *
+ * `content-length` is absent on a chunked request, so it cannot be the only
+ * guard: without this, `await request.text()` would happily buffer up to the
+ * runtime's limit before any size check could run. Returns `null` the moment
+ * the cap is exceeded, having cancelled the rest of the stream.
+ */
+const readBodyCapped = async (request: Request, max: number): Promise<string | null> => {
+    const stream = request.body;
+    if (!stream) return '';
+    const reader = stream.getReader();
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (!value) continue;
+        total += value.byteLength;
+        if (total > max) {
+            try {
+                await reader.cancel();
+            } catch {
+                // The body is being abandoned anyway.
+            }
+            return null;
+        }
+        chunks.push(value);
+    }
+    const merged = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+        merged.set(chunk, offset);
+        offset += chunk.byteLength;
+    }
+    return new TextDecoder().decode(merged);
+};
+
+/**
+ * `Number(null)` and `Number('')` are both `0`, so a naive
+ * `Number(header) > MAX` pre-check silently passes every request that declares
+ * no length at all. Anything missing, non-numeric or non-positive is therefore
+ * reported as UNKNOWN, which routes the read through `readBodyCapped`.
+ */
+const declaredBodyBytes = (request: Request): number | null => {
+    const declared = Number(request.headers.get('content-length'));
+    return Number.isFinite(declared) && declared > 0 ? declared : null;
+};
+
+/** Reads a body under `MAX_BODY_BYTES`, or returns the response to send instead. */
+const readBoundedBody = async (request: Request): Promise<{ body: string } | { response: Response }> => {
+    const declared = declaredBodyBytes(request);
+    if (declared !== null && declared > MAX_BODY_BYTES) {
+        return { response: json(413, { error: 'Payload too large.' }) };
+    }
+
+    let raw: string | null;
+    try {
+        raw = declared !== null ? await request.text() : await readBodyCapped(request, MAX_BODY_BYTES);
+    } catch {
+        return { response: json(400, { error: 'Malformed request body.' }) };
+    }
+    // Backstop: a lying `content-length` still gets caught by the real size.
+    if (raw === null || byteLength(raw) > MAX_BODY_BYTES) {
+        return { response: json(413, { error: 'Payload too large.' }) };
+    }
+    return { body: raw };
+};
+
+/**
  * `generateCode()` has no built-in uniqueness guarantee. KV has no
  * "put-if-absent", so the best we can do is check-then-set with a bounded
  * number of retries — a collision here would silently overwrite another
@@ -82,24 +158,12 @@ const createPointer = async (request: Request, env: Env, fetchImpl: typeof fetch
         return json(429, { error: 'Share rate limit reached. Try again later.' });
     }
 
-    const contentLength = Number(request.headers.get('content-length') ?? '');
-    if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
-        return json(413, { error: 'Payload too large.' });
-    }
-
-    let rawBody: string;
-    try {
-        rawBody = await request.text();
-    } catch {
-        return json(400, { error: 'Malformed request body.' });
-    }
-    if (byteLength(rawBody) > MAX_BODY_BYTES) {
-        return json(413, { error: 'Payload too large.' });
-    }
+    const bounded = await readBoundedBody(request);
+    if ('response' in bounded) return bounded.response;
 
     let body: any;
     try {
-        body = JSON.parse(rawBody);
+        body = JSON.parse(bounded.body);
     } catch {
         return json(400, { error: 'Malformed JSON body.' });
     }
@@ -119,7 +183,18 @@ const createPointer = async (request: Request, env: Env, fetchImpl: typeof fetch
         v: 1,
         loc: body.loc,
         stage: 'full',
-        sum: body.sum,
+        // Rebuilt field-by-field rather than stored verbatim: `isSummary` is a
+        // duck-type check with no "and nothing else" clause, so a caller could
+        // otherwise hang arbitrary extra keys off `sum` and have them persisted
+        // and re-served — up to the body cap, i.e. ~15x the stated pointer size.
+        sum: {
+            f: body.sum.f,
+            m: body.sum.m,
+            d: body.sum.d,
+            t: body.sum.t,
+            sq: body.sum.sq,
+            en: body.sum.en
+        },
         created: now,
         seen: now,
         owner,
@@ -137,23 +212,71 @@ const createPointer = async (request: Request, env: Env, fetchImpl: typeof fetch
 /**
  * lastSeen is a retention hint feeding an LRU, never load-bearing for
  * correctness — under demote-never-delete the worst case of a stale/failed
- * stamp is an early demote, which is reversible by re-publishing. It must
- * never turn into a failed read: KV allows only ~1 write/sec to a single
- * key, and this same key is written on every resolve of a popular link.
+ * stamp is an early demote, which is reversible by re-publishing.
+ *
+ * The hard rule here is that the READ PATH MUST NEVER WRITE `p:<code>`. This
+ * used to write the whole record back as `{ ...record, seen: Date.now() }`,
+ * from a snapshot taken before the response was even rendered. Any owner
+ * `PATCH` committing inside that window was then overwritten by the stale
+ * snapshot — an unauthenticated GET silently un-demoting a tombstone back to
+ * `full`, re-emitting a `loc` whose bytes the user had already deleted, and
+ * making the "stage changes are one-way" invariant false in practice.
+ *
+ * So the live timestamp lives in its own key. The pointer keeps the `seen`
+ * field it was created with (retention reads the `s:` key for the live value),
+ * which leaves `parsePointer` and every existing consumer unchanged. A failed
+ * stamp is still swallowed: never fail a read over a retention hint.
  */
-const stampLastSeen = async (code: string, record: PointerRecord, env: Env): Promise<void> => {
+const stampLastSeen = async (code: string, env: Env): Promise<void> => {
     try {
-        await env.SHARE.put(key(code), JSON.stringify({ ...record, seen: Date.now() }));
+        await env.SHARE.put(seenKey(code), String(Date.now()));
     } catch {
         // Never fail the read over a retention hint.
     }
+};
+
+/**
+ * Defence-in-depth for a page that embeds attacker-influenced JSON and then
+ * renders a report fetched from an arbitrary https origin.
+ *
+ * Every directive here is the minimum the page actually needs:
+ * - `script-src` is the viewer bundle's own origin (derived from
+ *   `env.VIEWER_URL`, never hardcoded, so a staging VIEWER_URL still works).
+ *   The boot payload is a `type="application/json"` data block, which the HTML
+ *   spec never prepares as a script, so it needs no `'unsafe-inline'`.
+ * - `style-src 'unsafe-inline'` because the viewer injects its compiled CSS as
+ *   a `<style>` tag (viewerMain.tsx) and uses React inline `style` props.
+ * - `connect-src https:` because the report bytes live at an arbitrary
+ *   user-chosen `loc`; `img-src` is equally open because the report supplies
+ *   its own icon/map-tile URLs.
+ * - `base-uri`/`form-action`/`frame-ancestors` are pinned shut; none are used.
+ */
+export const contentSecurityPolicy = (viewerUrl: string): string => {
+    let scriptSrc = "'self'";
+    try {
+        scriptSrc = `'self' ${new URL(viewerUrl).origin}`;
+    } catch {
+        // A malformed VIEWER_URL must not produce a malformed CSP.
+    }
+    return [
+        "default-src 'none'",
+        `script-src ${scriptSrc}`,
+        `worker-src ${scriptSrc} blob:`,
+        "style-src 'unsafe-inline'",
+        'img-src https: data: blob:',
+        'font-src https: data:',
+        'connect-src https:',
+        "base-uri 'none'",
+        "form-action 'none'",
+        "frame-ancestors 'none'"
+    ].join('; ');
 };
 
 const resolvePointer = async (code: string, env: Env, ctx?: ExecutionContextLike): Promise<Response> => {
     const record = parsePointer(await env.SHARE.get(key(code)));
     if (!record) return new Response('Not found', { status: 404 });
 
-    const stamp = stampLastSeen(code, record, env);
+    const stamp = stampLastSeen(code, env);
     if (ctx) {
         ctx.waitUntil(stamp);
     } else {
@@ -164,8 +287,10 @@ const resolvePointer = async (code: string, env: Env, ctx?: ExecutionContextLike
         status: 200,
         headers: {
             'content-type': 'text/html; charset=utf-8',
-            // Blunts the ~1 write/sec KV ceiling at the edge as a side effect.
-            'cache-control': 'public, s-maxage=60'
+            // Also keeps the per-key stamp write rate down at the edge.
+            'cache-control': 'public, s-maxage=60',
+            'x-content-type-options': 'nosniff',
+            'content-security-policy': contentSecurityPolicy(env.VIEWER_URL)
         }
     });
 };
@@ -178,6 +303,16 @@ const patchPointer = async (
 ): Promise<Response> => {
     const owner = await resolveOwner(bearer(request), fetchImpl);
     if (!owner) return json(401, { error: 'GitHub authentication required.' });
+    // PATCH costs the same as POST: an uncached api.github.com/user round-trip
+    // plus a KV write, so it shares the same per-owner ceiling.
+    if (!(await checkRateLimit(env.SHARE, owner))) {
+        return json(429, { error: 'Share rate limit reached. Try again later.' });
+    }
+
+    // Capped before parsing, exactly as POST is — `request.json()` would
+    // otherwise buffer an unbounded body first.
+    const bounded = await readBoundedBody(request);
+    if ('response' in bounded) return bounded.response;
 
     const record = parsePointer(await env.SHARE.get(key(code)));
     if (!record) return new Response('Not found', { status: 404 });
@@ -185,7 +320,7 @@ const patchPointer = async (
 
     let body: any;
     try {
-        body = await request.json();
+        body = JSON.parse(bounded.body);
     } catch {
         return json(400, { error: 'Malformed JSON body.' });
     }

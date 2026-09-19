@@ -15,6 +15,15 @@ const RATE_LIMIT_WINDOW_SECONDS = 3600;
  * Resolve a GitHub token to its login. Creating a pointer writes to storage we
  * pay for, so it needs a door; reusing the token the app already holds avoids
  * standing up an identity system for it.
+ *
+ * SECURITY — NEVER LOG THE AUTHORIZATION HEADER OR THE TOKEN. The credential
+ * arriving here is the caller's own repo-scoped GitHub token (the same one
+ * AxiBridge uses to push to GitHub Pages), so a stray `console.log` of the
+ * request, its headers, or `token` would put a repo-write credential belonging
+ * to someone who does not own this Worker into Cloudflare's logs. That is also
+ * why this function deliberately returns ONLY the login and never the token,
+ * the raw GitHub response, or anything else derived from it: nothing
+ * downstream of here can leak what it never receives.
  */
 export const resolveOwner = async (
     token: string | null,

@@ -50,6 +50,18 @@ describe('renderPointerHtml', () => {
         expect(html).not.toContain('<Zerg>');
     });
 
+    it('escapes HTML metacharacters in the map name', () => {
+        // `m` reaches the og:description through `describe()`, a different
+        // interpolation site from `f`'s og:title. A refactor that built the
+        // description without `escapeHtml` would not be caught by the fight-name
+        // test above.
+        const html = render({ ...base, sum: { ...base.sum, m: 'Desert "<BL>" & Co' } });
+        expect(html).toContain('&quot;');
+        expect(html).toContain('&lt;BL&gt;');
+        expect(html).toContain('&amp;');
+        expect(html).not.toContain('<BL>');
+    });
+
     it('neutralises a script-closing sequence in the report location', () => {
         const html = render({ ...base, loc: 'https://x.test/a.br</script><script>alert(1)</script>' });
         expect(html).not.toContain('</script><script>');
