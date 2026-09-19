@@ -24,6 +24,34 @@ const flakyKv = (): KVLike & { store: Map<string, string> } => {
     };
 };
 
+/** A KV fake whose `get` always rejects, to simulate a transient KV read failure. */
+const unreadableKv = (): KVLike => ({
+    get: async () => { throw new Error('KV unavailable'); },
+    put: async () => {},
+    delete: async () => {}
+});
+
+/**
+ * A KV fake whose `put` genuinely defers its mutation past the current
+ * synchronous/microtask turn (via a real `setTimeout`), unlike `fakeKv`'s
+ * `put`, which mutates its Map synchronously inside the async function body
+ * before its first `await` — indistinguishable from a deferred write for
+ * every other test, but unable to prove that a stamp is off the response
+ * path, since the mutation would already have happened by the time the
+ * response resolves regardless of whether it went through `ctx.waitUntil`.
+ */
+const delayedKv = (): KVLike & { store: Map<string, string> } => {
+    const store = new Map<string, string>();
+    return {
+        store,
+        get: async (key) => store.get(key) ?? null,
+        put: (key, value) => new Promise((resolve) => {
+            setTimeout(() => { store.set(key, value); resolve(); }, 0);
+        }),
+        delete: async (key) => { store.delete(key); }
+    };
+};
+
 const env = (kv: KVLike): Env => ({ SHARE: kv, VIEWER_URL: 'https://bridge.axi.link/view' });
 
 const okUser = () => vi.fn().mockResolvedValue(
@@ -87,7 +115,11 @@ describe('POST /r', () => {
     });
 
     it('rejects a body with a malformed summary', async () => {
-        const res = await handleRequest(post({ loc: 'x', sum: { f: 'a' } }), env(fakeKv()), okUser() as any);
+        const res = await handleRequest(
+            post({ loc: 'https://x.example/a.br', sum: { f: 'a' } }),
+            env(fakeKv()),
+            okUser() as any
+        );
         expect(res.status).toBe(400);
     });
 
@@ -112,18 +144,42 @@ describe('POST /r', () => {
         expect(res.status).toBe(201);
     });
 
-    it('rejects an oversized body with 413', async () => {
+    it('rejects an oversized body with a 413 JSON body', async () => {
         const res = await handleRequest(
             postRaw(JSON.stringify({ loc: 'https://cdn.example.com/a.br', sum: summary, filler: 'x'.repeat(5000) })),
             env(fakeKv()),
             okUser() as any
         );
         expect(res.status).toBe(413);
+        expect(res.headers.get('content-type')).toContain('application/json');
+        const body = await res.json() as { error: string };
+        expect(typeof body.error).toBe('string');
     });
 
     it('rejects an oversized loc with 400', async () => {
         const res = await handleRequest(
             post({ loc: `https://cdn.example.com/${'a'.repeat(600)}`, sum: summary }),
+            env(fakeKv()),
+            okUser() as any
+        );
+        expect(res.status).toBe(400);
+    });
+
+    it('rejects an oversized sum.f with 400', async () => {
+        const res = await handleRequest(
+            post({ loc: 'https://cdn.example.com/a.br', sum: { ...summary, f: 'f'.repeat(200) } }),
+            env(fakeKv()),
+            okUser() as any
+        );
+        expect(res.status).toBe(400);
+    });
+
+    it('rejects a sum.m over the byte cap even when its character count is under it', async () => {
+        // 50 copies of a 3-byte CJK character = 150 bytes but only 50 chars —
+        // a `.length`-based cap would wrongly let this through at
+        // MAX_SUMMARY_FIELD = 128.
+        const res = await handleRequest(
+            post({ loc: 'https://cdn.example.com/a.br', sum: { ...summary, m: '字'.repeat(50) } }),
             env(fakeKv()),
             okUser() as any
         );
@@ -238,9 +294,10 @@ describe('GET /r/:code', () => {
     });
 
     it('defers the lastSeen stamp to waitUntil when a ctx is provided', async () => {
-        const kv = fakeKv();
+        const kv = delayedKv();
         await kv.put('p:k3Xm9qR2', JSON.stringify(record({ seen: 1 })));
-        const waitUntil = vi.fn();
+        let captured: Promise<unknown> | undefined;
+        const waitUntil = vi.fn((p: Promise<unknown>) => { captured = p; });
         const res = await handleRequest(
             new Request('https://bridge.axi.link/r/k3Xm9qR2'),
             env(kv),
@@ -249,6 +306,13 @@ describe('GET /r/:code', () => {
         );
         expect(res.status).toBe(200);
         expect(waitUntil).toHaveBeenCalledTimes(1);
+
+        // The stamp must be off the response path: at the moment the response
+        // comes back, the record must NOT have been rewritten yet.
+        expect(JSON.parse(kv.store.get('p:k3Xm9qR2')!).seen).toBe(1);
+
+        await captured;
+        expect(JSON.parse(kv.store.get('p:k3Xm9qR2')!).seen).toBeGreaterThan(1);
     });
 
     it('sets a short edge cache-control on the HTML response', async () => {
@@ -256,6 +320,19 @@ describe('GET /r/:code', () => {
         await kv.put('p:k3Xm9qR2', JSON.stringify(record()));
         const res = await handleRequest(new Request('https://bridge.axi.link/r/k3Xm9qR2'), env(kv), okUser() as any);
         expect(res.headers.get('cache-control')).toBe('public, s-maxage=60');
+    });
+
+    it('returns a clean 500 JSON body when a KV read fails, with no leaked internals', async () => {
+        const res = await handleRequest(
+            new Request('https://bridge.axi.link/r/k3Xm9qR2'),
+            env(unreadableKv()),
+            okUser() as any
+        );
+        expect(res.status).toBe(500);
+        expect(res.headers.get('content-type')).toContain('application/json');
+        const body = await res.json() as { error: string };
+        expect(body.error).toBe('internal error');
+        expect(JSON.stringify(body)).not.toMatch(/KV unavailable|at Object|\.ts:\d+/);
     });
 });
 

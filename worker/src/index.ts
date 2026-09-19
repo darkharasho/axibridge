@@ -84,7 +84,7 @@ const createPointer = async (request: Request, env: Env, fetchImpl: typeof fetch
 
     const contentLength = Number(request.headers.get('content-length') ?? '');
     if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
-        return new Response('Payload too large', { status: 413 });
+        return json(413, { error: 'Payload too large.' });
     }
 
     let rawBody: string;
@@ -94,7 +94,7 @@ const createPointer = async (request: Request, env: Env, fetchImpl: typeof fetch
         return json(400, { error: 'Malformed request body.' });
     }
     if (byteLength(rawBody) > MAX_BODY_BYTES) {
-        return new Response('Payload too large', { status: 413 });
+        return json(413, { error: 'Payload too large.' });
     }
 
     let body: any;
@@ -196,31 +196,48 @@ const patchPointer = async (
     return json(200, { code, stage: nextStage });
 };
 
+/**
+ * This endpoint is unauthenticated on the GET path, so a transient KV read
+ * failure (or any unexpected throw from rendering) must never surface raw —
+ * no exception message or stack, just a generic body.
+ */
+const INTERNAL_ERROR_RESPONSE = () => json(500, { error: 'internal error' });
+
 export const handleRequest = async (
     request: Request,
     env: Env,
     fetchImpl: typeof fetch = fetch,
     ctx?: ExecutionContextLike
 ): Promise<Response> => {
-    const { pathname } = new URL(request.url);
+    try {
+        const { pathname } = new URL(request.url);
 
-    if (pathname === '/r' || pathname === '/r/') {
-        if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 });
-        return createPointer(request, env, fetchImpl);
+        if (pathname === '/r' || pathname === '/r/') {
+            if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+            return await createPointer(request, env, fetchImpl);
+        }
+
+        const match = /^\/r\/([^/]+)\/?$/.exec(pathname);
+        if (match) {
+            const code = match[1];
+            if (!isValidCode(code)) return new Response('Not found', { status: 404 });
+            if (request.method === 'GET') return await resolvePointer(code, env, ctx);
+            if (request.method === 'PATCH') return await patchPointer(code, request, env, fetchImpl);
+            return new Response('Method not allowed', { status: 405 });
+        }
+
+        return new Response('Not found', { status: 404 });
+    } catch {
+        return INTERNAL_ERROR_RESPONSE();
     }
-
-    const match = /^\/r\/([^/]+)\/?$/.exec(pathname);
-    if (match) {
-        const code = match[1];
-        if (!isValidCode(code)) return new Response('Not found', { status: 404 });
-        if (request.method === 'GET') return resolvePointer(code, env, ctx);
-        if (request.method === 'PATCH') return patchPointer(code, request, env, fetchImpl);
-        return new Response('Method not allowed', { status: 405 });
-    }
-
-    return new Response('Not found', { status: 404 });
 };
 
 export default {
-    fetch: (request: Request, env: Env, ctx?: ExecutionContextLike) => handleRequest(request, env, fetch, ctx)
+    fetch: async (request: Request, env: Env, ctx?: ExecutionContextLike): Promise<Response> => {
+        try {
+            return await handleRequest(request, env, fetch, ctx);
+        } catch {
+            return INTERNAL_ERROR_RESPONSE();
+        }
+    }
 };
