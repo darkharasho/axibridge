@@ -9,6 +9,7 @@ import indexCss from '../renderer/index.css?inline';
 import { ReportApp } from './reportApp';
 import { parseShareBootPayload, ShareBootPayloadError } from './share/shareBootPayload';
 import { loadShareReportJson, ShareLoadError } from './share/loadShareReport';
+import { buildShareReport } from './share/buildShareReport';
 import { expandIconIndex, normalizeCommanderDistance, normalizeTopDownContribution } from '../shared/reportNormalization';
 import type { ReportPayload } from '../shared/reportTypes';
 
@@ -118,8 +119,9 @@ function ViewerRoot() {
 
             try {
                 const raw = await loadShareReportJson(payload.loc);
+                const report = buildShareReport(raw);
                 const normalized = expandIconIndex(
-                    normalizeTopDownContribution(normalizeCommanderDistance(raw as ReportPayload))
+                    normalizeTopDownContribution(normalizeCommanderDistance(report))
                 );
                 if (!cancelled) {
                     setState({ kind: 'ready', report: normalized, demoted: payload.stage === 'demoted' });
