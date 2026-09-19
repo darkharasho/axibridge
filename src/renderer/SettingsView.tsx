@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Swords, Shield, Hammer, Wind, MessageSquare } from 'lucide-react';
+import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Swords, Shield, Hammer, Wind, MessageSquare, FolderOpen } from 'lucide-react';
 import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeightProfiles, DEFAULT_MVP_WEIGHT_PROFILES, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, IParserSettings, IParserStatus } from './global.d';
 import { normalizeMvpWeightProfiles } from './stats/mvpWeightProfiles';
 import { ReportWebhooksCard } from './ReportWebhooksCard';
@@ -137,6 +137,8 @@ interface SettingsViewProps {
     enabledWebhookIds: string[];
     onSaveWebhooks: (webhooks: Webhook[], selectId?: string) => void;
     onSetDestinationEnabled: (id: string, enabled: boolean) => void;
+    logDirectory: string | null;
+    onChangeLogDirectory: () => void;
 }
 
 // Toggle switch component — memoized with a custom comparator that ignores onChange reference
@@ -214,7 +216,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onParserSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2SliceEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed, webhooks, enabledWebhookIds, onSaveWebhooks, onSetDestinationEnabled }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onParserSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2SliceEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed, webhooks, enabledWebhookIds, onSaveWebhooks, onSetDestinationEnabled, logDirectory, onChangeLogDirectory }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [reportWebhooks, setReportWebhooks] = useState<IReportWebhook[]>([]);
@@ -2858,7 +2860,27 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         data-settings-pane="logs"
                         style={{ display: selectedCategoryId === 'logs' ? undefined : 'none' }}
                     >
-                    {/* Logs: Log Directory arrives in Task 10 */}
+                    <SettingsSection title="Log Directory" icon={FolderOpen} delay={0.04} sectionId="log-directory">
+                        <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+                            The arcdps folder AxiBridge watches for new logs.
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <code
+                                className="flex-1 truncate rounded-[4px] px-2 py-1.5 text-xs"
+                                style={{ background: 'var(--bg-input)', color: logDirectory ? 'var(--text-secondary)' : 'var(--text-muted)' }}
+                            >
+                                {logDirectory || 'No log folder selected.'}
+                            </code>
+                            <button
+                                type="button"
+                                onClick={onChangeLogDirectory}
+                                className="shrink-0 rounded-[4px] px-3 py-1.5 text-xs font-medium"
+                                style={{ background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
+                            >
+                                Change Folder
+                            </button>
+                        </div>
+                    </SettingsSection>
                     {/* DPS Report Token Section */}
                     <SettingsSection title="dps.report User Token" icon={Key} delay={0.05} sectionId="dps-token">
                         <p className="text-sm text-gray-400 mb-4">
