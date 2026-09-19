@@ -315,6 +315,7 @@ describe('SettingsView', () => {
         it('fires onStatsViewSettingsSaved after toggling Show Top Stats', async () => {
             const { mock, callbacks } = renderSettings();
             await waitForLoad(mock);
+            selectSettingsCategory('Stats');
 
             fireEvent.click(screen.getByText('Show Top Stats Section'));
 
@@ -354,6 +355,7 @@ describe('SettingsView', () => {
             const { mock, callbacks } = renderSettings();
             await waitForLoad(mock);
             callbacks.onGlassSurfacesSaved.mockClear();
+            selectSettingsCategory('Application');
 
             fireEvent.click(screen.getByText('Glass Surfaces'));
 
@@ -853,6 +855,7 @@ describe('SettingsView', () => {
         it('clears the notice on both sides when acknowledged', async () => {
             const api = withRemoval({ wasSelected: true, reclaimedBytes: 0 });
             renderSettings({}, {}, api);
+            selectSettingsCategory('Web Report');
             const notice = await screen.findByTestId('elite-insights-removal-notice');
 
             fireEvent.click(within(notice).getByText('Got it'));
