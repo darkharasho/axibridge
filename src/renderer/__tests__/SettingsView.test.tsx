@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
+import ts from 'typescript';
 import { join as pathJoin, resolve as pathResolve } from 'node:path';
 import { render, screen, waitFor, fireEvent, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -1134,6 +1135,14 @@ describe('section naming', () => {
         'IEmbedStatSettings',
         // "embedded" is the English adjective for the web-report/History host
         // mode (`embedded?: boolean` on StatsView), not the Discord noun.
+        //
+        // This entry used to be the sweep's one hole: the allowlist was applied
+        // to every occurrence, so a copy string reading "…as embedded fields"
+        // was blanked exactly like the identifier and sailed through — the same
+        // shape as the `hint:` leak this whole test exists to catch. Allowlisted
+        // identifiers are now masked ONLY in code positions (see
+        // `markStringSpans`), so the identifier still passes while the same
+        // letters inside a string literal still fail.
         'embedded',
         'Embedded',
     ]);
@@ -1157,41 +1166,92 @@ describe('section naming', () => {
         { pattern: /\bembed(?=\s*[:?])/g, reason: 'store key / type member' },
         // `discordEnemySplitSettings.embed` — reading that same store key.
         { pattern: /\.embed\b/g, reason: 'store key read' },
+        // `{ key: 'embedStatSettings' }` — IMPORT_SETTING_META names persisted
+        // store keys as strings, so the key spelling lands in a string literal
+        // where the identifier allowlist deliberately does not reach. Listed by
+        // exact spelling rather than deriving it from
+        // FROZEN_EMBED_IDENTIFIERS: deriving it would re-open the hole this
+        // test closes, by letting ANY allowlisted spelling pass as copy.
+        { pattern: /(['"`])embedStatSettings\1/g, reason: 'quoted persisted store key' },
     ];
 
-    /** Blanks out `//` and block comments, preserving line/column offsets, and
-     *  without being fooled by `//` inside a string (e.g. a webhook URL). */
-    function stripComments(source: string): string {
-        const out = source.split('');
-        let i = 0;
-        while (i < source.length) {
-            const ch = source[i];
-            if (ch === '"' || ch === "'" || ch === '`') {
-                const quote = ch;
-                i += 1;
-                while (i < source.length && source[i] !== quote) {
-                    if (source[i] === '\\') i += 1;
-                    i += 1;
-                }
-                i += 1;
-            } else if (ch === '/' && source[i + 1] === '/') {
-                while (i < source.length && source[i] !== '\n') {
-                    out[i] = ' ';
-                    i += 1;
-                }
-            } else if (ch === '/' && source[i + 1] === '*') {
-                while (i < source.length && !(source[i] === '*' && source[i + 1] === '/')) {
-                    if (source[i] !== '\n') out[i] = ' ';
-                    i += 1;
-                }
-                out[i] = ' ';
-                if (i + 1 < source.length) out[i + 1] = ' ';
-                i += 2;
-            } else {
-                i += 1;
+    /**
+     * Classifies every character of a source file using the TypeScript parser,
+     * because a hand-rolled quote scanner cannot survive real code: an
+     * apostrophe in JSX prose ("Discord's") or a quote inside a regex literal
+     * desyncs it for the rest of the file, and it silently mis-classes
+     * everything after.
+     *
+     * - `text` — string literals, template literal chunks, and JSX text: the
+     *   characters a user can read. A `${…}` interpolation is NOT text; it
+     *   parses as its own expression nodes, which is what keeps
+     *   `` `${embedded ? '' : 'flex-1'}` `` reading as code.
+     * - `code` — every other parsed token.
+     * - Anything in neither is trivia (comments, whitespace) and is ignored.
+     */
+    function classifySource(file: string, source: string): { text: boolean[]; code: boolean[] } {
+        const text = new Array<boolean>(source.length).fill(false);
+        const code = new Array<boolean>(source.length).fill(false);
+        const sourceFile = ts.createSourceFile(
+            file,
+            source,
+            ts.ScriptTarget.Latest,
+            true,
+            file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+        );
+        const fill = (target: boolean[], from: number, to: number) => {
+            for (let i = from; i < to; i += 1) target[i] = true;
+        };
+        const isTextNode = (node: ts.Node) =>
+            ts.isStringLiteral(node) ||
+            ts.isNoSubstitutionTemplateLiteral(node) ||
+            ts.isJsxText(node) ||
+            node.kind === ts.SyntaxKind.TemplateHead ||
+            node.kind === ts.SyntaxKind.TemplateMiddle ||
+            node.kind === ts.SyntaxKind.TemplateTail;
+        const visit = (node: ts.Node) => {
+            const children = node.getChildren(sourceFile);
+            if (isTextNode(node)) {
+                fill(text, node.getStart(sourceFile), node.getEnd());
+                return;
             }
+            if (children.length === 0) {
+                fill(code, node.getStart(sourceFile), node.getEnd());
+                return;
+            }
+            for (const child of children) visit(child);
+        };
+        visit(sourceFile);
+        return { text, code };
+    }
+
+    const EMBED_TOKEN = /[A-Za-z0-9_$]*embed[A-Za-z0-9_$]*/gi;
+
+    /**
+     * Blanks every "embed" occurrence that is accounted for, leaving only copy.
+     *
+     * Frozen bare forms go first — they are syntactic and length-preserving, so
+     * offsets stay valid. Allowlisted identifiers are then blanked ONLY at code
+     * positions: that is the whole point of the classification. The allowlist
+     * used to apply everywhere, so a string reading "…as embedded fields" was
+     * blanked exactly like the identifier and sailed through — the same shape
+     * as the `hint:` leak this test exists to catch. Comments and whitespace are
+     * blanked wholesale; prose in a comment is not user-visible.
+     */
+    function maskAccountedEmbeds(file: string, source: string): string {
+        const { text, code } = classifySource(file, source);
+        let masked = source;
+        for (const { pattern } of FROZEN_EMBED_FORMS) {
+            masked = masked.replace(pattern, (m) => ' '.repeat(m.length));
         }
-        return out.join('');
+        return masked.replace(EMBED_TOKEN, (token, offset: number) => {
+            // Trivia: a comment. Never reaches a user.
+            if (!text[offset] && !code[offset]) return ' '.repeat(token.length);
+            // Same letters, but inside a string or JSX text: this is copy, and
+            // the identifier allowlist does not reach it.
+            if (text[offset]) return token;
+            return FROZEN_EMBED_IDENTIFIERS.has(token) ? ' '.repeat(token.length) : token;
+        });
     }
 
     function collectRendererSources(dir: string, acc: string[] = []): string[] {
@@ -1204,6 +1264,39 @@ describe('section naming', () => {
         return acc;
     }
 
+    /** Offset → 1-based line number, for reporting offenders. */
+    function lineNumberAt(source: string, offset: number): number {
+        let line = 1;
+        for (let i = 0; i < offset && i < source.length; i += 1) {
+            if (source[i] === '\n') line += 1;
+        }
+        return line;
+    }
+
+    it('masks allowlisted identifiers in code but not the same letters in copy', () => {
+        // A test of the test: the allowlist must not be a blanket string filter.
+        // Each `sound` case is a legitimate use that must stay silent; each
+        // `leak` case is copy a user can read and must be caught.
+        const sound = [
+            'const embedded = props.embedded;',
+            'const c = `${embedded ? "" : "flex-1"}`;',
+            '// renders differently on embedded hosts',
+            "const url = 'https://x/y'; // don't trip on apostrophes",
+        ];
+        const leak = [
+            "const hint = 'Session stats as embedded fields. No image.';",
+            'const el = <p>Stats are embedded in the report.</p>;',
+            'const t = `Sent as embedded fields to ${name}`;',
+        ];
+
+        for (const src of sound) {
+            expect(maskAccountedEmbeds('probe.tsx', src), src).not.toMatch(/embed/i);
+        }
+        for (const src of leak) {
+            expect(maskAccountedEmbeds('probe.tsx', src), src).toMatch(/embed/i);
+        }
+    });
+
     it('never writes the word "embed" outside the named frozen identifiers', () => {
         // vitest's root is the repo root, and `import.meta.url` is not a file
         // URL under the jsdom transform — resolve from cwd instead.
@@ -1213,27 +1306,18 @@ describe('section naming', () => {
 
         const offenders: string[] = [];
         for (const file of files) {
-            const lines = stripComments(readFileSync(file, 'utf8')).split('\n');
-            lines.forEach((line, index) => {
-                // Blank out whole identifier runs that are allowlisted, then the
-                // frozen bare forms; whatever "embed" survives is copy.
-                let masked = line.replace(
-                    /[A-Za-z0-9_$]*embed[A-Za-z0-9_$]*/gi,
-                    (token) => (FROZEN_EMBED_IDENTIFIERS.has(token) ? ' '.repeat(token.length) : token)
+            const source = readFileSync(file, 'utf8');
+            const masked = maskAccountedEmbeds(file, source);
+            const sourceLines = source.split('\n');
+            for (const match of masked.matchAll(/[A-Za-z0-9_$-]*embed[A-Za-z0-9_$-]*/gi)) {
+                const line = lineNumberAt(masked, match.index);
+                offenders.push(
+                    `${file.slice(rendererRoot.length)}:${line}: ${sourceLines[line - 1]?.trim() ?? ''}` +
+                    `\n    matched "${match[0]}"` +
+                    ' — add it to FROZEN_EMBED_IDENTIFIERS/FROZEN_EMBED_FORMS only if it is an' +
+                    ' identifier, store key, type name or import; otherwise reword the copy.'
                 );
-                for (const { pattern } of FROZEN_EMBED_FORMS) {
-                    masked = masked.replace(pattern, (m) => ' '.repeat(m.length));
-                }
-                const match = /embed/i.exec(masked);
-                if (match) {
-                    offenders.push(
-                        `${file.slice(rendererRoot.length)}:${index + 1}: ${line.trim()}` +
-                        `\n    matched "${masked.slice(match.index).match(/[A-Za-z0-9_$-]*embed[A-Za-z0-9_$-]*/i)?.[0] ?? 'embed'}"` +
-                        ' — add it to FROZEN_EMBED_IDENTIFIERS/FROZEN_EMBED_FORMS only if it is an' +
-                        ' identifier, store key, type name or import; otherwise reword the copy.'
-                    );
-                }
-            });
+            }
         }
 
         expect(offenders, `"embed" leaked into renderer copy:\n${offenders.join('\n')}`).toEqual([]);
