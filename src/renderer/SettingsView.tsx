@@ -20,6 +20,14 @@ import { TOP_STATS_CATALOG, MVP_WEIGHTABLE_STATS, mvpStatLabel, CATEGORY_ORDER, 
 import { BoonGlyph } from './ui/BoonGlyph';
 import { HistoryReparseCard } from './settings/HistoryReparseCard';
 import { CloudflareConnect } from './settings/CloudflareConnect';
+import { SettingsNav } from './settings/SettingsNav';
+import {
+    SETTINGS_CATEGORIES,
+    FLATTENED_SECTIONS,
+    categoryIdForSection,
+    labelForSection,
+    stepSectionId
+} from './settings/settingsTaxonomy';
 
 // Pure helpers — defined outside the component so they are never recreated on re-render.
 // Exported so they can be unit-tested independently.
@@ -55,24 +63,6 @@ export function validateRepoName(value: string): string | null {
 export function formatWeight(value: number) { return value.toFixed(2); }
 
 // Static data — defined outside so they are never recreated on re-render
-
-const SETTINGS_SECTIONS = [
-    { id: 'appearance', label: 'Appearance' },
-    { id: 'dps-token', label: 'dps.report Token' },
-    { id: 'github-pages', label: 'GitHub Pages' },
-    { id: 'r2-storage', label: 'R2 Storage' },
-    { id: 'embed-summary', label: 'Embed Summary' },
-    { id: 'embed-top', label: 'Embed Top Stats' },
-    { id: 'help-updates', label: 'Help & Updates' },
-    { id: 'dashboard-stats', label: 'Dashboard Stats' },
-    { id: 'mvp-weighting', label: 'MVP Weighting' },
-    { id: 'boon-uptime-resolution', label: 'Boon Uptime' },
-    { id: 'commander-thresholds', label: 'Commander Thresholds' },
-    { id: 'parser-settings', label: 'Parser Settings' },
-    { id: 'close-behavior', label: 'Close Behavior' },
-    { id: 'export-import', label: 'Export / Import' },
-    { id: 'legal', label: 'Legal' }
-];
 
 const IMPORT_SETTING_META: Array<{ key: string; label: string; description: string; section: string }> = [
     { key: 'logDirectory', label: 'Log Directory', description: 'Path to the ArcDPS log folder.', section: 'Logs & Uploads' },
@@ -316,6 +306,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [activeMetricsSpecHeadingId, setActiveMetricsSpecHeadingId] = useState('');
     const metricsSpecSearchRef = useRef<HTMLDivElement | null>(null);
     const metricsSpecHighlightRef = useRef<number | null>(null);
+    const [selectedCategoryId, setSelectedCategoryId] = useState('discord');
     const activeSettingsSectionIdRef = useRef('appearance');
     const mobileNavLabelRef = useRef<HTMLSpanElement | null>(null);
     const lastDevSettingsTriggerRef = useRef<number>(developerSettingsTrigger || 0);
@@ -648,21 +639,34 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             return;
         }
         lastHelpUpdatesFocusTriggerRef.current = trigger;
-        const container = settingsScrollRef.current;
-        const section = helpUpdatesRef.current;
-        if (!container || !section) {
-            return;
-        }
-        const targetTop = section.offsetTop - 8;
-        const top = Math.max(0, targetTop);
-        if (typeof container.scrollTo === 'function') {
-            container.scrollTo({ top, behavior: 'smooth' });
+
+        const focusHelpUpdates = () => {
+            const container = settingsScrollRef.current;
+            const section = helpUpdatesRef.current;
+            if (!container || !section) {
+                return;
+            }
+            const targetTop = section.offsetTop - 8;
+            const top = Math.max(0, targetTop);
+            if (typeof container.scrollTo === 'function') {
+                container.scrollTo({ top, behavior: 'smooth' });
+                onHelpUpdatesFocusConsumed?.(trigger);
+                return;
+            }
+            container.scrollTop = top;
             onHelpUpdatesFocusConsumed?.(trigger);
+        };
+
+        // help-updates lives in the `application` pane — select it first so the
+        // section is visible (not `display: none`) before we measure its offset.
+        const categoryId = categoryIdForSection('help-updates');
+        if (categoryId && categoryId !== selectedCategoryId) {
+            setSelectedCategoryId(categoryId);
+            requestAnimationFrame(focusHelpUpdates);
             return;
         }
-        container.scrollTop = top;
-        onHelpUpdatesFocusConsumed?.(trigger);
-    }, [helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed]);
+        focusHelpUpdates();
+    }, [helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, selectedCategoryId]);
 
     useEffect(() => {
         const trigger = parserSettingsFocusTrigger || 0;
@@ -670,21 +674,34 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             return;
         }
         lastParserSettingsFocusTriggerRef.current = trigger;
-        const container = settingsScrollRef.current;
-        const section = parserSettingsRef.current;
-        if (!container || !section) {
-            return;
-        }
-        const targetTop = section.offsetTop - 8;
-        const top = Math.max(0, targetTop);
-        if (typeof container.scrollTo === 'function') {
-            container.scrollTo({ top, behavior: 'smooth' });
+
+        const focusParserSettings = () => {
+            const container = settingsScrollRef.current;
+            const section = parserSettingsRef.current;
+            if (!container || !section) {
+                return;
+            }
+            const targetTop = section.offsetTop - 8;
+            const top = Math.max(0, targetTop);
+            if (typeof container.scrollTo === 'function') {
+                container.scrollTo({ top, behavior: 'smooth' });
+                onParserSettingsFocusConsumed?.(trigger);
+                return;
+            }
+            container.scrollTop = top;
             onParserSettingsFocusConsumed?.(trigger);
+        };
+
+        // parser-settings lives in the `web-report` pane — select it first so
+        // the section is visible (not `display: none`) before we measure its offset.
+        const categoryId = categoryIdForSection('parser-settings');
+        if (categoryId && categoryId !== selectedCategoryId) {
+            setSelectedCategoryId(categoryId);
+            requestAnimationFrame(focusParserSettings);
             return;
         }
-        container.scrollTop = top;
-        onParserSettingsFocusConsumed?.(trigger);
-    }, [parserSettingsFocusTrigger, onParserSettingsFocusConsumed]);
+        focusParserSettings();
+    }, [parserSettingsFocusTrigger, onParserSettingsFocusConsumed, selectedCategoryId]);
 
     useEffect(() => {
         const trigger = howToTrigger || 0;
@@ -699,7 +716,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         if (!container) return;
 
         const updateActiveSection = () => {
-            const sections = Array.from(container.querySelectorAll<HTMLElement>('[data-settings-section="true"]'));
+            const sections = Array.from(container.querySelectorAll<HTMLElement>('[data-settings-section="true"]'))
+                .filter((el) => el.offsetParent !== null);
             if (!sections.length) return;
             const containerTop = container.getBoundingClientRect().top;
             let bestId = sections[0].id;
@@ -721,7 +739,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             });
             // Update mobile section label directly
             if (mobileNavLabelRef.current) {
-                mobileNavLabelRef.current.textContent = SETTINGS_SECTIONS.find(s => s.id === bestId)?.label ?? 'Settings';
+                mobileNavLabelRef.current.textContent = labelForSection(bestId) ?? 'Settings';
             }
         };
 
@@ -738,7 +756,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             container.removeEventListener('scroll', onScrollOrResize);
             window.removeEventListener('resize', onScrollOrResize);
         };
-    }, []);
+    }, [selectedCategoryId]);
 
     // Optimized: Removed manual wheel listener that was causing severe scroll lag and conflicts with overlay elements (Terminal)
     // The container uses standard CSS overflow-y-auto which handles scrolling natively and efficiently.
@@ -887,7 +905,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         const container = settingsScrollRef.current;
         if (!container) return;
         const hidden = new Set<string>();
-        for (const section of SETTINGS_SECTIONS) {
+        for (const section of FLATTENED_SECTIONS) {
             const el = container.querySelector<HTMLElement>(`#${section.id}`);
             if (!el) { hidden.add(section.id); continue; }
             const text = el.textContent?.toLowerCase() ?? '';
@@ -909,14 +927,32 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         container.scrollTo({ top, behavior: 'smooth' });
     };
 
-    const stepSettingsSection = (direction: -1 | 1) => {
-        const index = SETTINGS_SECTIONS.findIndex((section) => section.id === activeSettingsSectionIdRef.current);
-        if (index === -1) return;
-        const nextIndex = Math.min(SETTINGS_SECTIONS.length - 1, Math.max(0, index + direction));
-        const next = SETTINGS_SECTIONS[nextIndex];
-        if (next) {
-            scrollToSettingsSection(next.id);
+    /**
+     * The single entry point for navigating to a section, by id.
+     *
+     * Every deep link — the rail and the mobile stepper — goes through here
+     * and keeps passing the same section ids it always passed. With paged
+     * categories, reaching a section now requires selecting its category
+     * first, which is this function's job rather than each caller's.
+     *
+     * The rAF is load-bearing: a section in a not-yet-selected pane is
+     * `display: none` until React commits the state change, and
+     * `getBoundingClientRect()` on a hidden element returns zeros — scrolling
+     * in the same tick lands at the top of the container every time.
+     */
+    const navigateToSection = (id: string) => {
+        const categoryId = categoryIdForSection(id);
+        if (categoryId && categoryId !== selectedCategoryId) {
+            setSelectedCategoryId(categoryId);
+            requestAnimationFrame(() => scrollToSettingsSection(id));
+            return;
         }
+        scrollToSettingsSection(id);
+    };
+
+    const stepSettingsSection = (direction: -1 | 1) => {
+        const next = stepSectionId(activeSettingsSectionIdRef.current, direction);
+        if (next) navigateToSection(next);
     };
 
 
@@ -1474,25 +1510,18 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         <div className="rounded-[4px] p-3 flex-1 min-h-0" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
                             <div className="text-[11px] uppercase tracking-[0.25em] text-gray-500 mb-2">Sections</div>
                             <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
-                                {SETTINGS_SECTIONS.map((item, index) => {
-                                    if (settingsSearchHidden.has(item.id)) return null;
-                                    return (
-                                        <button
-                                            key={item.id}
-                                            data-settings-nav-id={item.id}
-                                            onClick={() => scrollToSettingsSection(item.id)}
-                                            className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 overflow-hidden text-gray-400`}
-                                        >
-                                            <span className="flex items-center justify-center w-5 text-[10px] tabular-nums text-gray-500">
-                                                {index + 1}
-                                            </span>
-                                            <span className="flex-1 min-w-0 text-[13px] font-medium truncate">{item.label}</span>
-                                        </button>
-                                    );
-                                })}
-                                {settingsSearch && settingsSearchHidden.size === SETTINGS_SECTIONS.length && (
-                                    <div className="text-xs text-gray-500 py-2 text-center">No matches</div>
-                                )}
+                                <SettingsNav
+                                    categories={SETTINGS_CATEGORIES}
+                                    selectedCategoryId={selectedCategoryId}
+                                    activeSectionId={activeSettingsSectionIdRef.current}
+                                    matchCountsByCategory={null}
+                                    onSelectCategory={(categoryId) => {
+                                        setSelectedCategoryId(categoryId);
+                                        const first = SETTINGS_CATEGORIES.find((c) => c.id === categoryId)?.sections[0];
+                                        if (first) requestAnimationFrame(() => scrollToSettingsSection(first.id));
+                                    }}
+                                    onSelectSection={navigateToSection}
+                                />
                             </div>
                         </div>
                     </motion.aside>
@@ -1504,107 +1533,244 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     transition={{ duration: 1, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
                     className="min-h-0 overflow-y-auto pr-2 space-y-4"
                 >
-                    <SettingsSection title="Appearance" icon={Sparkles} delay={0.02} sectionId="appearance" hidden={settingsSearchHidden.has('appearance')}>
+                    <div
+                        data-settings-pane="discord"
+                        style={{ display: selectedCategoryId === 'discord' ? undefined : 'none' }}
+                    >
+                    {/* Discord: Destinations and Report Links arrive in Task 9 */}
+                    {/* Discord Embed Stats - Summary Sections */}
+                    <SettingsSection title="Discord Embed - Summary Sections" icon={Users} delay={0.1} sectionId="embed-summary" hidden={settingsSearchHidden.has('embed-summary')}>
                         <p className="text-sm text-gray-400 mb-4">
-                            Choose a color palette for the interface accent colors.
+                            Configure which summary sections appear in Discord embed notifications.
                         </p>
-                        <div className="text-[11px] uppercase tracking-[0.2em] text-gray-500 mb-2">
-                            Color Palette {glassmorphic ? <span className="ml-2 normal-case tracking-normal text-gray-500">(disabled in Lillifox Mode)</span> : null}
-                        </div>
-                        <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 ${glassmorphic ? 'opacity-40 pointer-events-none' : ''}`} aria-disabled={glassmorphic}>
-                            {(Object.values(PALETTES) as import('../shared/webThemes').PaletteDefinition[]).map((palette) => {
-                                const isActive = colorPalette === palette.id;
-                                return (
-                                    <button
-                                        key={palette.id}
-                                        type="button"
-                                        disabled={glassmorphic}
-                                        onClick={() => { setColorPalette(palette.id); onColorPaletteSaved?.(palette.id); }}
-                                        className={`rounded-[4px] border px-3 py-3 text-left transition-colors ${isActive
-                                            ? 'border-white/40 bg-white/10'
-                                            : 'border-white/10 bg-white/5 hover:border-white/30'
-                                            }`}
-                                    >
-                                        <div
-                                            className="w-full h-8 rounded-[4px] mb-2 border border-white/10"
-                                            style={{ backgroundImage: palette.gradient }}
-                                        />
-                                        <div className="text-xs font-semibold text-gray-200">{palette.label}</div>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                        <div className="mt-4">
+                        <div className="divide-y divide-white/5">
                             <Toggle
-                                enabled={glassSurfaces}
-                                onChange={(v) => { setGlassSurfaces(v); onGlassSurfacesSaved?.(v); }}
-                                label="Glass Surfaces"
-                                description="Enable frosted-glass card backgrounds with backdrop blur"
+                                enabled={embedStats.showSquadSummary}
+                                onChange={(v) => updateEmbedStat('showSquadSummary', v)}
+                                label="Squad Summary"
+                                description="Players, total damage, DPS, downs, and deaths"
                             />
                             <Toggle
-                                enabled={glassmorphic}
-                                onChange={(v) => { setGlassmorphic(v); onGlassmorphicSaved?.(v); }}
-                                label="Lillifox Mode"
-                                description="Aurora background, rounded translucent cards — the original AxiBridge look"
+                                enabled={embedStats.showEnemySummary}
+                                onChange={(v) => updateEmbedStat('showEnemySummary', v)}
+                                label="Enemy Summary"
+                                description="Enemy count, damage taken, incoming DPS, enemy downs/kills"
                             />
                             <Toggle
-                                enabled={particlesEnabled}
-                                onChange={(v) => { setParticlesEnabled(v); onParticlesEnabledSaved?.(v); }}
-                                label="Particle Effects"
-                                description="Show particle animations on log events, button hover, and view transitions"
+                                enabled={embedStats.showClassSummary}
+                                onChange={(v) => updateEmbedStat('showClassSummary', v)}
+                                label="Class Summary"
+                                description="Squad and enemy class breakdowns"
                             />
-                        </div>
-                    </SettingsSection>
-                    {/* DPS Report Token Section */}
-                    <SettingsSection title="dps.report User Token" icon={Key} delay={0.05} sectionId="dps-token" hidden={settingsSearchHidden.has('dps-token')}>
-                        <p className="text-sm text-gray-400 mb-4">
-                            Optional: Add your dps.report user token to associate uploads with your account.
-                            You can find your token at{' '}
-                            <button
-                                onClick={() => window.electronAPI?.openExternal?.('https://dps.report/getUserToken')}
-                                className="text-blue-400 hover:text-blue-300 underline transition-colors"
-                            >
-                                dps.report/getUserToken
-                            </button>
-                        </p>
-                        <input
-                            type="text"
-                            value={dpsReportToken}
-                            onChange={(e) => setDpsReportToken(e.target.value)}
-                            placeholder="Enter your dps.report token..."
-                            className="w-full rounded-[4px] px-4 py-3 text-sm text-gray-300 placeholder-gray-600 focus:border-blue-500/50 focus:outline-none transition-colors"
-                            style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
-                        />
-                        <div className="mt-4 flex flex-wrap items-center gap-3">
-                            <button
-                                onClick={handleClearDpsCache}
-                                className="flex items-center gap-2 px-4 py-2 rounded-[4px] bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-semibold border border-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                disabled={dpsCacheBusy}
-                            >
-                                <Trash2 className="w-4 h-4" />
-                                {dpsCacheBusy ? 'Clearing cache…' : 'Clear dps.report cache'}
-                            </button>
-                            <div className="text-xs text-gray-500">
-                                Removes cached dps.report results stored locally (does not delete your log files).
-                            </div>
-                            {dpsCacheStatus && (
-                                <div className="text-xs text-gray-400">{dpsCacheStatus}</div>
-                            )}
-                            {dpsCacheBusy && (
-                                <div className="w-full max-w-sm">
-                                    <div className="text-[11px] text-gray-400 mb-1">{dpsCacheProgressLabel || 'Clearing cache…'}</div>
-                                    <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-                                        <div
-                                            className="h-full bg-amber-400 transition-all duration-150"
-                                            style={{ width: `${dpsCacheProgress}%` }}
-                                        />
-                                    </div>
-                                    <div className="text-[11px] text-gray-500 mt-1">{Math.round(dpsCacheProgress)}%</div>
-                                </div>
-                            )}
+                            <Toggle
+                                enabled={embedStats.includeMapSlice}
+                                onChange={(v) => updateEmbedStat('includeMapSlice', v)}
+                                label="Map Slice"
+                                description="A strip of the map showing where the fight happened"
+                            />
+                            <Toggle
+                                enabled={embedStats.showIncomingStats}
+                                onChange={(v) => updateEmbedStat('showIncomingStats', v)}
+                                label="Incoming Stats"
+                                description="Attacks, CC, and strips received (with miss/block rates)"
+                            />
+                            <Toggle
+                                enabled={splitEnemiesByTeam}
+                                onChange={(v) => {
+                                    setSplitEnemiesByTeam(v);
+                                    window.electronAPI?.saveSettings?.({
+                                        discordEnemySplitSettings: {
+                                            image: v,
+                                            embed: v,
+                                            tiled: v
+                                        },
+                                        discordSplitEnemiesByTeam: v
+                                    });
+                                }}
+                                label="Split Enemies by Team"
+                                description="Use Team ID sections for enemy summary/class breakdown in image, embed, and tiled posts"
+                            />
                         </div>
                     </SettingsSection>
 
+                    {/* Discord Embed Stats - Top Lists */}
+                    <SettingsSection title="Discord Embed - Top Stats Lists" icon={BarChart3} delay={0.15} sectionId="embed-top" hidden={settingsSearchHidden.has('embed-top')}>
+                        <p className="text-sm text-gray-400 mb-2">
+                            Configure which top stat player lists appear in Discord embed notifications.
+                        </p>
+                        <div className="mb-4 pb-4 border-b border-white/10">
+                            <label className="text-xs text-gray-500 block mb-2">Max rows per top stat list</label>
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="range"
+                                    min={1}
+                                    max={10}
+                                    step={1}
+                                    value={embedStats.maxTopListRows}
+                                    onChange={(e) => updateMaxTopRows(Number(e.target.value))}
+                                    className="flex-1 accent-blue-400"
+                                />
+                                <div className="min-w-8 shrink-0 text-right text-sm text-gray-300 font-mono">
+                                    {embedStats.maxTopListRows}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mb-4 pb-4 border-b border-white/10">
+                            <label className="text-xs text-gray-500 block mb-2">Class display</label>
+                            <div className="grid grid-cols-3 gap-2">
+                                <button
+                                    onClick={() => updateClassDisplay('off')}
+                                    className={`rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors ${embedStats.classDisplay === 'off'
+                                        ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
+                                        : 'bg-black/20 text-gray-400 border-white/10 hover:text-gray-200'
+                                        }`}
+                                >
+                                    Off
+                                </button>
+                                <button
+                                    onClick={() => updateClassDisplay('short')}
+                                    className={`rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors ${embedStats.classDisplay === 'short'
+                                        ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
+                                        : 'bg-black/20 text-gray-400 border-white/10 hover:text-gray-200'
+                                        }`}
+                                >
+                                    Short name
+                                </button>
+                                <button
+                                    onClick={() => updateClassDisplay('emoji')}
+                                    className={`rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors ${embedStats.classDisplay === 'emoji'
+                                        ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
+                                        : 'bg-black/20 text-gray-400 border-white/10 hover:text-gray-200'
+                                        }`}
+                                >
+                                    Emoji
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex justify-end mb-2">
+                            <button
+                                onClick={() => setAllTopLists(!allTopListsEnabled)}
+                                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                            >
+                                {allTopListsEnabled ? 'Disable All' : 'Enable All'}
+                            </button>
+                        </div>
+                        <div className="divide-y divide-white/5">
+                            <Toggle
+                                enabled={embedStats.showDamage}
+                                onChange={(v) => updateEmbedStat('showDamage', v)}
+                                label="Damage"
+                                description="Total damage dealt by each player"
+                            />
+                            <Toggle
+                                enabled={embedStats.showDownContribution}
+                                onChange={(v) => updateEmbedStat('showDownContribution', v)}
+                                label="Down Contribution"
+                                description="Damage dealt to enemies who went into downstate"
+                            />
+                            <Toggle
+                                enabled={embedStats.showHealing}
+                                onChange={(v) => updateEmbedStat('showHealing', v)}
+                                label="Healing"
+                                description="Outgoing healing to squad members"
+                            />
+                            <Toggle
+                                enabled={embedStats.showBarrier}
+                                onChange={(v) => updateEmbedStat('showBarrier', v)}
+                                label="Barrier"
+                                description="Outgoing barrier to squad members"
+                            />
+                            <Toggle
+                                enabled={embedStats.showCleanses}
+                                onChange={(v) => updateEmbedStat('showCleanses', v)}
+                                label="Cleanses"
+                                description="Conditions cleansed (self and allies)"
+                            />
+                            <Toggle
+                                enabled={embedStats.showBoonStrips}
+                                onChange={(v) => updateEmbedStat('showBoonStrips', v)}
+                                label="Boon Strips"
+                                description="Enemy boons stripped"
+                            />
+                            <Toggle
+                                enabled={embedStats.showCC}
+                                onChange={(v) => updateEmbedStat('showCC', v)}
+                                label="Crowd Control (CC)"
+                                description="Hard CC applied to enemies"
+                            />
+                            <Toggle
+                                enabled={embedStats.showStability}
+                                onChange={(v) => updateEmbedStat('showStability', v)}
+                                label="Stability"
+                                description="Stability boon generation"
+                            />
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-white/10">
+                            <p className="text-xs text-gray-500 mb-3">Additional Stats (disabled by default)</p>
+                            <div className="divide-y divide-white/5">
+                                <Toggle
+                                    enabled={embedStats.showResurrects}
+                                    onChange={(v) => updateEmbedStat('showResurrects', v)}
+                                    label="Revives"
+                                    description="Downed allies revived"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showDistanceToTag}
+                                    onChange={(v) => updateEmbedStat('showDistanceToTag', v)}
+                                    label="Distance to Tag"
+                                    description="Average distance to commander (lower is better)"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showKills}
+                                    onChange={(v) => updateEmbedStat('showKills', v)}
+                                    label="Kills"
+                                    description="Enemy kill count"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showDowns}
+                                    onChange={(v) => updateEmbedStat('showDowns', v)}
+                                    label="Downs"
+                                    description="Enemy down count"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showBreakbarDamage}
+                                    onChange={(v) => updateEmbedStat('showBreakbarDamage', v)}
+                                    label="Breakbar Damage"
+                                    description="Breakbar damage dealt to enemies"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showDamageTaken}
+                                    onChange={(v) => updateEmbedStat('showDamageTaken', v)}
+                                    label="Damage Taken"
+                                    description="Damage received from enemies"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showDeaths}
+                                    onChange={(v) => updateEmbedStat('showDeaths', v)}
+                                    label="Deaths"
+                                    description="Times the player died"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showDodges}
+                                    onChange={(v) => updateEmbedStat('showDodges', v)}
+                                    label="Dodges"
+                                    description="Number of dodges performed"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showDamageMitigation}
+                                    onChange={(v) => updateEmbedStat('showDamageMitigation', v)}
+                                    label="Damage Mitigation"
+                                    description="Estimated damage avoided via blocks, evades, misses, and invulns"
+                                />
+                            </div>
+                        </div>
+                    </SettingsSection>
+                    </div>
+
+                    <div
+                        data-settings-pane="web-report"
+                        style={{ display: selectedCategoryId === 'web-report' ? undefined : 'none' }}
+                    >
                     {/* GitHub Pages Hosting */}
                     <SettingsSection
                         title="GitHub Pages Web Reports"
@@ -2027,265 +2193,106 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         )}
                     </SettingsSection>
 
-                    {/* Discord Embed Stats - Summary Sections */}
-                    <SettingsSection title="Discord Embed - Summary Sections" icon={Users} delay={0.1} sectionId="embed-summary" hidden={settingsSearchHidden.has('embed-summary')}>
+                    {/* Parser Settings Section */}
+                    <div ref={parserSettingsRef}>
+                    <SettingsSection title="Parser Settings" icon={Zap} delay={0.2} sectionId="parser-settings" hidden={settingsSearchHidden.has('parser-settings')}>
                         <p className="text-sm text-gray-400 mb-4">
-                            Configure which summary sections appear in Discord embed notifications.
+                            Combat logs are parsed in-process by Axilog, which ships with the app. There is nothing
+                            to install, update or choose.
                         </p>
-                        <div className="divide-y divide-white/5">
-                            <Toggle
-                                enabled={embedStats.showSquadSummary}
-                                onChange={(v) => updateEmbedStat('showSquadSummary', v)}
-                                label="Squad Summary"
-                                description="Players, total damage, DPS, downs, and deaths"
-                            />
-                            <Toggle
-                                enabled={embedStats.showEnemySummary}
-                                onChange={(v) => updateEmbedStat('showEnemySummary', v)}
-                                label="Enemy Summary"
-                                description="Enemy count, damage taken, incoming DPS, enemy downs/kills"
-                            />
-                            <Toggle
-                                enabled={embedStats.showClassSummary}
-                                onChange={(v) => updateEmbedStat('showClassSummary', v)}
-                                label="Class Summary"
-                                description="Squad and enemy class breakdowns"
-                            />
-                            <Toggle
-                                enabled={embedStats.includeMapSlice}
-                                onChange={(v) => updateEmbedStat('includeMapSlice', v)}
-                                label="Map Slice"
-                                description="A strip of the map showing where the fight happened"
-                            />
-                            <Toggle
-                                enabled={embedStats.showIncomingStats}
-                                onChange={(v) => updateEmbedStat('showIncomingStats', v)}
-                                label="Incoming Stats"
-                                description="Attacks, CC, and strips received (with miss/block rates)"
-                            />
-                            <Toggle
-                                enabled={splitEnemiesByTeam}
-                                onChange={(v) => {
-                                    setSplitEnemiesByTeam(v);
-                                    window.electronAPI?.saveSettings?.({
-                                        discordEnemySplitSettings: {
-                                            image: v,
-                                            embed: v,
-                                            tiled: v
-                                        },
-                                        discordSplitEnemiesByTeam: v
-                                    });
-                                }}
-                                label="Split Enemies by Team"
-                                description="Use Team ID sections for enemy summary/class breakdown in image, embed, and tiled posts"
-                            />
-                        </div>
-                    </SettingsSection>
 
-                    {/* Discord Embed Stats - Top Lists */}
-                    <SettingsSection title="Discord Embed - Top Stats Lists" icon={BarChart3} delay={0.15} sectionId="embed-top" hidden={settingsSearchHidden.has('embed-top')}>
-                        <p className="text-sm text-gray-400 mb-2">
-                            Configure which top stat player lists appear in Discord embed notifications.
-                        </p>
-                        <div className="mb-4 pb-4 border-b border-white/10">
-                            <label className="text-xs text-gray-500 block mb-2">Max rows per top stat list</label>
-                            <div className="flex items-center gap-3">
-                                <input
-                                    type="range"
-                                    min={1}
-                                    max={10}
-                                    step={1}
-                                    value={embedStats.maxTopListRows}
-                                    onChange={(e) => updateMaxTopRows(Number(e.target.value))}
-                                    className="flex-1 accent-blue-400"
-                                />
-                                <div className="min-w-8 shrink-0 text-right text-sm text-gray-300 font-mono">
-                                    {embedStats.maxTopListRows}
+                        <div className="bg-black/30 border border-white/10 rounded-[4px] p-4 mb-4" data-testid="parser-status-card">
+                            <div className="text-xs uppercase tracking-widest text-gray-500 mb-3">Parse Engine</div>
+                            {/*
+                              * The removal deleted an install and, for some users, a
+                              * setting they had chosen by hand. It says so where that
+                              * setting used to live, once.
+                              */}
+                            {parserStatus?.eliteInsightsRemoval && (
+                                <div
+                                    data-testid="elite-insights-removal-notice"
+                                    className="bg-blue-500/10 border border-blue-500/30 rounded-[4px] px-3 py-2.5 mb-3 flex items-start gap-3"
+                                >
+                                    <div className="flex-1 text-xs text-blue-100 leading-snug">
+                                        <span className="font-semibold">Elite Insights has been removed.</span>{' '}
+                                        {parserStatus.eliteInsightsRemoval.wasSelected
+                                            ? 'You had selected it as your parse engine; Axilog is now the only engine and parses everything in-process. '
+                                            : 'Axilog has been your engine for a while, so nothing about your parses changes. '}
+                                        {parserStatus.eliteInsightsRemoval.reclaimedBytes > 0
+                                            ? `Deleting the unused install and its .NET runtime freed ${formatDiskMb(parserStatus.eliteInsightsRemoval.reclaimedBytes)}.`
+                                            : ''}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setParserStatus((prev: IParserStatus | null) => (prev ? { ...prev, eliteInsightsRemoval: null } : prev));
+                                            window.electronAPI?.ackEliteInsightsRemovalNotice?.();
+                                        }}
+                                        className="text-xs text-blue-300/70 hover:text-blue-100 flex-shrink-0"
+                                    >
+                                        Got it
+                                    </button>
+                                </div>
+                            )}
+                            <div className="text-sm text-gray-200">
+                                {parserStatus && !parserStatus.available
+                                    ? 'Axilog is unavailable on this platform'
+                                    : `Axilog${parserStatus?.version ? ` ${parserStatus.version}` : ''}`}
+                            </div>
+                            {parserStatus && !parserStatus.available && (
+                                <div className="text-xs text-red-400 mt-2" data-testid="parser-unavailable">
+                                    No prebuilt Axilog binary exists for this platform, so logs cannot be parsed
+                                    locally. Please report this — include your operating system and architecture.
+                                </div>
+                            )}
+                            <div className="text-xs text-gray-500 mt-3">
+                                Parses in-process in under a second — no download, no .NET runtime, no separate
+                                process.
+                            </div>
+                        </div>
+
+                        <HistoryReparseCard onLogsHealed={onLogsHealed} />
+
+                        {/* Parser Options */}
+                        {parserSettings && (
+                            <div className="bg-black/30 border border-white/10 rounded-[4px] p-4">
+                                <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Analysis</div>
+                                <div className="divide-y divide-white/5">
+                                    <Toggle
+                                        label="Compute Damage Modifiers"
+                                        enabled={parserSettings.computeDamageModifiers}
+                                        onChange={(v) => saveParserSetting('computeDamageModifiers', v)}
+                                    />
+                                    <Toggle
+                                        label="Keep Combat Replay Locally"
+                                        description="Keeps player positions for Map Replay, tag distance, On Tag Review and stability performance. Off saves memory and cache space but leaves those empty. Applies to logs processed from now on."
+                                        enabled={parserSettings.keepCombatReplayLocally}
+                                        onChange={(v) => saveParserSetting('keepCombatReplayLocally', v)}
+                                    />
+                                    <Toggle
+                                        label="Publish Combat Replay"
+                                        description={parserSettings.keepCombatReplayLocally
+                                            ? "Includes Map Replay in uploaded web reports. Off leaves it out of uploads, where it is the bulk of a report's size."
+                                            : 'Has no effect while Keep Combat Replay Locally is off — there is no replay data to publish.'}
+                                        enabled={parserSettings.parseCombatReplay}
+                                        onChange={(v) => saveParserSetting('parseCombatReplay', v)}
+                                    />
+                                    <Toggle
+                                        label="Include Timeline Arrays"
+                                        enabled={parserSettings.rawTimelineArrays}
+                                        onChange={(v) => saveParserSetting('rawTimelineArrays', v)}
+                                    />
                                 </div>
                             </div>
-                        </div>
-                        <div className="mb-4 pb-4 border-b border-white/10">
-                            <label className="text-xs text-gray-500 block mb-2">Class display</label>
-                            <div className="grid grid-cols-3 gap-2">
-                                <button
-                                    onClick={() => updateClassDisplay('off')}
-                                    className={`rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors ${embedStats.classDisplay === 'off'
-                                        ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
-                                        : 'bg-black/20 text-gray-400 border-white/10 hover:text-gray-200'
-                                        }`}
-                                >
-                                    Off
-                                </button>
-                                <button
-                                    onClick={() => updateClassDisplay('short')}
-                                    className={`rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors ${embedStats.classDisplay === 'short'
-                                        ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
-                                        : 'bg-black/20 text-gray-400 border-white/10 hover:text-gray-200'
-                                        }`}
-                                >
-                                    Short name
-                                </button>
-                                <button
-                                    onClick={() => updateClassDisplay('emoji')}
-                                    className={`rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors ${embedStats.classDisplay === 'emoji'
-                                        ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
-                                        : 'bg-black/20 text-gray-400 border-white/10 hover:text-gray-200'
-                                        }`}
-                                >
-                                    Emoji
-                                </button>
-                            </div>
-                        </div>
-                        <div className="flex justify-end mb-2">
-                            <button
-                                onClick={() => setAllTopLists(!allTopListsEnabled)}
-                                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                            >
-                                {allTopListsEnabled ? 'Disable All' : 'Enable All'}
-                            </button>
-                        </div>
-                        <div className="divide-y divide-white/5">
-                            <Toggle
-                                enabled={embedStats.showDamage}
-                                onChange={(v) => updateEmbedStat('showDamage', v)}
-                                label="Damage"
-                                description="Total damage dealt by each player"
-                            />
-                            <Toggle
-                                enabled={embedStats.showDownContribution}
-                                onChange={(v) => updateEmbedStat('showDownContribution', v)}
-                                label="Down Contribution"
-                                description="Damage dealt to enemies who went into downstate"
-                            />
-                            <Toggle
-                                enabled={embedStats.showHealing}
-                                onChange={(v) => updateEmbedStat('showHealing', v)}
-                                label="Healing"
-                                description="Outgoing healing to squad members"
-                            />
-                            <Toggle
-                                enabled={embedStats.showBarrier}
-                                onChange={(v) => updateEmbedStat('showBarrier', v)}
-                                label="Barrier"
-                                description="Outgoing barrier to squad members"
-                            />
-                            <Toggle
-                                enabled={embedStats.showCleanses}
-                                onChange={(v) => updateEmbedStat('showCleanses', v)}
-                                label="Cleanses"
-                                description="Conditions cleansed (self and allies)"
-                            />
-                            <Toggle
-                                enabled={embedStats.showBoonStrips}
-                                onChange={(v) => updateEmbedStat('showBoonStrips', v)}
-                                label="Boon Strips"
-                                description="Enemy boons stripped"
-                            />
-                            <Toggle
-                                enabled={embedStats.showCC}
-                                onChange={(v) => updateEmbedStat('showCC', v)}
-                                label="Crowd Control (CC)"
-                                description="Hard CC applied to enemies"
-                            />
-                            <Toggle
-                                enabled={embedStats.showStability}
-                                onChange={(v) => updateEmbedStat('showStability', v)}
-                                label="Stability"
-                                description="Stability boon generation"
-                            />
-                        </div>
-                        <div className="mt-4 pt-4 border-t border-white/10">
-                            <p className="text-xs text-gray-500 mb-3">Additional Stats (disabled by default)</p>
-                            <div className="divide-y divide-white/5">
-                                <Toggle
-                                    enabled={embedStats.showResurrects}
-                                    onChange={(v) => updateEmbedStat('showResurrects', v)}
-                                    label="Revives"
-                                    description="Downed allies revived"
-                                />
-                                <Toggle
-                                    enabled={embedStats.showDistanceToTag}
-                                    onChange={(v) => updateEmbedStat('showDistanceToTag', v)}
-                                    label="Distance to Tag"
-                                    description="Average distance to commander (lower is better)"
-                                />
-                                <Toggle
-                                    enabled={embedStats.showKills}
-                                    onChange={(v) => updateEmbedStat('showKills', v)}
-                                    label="Kills"
-                                    description="Enemy kill count"
-                                />
-                                <Toggle
-                                    enabled={embedStats.showDowns}
-                                    onChange={(v) => updateEmbedStat('showDowns', v)}
-                                    label="Downs"
-                                    description="Enemy down count"
-                                />
-                                <Toggle
-                                    enabled={embedStats.showBreakbarDamage}
-                                    onChange={(v) => updateEmbedStat('showBreakbarDamage', v)}
-                                    label="Breakbar Damage"
-                                    description="Breakbar damage dealt to enemies"
-                                />
-                                <Toggle
-                                    enabled={embedStats.showDamageTaken}
-                                    onChange={(v) => updateEmbedStat('showDamageTaken', v)}
-                                    label="Damage Taken"
-                                    description="Damage received from enemies"
-                                />
-                                <Toggle
-                                    enabled={embedStats.showDeaths}
-                                    onChange={(v) => updateEmbedStat('showDeaths', v)}
-                                    label="Deaths"
-                                    description="Times the player died"
-                                />
-                                <Toggle
-                                    enabled={embedStats.showDodges}
-                                    onChange={(v) => updateEmbedStat('showDodges', v)}
-                                    label="Dodges"
-                                    description="Number of dodges performed"
-                                />
-                                <Toggle
-                                    enabled={embedStats.showDamageMitigation}
-                                    onChange={(v) => updateEmbedStat('showDamageMitigation', v)}
-                                    label="Damage Mitigation"
-                                    description="Estimated damage avoided via blocks, evades, misses, and invulns"
-                                />
-                            </div>
-                        </div>
+                        )}
                     </SettingsSection>
-
-                    <div ref={helpUpdatesRef}>
-                        <SettingsSection title="Help & Updates" icon={Sparkles} delay={0.18} sectionId="help-updates" hidden={settingsSearchHidden.has('help-updates')}>
-                            <p className="text-sm text-gray-400 mb-4">
-                                Review release notes, reopen onboarding, or browse the complete feature guide.
-                            </p>
-                            <div className="space-y-2">
-                                <button
-                                    onClick={() => setHowToOpen(true)}
-                                    className="w-full flex items-center justify-center gap-2 rounded-[4px] border border-cyan-500/30 bg-cyan-500/10 px-4 py-3 text-sm font-medium text-cyan-200 hover:bg-cyan-500/20 transition-colors"
-                                >
-                                    <BookOpen className="w-4 h-4" />
-                                    How To
-                                </button>
-                                <button
-                                    onClick={() => onOpenWalkthrough?.()}
-                                    className="w-full flex items-center justify-center gap-2 rounded-[4px] border border-white/20 bg-white/5 px-4 py-3 text-sm font-medium text-gray-200 hover:bg-white/10 transition-colors"
-                                >
-                                    <Compass className="w-4 h-4" />
-                                    Open Walkthrough
-                                </button>
-                                <button
-                                    onClick={() => onOpenWhatsNew?.()}
-                                    className="w-full flex items-center justify-center gap-2 rounded-[4px] border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-200 hover:bg-blue-500/20 transition-colors"
-                                >
-                                    <Sparkles className="w-4 h-4" />
-                                    View What's New
-                                </button>
-                            </div>
-                        </SettingsSection>
+                    </div>
                     </div>
 
+                    <div
+                        data-settings-pane="stats"
+                        style={{ display: selectedCategoryId === 'stats' ? undefined : 'none' }}
+                    >
                     <SettingsSection title="Dashboard - Top Stats & MVP" icon={BarChart3} delay={0.18} sectionId="dashboard-stats" hidden={settingsSearchHidden.has('dashboard-stats')}>
                         <p className="text-sm text-gray-400 mb-4">
                             Control the calculation and display of the top stats cards and MVP highlights.
@@ -2776,101 +2783,119 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             })}
                         </div>
                     </SettingsSection>
+                    </div>
 
-                    {/* Parser Settings Section */}
-                    <div ref={parserSettingsRef}>
-                    <SettingsSection title="Parser Settings" icon={Zap} delay={0.2} sectionId="parser-settings" hidden={settingsSearchHidden.has('parser-settings')}>
+                    <div
+                        data-settings-pane="logs"
+                        style={{ display: selectedCategoryId === 'logs' ? undefined : 'none' }}
+                    >
+                    {/* Logs: Log Directory arrives in Task 10 */}
+                    {/* DPS Report Token Section */}
+                    <SettingsSection title="dps.report User Token" icon={Key} delay={0.05} sectionId="dps-token" hidden={settingsSearchHidden.has('dps-token')}>
                         <p className="text-sm text-gray-400 mb-4">
-                            Combat logs are parsed in-process by Axilog, which ships with the app. There is nothing
-                            to install, update or choose.
+                            Optional: Add your dps.report user token to associate uploads with your account.
+                            You can find your token at{' '}
+                            <button
+                                onClick={() => window.electronAPI?.openExternal?.('https://dps.report/getUserToken')}
+                                className="text-blue-400 hover:text-blue-300 underline transition-colors"
+                            >
+                                dps.report/getUserToken
+                            </button>
                         </p>
-
-                        <div className="bg-black/30 border border-white/10 rounded-[4px] p-4 mb-4" data-testid="parser-status-card">
-                            <div className="text-xs uppercase tracking-widest text-gray-500 mb-3">Parse Engine</div>
-                            {/*
-                              * The removal deleted an install and, for some users, a
-                              * setting they had chosen by hand. It says so where that
-                              * setting used to live, once.
-                              */}
-                            {parserStatus?.eliteInsightsRemoval && (
-                                <div
-                                    data-testid="elite-insights-removal-notice"
-                                    className="bg-blue-500/10 border border-blue-500/30 rounded-[4px] px-3 py-2.5 mb-3 flex items-start gap-3"
-                                >
-                                    <div className="flex-1 text-xs text-blue-100 leading-snug">
-                                        <span className="font-semibold">Elite Insights has been removed.</span>{' '}
-                                        {parserStatus.eliteInsightsRemoval.wasSelected
-                                            ? 'You had selected it as your parse engine; Axilog is now the only engine and parses everything in-process. '
-                                            : 'Axilog has been your engine for a while, so nothing about your parses changes. '}
-                                        {parserStatus.eliteInsightsRemoval.reclaimedBytes > 0
-                                            ? `Deleting the unused install and its .NET runtime freed ${formatDiskMb(parserStatus.eliteInsightsRemoval.reclaimedBytes)}.`
-                                            : ''}
+                        <input
+                            type="text"
+                            value={dpsReportToken}
+                            onChange={(e) => setDpsReportToken(e.target.value)}
+                            placeholder="Enter your dps.report token..."
+                            className="w-full rounded-[4px] px-4 py-3 text-sm text-gray-300 placeholder-gray-600 focus:border-blue-500/50 focus:outline-none transition-colors"
+                            style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
+                        />
+                        <div className="mt-4 flex flex-wrap items-center gap-3">
+                            <button
+                                onClick={handleClearDpsCache}
+                                className="flex items-center gap-2 px-4 py-2 rounded-[4px] bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-semibold border border-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={dpsCacheBusy}
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                {dpsCacheBusy ? 'Clearing cache…' : 'Clear dps.report cache'}
+                            </button>
+                            <div className="text-xs text-gray-500">
+                                Removes cached dps.report results stored locally (does not delete your log files).
+                            </div>
+                            {dpsCacheStatus && (
+                                <div className="text-xs text-gray-400">{dpsCacheStatus}</div>
+                            )}
+                            {dpsCacheBusy && (
+                                <div className="w-full max-w-sm">
+                                    <div className="text-[11px] text-gray-400 mb-1">{dpsCacheProgressLabel || 'Clearing cache…'}</div>
+                                    <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                                        <div
+                                            className="h-full bg-amber-400 transition-all duration-150"
+                                            style={{ width: `${dpsCacheProgress}%` }}
+                                        />
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setParserStatus((prev: IParserStatus | null) => (prev ? { ...prev, eliteInsightsRemoval: null } : prev));
-                                            window.electronAPI?.ackEliteInsightsRemovalNotice?.();
-                                        }}
-                                        className="text-xs text-blue-300/70 hover:text-blue-100 flex-shrink-0"
-                                    >
-                                        Got it
-                                    </button>
+                                    <div className="text-[11px] text-gray-500 mt-1">{Math.round(dpsCacheProgress)}%</div>
                                 </div>
                             )}
-                            <div className="text-sm text-gray-200">
-                                {parserStatus && !parserStatus.available
-                                    ? 'Axilog is unavailable on this platform'
-                                    : `Axilog${parserStatus?.version ? ` ${parserStatus.version}` : ''}`}
-                            </div>
-                            {parserStatus && !parserStatus.available && (
-                                <div className="text-xs text-red-400 mt-2" data-testid="parser-unavailable">
-                                    No prebuilt Axilog binary exists for this platform, so logs cannot be parsed
-                                    locally. Please report this — include your operating system and architecture.
-                                </div>
-                            )}
-                            <div className="text-xs text-gray-500 mt-3">
-                                Parses in-process in under a second — no download, no .NET runtime, no separate
-                                process.
-                            </div>
                         </div>
-
-                        <HistoryReparseCard onLogsHealed={onLogsHealed} />
-
-                        {/* Parser Options */}
-                        {parserSettings && (
-                            <div className="bg-black/30 border border-white/10 rounded-[4px] p-4">
-                                <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Analysis</div>
-                                <div className="divide-y divide-white/5">
-                                    <Toggle
-                                        label="Compute Damage Modifiers"
-                                        enabled={parserSettings.computeDamageModifiers}
-                                        onChange={(v) => saveParserSetting('computeDamageModifiers', v)}
-                                    />
-                                    <Toggle
-                                        label="Keep Combat Replay Locally"
-                                        description="Keeps player positions for Map Replay, tag distance, On Tag Review and stability performance. Off saves memory and cache space but leaves those empty. Applies to logs processed from now on."
-                                        enabled={parserSettings.keepCombatReplayLocally}
-                                        onChange={(v) => saveParserSetting('keepCombatReplayLocally', v)}
-                                    />
-                                    <Toggle
-                                        label="Publish Combat Replay"
-                                        description={parserSettings.keepCombatReplayLocally
-                                            ? "Includes Map Replay in uploaded web reports. Off leaves it out of uploads, where it is the bulk of a report's size."
-                                            : 'Has no effect while Keep Combat Replay Locally is off — there is no replay data to publish.'}
-                                        enabled={parserSettings.parseCombatReplay}
-                                        onChange={(v) => saveParserSetting('parseCombatReplay', v)}
-                                    />
-                                    <Toggle
-                                        label="Include Timeline Arrays"
-                                        enabled={parserSettings.rawTimelineArrays}
-                                        onChange={(v) => saveParserSetting('rawTimelineArrays', v)}
-                                    />
-                                </div>
-                            </div>
-                        )}
                     </SettingsSection>
                     </div>
+
+                    <div
+                        data-settings-pane="application"
+                        style={{ display: selectedCategoryId === 'application' ? undefined : 'none' }}
+                    >
+                    <SettingsSection title="Appearance" icon={Sparkles} delay={0.02} sectionId="appearance" hidden={settingsSearchHidden.has('appearance')}>
+                        <p className="text-sm text-gray-400 mb-4">
+                            Choose a color palette for the interface accent colors.
+                        </p>
+                        <div className="text-[11px] uppercase tracking-[0.2em] text-gray-500 mb-2">
+                            Color Palette {glassmorphic ? <span className="ml-2 normal-case tracking-normal text-gray-500">(disabled in Lillifox Mode)</span> : null}
+                        </div>
+                        <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 ${glassmorphic ? 'opacity-40 pointer-events-none' : ''}`} aria-disabled={glassmorphic}>
+                            {(Object.values(PALETTES) as import('../shared/webThemes').PaletteDefinition[]).map((palette) => {
+                                const isActive = colorPalette === palette.id;
+                                return (
+                                    <button
+                                        key={palette.id}
+                                        type="button"
+                                        disabled={glassmorphic}
+                                        onClick={() => { setColorPalette(palette.id); onColorPaletteSaved?.(palette.id); }}
+                                        className={`rounded-[4px] border px-3 py-3 text-left transition-colors ${isActive
+                                            ? 'border-white/40 bg-white/10'
+                                            : 'border-white/10 bg-white/5 hover:border-white/30'
+                                            }`}
+                                    >
+                                        <div
+                                            className="w-full h-8 rounded-[4px] mb-2 border border-white/10"
+                                            style={{ backgroundImage: palette.gradient }}
+                                        />
+                                        <div className="text-xs font-semibold text-gray-200">{palette.label}</div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <div className="mt-4">
+                            <Toggle
+                                enabled={glassSurfaces}
+                                onChange={(v) => { setGlassSurfaces(v); onGlassSurfacesSaved?.(v); }}
+                                label="Glass Surfaces"
+                                description="Enable frosted-glass card backgrounds with backdrop blur"
+                            />
+                            <Toggle
+                                enabled={glassmorphic}
+                                onChange={(v) => { setGlassmorphic(v); onGlassmorphicSaved?.(v); }}
+                                label="Lillifox Mode"
+                                description="Aurora background, rounded translucent cards — the original AxiBridge look"
+                            />
+                            <Toggle
+                                enabled={particlesEnabled}
+                                onChange={(v) => { setParticlesEnabled(v); onParticlesEnabledSaved?.(v); }}
+                                label="Particle Effects"
+                                description="Show particle animations on log events, button hover, and view transitions"
+                            />
+                        </div>
+                    </SettingsSection>
 
                     {/* Close Behavior Section */}
                     <SettingsSection title="Window Close Behavior" icon={Minimize} delay={0.2} sectionId="close-behavior" hidden={settingsSearchHidden.has('close-behavior')}>
@@ -2937,6 +2962,37 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         )}
                     </SettingsSection>
 
+                    <div ref={helpUpdatesRef}>
+                        <SettingsSection title="Help & Updates" icon={Sparkles} delay={0.18} sectionId="help-updates" hidden={settingsSearchHidden.has('help-updates')}>
+                            <p className="text-sm text-gray-400 mb-4">
+                                Review release notes, reopen onboarding, or browse the complete feature guide.
+                            </p>
+                            <div className="space-y-2">
+                                <button
+                                    onClick={() => setHowToOpen(true)}
+                                    className="w-full flex items-center justify-center gap-2 rounded-[4px] border border-cyan-500/30 bg-cyan-500/10 px-4 py-3 text-sm font-medium text-cyan-200 hover:bg-cyan-500/20 transition-colors"
+                                >
+                                    <BookOpen className="w-4 h-4" />
+                                    How To
+                                </button>
+                                <button
+                                    onClick={() => onOpenWalkthrough?.()}
+                                    className="w-full flex items-center justify-center gap-2 rounded-[4px] border border-white/20 bg-white/5 px-4 py-3 text-sm font-medium text-gray-200 hover:bg-white/10 transition-colors"
+                                >
+                                    <Compass className="w-4 h-4" />
+                                    Open Walkthrough
+                                </button>
+                                <button
+                                    onClick={() => onOpenWhatsNew?.()}
+                                    className="w-full flex items-center justify-center gap-2 rounded-[4px] border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-200 hover:bg-blue-500/20 transition-colors"
+                                >
+                                    <Sparkles className="w-4 h-4" />
+                                    View What's New
+                                </button>
+                            </div>
+                        </SettingsSection>
+                    </div>
+
                     <div id="legal" data-settings-section="true" data-settings-label="Legal" className="rounded-[4px] p-4 text-xs text-gray-400" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', display: settingsSearchHidden.has('legal') ? 'none' : undefined }}>
                         <div className="flex items-center justify-between mb-2">
                             <div className="text-sm font-semibold text-gray-200">Legal Notice</div>
@@ -3002,6 +3058,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             {' '}files for full terms and upstream attributions.
                         </p>
                     </div>
+                    </div>
 
                     <div className="h-[12vh] min-h-10 max-h-28" />
                     {/* Save Button (hidden with auto-save) */}
@@ -3015,7 +3072,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         className="flex items-center gap-2 px-4 py-1.5 rounded-[4px] bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200 flex-1 justify-between"
                     >
                         <span ref={mobileNavLabelRef} className="truncate max-w-[160px]">
-                            {SETTINGS_SECTIONS[0].label}
+                            {labelForSection(activeSettingsSectionIdRef.current) ?? 'Settings'}
                         </span>
                         <ChevronDown className={`w-4 h-4 text-[color:var(--accent)] transition-transform ${settingsNavOpen ? 'rotate-180' : ''}`} />
                     </button>
@@ -3050,20 +3107,20 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 </button>
                             </div>
                             <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2 pb-4">
-                                {SETTINGS_SECTIONS.map((item) => {
+                                {FLATTENED_SECTIONS.map((item) => {
                                     if (settingsSearchHidden.has(item.id)) return null;
                                     return (
                                         <button
                                             key={item.id}
                                             data-settings-nav-id={item.id}
                                             onClick={() => {
-                                                scrollToSettingsSection(item.id);
+                                                navigateToSection(item.id);
                                                 setSettingsNavOpen(false);
                                             }}
                                             className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 overflow-hidden text-gray-400`}
                                         >
                                             <span className="flex items-center justify-center w-5 text-[10px] tabular-nums text-gray-500">
-                                                {SETTINGS_SECTIONS.findIndex((section) => section.id === item.id) + 1}
+                                                {FLATTENED_SECTIONS.findIndex((section) => section.id === item.id) + 1}
                                             </span>
                                             <span className="flex-1 min-w-0 text-[13px] font-medium truncate">{item.label}</span>
                                         </button>

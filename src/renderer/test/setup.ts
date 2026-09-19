@@ -100,4 +100,13 @@ if (typeof window !== 'undefined') {
         // @ts-ignore
         HTMLCanvasElement.prototype.getContext = () => null;
     }
+
+    // jsdom has no layout engine and never implemented Element.scrollTo —
+    // components that scroll a ref'd container (e.g. SettingsView's paged
+    // nav, which selects a category then scrolls to a section) throw
+    // "container.scrollTo is not a function" without this no-op stub.
+    if (!Element.prototype.scrollTo) {
+        // @ts-ignore
+        Element.prototype.scrollTo = function () {};
+    }
 }

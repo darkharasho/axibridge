@@ -164,10 +164,13 @@ describe('App first-time walkthrough', () => {
         await user.click(screen.getByTitle('Dashboard'));
         // Wait for Dashboard to mount after AnimatePresence exit/enter transition
         await waitFor(() => {
-            expect(screen.queryByRole('heading', { name: 'Parser Settings' })).not.toBeInTheDocument();
+            expect(screen.queryByRole('heading', { name: 'Settings', level: 2 })).not.toBeInTheDocument();
         });
         await user.click(screen.getByTitle('Settings'));
-        expect(await screen.findByRole('heading', { name: 'Parser Settings' })).toBeInTheDocument();
+        // Settings pages by category (Discord is the default landing category),
+        // so any heading proves the view remounted — the top-level title works
+        // regardless of which category ends up selected.
+        expect(await screen.findByRole('heading', { name: 'Settings', level: 2 })).toBeInTheDocument();
         // How To modal should not reappear on returning to Settings
         expect(screen.queryByText('Feature and workflow reference')).not.toBeInTheDocument();
     });
