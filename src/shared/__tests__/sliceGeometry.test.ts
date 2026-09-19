@@ -30,6 +30,7 @@ import {
     eiPixelToContinent, centroidPath, frameForPath, continentToOutput,
     SLICE_ASPECT, SLICE_WIDTH, SLICE_HEIGHT, MIN_SLICE_UNITS, MAX_SLICE_UNITS,
     pickSliceZoom, tilesForFrame, buildSliceDrawList, SLICE_MARGIN_PX, BEACON_BAND_INSET,
+    centroidBins, fightSegment, TRANSIT_MIN_UNITS, TRANSIT_STEP_FACTOR,
 } from '../sliceGeometry';
 import { MAX_TILE_ZOOM, MAX_HIRES_ZOOM } from '../wvwTiles';
 
@@ -323,6 +324,43 @@ describe('buildSliceDrawList', () => {
         }
     });
 
+    it('leaves the commute out of the draw list entirely', () => {
+        // The shipped bug, end to end: a fight that ends with a run to spawn.
+        // The trail drew the whole log, so the leg to spawn both dominated the
+        // picture and forced the crop wide enough to lose the hi-res detail.
+        // Anzalias Pass is the verified projection anchor; the run leaves it.
+        const fight: Array<[number, number, number]> = Array.from(
+            { length: 12 }, (_, i) => [i * 1000, 287 + i * 0.4, 314 + i * 0.4],
+        );
+        const commute: Array<[number, number, number]> = [
+            [12000, 420, 460], [13000, 560, 600],
+        ];
+        try {
+            mapUtilsHooks.trackOverride = [[...fight, ...commute]];
+            const withCommute = buildSliceDrawList({}, 'Eternal Battlegrounds')!;
+
+            mapUtilsHooks.trackOverride = [fight];
+            const fightOnly = buildSliceDrawList({}, 'Eternal Battlegrounds')!;
+
+            // Same picture either way: the commute changes nothing downstream.
+            expect(withCommute.path.length).toBe(fightOnly.path.length);
+            expect(withCommute.caption).toBe(fightOnly.caption);
+            withCommute.path.forEach(([x, y], i) => {
+                expect(x).toBeCloseTo(fightOnly.path[i][0], 6);
+                expect(y).toBeCloseTo(fightOnly.path[i][1], 6);
+            });
+            // And every drawn point is inside the frame, so nothing trails off.
+            for (const [x, y] of withCommute.path) {
+                expect(x).toBeGreaterThanOrEqual(0);
+                expect(x).toBeLessThanOrEqual(SLICE_WIDTH);
+                expect(y).toBeGreaterThanOrEqual(0);
+                expect(y).toBeLessThanOrEqual(SLICE_HEIGHT);
+            }
+        } finally {
+            mapUtilsHooks.trackOverride = null;
+        }
+    });
+
     it('returns null for an unknown map even when positions exist', () => {
         const details = nativeFixture();
         // The map id is AUTHORITATIVE over the zone string
@@ -337,5 +375,77 @@ describe('buildSliceDrawList', () => {
         expect(buildSliceDrawList(details, 'Vale Guardian')).toBeNull();
         // Short-circuited at map resolution: the track walk never ran.
         expect(squadPixelTracksSpy).not.toHaveBeenCalled();
+    });
+});
+
+describe('fightSegment', () => {
+    const flat = (n: number) => Array(n).fill(1);
+
+    it('keeps a path with no transit whole', () => {
+        // A stationary fight: every step is small, so nothing is a commute
+        // however the relative test is tuned.
+        const path: Array<[number, number]> = Array.from({ length: 10 }, (_, i) => [10000 + i * 5, 14000]);
+        expect(fightSegment(path, flat(10))).toEqual({ from: 0, to: 9 });
+    });
+
+    it('drops a commute leg that leaves the fight', () => {
+        // Eight bins of milling about, then a run to spawn. The run is both a
+        // large multiple of the median step and far in absolute terms.
+        const fight: Array<[number, number]> = Array.from({ length: 8 }, (_, i) => [10000 + i * 5, 14000]);
+        const commute: Array<[number, number]> = [[10500, 14600], [11000, 15200]];
+        const path = [...fight, ...commute];
+        expect(fightSegment(path, flat(path.length))).toEqual({ from: 0, to: 7 });
+    });
+
+    it('drops a run-in and keeps the fight that follows it', () => {
+        // The mirror case, and the reason the heaviest run wins rather than the
+        // run holding the first point: keeping index 0 here would frame the
+        // approach and throw the fight away.
+        const approach: Array<[number, number]> = [[10000, 14000], [10600, 14400]];
+        const fight: Array<[number, number]> = Array.from({ length: 8 }, (_, i) => [11200, 14800 + i * 5]);
+        const path = [...approach, ...fight];
+        expect(fightSegment(path, flat(path.length))).toEqual({ from: 2, to: 9 });
+    });
+
+    it('weighs runs by samples, not by how many bins they span', () => {
+        // Two bins where most of the squad was, against six bins holding one
+        // straggler each. The fight is where the squad was.
+        const stragglers: Array<[number, number]> = Array.from({ length: 6 }, (_, i) => [10000 + i * 5, 14000]);
+        const squad: Array<[number, number]> = [[11000, 14900], [11005, 14900]];
+        const path = [...stragglers, ...squad];
+        const weights = [...Array(6).fill(1), 30, 30];
+        expect(fightSegment(path, weights)).toEqual({ from: 6, to: 7 });
+    });
+
+    it('does not split on a large step that is still slow in absolute terms', () => {
+        // A tight fight whose biggest step is many times its median but only a
+        // few continent units. The absolute floor is what stops the relative
+        // test from carving up a perfectly good path.
+        const path: Array<[number, number]> = [
+            [10000, 14000], [10000.5, 14000], [10001, 14000],
+            [10001 + TRANSIT_MIN_UNITS / 2, 14000],
+        ];
+        const median = 0.5;
+        expect(TRANSIT_MIN_UNITS / 2).toBeGreaterThan(TRANSIT_STEP_FACTOR * median);
+        expect(fightSegment(path, flat(4))).toEqual({ from: 0, to: 3 });
+    });
+
+    it('returns the whole path for degenerate input', () => {
+        expect(fightSegment([], [])).toEqual({ from: 0, to: 0 });
+        expect(fightSegment([[1, 2]], [1])).toEqual({ from: 0, to: 0 });
+    });
+});
+
+describe('centroidBins', () => {
+    it('carries each bin\'s sample count alongside its centroid', () => {
+        // Bin 0 holds two players, bin 1 holds one: the weight is what
+        // `fightSegment` needs and `centroidPath` throws away.
+        const tracks: Array<Array<[number, number, number]>> = [
+            [[0, 10, 20], [0, 30, 40], [100, 50, 60]],
+        ];
+        const bins = centroidBins(tracks, 2);
+        expect(bins.map(b => b.samples)).toEqual([2, 1]);
+        expect(bins[0].point).toEqual([20, 30]);
+        expect(centroidPath(tracks, 2)).toEqual(bins.map(b => b.point));
     });
 });
