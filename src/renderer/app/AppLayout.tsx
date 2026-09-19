@@ -542,6 +542,16 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 isOpen={webhookModalOpen}
                 onClose={() => setWebhookModalOpen(false)}
                 webhooks={webhooks}
+                // Single-selection stopgap: the store only tracks one active
+                // destination (`selectedWebhookId`) until Task 11 lands the
+                // real multi-select, so the enabled set here is derived from
+                // it rather than being its own persisted list.
+                enabledWebhookIds={selectedWebhookId ? [selectedWebhookId] : []}
+                onSetEnabled={(id, enabled) => {
+                    const next = enabled ? [id] : [];
+                    setSelectedWebhookId(next[0] ?? null);
+                    handleUpdateSettings({ enabledWebhookIds: next, selectedWebhookId: next[0] ?? null });
+                }}
                 onSave={(newWebhooks, selectId) => {
                     // Fix round 2, item 1: this is now a thin wire onto a
                     // directly-tested pure function (webhookSaveIntent.ts) —
