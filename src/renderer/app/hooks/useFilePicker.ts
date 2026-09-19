@@ -3,6 +3,8 @@ import { type Dispatch, type MutableRefObject, type SetStateAction, useEffect, u
 interface IFilePickerEntry {
     path: string;
     name: string;
+    /** Path relative to the log directory; equals `name` for un-nested logs. */
+    relativePath: string;
     mtimeMs: number;
     size: number;
 }

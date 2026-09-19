@@ -40,6 +40,15 @@ const FilePickerItem = memo(({ entry, index, isSelected, isFocused, toggleSelect
 
     const encounterName = useMemo(() => parseLogName(entry.name), [entry.name]);
 
+    // arcdps buckets logs into per-encounter subfolders. Two logs in different
+    // folders can share a filename, so name alone is ambiguous once the scan
+    // recurses.
+    const subfolder = useMemo(() => {
+        const relative: string = entry.relativePath || entry.name;
+        const cut = relative.lastIndexOf('/');
+        return cut === -1 ? null : relative.slice(0, cut);
+    }, [entry.relativePath, entry.name]);
+
     return (
         <div
             onClick={(e) => toggleSelection(entry.path, index, e.shiftKey)}
@@ -66,6 +75,11 @@ const FilePickerItem = memo(({ entry, index, isSelected, isFocused, toggleSelect
                             </span>
                         )}
                     </div>
+                    {subfolder && (
+                        <span className="text-[9px] text-gray-500 truncate leading-tight" title={subfolder}>
+                            {subfolder}
+                        </span>
+                    )}
                 </div>
             </div>
             <div className="text-[10px] text-gray-400 truncate leading-tight">
@@ -145,7 +159,9 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
         const query = filePickerFilter.trim().toLowerCase();
         if (!query) return filePickerAvailable;
         return filePickerAvailable.filter((entry: any) =>
-            entry.name.toLowerCase().includes(query)
+            // Match the subfolder too, so typing an encounter or map folder
+            // name narrows to that folder's logs.
+            (entry.relativePath || entry.name).toLowerCase().includes(query)
         );
     }, [filePickerAvailable, filePickerFilter]);
 
