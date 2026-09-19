@@ -110,6 +110,9 @@ const createPointer = async (request: Request, env: Env, fetchImpl: typeof fetch
     if (byteLength(body.sum.f) > MAX_SUMMARY_FIELD || byteLength(body.sum.m) > MAX_SUMMARY_FIELD) {
         return json(400, { error: 'Summary field too long.' });
     }
+    if (typeof body.raw === 'string' && body.raw && !isValidLoc(body.raw)) {
+        return json(400, { error: 'Report location must be an https URL.' });
+    }
 
     const now = Date.now();
     const record: PointerRecord = {

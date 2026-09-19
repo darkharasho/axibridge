@@ -165,6 +165,65 @@ describe('POST /r', () => {
         expect(res.status).toBe(400);
     });
 
+    it('rejects a javascript: URI in raw with 400', async () => {
+        // Pre-fix: raw had zero validation, so this was stored verbatim and
+        // returned 201 — a stored XSS payload once a viewer renders `raw` as an href.
+        const res = await handleRequest(
+            post({ loc: 'https://cdn.example.com/a.br', sum: summary, raw: 'javascript:alert(1)' }),
+            env(fakeKv()),
+            okUser() as any
+        );
+        expect(res.status).toBe(400);
+        const body = await res.json() as { error: string };
+        expect(body.error).toBe('Report location must be an https URL.');
+    });
+
+    it('rejects a non-https raw URL with 400', async () => {
+        // Pre-fix: http:// (and any other scheme) passed through unchecked.
+        const res = await handleRequest(
+            post({ loc: 'https://cdn.example.com/a.br', sum: summary, raw: 'http://cdn.example.com/a.zevtc' }),
+            env(fakeKv()),
+            okUser() as any
+        );
+        expect(res.status).toBe(400);
+        const body = await res.json() as { error: string };
+        expect(body.error).toBe('Report location must be an https URL.');
+    });
+
+    it('rejects an oversized raw with 400', async () => {
+        // Pre-fix: a 3000-byte raw was accepted, producing a ~3.9KB KV record —
+        // 13x the ~300 byte-per-link cost model.
+        const res = await handleRequest(
+            post({ loc: 'https://cdn.example.com/a.br', sum: summary, raw: `https://cdn.example.com/${'a'.repeat(3000)}` }),
+            env(fakeKv()),
+            okUser() as any
+        );
+        expect(res.status).toBe(400);
+        const body = await res.json() as { error: string };
+        expect(body.error).toBe('Report location must be an https URL.');
+    });
+
+    it('accepts and stores a valid https raw', async () => {
+        const kv = fakeKv();
+        const res = await handleRequest(
+            post({ loc: 'https://cdn.example.com/a.br', sum: summary, raw: 'https://cdn.example.com/a.zevtc' }),
+            env(kv),
+            okUser() as any
+        );
+        expect(res.status).toBe(201);
+        const body = await res.json() as { code: string };
+        expect(JSON.parse(kv.store.get(`p:${body.code}`)!).raw).toBe('https://cdn.example.com/a.zevtc');
+    });
+
+    it('still succeeds when raw is absent', async () => {
+        const res = await handleRequest(
+            post({ loc: 'https://cdn.example.com/a.br', sum: summary }),
+            env(fakeKv()),
+            okUser() as any
+        );
+        expect(res.status).toBe(201);
+    });
+
     it('rejects an oversized sum.f with 400', async () => {
         const res = await handleRequest(
             post({ loc: 'https://cdn.example.com/a.br', sum: { ...summary, f: 'f'.repeat(200) } }),
