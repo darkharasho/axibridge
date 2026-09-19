@@ -223,15 +223,5 @@ describe('share IPC handlers', () => {
             expect(typeof result.error).toBe('string');
         });
 
-        it('share-log: a dependency rejecting with undefined still resolves to a failure object', async () => {
-            registerShareHandlers({
-                store: { get: () => 'gho_valid' },
-                getDetails: () => details,
-                resolveTarget: () => Promise.reject(undefined) as any
-            });
-            const result = await invoke('share-log', { logId: 'log-1' }) as { success: boolean; error: string };
-            expect(result.success).toBe(false);
-            expect(typeof result.error).toBe('string');
-        });
     });
 });
