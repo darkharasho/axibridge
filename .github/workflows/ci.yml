@@ -28,8 +28,13 @@ jobs:
   # `docs/view/viewer.js` is a committed build artifact, so a change to
   # `src/web/**` only reaches the deployed share viewer if someone remembers to
   # run `npm run build:viewer` and commit the result. This job rebuilds it and
-  # fails when the committed copy does not match, which is the only thing
-  # standing between a viewer source change and a silently stale deploy.
+  # checks two independent things: that the committed bundle matches the
+  # rebuild byte-for-byte, and that no new content-hashed chunk (e.g.
+  # `docs/view/assets/statsWorker-<hash>.js`, emitted because the viewer
+  # config sets `emptyOutDir: false`) was left untracked instead of committed.
+  # Either check can fail the job on its own — a stale bundle and an unstaged
+  # new chunk are different failure modes and neither should be able to mask
+  # the other.
   #
   # An exact-bytes comparison is safe here because the build was measured to be
   # reproducible: the same sha256 came out of two local rebuilds on Node 24 and
@@ -54,10 +59,20 @@ jobs:
 
       - name: Fail if the committed bundle is stale
         run: |
+          status=0
+
           if ! git diff --exit-code -- docs/view; then
             echo "::error::docs/view is out of date. Run 'npm run build:viewer' and commit the result."
-            exit 1
+            status=1
           fi
+
+          untracked="$(git status --porcelain --untracked-files=all -- docs/view)"
+          if [ -n "$untracked" ]; then
+            echo "::error::docs/view has untracked files that must be committed: $untracked. Run 'git add' on them and commit."
+            status=1
+          fi
+
+          exit "$status"
 
   audit-boons:
     runs-on: ubuntu-latest
