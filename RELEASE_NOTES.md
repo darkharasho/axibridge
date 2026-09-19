@@ -1,58 +1,25 @@
 # Release Notes
 
-Version v3.12.0 — September 18, 2026
+Version v3.13.0 — September 19, 2026
 
-## Settings, reorganized
+## Logs in subfolders are visible again
 
-Settings is now five categories — General, Discord, Web Report, Logs, About —
-with a nested rail on the left instead of one long flat list. One category is
-open at a time, so you see where you are instead of scrolling past sixteen
-headings looking for the one you wanted.
+If your arcdps folder is bucketed into per-encounter subdirectories, the "add logs" picker used to open to an empty list — it only ever read the top level, even though the live watcher has always walked the tree. It now walks the same depth the watcher does, and each row shows the folder it came from so two logs with the same filename stay tellable apart.
 
-Search now looks across every category, not just the open one, and each
-category shows how many of its settings match what you typed.
+## Picker search covers the whole folder
 
-Sections are named after what they do rather than how they're built. The
-Discord settings that used to be called "embed" something are just Discord
-settings now. Your existing settings carry over untouched — only the labels
-and their placement changed.
+The search box used to filter only the logs already loaded into the picker's rolling window. Typing the name of an older fight read as "no such log" when it just wasn't loaded yet. Search now runs over every log in the folder, and "Load older logs" hides while you're searching since the results already span everything.
 
-## Send fight reports to more than one place
+## Reports say when a log didn't make it in
 
-You can now turn on as many Discord destinations as you want, and every fight
-report goes to all of them. Each destination has its own on/off switch, and
-the header picker reads the channel name when one is on, "N destinations" when
-several are.
+A 51-fight report could publish totals over 45 of them without a word. Logs whose details couldn't be read back showed up as a "--" row with an odd duration, sorted to the end, contributing nothing to any total. Those rows now carry a real start time (recovered from the filename and the fight length) and the coverage banner names the logs that were left out, with the same re-parse button that fixes them.
 
-Destinations also live in Settings now, under Discord, with the same controls
-the modal had — you no longer have to open the webhook dialog just to see
-where reports are going.
+## Fewer logs go missing in the first place
 
-If one destination fails, the others still go out, and the failure is reported
-against that row rather than the whole send.
+The details cache used to mark a log as cached the moment it hit memory, whether or not the write to durable storage actually landed. When the browser store rejected a write, the log quietly disappeared from every total once memory filled up. A log is only recorded as cached once the write lands; otherwise it gets retried, and if the store keeps refusing, the log shows up in the coverage banner instead of vanishing.
 
-NOTE: a revoked bridge link is now called out by name. The old warning claimed
-reports were stopped entirely even when a healthy channel was still receiving
-them.
-
-## A map of where the fight happened
-
-Fight report embeds now carry a thin horizontal slice of the WvW map along the
-bottom, with the squad's path drawn on it and a beacon marking where the fight
-took place. It's on by default and can be turned off under Discord settings.
-
-This only applies to new fight reports.
-
-## Log folder from Settings
-
-The arcdps log folder is now shown and changeable from Settings, under Logs.
-It used to be reachable only through first-time setup.
+NOTE: reports already published are unchanged — this affects reports you build from here on.
 
 ## Fixes
 
-- The header destination picker stays open while you flip several destinations
-  on, instead of closing after each one.
-- Turning everything off with "Disabled" now actually clears every destination.
-  It used to leave one still receiving.
-- The map slice keeps the beacon and squad markers inside the frame, and drops
-  the long walk out from spawn so the trail shows the fight, not the commute.
+- Picker rows no longer sit ragged when only some logs in a folder are nested.
