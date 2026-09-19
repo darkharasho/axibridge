@@ -34,7 +34,7 @@ a report contains but never where it goes.
 
 ## Information Architecture
 
-Fifteen sections become five categories with sixteen subsections. Every
+Fifteen sections become five categories with eighteen subsections. Every
 subsection is an existing section; nothing is deleted.
 
 | Category | Subsections |
@@ -104,7 +104,7 @@ exported settings files.
 
 The left rail lists five collapsible categories. Expanding one reveals its
 subsections; clicking a subsection navigates to it. Only one category is
-expanded at a time — with sixteen subsections, letting all five expand
+expanded at a time — with eighteen subsections, letting all five expand
 reproduces the flat list this design exists to remove.
 
 The pane shows one category at a time. Within a category the subsections are

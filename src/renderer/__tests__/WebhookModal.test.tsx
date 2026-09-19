@@ -34,7 +34,7 @@ describe('WebhookModal — AxiTools bridge link flow', () => {
     });
 
     // Fix round 1, item 3: linking a channel stored it but never activated
-    // it — `applyDiscordDestination()` re-derives against whatever was
+    // it — `applyDiscordDestinations()` re-derives against whatever was
     // already selected, so a fresh user's first link silently did nothing.
     it('selects the newly linked entry in the same save that stores it', async () => {
         (window as any).electronAPI.linkBridgeChannel = vi.fn().mockResolvedValue({
@@ -103,7 +103,7 @@ describe('WebhookModal — AxiTools bridge link flow', () => {
     });
 
     // I5: a revoked bridge row clears `token` but is otherwise left in place
-    // (`handleDiscordSendResult` in discordDestinationResolver.ts). This must
+    // (`handleDiscordSendResults` in discordDestinationResolver.ts). This must
     // be visible on the Manage Webhooks row from persisted state alone — no
     // in-memory `discordDestinationStatus` is passed to this component at
     // all in this test, so a render that shows "Re-link required" proves the

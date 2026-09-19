@@ -145,7 +145,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
             // store (and re-derive the active destination) right away, not
             // wait for a separate "Save Changes" click on unrelated edits.
             // Fix round 1, item 3: also select it in the same save, or
-            // `applyDiscordDestination()` re-derives against whatever was
+            // `applyDiscordDestinations()` re-derives against whatever was
             // already selected and the newly linked channel never activates.
             onSave(next, linked.id);
             setIsLinking(false);
@@ -176,7 +176,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                 {webhooks.map(webhook => {
                     const isBridge = webhook.kind === 'bridge';
                     // A revoked bridge token clears `token` but leaves the row
-                    // in place (see `handleDiscordSendResult` in
+                    // in place (see `handleDiscordSendResults` in
                     // `discordDestinationResolver.ts`). Derive the re-link state
                     // purely from the persisted entry -- not from any in-memory
                     // send-status -- so it survives a restart.
