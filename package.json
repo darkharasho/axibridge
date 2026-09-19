@@ -57,7 +57,9 @@
         "test:e2e:app": "playwright test --config playwright.app.config.ts",
         "test:e2e:electron": "playwright test --config playwright.electron.config.ts",
         "test:all": "npm run test:unit && npm run test:e2e:web && npm run test:e2e:app && npm run test:e2e:electron",
-        "ci:local": "npm run validate && npm run audit:boons && npm run audit:metrics && npm run audit:conditions && npm run audit:conditions:consistency && npm run test:unit && npm run test:e2e:web && npm run test:e2e:app && npm run test:e2e:electron"
+        "ci:local": "npm run validate && npm run audit:boons && npm run audit:metrics && npm run audit:conditions && npm run audit:conditions:consistency && npm run test:unit && npm run test:e2e:web && npm run test:e2e:app && npm run test:e2e:electron",
+        "worker:dev": "wrangler dev --config worker/wrangler.toml",
+        "worker:deploy": "wrangler deploy --config worker/wrangler.toml"
     },
     "dependencies": {
         "@axiapps/axilog": "1.14.0",
@@ -113,7 +115,8 @@
         "typescript": "^5.2.2",
         "vite": "^6.2.0",
         "vitest": "^4.0.17",
-        "wait-on": "^7.2.0"
+        "wait-on": "^7.2.0",
+        "wrangler": "^4.0.0"
     },
     "build": {
         "appId": "com.axibridge.app",
