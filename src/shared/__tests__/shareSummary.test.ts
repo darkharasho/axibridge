@@ -69,8 +69,10 @@ describe('buildShareSummary', () => {
         const summary = buildShareSummary({ ...details, fightName: mbInput });
         const fBytes = new TextEncoder().encode(summary.f).length;
         expect(fBytes).toBeLessThanOrEqual(128);
-        // Verify no broken UTF-8: can round-trip through encode/decode
-        expect(() => new TextDecoder().decode(new TextEncoder().encode(summary.f))).not.toThrow();
+        // Verify no broken UTF-8: round-trip must reproduce the original string exactly
+        // (a non-fatal TextDecoder never throws — it substitutes U+FFFD instead — so
+        // equality, not "not.toThrow()", is what actually detects corruption).
+        expect(new TextDecoder().decode(new TextEncoder().encode(summary.f))).toBe(summary.f);
     });
 
     it('respects 128-byte field cap for zone with multi-byte UTF-8', () => {
@@ -79,8 +81,10 @@ describe('buildShareSummary', () => {
         const summary = buildShareSummary({ ...details, zone: mbInput });
         const mBytes = new TextEncoder().encode(summary.m).length;
         expect(mBytes).toBeLessThanOrEqual(128);
-        // Verify no broken UTF-8: can round-trip through encode/decode
-        expect(() => new TextDecoder().decode(new TextEncoder().encode(summary.m))).not.toThrow();
+        // Verify no broken UTF-8: round-trip must reproduce the original string exactly
+        // (a non-fatal TextDecoder never throws — it substitutes U+FFFD instead — so
+        // equality, not "not.toThrow()", is what actually detects corruption).
+        expect(new TextDecoder().decode(new TextEncoder().encode(summary.m))).toBe(summary.m);
     });
 
     it('does not corrupt astral characters by splitting surrogate pairs', () => {
