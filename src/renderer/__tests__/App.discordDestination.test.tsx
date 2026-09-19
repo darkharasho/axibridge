@@ -92,7 +92,12 @@ describe('App Discord destination card — revoked bridge visibility', () => {
                         channelName: 'wvw-reports'
                     }
                 ],
-                selectedWebhookId: 'bridge-1'
+                selectedWebhookId: 'bridge-1',
+                // Task 9's store migration always backfills `enabledWebhookIds`
+                // alongside a persisted `selectedWebhookId`; the header
+                // trigger's label (Task 11) reads the enabled list, not the
+                // legacy single selection, so this fixture must include it.
+                enabledWebhookIds: ['bridge-1']
             }
         });
         window.electronAPI = electronApi as any;

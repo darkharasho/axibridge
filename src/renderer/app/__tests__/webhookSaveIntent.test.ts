@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveWebhookSaveIntent, reconcileEnabledWebhookIds, toggleEnabledWebhookId } from '../webhookSaveIntent';
+import { resolveWebhookSaveIntent, reconcileEnabledWebhookIds, toggleEnabledWebhookId, summarizeEnabledDestinations } from '../webhookSaveIntent';
 import type { Webhook } from '../../WebhookModal';
 
 const bridgeWebhook: Webhook = {
@@ -106,5 +106,33 @@ describe('toggleEnabledWebhookId', () => {
     it('is a no-op when toggling off an id that is not enabled', () => {
         const next = toggleEnabledWebhookId(['webhook-1'], 'bridge-1', false);
         expect(next).toEqual(['webhook-1']);
+    });
+});
+
+// Task 11 / Ruling T: the header dropdown's trigger label lives in App.tsx,
+// which `makeCtx`-based AppLayout tests can't reach (the trigger is inside
+// the `configurationPanel` JSX App.tsx builds and hands to AppLayout as an
+// opaque, pre-stubbed node). Hoisting the label logic into a pure function
+// here — mirroring `resolveWebhookSaveIntent` / `reconcileEnabledWebhookIds`
+// above — makes it directly testable instead of untestable-by-construction.
+describe('summarizeEnabledDestinations', () => {
+    it('reads the destination name when exactly one is enabled', () => {
+        const label = summarizeEnabledDestinations([webhookEntry], ['webhook-1']);
+        expect(label).toBe('My Guild');
+    });
+
+    it('counts them when more than one is enabled', () => {
+        const label = summarizeEnabledDestinations([webhookEntry, bridgeWebhook], ['webhook-1', 'bridge-1']);
+        expect(label).toBe('2 destinations');
+    });
+
+    it('reads Disabled when none are enabled', () => {
+        const label = summarizeEnabledDestinations([webhookEntry], []);
+        expect(label).toBe('Disabled');
+    });
+
+    it('falls back to Disabled when the single enabled id has no matching webhook', () => {
+        const label = summarizeEnabledDestinations([webhookEntry], ['deleted-1']);
+        expect(label).toBe('Disabled');
     });
 });

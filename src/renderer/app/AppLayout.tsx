@@ -65,7 +65,6 @@ export function AppLayout({ ctx }: { ctx: any }) {
         particlesEnabled,
         setParticlesEnabled,
         handleWebUpload,
-        selectedWebhookId,
         setEmbedStatSettings,
         setMvpWeights,
         setDisruptionMethod,
@@ -85,8 +84,6 @@ export function AppLayout({ ctx }: { ctx: any }) {
         webhookDropdownStyle,
         webhookDropdownPortalRef,
         webhooks,
-        handleUpdateSettings,
-        setSelectedWebhookId,
         setWebhookDropdownOpen,
         webhookModalOpen,
         setWebhookModalOpen,
@@ -493,16 +490,17 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         <button
                             type="button"
                             onClick={() => {
-                                setSelectedWebhookId(null);
-                                handleUpdateSettings({ selectedWebhookId: null });
+                                // Clearing is one explicit action, so it closes;
+                                // per-row toggles stay open (see below).
+                                for (const id of enabledWebhookIds) handleSetDestinationEnabled(id, false);
                                 setWebhookDropdownOpen(false);
                             }}
                             className="w-full px-3 py-2 text-left text-sm transition-colors"
-                            style={!selectedWebhookId
+                            style={enabledWebhookIds.length === 0
                                 ? { background: 'var(--accent-bg)', color: 'var(--brand-primary)' }
                                 : { color: 'var(--text-secondary)' }}
                             role="option"
-                            aria-selected={!selectedWebhookId}
+                            aria-selected={enabledWebhookIds.length === 0}
                         >
                             Disabled
                         </button>
@@ -511,21 +509,18 @@ export function AppLayout({ ctx }: { ctx: any }) {
                             // a revoked bridge keeps its row but loses its token.
                             const isBridge = hook.kind === 'bridge';
                             const needsRelink = isBridge && !hook.token;
+                            const isEnabled = enabledWebhookIds.includes(hook.id);
                             return (
                                 <button
                                     key={hook.id}
                                     type="button"
-                                    onClick={() => {
-                                        setSelectedWebhookId(hook.id);
-                                        handleUpdateSettings({ selectedWebhookId: hook.id });
-                                        setWebhookDropdownOpen(false);
-                                    }}
+                                    onClick={() => handleSetDestinationEnabled(hook.id, !isEnabled)}
                                     className="w-full px-3 py-2 text-left text-sm transition-colors flex items-center gap-2"
-                                    style={selectedWebhookId === hook.id
+                                    style={isEnabled
                                         ? { background: 'var(--accent-bg)', color: 'var(--brand-primary)' }
                                         : { color: 'var(--text-secondary)' }}
                                     role="option"
-                                    aria-selected={selectedWebhookId === hook.id}
+                                    aria-selected={isEnabled}
                                 >
                                     {needsRelink
                                         ? <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-400" aria-hidden="true" />

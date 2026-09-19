@@ -92,3 +92,28 @@ export function toggleEnabledWebhookId(
         ? [...enabledWebhookIds.filter((existing) => existing !== id), id]
         : enabledWebhookIds.filter((existing) => existing !== id);
 }
+
+/**
+ * Task 11 / Ruling T: the header dropdown's trigger label. Hoisted into a
+ * pure function for the same reason `resolveWebhookSaveIntent` and
+ * `reconcileEnabledWebhookIds` were — the trigger itself lives in `App.tsx`
+ * (inside the `configurationPanel` JSX block AppLayout receives as an opaque,
+ * pre-built node), so it can't be exercised through an `AppLayout` test.
+ *
+ * Reads the destination's own name when exactly one is enabled, a count when
+ * more than one is, and "Disabled" when none are. An enabled id with no
+ * matching webhook entry (e.g. it was deleted elsewhere) also falls back to
+ * "Disabled" rather than rendering blank — it resolves to no destination in
+ * the main process, so "Disabled" is the accurate word for it.
+ */
+export function summarizeEnabledDestinations(
+    webhooks: Webhook[],
+    enabledWebhookIds: string[]
+): string {
+    if (enabledWebhookIds.length === 0) return 'Disabled';
+    if (enabledWebhookIds.length === 1) {
+        const match = webhooks.find((hook) => hook.id === enabledWebhookIds[0]);
+        return match?.name ?? 'Disabled';
+    }
+    return `${enabledWebhookIds.length} destinations`;
+}
