@@ -979,10 +979,17 @@ describe('cross-category search', () => {
         const user = userEvent.setup();
         renderSettingsView();
         await user.type(screen.getByPlaceholderText(/search settings/i), 'damage modifiers');
-        const webReportButton = await screen.findByRole('button', { name: /Web Report/i });
+        // Scoped to the rail nav: a matching section also appears as its own
+        // row in the flat results list (see the "finds a Web Report setting"
+        // test above), and that row's accessible name also contains "Web
+        // Report" — an unscoped query would be ambiguous between the two.
+        // Scoping preserves this test's actual intent (the rail's own badge)
+        // rather than loosening it.
+        const rail = screen.getByRole('navigation', { name: /Settings categories/i });
+        const webReportButton = await within(rail).findByRole('button', { name: /Web Report/i });
         expect(webReportButton).toHaveTextContent('1');
         // An unmatched category is visibly zero, not silently absent.
-        expect(screen.getByRole('button', { name: /Stats/i })).toHaveTextContent('0');
+        expect(within(rail).getByRole('button', { name: /Stats/i })).toHaveTextContent('0');
     });
 
     it('restores the category pane when the query is cleared', async () => {
