@@ -16,7 +16,7 @@ feature, and it costs us:
 - `permalinkWait.ts` makes the local parse path wait on a network round trip that
   no longer has anything to do with parsing.
 
-We want our own short, shareable link — `axibridge.gg/r/k3Xm9qR2` — without
+We want our own short, shareable link — `bridge.axi.link/r/k3Xm9qR2` — without
 taking on a storage bill that compounds with our own success.
 
 ## Measured baselines
@@ -43,7 +43,7 @@ drift. Going native costs storage; it does not save it.
 
 ### Link format
 
-`axibridge.gg/r/<code>` where `<code>` is 8 base62 characters (~2.2x10^14 space,
+`bridge.axi.link/r/<code>` where `<code>` is 8 base62 characters (~2.2x10^14 space,
 random, collision-safe). Short and tidy, comparable to a dps.report link.
 
 ### Three storage tiers
