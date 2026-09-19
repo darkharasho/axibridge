@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { join as pathJoin, resolve as pathResolve } from 'node:path';
 import { render, screen, waitFor, fireEvent, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
@@ -1024,8 +1026,31 @@ describe('cross-category search', () => {
 });
 
 describe('section naming', () => {
-    it('never shows the word "embed" in a section heading or body copy', () => {
-        renderSettingsView();
+    it('never shows the word "embed" in a section heading or body copy', async () => {
+        // Fix pass item 1: this test used to call `renderSettingsView()`, which
+        // supplies no `reportWebhooks`. `ReportWebhooksCard` renders one row per
+        // entry, so with an empty list zero Report Links rows existed and the
+        // style hint that leaked "embed" was never in the DOM — the sweep passed
+        // because its subject was absent. Render with a live entry, and assert
+        // the hint's text is PRESENT before asserting the absence of "embed", so
+        // a future change that drops the row again fails here instead of quietly
+        // going vacuous.
+        const { mock } = renderSettings({}, {
+            reportWebhooks: [
+                {
+                    id: 'rw1',
+                    name: 'Report Channel',
+                    url: 'https://discord.com/api/webhooks/1/x',
+                    enabled: true,
+                    isForum: false,
+                    titleTemplate: '{date}',
+                },
+            ],
+        });
+        await waitForLoad(mock);
+        expect(
+            await screen.findByText(/Session stats and leaderboards as text fields\. No image\./i)
+        ).toBeInTheDocument();
         // Check headings
         const headings = Array.from(document.querySelectorAll('[data-settings-section="true"] h3'));
         for (const heading of headings) {
@@ -1074,6 +1099,144 @@ describe('section naming', () => {
         expect(sectionTitles).toContain('Cloudflare R2');
         expect(sectionTitles).toContain('Top Stats & MVP');
         expect(sectionTitles).toContain('Window & Close Behavior');
+    });
+
+    // -----------------------------------------------------------------------
+    // Ruling Y — source-level sweep for the "embed" Global Constraint.
+    //
+    // The DOM sweeps above can only see copy that happens to be rendered by the
+    // props a test supplies; the one that leaked ("Session stats and
+    // leaderboards as embed fields") lived on a row that renders only when
+    // `reportWebhooks` is non-empty. The older prop-name sweep enumerated the
+    // props that can carry copy (`label:`, `description:`, `title=`,
+    // `placeholder=`) and was structurally blind to `hint:`. That set is
+    // open-ended, so this test inverts it: scan the renderer source and fail on
+    // ANY occurrence of "embed" that is not one of the named frozen forms below.
+    // -----------------------------------------------------------------------
+
+    /**
+     * Frozen identifiers: variable/prop/function/type names and imports that
+     * contain "embed". They are internal names, never copy, and renaming them
+     * would churn the store and the IPC surface for no user-visible gain.
+     *
+     * QUALIFIES FOR ENTRY: an identifier, type name, or import specifier — i.e.
+     * a token that the TypeScript compiler resolves. A string that can reach a
+     * user's eyes NEVER qualifies, no matter how internal it looks.
+     */
+    const FROZEN_EMBED_IDENTIFIERS = new Set([
+        'embedStats',
+        'embedStatSettings',
+        'setEmbedStats',
+        'setEmbedStatSettings',
+        'updateEmbedStat',
+        'onEmbedStatSettingsSaved',
+        'DEFAULT_EMBED_STATS',
+        'IEmbedStatSettings',
+        // "embedded" is the English adjective for the web-report/History host
+        // mode (`embedded?: boolean` on StatsView), not the Discord noun.
+        'embedded',
+        'Embedded',
+    ]);
+
+    /**
+     * Frozen bare-`embed` forms: the places where the bare token is a store key
+     * or a persisted string VALUE rather than copy. Each is matched
+     * syntactically so that the same letters inside a sentence still fail.
+     *
+     * QUALIFIES FOR ENTRY: a store key, a persisted enum value, or a frozen
+     * section-anchor id. Prose never qualifies.
+     */
+    const FROZEN_EMBED_FORMS: Array<{ pattern: RegExp; reason: string }> = [
+        // `discordNotificationType: 'embed'` — a persisted store value.
+        { pattern: /(['"`])embed\1/g, reason: "persisted store value 'embed'" },
+        // `sectionId="embed-summary"` / `{ id: 'embed-top' }` — frozen anchors
+        // kept so existing deep links and legacy anchors keep resolving.
+        { pattern: /(['"`])embed-(?:summary|top)\1/g, reason: 'frozen section anchor id' },
+        // `embed: boolean` / `embed: splitEnemiesByTeam` — the
+        // IDiscordEnemySplitSettings store key and its type member.
+        { pattern: /\bembed(?=\s*[:?])/g, reason: 'store key / type member' },
+        // `discordEnemySplitSettings.embed` — reading that same store key.
+        { pattern: /\.embed\b/g, reason: 'store key read' },
+    ];
+
+    /** Blanks out `//` and block comments, preserving line/column offsets, and
+     *  without being fooled by `//` inside a string (e.g. a webhook URL). */
+    function stripComments(source: string): string {
+        const out = source.split('');
+        let i = 0;
+        while (i < source.length) {
+            const ch = source[i];
+            if (ch === '"' || ch === "'" || ch === '`') {
+                const quote = ch;
+                i += 1;
+                while (i < source.length && source[i] !== quote) {
+                    if (source[i] === '\\') i += 1;
+                    i += 1;
+                }
+                i += 1;
+            } else if (ch === '/' && source[i + 1] === '/') {
+                while (i < source.length && source[i] !== '\n') {
+                    out[i] = ' ';
+                    i += 1;
+                }
+            } else if (ch === '/' && source[i + 1] === '*') {
+                while (i < source.length && !(source[i] === '*' && source[i + 1] === '/')) {
+                    if (source[i] !== '\n') out[i] = ' ';
+                    i += 1;
+                }
+                out[i] = ' ';
+                if (i + 1 < source.length) out[i + 1] = ' ';
+                i += 2;
+            } else {
+                i += 1;
+            }
+        }
+        return out.join('');
+    }
+
+    function collectRendererSources(dir: string, acc: string[] = []): string[] {
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+            if (entry.name === '__tests__' || entry.name === 'node_modules') continue;
+            const full = pathJoin(dir, entry.name);
+            if (entry.isDirectory()) collectRendererSources(full, acc);
+            else if (/\.tsx?$/.test(entry.name)) acc.push(full);
+        }
+        return acc;
+    }
+
+    it('never writes the word "embed" outside the named frozen identifiers', () => {
+        // vitest's root is the repo root, and `import.meta.url` is not a file
+        // URL under the jsdom transform — resolve from cwd instead.
+        const rendererRoot = pathResolve(process.cwd(), 'src/renderer') + '/';
+        const files = collectRendererSources(rendererRoot);
+        expect(files.length).toBeGreaterThan(20);
+
+        const offenders: string[] = [];
+        for (const file of files) {
+            const lines = stripComments(readFileSync(file, 'utf8')).split('\n');
+            lines.forEach((line, index) => {
+                // Blank out whole identifier runs that are allowlisted, then the
+                // frozen bare forms; whatever "embed" survives is copy.
+                let masked = line.replace(
+                    /[A-Za-z0-9_$]*embed[A-Za-z0-9_$]*/gi,
+                    (token) => (FROZEN_EMBED_IDENTIFIERS.has(token) ? ' '.repeat(token.length) : token)
+                );
+                for (const { pattern } of FROZEN_EMBED_FORMS) {
+                    masked = masked.replace(pattern, (m) => ' '.repeat(m.length));
+                }
+                const match = /embed/i.exec(masked);
+                if (match) {
+                    offenders.push(
+                        `${file.slice(rendererRoot.length)}:${index + 1}: ${line.trim()}` +
+                        `\n    matched "${masked.slice(match.index).match(/[A-Za-z0-9_$-]*embed[A-Za-z0-9_$-]*/i)?.[0] ?? 'embed'}"` +
+                        ' — add it to FROZEN_EMBED_IDENTIFIERS/FROZEN_EMBED_FORMS only if it is an' +
+                        ' identifier, store key, type name or import; otherwise reword the copy.'
+                    );
+                }
+            });
+        }
+
+        expect(offenders, `"embed" leaked into renderer copy:\n${offenders.join('\n')}`).toEqual([]);
     });
 });
 

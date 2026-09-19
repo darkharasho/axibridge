@@ -23,7 +23,7 @@ const looksLikeDiscordWebhook = (url: string) =>
     !url || /^https:\/\/(discord\.com|discordapp\.com|ptb\.discord\.com|canary\.discord\.com)\/api\/webhooks\//.test(url);
 
 const STYLE_OPTIONS: Array<{ value: ReportPostStyle; label: string; hint: string }> = [
-    { value: 'text', label: 'Text', hint: 'Session stats and leaderboards as embed fields. No image.' },
+    { value: 'text', label: 'Text', hint: 'Session stats and leaderboards as text fields. No image.' },
     { value: 'hybrid', label: 'Banner + stats', hint: 'A generated banner image plus the leaderboards as text.' },
     { value: 'graphic', label: 'Full graphic', hint: 'One generated image carries the whole session.' },
 ];
