@@ -48,7 +48,7 @@ const webhookEntry: StoredWebhookEntry = {
 // miswire at either call site can't be caught by exercising `index.ts`
 // directly — the mitigation is to make the gate a single exported,
 // independently-tested predicate that both call sites import and call
-// as-is, rather than each re-deriving `Boolean(resolveDiscordDestination())`
+// as-is, rather than each re-deriving `Boolean(resolveDiscordDestinations())`
 // inline (which is itself un-reviewable boilerplate duplication).
 describe('shouldSendDiscord', () => {
     it('is true for a resolvable bridge selection', () => {
