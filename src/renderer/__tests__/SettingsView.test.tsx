@@ -1033,18 +1033,21 @@ describe('section naming', () => {
         await screen.findByRole('heading', { name: /Export \/ Import/i });
 
         // Mock file picker to return settings that trigger import modal
+        // Include embedStatSettings so that row is actually rendered and filtered into the modal
         mock.selectSettingsFile.mockResolvedValue({
             success: true,
-            settings: { closeBehavior: 'quit' },
+            settings: { closeBehavior: 'quit', embedStatSettings: {} },
         });
 
         // Open the import modal
         fireEvent.click(within(document.getElementById('export-import')!).getByRole('button', { name: /Import Settings/i }));
 
-        // Wait for modal and check for "embed" in modal content
-        const importModal = await screen.findByText(/Choose what to import/i);
-        const modalContainer = importModal.closest('div[role="presentation"]') || document.body;
-        const modalText = modalContainer.textContent?.toLowerCase() ?? '';
+        // Wait for modal and verify the embedStatSettings row is live (not filtered out)
+        await screen.findByText(/Choose what to import/i);
+        expect(screen.getByText('Discord Stat Toggles')).toBeInTheDocument();
+
+        // Check for "embed" in modal content — modal is not portaled, so document.body captures it
+        const modalText = document.body.textContent?.toLowerCase() ?? '';
         expect(modalText).not.toContain('embed');
     });
 
