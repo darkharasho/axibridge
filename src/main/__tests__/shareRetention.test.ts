@@ -125,12 +125,38 @@ describe('planRetention', () => {
         expect(planRetention(entries, tiny)[0].id).toBe('never');
     });
 
-    it('never reports a negative reclaimed amount for a malformed negative-bytes entry', () => {
-        const entries = [entry({ id: 'a', bytes: -500, seen: 1 })];
+    it('clamps the demote-branch reclaim for a malformed negative-bytes entry', () => {
+        // 'neg' is oldest, so it is the first candidate the demote pass acts on.
+        // Unclamped, Math.round(-500 * 0.66) = -330 — a plan step that claims to
+        // GROW the repo. 'big' just needs to push total (1500) over the 800 mark
+        // so the planner actually does work instead of short-circuiting on the
+        // initial total <= highWater guard.
+        const entries = [
+            entry({ id: 'neg', bytes: -500, seen: 1, stage: 'full' }),
+            entry({ id: 'big', bytes: 2000, seen: 5, stage: 'full' })
+        ];
         const actions = planRetention(entries, tiny);
-        for (const action of actions) {
-            expect(action.reclaimed).toBeGreaterThanOrEqual(0);
-        }
+        expect(actions.length).toBeGreaterThan(0);
+        const negAction = actions.find((a) => a.id === 'neg');
+        expect(negAction).toMatchObject({ from: 'full', to: 'demoted' });
+        expect(negAction!.reclaimed).toBeGreaterThanOrEqual(0);
+    });
+
+    it('clamps the tombstone-branch reclaim for a malformed negative-bytes entry', () => {
+        // 'neg' starts already 'demoted' so pass 2 (not pass 1) acts on it.
+        // Unclamped, the tombstone branch's reclaimed is current.bytes, i.e. -100
+        // directly — again a step that claims to GROW the repo. 'big' is sized so
+        // demoting it alone (pass 1) still leaves total (1600) above the 800
+        // mark, forcing pass 2 to run and reach 'neg'.
+        const entries = [
+            entry({ id: 'neg', bytes: -100, seen: 1, stage: 'demoted' }),
+            entry({ id: 'big', bytes: 5000, seen: 5, stage: 'full' })
+        ];
+        const actions = planRetention(entries, tiny);
+        expect(actions.length).toBeGreaterThan(0);
+        const negAction = actions.find((a) => a.id === 'neg');
+        expect(negAction).toMatchObject({ from: 'demoted', to: 'tombstone' });
+        expect(negAction!.reclaimed).toBeGreaterThanOrEqual(0);
     });
 
     // Cross-task constraint: the Worker's PATCH /r/:code is monotonic (full=0,
