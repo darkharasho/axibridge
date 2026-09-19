@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { setupAppPage, navigateTo, expectAPICalled } from './helpers/appTestHelpers';
+import { setupAppPage, navigateTo, expectAPICalled, openSettingsCategory } from './helpers/appTestHelpers';
 
 test.describe('Settings — Import/Export (IMP-001–002)', () => {
     test('IMP-001: export button calls exportSettings', async ({ page }) => {
         await setupAppPage(page);
         await navigateTo(page, 'Settings');
+        await openSettingsCategory(page, 'Application');
         const section = page.locator('[data-settings-label="Export / Import Settings"]');
         await section.scrollIntoViewIfNeeded();
         const exportBtn = section.getByRole('button', { name: /Export/i }).first();
@@ -17,6 +18,7 @@ test.describe('Settings — Import/Export (IMP-001–002)', () => {
     test('IMP-002: import button calls selectSettingsFile', async ({ page }) => {
         await setupAppPage(page);
         await navigateTo(page, 'Settings');
+        await openSettingsCategory(page, 'Application');
         const section = page.locator('[data-settings-label="Export / Import Settings"]');
         await section.scrollIntoViewIfNeeded();
         const importBtn = section.getByRole('button', { name: /Import/i }).first();
