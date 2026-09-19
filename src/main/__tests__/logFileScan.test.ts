@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -82,16 +82,27 @@ describe('scanLogFiles', () => {
 
     it('skips an unreadable subfolder instead of losing every log', async () => {
         write('readable/good.zevtc');
+        write('locked/hidden.zevtc');
         const locked = path.join(root, 'locked');
-        fs.mkdirSync(locked);
-        fs.writeFileSync(path.join(locked, 'hidden.zevtc'), 'x');
-        fs.chmodSync(locked, 0o000);
+
+        // Denying the read has to be faked rather than chmod'd: Windows does
+        // not honour mode 0o000 on a directory, so the real thing only ever
+        // failed on POSIX.
+        const readdir = fs.promises.readdir;
+        const spy = vi.spyOn(fs.promises, 'readdir').mockImplementation((async (dir: any, opts: any) => {
+            if (dir === locked) {
+                const err: NodeJS.ErrnoException = new Error('EACCES: permission denied');
+                err.code = 'EACCES';
+                throw err;
+            }
+            return readdir(dir, opts);
+        }) as typeof fs.promises.readdir);
 
         try {
             const files = await scanLogFiles(root);
             expect(files.map((f) => f.relativePath)).toEqual(['readable/good.zevtc']);
         } finally {
-            fs.chmodSync(locked, 0o700);
+            spy.mockRestore();
         }
     });
 });
