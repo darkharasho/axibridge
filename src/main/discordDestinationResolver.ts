@@ -23,50 +23,82 @@ export interface DestinationStore {
 }
 
 /**
- * Resolve the active Discord destination from the store's `webhooks[]` +
- * `selectedWebhookId`. Shared by the send-gate check, the `applySettings`
- * re-derivation, and the app-boot restore so all three agree on what
- * "configured" means — see task-9-brief Rulings C, F, H.
+ * The ids of every destination the user has switched on.
  *
- * Fix round 1, item 1 (Critical): the legacy `discordWebhookUrl` is honoured
- * ONLY when `webhooks` is genuinely empty — a store that has never been
- * migrated to the webhooks[] model. Once `webhooks` is non-empty, an
- * unresolvable or null `selectedWebhookId` means the user has explicitly
- * selected "Disabled" (or deleted the selected entry), which must resolve to
- * `null`, not fall back. The old "fall back whenever `selected` doesn't
- * resolve" reading fed `applyDiscordDestination`'s own mirror write for a
- * *previous* selection straight back into this fallback the moment the user
- * picked Disabled, silently re-arming a destination the UI showed as off.
+ * `enabledWebhookIds` did not exist before the per-destination toggle. An
+ * install upgrading into it has the key entirely absent, and must keep
+ * sending exactly where it sent before — so an absent key derives its value
+ * from the old single `selectedWebhookId`. A *present* empty array is the
+ * opposite case and must be honoured verbatim: it means the user switched
+ * everything off. Distinguishing "absent" from "empty" is the whole job of
+ * this function; `store.get('enabledWebhookIds', undefined)` is the only
+ * read that can tell them apart.
  */
-export function resolveDiscordDestination(store: DestinationStore): DiscordDestination | null {
-    const webhooks = store.get('webhooks', []) as StoredWebhookEntry[];
+export function readEnabledWebhookIds(store: DestinationStore): string[] {
+    const stored = store.get('enabledWebhookIds', undefined);
+    if (Array.isArray(stored)) {
+        return stored.filter((id): id is string => typeof id === 'string');
+    }
     const selectedWebhookId = store.get('selectedWebhookId', null) as string | null;
-    const selected = selectedWebhookId ? webhooks.find((w) => w.id === selectedWebhookId) : undefined;
+    return selectedWebhookId ? [selectedWebhookId] : [];
+}
 
-    if (selected?.kind === 'bridge' && selected.relayUrl && selected.token) {
-        return { kind: 'bridge', relayUrl: selected.relayUrl, token: selected.token };
+/** Map one stored entry to a destination, or null when it is unusable. */
+function toDestination(entry: StoredWebhookEntry): DiscordDestination | null {
+    if (entry.kind === 'bridge') {
+        // A bridge entry whose token was revoked keeps its row (so the user
+        // can re-link it) but cannot send. It is skipped, not an error.
+        return entry.relayUrl && entry.token
+            ? { id: entry.id, kind: 'bridge', relayUrl: entry.relayUrl, token: entry.token }
+            : null;
     }
-    if (selected?.url) {
-        return { kind: 'webhook', url: selected.url };
-    }
+    return entry.url ? { id: entry.id, kind: 'webhook', url: entry.url } : null;
+}
+
+/**
+ * Resolve every enabled Discord destination from the store's `webhooks[]`
+ * plus `enabledWebhookIds`. Shared by the send-gate check, the `applySettings`
+ * re-derivation, and the app-boot restore so all three agree on what
+ * "configured" means.
+ *
+ * Results come back in `webhooks[]` order, not in `enabledWebhookIds` order:
+ * the list the user sees in Settings is `webhooks[]`, and the send order
+ * should match it regardless of the order rows were toggled on.
+ *
+ * The legacy `discordWebhookUrl` is honoured ONLY when `webhooks` is
+ * genuinely empty — a store that has never been migrated to the webhooks[]
+ * model. Once `webhooks` is non-empty, an empty resolution means the user
+ * has explicitly switched everything off, which must resolve to `[]`, not
+ * fall back. The old "fall back whenever nothing resolves" reading fed
+ * `applyDiscordDestinations`' own mirror write straight back into this
+ * fallback the moment the user picked Disabled, silently re-arming a
+ * destination the UI showed as off.
+ */
+export function resolveDiscordDestinations(store: DestinationStore): DiscordDestination[] {
+    const webhooks = store.get('webhooks', []) as StoredWebhookEntry[];
+
     if (webhooks.length === 0) {
         const legacyUrl = store.get('discordWebhookUrl', null);
         if (typeof legacyUrl === 'string' && legacyUrl.length > 0) {
-            return { kind: 'webhook', url: legacyUrl };
+            return [{ id: 'legacy', kind: 'webhook', url: legacyUrl }];
         }
+        return [];
     }
-    return null;
+
+    const enabled = new Set(readEnabledWebhookIds(store));
+    return webhooks
+        .filter((entry) => enabled.has(entry.id))
+        .map(toDestination)
+        .filter((dest): dest is DiscordDestination => dest !== null);
 }
 
 /**
  * Whether a report should be sent to Discord at all — the exact same
- * resolution the destination comes from, so the gate and the destination are
- * incapable of disagreeing. Exported as its own seam (fix round 1, item 2)
- * so the send-gate logic at both `processLogFile` call sites in `index.ts`
- * is a single imported function rather than inline, untestable duplication.
+ * resolution the destinations come from, so the gate and the destination
+ * list are incapable of disagreeing.
  */
 export function shouldSendDiscord(store: DestinationStore): boolean {
-    return resolveDiscordDestination(store) !== null;
+    return resolveDiscordDestinations(store).length > 0;
 }
 
 /**
@@ -86,17 +118,24 @@ export function shouldBuildMapSlice(store: DestinationStore): boolean {
 }
 
 /**
- * Apply `resolveDiscordDestination()` to the live notifier, and keep the
- * legacy `discordWebhookUrl` mirror in sync: settingsHandlers.ts still
- * returns it to the renderer as "Legacy single webhook URL" (SettingsView.tsx),
- * so a bridge selection (or no resolvable selection) must clear it rather
- * than leaving a stale URL that this same resolver — or the pre-webhooks[]
- * boot path — could resurrect later.
+ * Apply `resolveDiscordDestinations()` to the live notifier and keep both
+ * single-value mirrors in sync.
+ *
+ * `discordWebhookUrl`: settingsHandlers.ts still returns it to the renderer
+ * as "Legacy single webhook URL", so a bridge-only (or empty) resolution must
+ * clear it rather than leaving a stale URL this same resolver could
+ * resurrect later.
+ *
+ * `selectedWebhookId`: settingsHandlers.ts returns it and the export/import
+ * list reads it. It mirrors the FIRST enabled id, so a store read by older
+ * code still points at a destination that is genuinely on.
  */
-export function applyDiscordDestination(store: DestinationStore, discord: DiscordNotifier | null): void {
-    const destination = resolveDiscordDestination(store);
-    store.set('discordWebhookUrl', destination?.kind === 'webhook' ? destination.url : null);
-    discord?.setDestination(destination);
+export function applyDiscordDestinations(store: DestinationStore, discord: DiscordNotifier | null): void {
+    const destinations = resolveDiscordDestinations(store);
+    const firstWebhook = destinations.find((dest) => dest.kind === 'webhook');
+    store.set('discordWebhookUrl', firstWebhook?.kind === 'webhook' ? firstWebhook.url : null);
+    store.set('selectedWebhookId', destinations[0]?.id ?? null);
+    discord?.setDestinations(destinations);
 }
 
 /** The subset of BrowserWindow this module needs to notify the renderer. */
@@ -132,7 +171,7 @@ export function handleDiscordSendResult(
     if (sendResult.reason === 'revoked') {
         const nextWebhooks = webhooks.map((w) => (w.id === selectedId ? { ...w, token: undefined } : w));
         store.set('webhooks', nextWebhooks);
-        applyDiscordDestination(store, discord);
+        applyDiscordDestinations(store, discord);
     }
     win?.webContents.send('discord-destination-status', {
         webhookId: selectedId,

@@ -39,8 +39,8 @@ import { buildFightMitigationByAccount } from './embedMitigation';
 export const DISCORD_WEBHOOK_AVATAR_URL = 'https://raw.githubusercontent.com/darkharasho/axibridge/main/public/img/AxiBridge-glyph.png';
 
 export type DiscordDestination =
-    | { kind: 'webhook'; url: string }
-    | { kind: 'bridge'; relayUrl: string; token: string };
+    | { id: string; kind: 'webhook'; url: string }
+    | { id: string; kind: 'bridge'; relayUrl: string; token: string };
 
 export type SendFailureReason = 'revoked' | 'forbidden' | 'rate-limited' | 'rejected' | 'network';
 
@@ -370,7 +370,7 @@ export class DiscordNotifier {
     }
 
     public setWebhookUrl(url: string | null) {
-        this.destination = url ? { kind: 'webhook', url } : null;
+        this.destination = url ? { id: 'legacy', kind: 'webhook', url } : null;
     }
 
     public setDestination(dest: DiscordDestination | null) {
