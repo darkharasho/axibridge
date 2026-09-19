@@ -196,4 +196,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('discord-destination-status', listener);
         return () => ipcRenderer.removeListener('discord-destination-status', listener);
     },
+
+    // Share links (bridge.axi.link) — create a short link for a parsed log, and
+    // plan budget-driven retention for already-published reports.
+    shareLog: (logId: string) => ipcRenderer.invoke('share-log', { logId }),
+    sharePlanRetention: (payload: { entries: unknown[]; budgetBytes?: number; highWaterPct?: number }) =>
+        ipcRenderer.invoke('share-plan-retention', payload),
 })

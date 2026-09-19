@@ -88,10 +88,11 @@ import {
     normalizeMvpWeights,
 } from './handlers/settingsHandlers';
 import { registerUploadHandlers } from './handlers/uploadHandlers';
-import { registerGithubHandlers } from './handlers/githubHandlers';
+import { registerGithubHandlers, resolveR2Uploader } from './handlers/githubHandlers';
 import { registerCloudflareHandlers } from './handlers/cloudflareHandlers';
 import { registerParserHandlers } from './handlers/parserHandlers';
 import { registerReparseHandlers } from './handlers/reparseHandlers';
+import { registerShareHandlers } from './handlers/shareHandlers';
 import { AxilogManager } from './axilogParser';
 import { getSkillNameCache, initSkillNameCache } from './skillNameCache';
 import { removeEliteInsights } from './eliteInsightsRemoval';
@@ -1881,6 +1882,11 @@ if (!gotTheLock) {
             getAxilogManager: () => axilogManager,
             getPruneOptions: statsPruneOptions,
             setBulkLogDetails,
+        });
+        registerShareHandlers({
+            store,
+            getDetails: (logId: string) => getBulkLogDetails(logId),
+            resolveTarget: (s: any) => resolveR2Uploader(s).uploader ?? null
         });
     })
 }
