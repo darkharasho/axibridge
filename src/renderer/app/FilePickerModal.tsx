@@ -64,7 +64,7 @@ const FilePickerItem = memo(({ entry, index, isSelected, isFocused, toggleSelect
                 <div className={`shrink-0 w-4 h-4 rounded-[4px] border flex items-center justify-center transition-colors ${isSelected ? 'border-blue-400 bg-blue-400/90' : 'border-white/15 bg-black/40'}`}>
                     {isSelected && <svg className="w-2.5 h-2.5 text-[var(--tw-colors-cyan-950)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                 </div>
-                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                <div className="flex-1 min-w-0 flex flex-col justify-center min-h-[26px]">
                     <div className="flex items-center gap-2 min-w-0">
                         <span className={`text-xs font-medium truncate leading-tight ${isSelected ? 'text-cyan-50' : 'text-gray-200'}`}>
                             {entry.name}
