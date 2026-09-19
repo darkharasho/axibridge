@@ -31,41 +31,32 @@ export interface ShareSummary {
 }
 
 /**
- * Truncate a string to fit within a byte limit while respecting UTF-8 boundaries.
- * Never emits a broken surrogate pair or partial UTF-8 sequence.
+ * Truncate a string to fit within a byte limit while respecting UTF-8 boundaries
+ * and surrogate pair safety. Iterates by code point (via for...of) to ensure
+ * surrogate pairs are never split.
  */
-const truncateToBytes = (str: string, maxBytes: number): string => {
+export const truncateToBytes = (str: string, maxBytes: number): string => {
     const encoder = new TextEncoder();
-    const bytes = encoder.encode(str);
+    if (encoder.encode(str).length <= maxBytes) return str;
 
-    if (bytes.length <= maxBytes) {
-        return str;
+    let out = '';
+    let used = 0;
+    // for...of iterates by code point, so a surrogate pair is never split.
+    for (const ch of str) {
+        const size = encoder.encode(ch).length;
+        if (used + size > maxBytes) break;
+        out += ch;
+        used += size;
     }
-
-    // Binary search for the longest valid truncation point
-    let low = 0;
-    let high = str.length;
-
-    while (low < high) {
-        const mid = Math.ceil((low + high) / 2);
-        const truncated = str.slice(0, mid);
-        const encoded = encoder.encode(truncated);
-
-        if (encoded.length <= maxBytes) {
-            low = mid;
-        } else {
-            high = mid - 1;
-        }
-    }
-
-    return str.slice(0, low);
+    return out;
 };
 
 const text = (value: unknown, fallback: string): string => {
     const raw = typeof value === 'string' && value.trim() ? value.trim() : fallback;
-    // First truncate to character limit for practical sizing
-    const charTruncated = raw.length > MAX_TEXT ? raw.slice(0, MAX_TEXT) : raw;
-    // Then respect the 128-byte field cap, never breaking UTF-8
+    // Truncate to character limit using code points (Array.from splits by code point)
+    const chars = Array.from(raw);
+    const charTruncated = chars.length > MAX_TEXT ? chars.slice(0, MAX_TEXT).join('') : raw;
+    // Then respect the 128-byte field cap, never breaking UTF-8 or surrogate pairs
     return truncateToBytes(charTruncated, MAX_FIELD_BYTES);
 };
 
