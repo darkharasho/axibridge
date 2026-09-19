@@ -1,6 +1,6 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron';
 import fs from 'fs';
-import path from 'node:path';
+import { scanLogFiles } from '../logFileScan';
 
 export interface FileHandlerOptions {
     getWindow: () => BrowserWindow | null;
@@ -50,26 +50,7 @@ export function registerFileHandlers(opts: FileHandlerOptions) {
             const dir = payload?.dir;
             if (!dir) return { success: false, error: 'Missing directory.' };
             if (!fs.existsSync(dir)) return { success: false, error: 'Directory not found.' };
-            const entries = await fs.promises.readdir(dir, { withFileTypes: true });
-            const files = await Promise.all(entries
-                .filter((entry) => {
-                    if (!entry.isFile()) return false;
-                    const name = entry.name.toLowerCase();
-                    if (name.endsWith('.evtc') || name.endsWith('.zevtc')) return true;
-                    if (payload?.allowJson && name.endsWith('.json')) return true;
-                    return false;
-                })
-                .map(async (entry) => {
-                    const fullPath = path.join(dir, entry.name);
-                    const stat = await fs.promises.stat(fullPath);
-                    return {
-                        path: fullPath,
-                        name: entry.name,
-                        mtimeMs: stat.mtimeMs,
-                        size: stat.size
-                    };
-                }));
-            files.sort((a, b) => b.mtimeMs - a.mtimeMs);
+            const files = await scanLogFiles(dir, { allowJson: payload?.allowJson });
             return { success: true, files };
         } catch (err: any) {
             return { success: false, error: err?.message || 'Failed to list log files.' };
