@@ -23,7 +23,11 @@ export function registerShareHandlers(opts: ShareHandlerOptions) {
 
         let details: any;
         try {
-            details = getDetails(logId);
+            // `await` is a no-op on a non-promise value, so this stays safe even
+            // when the real dependency is synchronous — but it is required to
+            // catch a REJECTING promise, which a bare call would let sail past
+            // this try/catch as an unhandled rejection.
+            details = await getDetails(logId);
         } catch (err) {
             return { success: false, error: errorMessage(err, 'Failed to load that log’s details.') };
         }
@@ -33,7 +37,7 @@ export function registerShareHandlers(opts: ShareHandlerOptions) {
 
         let target: ShareTarget | null;
         try {
-            target = resolveTarget(store);
+            target = await resolveTarget(store);
         } catch (err) {
             return { success: false, error: errorMessage(err, 'Failed to resolve where to store the report.') };
         }
@@ -46,7 +50,7 @@ export function registerShareHandlers(opts: ShareHandlerOptions) {
 
         let githubToken: string | null;
         try {
-            githubToken = (store?.get?.('githubToken') as string | undefined) ?? null;
+            githubToken = ((await store?.get?.('githubToken')) as string | undefined) ?? null;
         } catch (err) {
             return { success: false, error: errorMessage(err, 'Failed to read your GitHub connection.') };
         }

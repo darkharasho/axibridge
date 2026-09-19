@@ -164,4 +164,74 @@ describe('share IPC handlers', () => {
             expect(result).toEqual({ success: true, actions: [] });
         });
     });
+
+    describe('async-rejecting dependencies (fix round 2)', () => {
+        // Round 1 wrapped getDetails/resolveTarget/store.get in try/catch but
+        // never awaited them, so a dependency returning a REJECTED PROMISE
+        // (rather than throwing synchronously) sailed straight past the
+        // try/catch. For getDetails/store.get, the specific wrong behaviour
+        // this used to produce was the handler's own returned promise
+        // REJECTING with `TypeError: Cannot read properties of undefined
+        // (reading 'success')` (from `shareLog(details, ...)` receiving an
+        // unresolved Promise as `details`) instead of resolving to
+        // `{ success: false, error }`. For resolveTarget, the wrong behaviour
+        // was that the real rejection reason was silently discarded and
+        // replaced with a misleading `target.putObject is not a function`
+        // once the un-awaited Promise object was used as if it were a
+        // ShareTarget. These tests fail against the pre-await code (verified
+        // by reverting `await` locally) and pass now that all three are
+        // awaited inside their existing try blocks.
+
+        it('share-log: getDetails rejecting resolves to a failure object, not a rejection', async () => {
+            registerShareHandlers({
+                store: { get: () => 'gho_valid' },
+                getDetails: () => Promise.reject(new Error('async disk read failed')),
+                resolveTarget: () => ({ putObject: vi.fn() })
+            });
+            const result = await invoke('share-log', { logId: 'log-1' }) as { success: boolean; error: string };
+            expect(result).toEqual({ success: false, error: 'async disk read failed' });
+        });
+
+        it('share-log: store.get rejecting resolves to a failure object, not a rejection', async () => {
+            registerShareHandlers({
+                store: { get: () => Promise.reject(new Error('async store corrupted')) },
+                getDetails: () => details,
+                resolveTarget: () => ({ putObject: vi.fn() })
+            });
+            const result = await invoke('share-log', { logId: 'log-1' }) as { success: boolean; error: string };
+            expect(result).toEqual({ success: false, error: 'async store corrupted' });
+        });
+
+        it('share-log: resolveTarget rejecting surfaces the real error, not a misleading putObject message', async () => {
+            registerShareHandlers({
+                store: { get: () => 'gho_valid' },
+                getDetails: () => details,
+                resolveTarget: () => Promise.reject(new Error('async R2 credentials malformed')) as any
+            });
+            const result = await invoke('share-log', { logId: 'log-1' }) as { success: boolean; error: string };
+            expect(result).toEqual({ success: false, error: 'async R2 credentials malformed' });
+        });
+
+        it('share-log: a dependency rejecting with a plain string still resolves to a failure object', async () => {
+            registerShareHandlers({
+                store: { get: () => 'gho_valid' },
+                getDetails: () => Promise.reject('plain string rejection'),
+                resolveTarget: () => ({ putObject: vi.fn() })
+            });
+            const result = await invoke('share-log', { logId: 'log-1' }) as { success: boolean; error: string };
+            expect(result.success).toBe(false);
+            expect(typeof result.error).toBe('string');
+        });
+
+        it('share-log: a dependency rejecting with undefined still resolves to a failure object', async () => {
+            registerShareHandlers({
+                store: { get: () => 'gho_valid' },
+                getDetails: () => details,
+                resolveTarget: () => Promise.reject(undefined) as any
+            });
+            const result = await invoke('share-log', { logId: 'log-1' }) as { success: boolean; error: string };
+            expect(result.success).toBe(false);
+            expect(typeof result.error).toBe('string');
+        });
+    });
 });
