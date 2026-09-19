@@ -27,7 +27,7 @@ import { useSectorOwners } from './app/hooks/useSectorOwners';
 import { extractDroppedLogFiles } from './app/utils/droppedFiles';
 import { DetailsCache } from './cache/DetailsCache';
 import { DetailsCacheProvider } from './cache/DetailsCacheContext';
-import { resolveWebhookSaveIntent, reconcileEnabledWebhookIds, toggleEnabledWebhookId, summarizeEnabledDestinations } from './app/webhookSaveIntent';
+import { resolveWebhookSaveIntent, reconcileEnabledWebhookIds, toggleEnabledWebhookId, summarizeEnabledDestinations, enabledDestinationsNeedingRelink, describeRelinkWarning } from './app/webhookSaveIntent';
 import type { Webhook } from './WebhookModal';
 
 /** Strip details from log entries — logsForStats is metadata-only. */
@@ -494,18 +494,29 @@ function App() {
         const intent = resolveWebhookSaveIntent(selectedWebhookId, nextWebhooks, selectId);
         setWebhooks(intent.webhooks);
         // See `reconcileEnabledWebhookIds` (webhookSaveIntent.ts) for the logic.
-        const nextEnabled = reconcileEnabledWebhookIds(enabledWebhookIds, nextWebhooks, selectId);
+        // Read/write `enabledWebhookIdsRef` alongside the state, symmetrically
+        // with `handleSetDestinationEnabled` above — see its comment for why a
+        // closure read cannot compose across synchronous calls in one tick.
+        const nextEnabled = reconcileEnabledWebhookIds(enabledWebhookIdsRef.current, nextWebhooks, selectId);
+        enabledWebhookIdsRef.current = nextEnabled;
         setEnabledWebhookIds(nextEnabled);
         if (intent.selectedWebhookId !== undefined) setSelectedWebhookId(intent.selectedWebhookId);
         handleUpdateSettings({ ...intent, enabledWebhookIds: nextEnabled });
-    }, [selectedWebhookId, enabledWebhookIds, handleUpdateSettings, setWebhooks, setEnabledWebhookIds, setSelectedWebhookId]);
+    }, [selectedWebhookId, handleUpdateSettings, setWebhooks, setEnabledWebhookIds, setSelectedWebhookId]);
     // A revoked bridge token clears `token` but leaves the entry (and its
-    // selection) in place, so a `discordDestinationStatus` banner is the only
+    // enabled flag) in place, so a `discordDestinationStatus` banner is the only
     // signal a live send failed -- and that state is renderer-only, so it is
     // gone after a restart while the row still looks healthy and every report
     // is silently dropped. Derive "needs re-link" purely from the persisted
-    // webhook entry so it survives a restart with no in-memory status.
-    const selectedWebhookNeedsRelink = selectedWebhook?.kind === 'bridge' && !selectedWebhook.token;
+    // webhook entries so it survives a restart with no in-memory status, and
+    // from EVERY enabled destination rather than the first one -- see
+    // `enabledDestinationsNeedingRelink` (webhookSaveIntent.ts) for the
+    // order-dependence bug that caused.
+    const destinationsNeedingRelink = useMemo(
+        () => enabledDestinationsNeedingRelink(webhooks, enabledWebhookIds),
+        [webhooks, enabledWebhookIds]
+    );
+    const relinkWarning = describeRelinkWarning(destinationsNeedingRelink, enabledWebhookIds.length);
     const pendingStatsRemovalIdsRef = useRef<Set<string>>(new Set());
     const pendingStatsClearRef = useRef(false);
     const pendingStatsRemovalTimerRef = useRef<number | null>(null);
@@ -879,11 +890,14 @@ function App() {
                             aria-expanded={webhookDropdownOpen}
                         >
                             <span className="truncate flex items-center gap-1.5">
-                                {/* With a count there is no single destination to badge, so the
-                                    bolt/warning icon only renders when exactly one is enabled. */}
-                                {enabledWebhookIds.length === 1 && (selectedWebhookNeedsRelink
+                                {/* The amber warning renders whenever ANY enabled destination
+                                    needs a re-link, however many are enabled: a revoked bridge
+                                    silently drops reports and must never be invisible. The purple
+                                    bolt is decorative, and with a count there is no single
+                                    destination to badge, so it stays gated on exactly one. */}
+                                {destinationsNeedingRelink.length > 0
                                     ? <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
-                                    : selectedWebhook?.kind === 'bridge' && <Zap className="w-3.5 h-3.5 shrink-0 text-purple-300" />)}
+                                    : enabledWebhookIds.length === 1 && selectedWebhook?.kind === 'bridge' && <Zap className="w-3.5 h-3.5 shrink-0 text-purple-300" />}
                                 <span className="truncate">{summarizeEnabledDestinations(webhooks, enabledWebhookIds)}</span>
                             </span>
                             <ChevronDown className={`w-4 h-4 text-gray-500 shrink-0 transition-transform ${webhookDropdownOpen ? 'rotate-180' : ''}`} />
@@ -900,9 +914,9 @@ function App() {
                         </button>
                     </ParticleHover>
                 </div>
-                {selectedWebhookNeedsRelink && (
+                {relinkWarning && (
                     <div className="mt-2 flex items-start justify-between gap-2 rounded-[3px] border border-amber-400/25 bg-amber-400/5 px-2 py-1.5">
-                        <p className="text-[11px] text-amber-300">Re-link required — this bridge link was revoked. Reports are not being sent.</p>
+                        <p className="text-[11px] text-amber-300">{relinkWarning}</p>
                     </div>
                 )}
                 {discordDestinationStatus && (

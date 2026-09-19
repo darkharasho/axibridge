@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveWebhookSaveIntent, reconcileEnabledWebhookIds, toggleEnabledWebhookId, summarizeEnabledDestinations } from '../webhookSaveIntent';
+import { resolveWebhookSaveIntent, reconcileEnabledWebhookIds, toggleEnabledWebhookId, summarizeEnabledDestinations, enabledDestinationsNeedingRelink, describeRelinkWarning } from '../webhookSaveIntent';
 import type { Webhook } from '../../WebhookModal';
 
 const bridgeWebhook: Webhook = {
@@ -134,5 +134,89 @@ describe('summarizeEnabledDestinations', () => {
     it('falls back to Disabled when the single enabled id has no matching webhook', () => {
         const label = summarizeEnabledDestinations([webhookEntry], ['deleted-1']);
         expect(label).toBe('Disabled');
+    });
+});
+
+// A revoked bridge link: the entry and its name survive, only `token` is
+// cleared. This is the only persisted signal that reports are being dropped.
+const revokedBridge: Webhook = {
+    id: 'bridge-2',
+    name: 'Old Keep › #dead-channel',
+    kind: 'bridge',
+    relayUrl: 'https://bot.example.com'
+};
+
+const secondRevokedBridge: Webhook = {
+    id: 'bridge-3',
+    name: 'Other Keep › #also-dead',
+    kind: 'bridge',
+    relayUrl: 'https://bot.example.com'
+};
+
+describe('enabledDestinationsNeedingRelink', () => {
+    it('returns nothing when no destination is enabled', () => {
+        expect(enabledDestinationsNeedingRelink([revokedBridge, webhookEntry], [])).toEqual([]);
+    });
+
+    it('returns nothing when the one enabled destination is a healthy bridge', () => {
+        expect(enabledDestinationsNeedingRelink([bridgeWebhook], ['bridge-1'])).toEqual([]);
+    });
+
+    it('returns the one enabled destination when it is a revoked bridge', () => {
+        expect(enabledDestinationsNeedingRelink([revokedBridge], ['bridge-2'])).toEqual([revokedBridge]);
+    });
+
+    it('returns a revoked bridge that is enabled SECOND, not just the first entry', () => {
+        // The bug this function exists to remove: the old check read
+        // `selectedWebhook`, which mirrors `enabledWebhookIds[0]` — a revoked
+        // bridge sitting second was invisible while it dropped every report.
+        const result = enabledDestinationsNeedingRelink(
+            [webhookEntry, revokedBridge],
+            ['webhook-1', 'bridge-2']
+        );
+        expect(result).toEqual([revokedBridge]);
+    });
+
+    it('returns every revoked bridge, in enabled order', () => {
+        const result = enabledDestinationsNeedingRelink(
+            [secondRevokedBridge, revokedBridge],
+            ['bridge-2', 'bridge-3']
+        );
+        expect(result).toEqual([revokedBridge, secondRevokedBridge]);
+    });
+
+    it('never returns a plain webhook, which has no token to revoke', () => {
+        expect(enabledDestinationsNeedingRelink([webhookEntry], ['webhook-1'])).toEqual([]);
+    });
+
+    it('ignores an enabled id with no matching webhook entry', () => {
+        // It resolves to no destination at all — `summarizeEnabledDestinations`
+        // already reports that case as "Disabled".
+        expect(enabledDestinationsNeedingRelink([webhookEntry], ['deleted-1'])).toEqual([]);
+    });
+});
+
+describe('describeRelinkWarning', () => {
+    it('returns null when nothing needs a re-link', () => {
+        expect(describeRelinkWarning([], 2)).toBeNull();
+    });
+
+    it('keeps the pre-fan-out wording when the sole destination is revoked', () => {
+        expect(describeRelinkWarning([revokedBridge], 1)).toBe(
+            'Re-link required — this bridge link was revoked. Reports are not being sent.'
+        );
+    });
+
+    it('names the revoked destination when a healthy sibling is still receiving', () => {
+        const message = describeRelinkWarning([revokedBridge], 2);
+        expect(message).toBe('Re-link required — Old Keep › #dead-channel was revoked and is not receiving reports.');
+        // The binding requirement: never claim reports are stopped outright.
+        expect(message).not.toContain('Reports are not being sent');
+    });
+
+    it('counts them when several are revoked', () => {
+        const message = describeRelinkWarning([revokedBridge, secondRevokedBridge], 3);
+        expect(message).toBe('Re-link required — 2 destinations were revoked and are not receiving reports.');
+        expect(message).not.toContain('Reports are not being sent');
     });
 });

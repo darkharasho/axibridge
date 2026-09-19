@@ -58,7 +58,16 @@ describe('App Discord destination card — revoked bridge visibility', () => {
                         channelName: 'wvw-reports'
                     }
                 ],
-                selectedWebhookId: 'bridge-1'
+                selectedWebhookId: 'bridge-1',
+                // Fix pass item 2: the re-link warning now derives from EVERY
+                // enabled destination rather than from `selectedWebhookId`, so
+                // the fixture must carry the enabled list. That is not a
+                // loosening: `getSettings` backfills `enabledWebhookIds` from a
+                // legacy `selectedWebhookId` when the key is absent
+                // (`readEnabledWebhookIds`, discordDestinationResolver.ts), so a
+                // real store never returns the selection without it. See the
+                // same note on the sibling test below.
+                enabledWebhookIds: ['bridge-1']
             }
         });
         window.electronAPI = electronApi as any;

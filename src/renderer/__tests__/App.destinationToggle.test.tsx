@@ -82,3 +82,62 @@ describe('App header dropdown — Disabled clears every destination', () => {
         expect(await screen.findByText('Disabled')).toBeInTheDocument();
     });
 });
+
+// -------------------------------------------------------------------------
+// Fix pass item 2: the re-link warning used to be derived from
+// `selectedWebhook`, i.e. from `enabledWebhookIds[0]`. With 2+ destinations
+// enabled that made it ORDER-DEPENDENT and wrong in both directions. Both
+// tests below fail on the pre-fix code, for opposite reasons:
+//   healthy-first → no icon at all (the `length === 1` gate suppressed it)
+//                   and no banner, while the revoked bridge dropped reports;
+//   revoked-first → the banner claimed "Reports are not being sent", which is
+//                   false while the healthy sibling is still receiving them.
+// -------------------------------------------------------------------------
+const HEALTHY_WEBHOOK = {
+    id: 'w1',
+    name: 'Raid Channel',
+    kind: 'webhook',
+    url: 'https://discord.com/api/webhooks/1/x'
+};
+// A revoked bridge: the entry survives, only `token` is cleared.
+const REVOKED_BRIDGE = { id: 'b2', name: 'Old Keep', kind: 'bridge', relayUrl: 'https://bot.example.com' };
+
+const renderWithDestinations = async (webhooks: unknown[], enabledWebhookIds: string[]) => {
+    window.electronAPI = makeElectronApiMock({
+        settings: {
+            walkthroughSeen: true,
+            webhooks,
+            enabledWebhookIds,
+            // App mirrors the selection to the FIRST enabled id.
+            selectedWebhookId: enabledWebhookIds[0] ?? null
+        }
+    }) as any;
+    const { container } = render(<App />);
+    await waitFor(() => {
+        expect(screen.queryByText('Welcome to AxiBridge')).not.toBeInTheDocument();
+    });
+    expect(await screen.findByText('2 destinations')).toBeInTheDocument();
+    return container;
+};
+
+describe('App header — re-link warning across multiple destinations', () => {
+    it('warns about a revoked bridge enabled SECOND, without claiming reports are stopped', async () => {
+        const container = await renderWithDestinations([HEALTHY_WEBHOOK, REVOKED_BRIDGE], ['w1', 'b2']);
+
+        expect(container.querySelector('svg.text-amber-400')).not.toBeNull();
+        expect(await screen.findByText(/Re-link required/i)).toHaveTextContent(
+            'Re-link required — Old Keep was revoked and is not receiving reports.'
+        );
+        expect(screen.queryByText(/Reports are not being sent/i)).toBeNull();
+    });
+
+    it('warns about a revoked bridge enabled FIRST, still without claiming reports are stopped', async () => {
+        const container = await renderWithDestinations([REVOKED_BRIDGE, HEALTHY_WEBHOOK], ['b2', 'w1']);
+
+        expect(container.querySelector('svg.text-amber-400')).not.toBeNull();
+        expect(await screen.findByText(/Re-link required/i)).toHaveTextContent(
+            'Re-link required — Old Keep was revoked and is not receiving reports.'
+        );
+        expect(screen.queryByText(/Reports are not being sent/i)).toBeNull();
+    });
+});

@@ -18,7 +18,7 @@ export interface WebhookSaveIntent {
 /**
  * Fix round 1, item 3 / Ruling N: a freshly linked bridge entry must be
  * selected in the SAME settings save that stores it, or
- * `applyDiscordDestination()` (main process) re-derives the active
+ * `applyDiscordDestinations()` (main process) re-derives the active
  * destination against whatever was already selected and the newly linked
  * channel never activates — the worst failure mode in this feature, because
  * the UI looks correct (the row appears, badged "Bridge") while nothing is
@@ -116,4 +116,67 @@ export function summarizeEnabledDestinations(
         return match?.name ?? 'Disabled';
     }
     return `${enabledWebhookIds.length} destinations`;
+}
+
+/**
+ * Fix pass item 2: which enabled destinations are revoked bridge links.
+ *
+ * The re-link warning used to be derived from `selectedWebhook` — i.e. from
+ * `selectedWebhookId`, which this branch mirrors to `enabledWebhookIds[0]`.
+ * Once the send path fanned out to N destinations that made the warning
+ * depend on ORDER, and it was wrong in both directions:
+ * `['healthy', 'revoked']` showed nothing at all while `revoked` silently
+ * dropped every report, and `['revoked', 'healthy']` claimed "Reports are not
+ * being sent" while `healthy` was still receiving them. It also self-flipped
+ * across a restart, because the main process mirror filters unresolvable
+ * entries and the renderer's does not.
+ *
+ * Deriving the warning from the whole enabled list instead removes the
+ * order-dependence: a revoked bridge is a revoked bridge wherever it sits.
+ *
+ * A revoked bridge is a `kind === 'bridge'` entry whose `token` was cleared;
+ * the entry (and its enabled flag) survives, so this persisted shape is the
+ * only signal that outlives the renderer-only `discordDestinationStatus`.
+ * Enabled ids with no matching webhook entry are NOT returned: they resolve
+ * to no destination at all, which `summarizeEnabledDestinations` already
+ * reports as "Disabled". Order follows `enabledWebhookIds`.
+ */
+export function enabledDestinationsNeedingRelink(
+    webhooks: Webhook[],
+    enabledWebhookIds: string[]
+): Webhook[] {
+    return enabledWebhookIds
+        .map((id) => webhooks.find((hook) => hook.id === id))
+        .filter((hook): hook is Webhook => !!hook && hook.kind === 'bridge' && !hook.token);
+}
+
+/**
+ * Fix pass item 2: the copy for the re-link banner, derived from
+ * `enabledDestinationsNeedingRelink`'s result. Hoisted here rather than
+ * inlined in `App.tsx`'s JSX for the usual reason (see
+ * `summarizeEnabledDestinations`) — and because the binding requirement is a
+ * negative one that only a direct test can pin: the banner must never claim
+ * reports are stopped while a healthy sibling is still receiving them.
+ *
+ * Only the single-destination case may speak for the whole app; that wording
+ * is kept verbatim from before the fan-out. With a healthy sibling in play
+ * the banner names the broken destination instead — by name when there is
+ * one, by count when there are several.
+ *
+ * @param needingRelink the revoked bridge entries, in enabled order
+ * @param enabledCount how many destinations are enabled in total
+ * @returns the banner text, or `null` when there is nothing to warn about
+ */
+export function describeRelinkWarning(
+    needingRelink: Webhook[],
+    enabledCount: number
+): string | null {
+    if (needingRelink.length === 0) return null;
+    if (enabledCount === 1) {
+        return 'Re-link required — this bridge link was revoked. Reports are not being sent.';
+    }
+    if (needingRelink.length === 1) {
+        return `Re-link required — ${needingRelink[0].name} was revoked and is not receiving reports.`;
+    }
+    return `Re-link required — ${needingRelink.length} destinations were revoked and are not receiving reports.`;
 }
