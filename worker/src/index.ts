@@ -245,7 +245,13 @@ const stampLastSeen = async (code: string, env: Env): Promise<void> => {
  *   The boot payload is a `type="application/json"` data block, which the HTML
  *   spec never prepares as a script, so it needs no `'unsafe-inline'`.
  * - `style-src 'unsafe-inline'` because the viewer injects its compiled CSS as
- *   a `<style>` tag (viewerMain.tsx) and uses React inline `style` props.
+ *   a `<style>` tag (viewerMain.tsx) and uses React inline `style` props. The
+ *   explicit `fonts.googleapis.com` is NOT redundant with `'unsafe-inline'`:
+ *   `src/renderer/index.css` opens with a remote `@import`, which survives into
+ *   the bundle, and an `@import`ed stylesheet is a separate fetch that
+ *   `style-src` governs on its own. Without it the share page silently loses
+ *   Cinzel/Inter. `font-src` already covers the gstatic files that stylesheet
+ *   then references.
  * - `connect-src https:` because the report bytes live at an arbitrary
  *   user-chosen `loc`; `img-src` is equally open because the report supplies
  *   its own icon/map-tile URLs.
@@ -262,7 +268,7 @@ export const contentSecurityPolicy = (viewerUrl: string): string => {
         "default-src 'none'",
         `script-src ${scriptSrc}`,
         `worker-src ${scriptSrc} blob:`,
-        "style-src 'unsafe-inline'",
+        "style-src 'unsafe-inline' https://fonts.googleapis.com",
         'img-src https: data: blob:',
         'font-src https: data:',
         'connect-src https:',

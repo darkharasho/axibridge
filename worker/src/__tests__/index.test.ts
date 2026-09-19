@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { handleRequest, type Env } from '../index';
+import { contentSecurityPolicy, handleRequest, type Env } from '../index';
 import type { KVLike } from '../auth';
 import type { PointerRecord } from '../pointer';
 
@@ -699,5 +699,17 @@ describe('routing', () => {
             okUser() as any
         );
         expect(res.status).toBe(405);
+    });
+});
+
+describe('contentSecurityPolicy', () => {
+    it('permits the remote font stylesheet the viewer bundle @imports', () => {
+        // src/renderer/index.css opens with an @import of fonts.googleapis.com,
+        // which the viewer bundle injects inside an inline <style>. 'unsafe-inline'
+        // does not cover that nested fetch, so the origin must be listed.
+        const styleSrc = contentSecurityPolicy('https://example.com/view')
+            .split('; ')
+            .find((directive) => directive.startsWith('style-src '));
+        expect(styleSrc).toBe("style-src 'unsafe-inline' https://fonts.googleapis.com");
     });
 });
