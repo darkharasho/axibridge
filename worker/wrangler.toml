@@ -12,4 +12,5 @@ VIEWER_URL = "https://bridge.axi.link/view"
 
 [[kv_namespaces]]
 binding = "SHARE"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "2dcca71363364581b235031eaed07a0e"
+preview_id = "1288b8d418e34894867179a5101ca584"
