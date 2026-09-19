@@ -112,6 +112,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
         enabledWebhookIds,
         handleSetDestinationEnabled,
         handleSaveWebhooks,
+        logDirectory,
+        handleSelectDirectory,
     } = ctx;
 
     const [activeNavView, setActiveNavView] = useState(view);
@@ -463,6 +465,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 enabledWebhookIds={enabledWebhookIds}
                                 onSaveWebhooks={handleSaveWebhooks}
                                 onSetDestinationEnabled={handleSetDestinationEnabled}
+                                logDirectory={logDirectory}
+                                onChangeLogDirectory={handleSelectDirectory}
                                 onParserSettingsFocusConsumed={handleParserSettingsFocusConsumed}
                                 howToTrigger={howToTrigger}
                                 onHowToConsumed={handleHowToConsumed}

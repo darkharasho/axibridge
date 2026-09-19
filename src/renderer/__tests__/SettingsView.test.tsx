@@ -69,6 +69,8 @@ function renderSettings(
         enabledWebhookIds: [],
         onSaveWebhooks: vi.fn(),
         onSetDestinationEnabled: vi.fn(),
+        logDirectory: null,
+        onChangeLogDirectory: vi.fn(),
     };
 
     render(<SettingsView {...callbacks} {...props} />);
@@ -908,6 +910,8 @@ const defaultProps = {
     enabledWebhookIds: [],
     onSaveWebhooks: vi.fn(),
     onSetDestinationEnabled: vi.fn(),
+    logDirectory: null,
+    onChangeLogDirectory: vi.fn(),
 } as any;
 
 const renderSettingsView = (overrides: Record<string, unknown> = {}) => {
@@ -1070,6 +1074,34 @@ describe('section naming', () => {
         expect(sectionTitles).toContain('Cloudflare R2');
         expect(sectionTitles).toContain('Top Stats & MVP');
         expect(sectionTitles).toContain('Window & Close Behavior');
+    });
+});
+
+describe('Logs › Log Directory', () => {
+    it('shows the current folder', () => {
+        renderSettingsView({ logDirectory: '/home/u/Documents/Guild Wars 2/addons/arcdps/arcdps.cbtlogs' });
+        selectSettingsCategory('Logs');
+        expect(screen.getByText(/arcdps\.cbtlogs/)).toBeInTheDocument();
+    });
+
+    it('says when no folder is set rather than rendering an empty row', () => {
+        renderSettingsView({ logDirectory: null });
+        selectSettingsCategory('Logs');
+        expect(screen.getByText(/No log folder selected/i)).toBeInTheDocument();
+    });
+
+    it('launches the existing picker rather than reimplementing one', async () => {
+        const user = userEvent.setup();
+        const onChangeLogDirectory = vi.fn();
+        renderSettingsView({ logDirectory: '/tmp/logs', onChangeLogDirectory });
+        selectSettingsCategory('Logs');
+        await user.click(screen.getByRole('button', { name: /change folder/i }));
+        expect(onChangeLogDirectory).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders inside the Logs pane', () => {
+        renderSettingsView({ logDirectory: '/tmp/logs' });
+        expect(document.querySelector('[data-settings-pane="logs"] #log-directory')).not.toBeNull();
     });
 });
 
