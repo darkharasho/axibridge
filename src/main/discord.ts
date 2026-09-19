@@ -45,8 +45,8 @@ export type DiscordDestination =
 export type SendFailureReason = 'revoked' | 'forbidden' | 'rate-limited' | 'rejected' | 'network';
 
 export type SendResult =
-    | { ok: true }
-    | { ok: false; reason: SendFailureReason; message: string };
+    | { ok: true; destinationId: string }
+    | { ok: false; destinationId: string; reason: SendFailureReason; message: string };
 
 // `deriveReviveLogSummary` walks the whole roster's rotation/replay data --
 // skip it entirely when the Revives column is disabled, matching the sibling
@@ -362,28 +362,19 @@ const computeEnemyTeamBreakdown = (players: any[], targets: any[], durationSec: 
 };
 
 export class DiscordNotifier {
-    private destination: DiscordDestination | null = null;
+    private destinations: DiscordDestination[] = [];
     private embedStatSettings: IEmbedStatSettings = DEFAULT_EMBED_STATS;
     private disruptionMethod: DisruptionMethod = DEFAULT_DISRUPTION_METHOD;
 
     constructor() {
     }
 
-    public setWebhookUrl(url: string | null) {
-        this.destination = url ? { id: 'legacy', kind: 'webhook', url } : null;
+    public setDestinations(dests: DiscordDestination[]) {
+        this.destinations = dests;
     }
 
-    public setDestination(dest: DiscordDestination | null) {
-        this.destination = dest;
-    }
-
-    private get isBridge(): boolean {
-        return this.destination?.kind === 'bridge';
-    }
-
-    /** Post an embed/content payload to the active destination. */
-    private async postPayload(payload: Record<string, unknown>): Promise<void> {
-        const dest = this.destination!;
+    /** Post an embed/content payload to one destination. */
+    private async postPayload(dest: DiscordDestination, payload: Record<string, unknown>): Promise<void> {
         if (dest.kind === 'webhook') {
             await axios.post(dest.url, {
                 username: "AxiBridge",
@@ -399,9 +390,8 @@ export class DiscordNotifier {
         });
     }
 
-    /** Post a multipart (PNG attachment) payload to the active destination. */
-    private async postForm(form: FormData): Promise<void> {
-        const dest = this.destination!;
+    /** Post a multipart (PNG attachment) payload to one destination. */
+    private async postForm(dest: DiscordDestination, form: FormData): Promise<void> {
         if (dest.kind === 'webhook') {
             await axios.post(dest.url, form, { headers: form.getHeaders() });
             return;
@@ -418,13 +408,13 @@ export class DiscordNotifier {
      * nothing else, deliberately, so a paired client cannot make the bot
      * render an arbitrary remote image.
      */
-    private async postEmbedsWithImage(embeds: any[], png: Buffer): Promise<void> {
-        const payload = buildSlicePayloadJson(embeds, this.isBridge);
+    private async postEmbedsWithImage(dest: DiscordDestination, embeds: any[], png: Buffer): Promise<void> {
+        const payload = buildSlicePayloadJson(embeds, dest.kind === 'bridge');
 
         const form = new FormData();
         form.append('payload_json', JSON.stringify(payload));
         form.append('file', png, { filename: 'slice.png', contentType: 'image/png' });
-        await this.postForm(form);
+        await this.postForm(dest, form);
     }
 
     /** Map a thrown axios error to a SendResult. */
@@ -459,27 +449,42 @@ export class DiscordNotifier {
         this.disruptionMethod = method || DEFAULT_DISRUPTION_METHOD;
     }
 
-    public async sendLog(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean, mapSlicePng?: Uint8Array }, jsonDetails?: any): Promise<SendResult> {
-        if (!this.destination) {
+    public async sendLog(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean, mapSlicePng?: Uint8Array }, jsonDetails?: any): Promise<SendResult[]> {
+        if (this.destinations.length === 0) {
             console.log("No Discord destination configured, skipping notification.");
-            return { ok: true };
+            return [];
         }
 
+        const results: SendResult[] = [];
+        // Sequential, never Promise.all: two enabled destinations must not
+        // double the instantaneous request rate against Discord, and a
+        // rate-limit backoff on one must not run concurrently with another's
+        // post.
+        for (const dest of this.destinations) {
+            results.push(await this.sendToDestination(dest, logData, jsonDetails));
+        }
+        return results;
+    }
+
+    /** One destination's send, with the retry policy the single-destination
+     *  path used to own. A failure here is returned, never thrown, so one
+     *  dead destination cannot suppress the rest of the loop. */
+    private async sendToDestination(dest: DiscordDestination, logData: Parameters<DiscordNotifier['sendLog']>[0], jsonDetails?: any): Promise<SendResult> {
         try {
-            await this.resend(logData, jsonDetails);
-            return { ok: true };
+            await this.resend(dest, logData, jsonDetails);
+            return { ok: true, destinationId: dest.id };
         } catch (error) {
-            const result = this.classify(error);
+            const result = { ...this.classify(error), destinationId: dest.id };
             if (result.reason === 'rate-limited' || result.reason === 'network') {
                 const rawRetryAfter = String((error as any)?.response?.headers?.['retry-after'] ?? '').trim();
                 const parsedRetryAfter = rawRetryAfter === '' ? NaN : Number(rawRetryAfter);
                 const waited = Number.isFinite(parsedRetryAfter) && parsedRetryAfter >= 0 ? parsedRetryAfter : 2;
                 await new Promise(resolve => setTimeout(resolve, waited * 1000));
                 try {
-                    await this.resend(logData, jsonDetails);
-                    return { ok: true };
+                    await this.resend(dest, logData, jsonDetails);
+                    return { ok: true, destinationId: dest.id };
                 } catch (retryError) {
-                    return this.classify(retryError);
+                    return { ...this.classify(retryError), destinationId: dest.id };
                 }
             }
             // Never log the raw error: it carries `config.headers.Authorization`
@@ -493,7 +498,8 @@ export class DiscordNotifier {
         }
     }
 
-    private async resend(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean, mapSlicePng?: Uint8Array }, jsonDetails?: any): Promise<void> {
+    private async resend(dest: DiscordDestination, logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean, mapSlicePng?: Uint8Array }, jsonDetails?: any): Promise<void> {
+        const isBridge = dest.kind === 'bridge';
         const mode = logData.imageBuffer ? 'image' : (logData.mode || 'embed');
         console.log(`[Discord] sending log. Mode: ${mode}`);
 
@@ -516,7 +522,7 @@ export class DiscordNotifier {
                 }
 
                 const payload: any = {};
-                if (!this.isBridge) {
+                if (!isBridge) {
                     payload.username = "AxiBridge";
                     payload.avatar_url = DISCORD_WEBHOOK_AVATAR_URL;
                 }
@@ -541,7 +547,7 @@ export class DiscordNotifier {
                     });
                 }
 
-                await this.postForm(form);
+                await this.postForm(dest, form);
                 console.log("Sent Discord notification with image.");
             } else {
                 // EMBED MODE: Complex Rich Embed based on GitHub reference
@@ -779,7 +785,7 @@ export class DiscordNotifier {
                                 // (byte-identical to today's output). The bridge
                                 // relay substitutes real per-spec icons, so it
                                 // gets a token instead regardless of classDisplay.
-                                if (this.isBridge) {
+                                if (isBridge) {
                                     return { label: getProfessionEmojiToken(profession), count };
                                 }
                                 const labelText = useAbbrev
@@ -824,7 +830,7 @@ export class DiscordNotifier {
                         // `<:name:id>` text, and space padding buys nothing once the text
                         // is laid out in Discord's proportional body font. Rows are
                         // space-joined and left to wrap.
-                        if (this.isBridge) {
+                        if (isBridge) {
                             return limitedEntries
                                 .map(entry => (entry.overflow
                                     ? `\`+ ${entry.count}\``
@@ -855,7 +861,7 @@ export class DiscordNotifier {
                     // `<:name:id>` text inside a fence -- so they ship unfenced. The webhook
                     // path keeps the fence: its unicode emoji render fine inside one, and the
                     // padded column grid needs a monospace font to mean anything.
-                    const classFieldValue = (body: string) => (this.isBridge
+                    const classFieldValue = (body: string) => (isBridge
                         ? body
                         : `\`\`\`\n${body}\n\`\`\``);
 
@@ -948,7 +954,7 @@ export class DiscordNotifier {
                                 // On the bridge path AxiTools substitutes a real
                                 // per-spec emoji, so the colour-collision hacks
                                 // below are unnecessary.
-                                if (this.isBridge) return getProfessionEmojiToken(profession);
+                                if (isBridge) return getProfessionEmojiToken(profession);
                                 const professionBase = getProfessionBase(profession);
                                 if (professionBase === 'Ranger') return '🟩';
                                 if (professionBase === 'Revenant') return '🟥';
@@ -988,7 +994,7 @@ export class DiscordNotifier {
                         // Only the bridge emoji path takes this layout: `classDisplay`
                         // 'short'/'off' emit plain text that a fence renders correctly,
                         // and the webhook path's unicode emoji render inside a fence too.
-                        const useSpanLayout = this.isBridge && classDisplay === 'emoji';
+                        const useSpanLayout = isBridge && classDisplay === 'emoji';
                         const SPAN_TOKEN_WIDTH = 2; // one emoji glyph + separator space
                         const SPAN_VALUE_SEPARATOR = ' - ';
                         const availableWidth = useSpanLayout
@@ -1285,7 +1291,6 @@ export class DiscordNotifier {
                         }
                     };
 
-                    const isBridge = this.isBridge;
 
                     const getEmbedBaseCharCount = (embed: typeof baseEmbed) => {
                         return getSubstitutedLength(embed.title, isBridge)
@@ -1366,7 +1371,7 @@ export class DiscordNotifier {
                         : null;
                     if (slicePng && embeds.length > 0) {
                         try {
-                            await this.postEmbedsWithImage(embeds, slicePng);
+                            await this.postEmbedsWithImage(dest, embeds, slicePng);
                         } catch (err: any) {
                             // The slice is decorative: ANY failure to post it — a
                             // relay 400 (predates the `image` whitelist entry), a
@@ -1381,15 +1386,15 @@ export class DiscordNotifier {
                             } else {
                                 console.warn('[Discord] failed to post the map slice; sending without it.', err?.message || err);
                             }
-                            await this.postPayload({ embeds });
+                            await this.postPayload(dest, { embeds });
                         }
                     } else {
-                        await this.postPayload({ embeds });
+                        await this.postPayload(dest, { embeds });
                     }
                     console.log("Sent complex Discord notification.");
                 } else {
                     // Fallback Simple Embed
-                    await this.postPayload({
+                    await this.postPayload(dest, {
                         embeds: [{
                             title: "Log Uploaded",
                             description: (() => {

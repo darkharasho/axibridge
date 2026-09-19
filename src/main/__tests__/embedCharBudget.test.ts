@@ -141,13 +141,13 @@ describe('embed character budget', () => {
     const send = async (destination: any) => {
         const notifier = new DiscordNotifier();
         notifier.setEmbedStatSettings(allStatsOn as never);
-        notifier.setDestination(destination);
+        notifier.setDestinations([destination]);
         await notifier.sendLog(logData, hostileDetails);
         return (vi.mocked(axios.post).mock.calls[0][1] as any).embeds as any[];
     };
 
     it('keeps a bridged report inside the limit measured on what the relay actually posts', async () => {
-        const embeds = await send({ kind: 'bridge', relayUrl: 'https://bot.example.com', token: 'axb1.x.y' });
+        const embeds = await send({ id: 'b1', kind: 'bridge', relayUrl: 'https://bot.example.com', token: 'axb1.x.y' });
 
         const raw = messageCharCount(embeds, text => text);
         const rendered = messageCharCount(embeds, substitute);
@@ -161,7 +161,7 @@ describe('embed character budget', () => {
     });
 
     it('spends the budget across every embed rather than per embed', async () => {
-        const embeds = await send({ kind: 'bridge', relayUrl: 'https://bot.example.com', token: 'axb1.x.y' });
+        const embeds = await send({ id: 'b2', kind: 'bridge', relayUrl: 'https://bot.example.com', token: 'axb1.x.y' });
 
         // Discord's cap is a whole-message sum, so a second embed must eat into
         // the same budget the first one spent -- never restart it at 6000.
@@ -176,7 +176,7 @@ describe('embed character budget', () => {
         // it is given a placeholder.
         const notifier = new DiscordNotifier();
         notifier.setEmbedStatSettings(allStatsOn as never);
-        notifier.setDestination({ kind: 'bridge', relayUrl: 'https://bot.example.com', token: 'axb1.x.y' });
+        notifier.setDestinations([{ id: 'b3', kind: 'bridge', relayUrl: 'https://bot.example.com', token: 'axb1.x.y' }]);
         await notifier.sendLog(logData, zeroedDetails);
         const embeds = (vi.mocked(axios.post).mock.calls[0][1] as any).embeds as any[];
 
@@ -188,7 +188,7 @@ describe('embed character budget', () => {
     });
 
     it('never inflates the webhook path, which has no tokens to substitute', async () => {
-        const embeds = await send({ kind: 'webhook', url: 'https://discord.com/api/webhooks/1/x' });
+        const embeds = await send({ id: 'w1', kind: 'webhook', url: 'https://discord.com/api/webhooks/1/x' });
 
         expect(JSON.stringify(embeds)).not.toContain('{{spec:');
         expect(messageCharCount(embeds, text => text)).toBeLessThanOrEqual(DISCORD_LIMIT);

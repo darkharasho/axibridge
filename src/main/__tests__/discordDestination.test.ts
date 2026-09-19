@@ -18,6 +18,13 @@ const details = {
     ],
 };
 
+const mockedPost = vi.mocked(axios.post);
+
+const webhookDest = { id: 'w1', kind: 'webhook' as const, url: 'https://discord.com/api/webhooks/1/x' };
+const secondWebhookDest = { id: 'w2', kind: 'webhook' as const, url: 'https://discord.com/api/webhooks/2/y' };
+
+const fanoutLogData = { permalink: 'https://dps.report/abc', id: 'log-1', filePath: '/tmp/a.zevtc' };
+
 // `addTopList` only renders a player row when its metric is > 0 (see
 // `discordDestination.test.ts` history: the all-zero `details` fixture above
 // never renders any top-list row, so it can't exercise `getClassToken` —
@@ -47,7 +54,7 @@ describe('DiscordNotifier destination dispatch', () => {
 
     it('posts to the webhook URL for a webhook destination', async () => {
         const notifier = new DiscordNotifier();
-        notifier.setDestination({ kind: 'webhook', url: 'https://discord.com/api/webhooks/1/x' });
+        notifier.setDestinations([{ id: 'w4', kind: 'webhook', url: 'https://discord.com/api/webhooks/1/x' }]);
         await notifier.sendLog(logData, details);
 
         const [url, body] = vi.mocked(axios.post).mock.calls[0];
@@ -57,11 +64,11 @@ describe('DiscordNotifier destination dispatch', () => {
 
     it('posts to the relay report route with a bearer token for a bridge destination', async () => {
         const notifier = new DiscordNotifier();
-        notifier.setDestination({
-            kind: 'bridge',
+        notifier.setDestinations([{
+            id: 'b15', kind: 'bridge',
             relayUrl: 'https://bot.example.com',
             token: 'axb1.x.y',
-        });
+        }]);
         await notifier.sendLog(logData, details);
 
         const [url, body, config] = vi.mocked(axios.post).mock.calls[0];
@@ -76,16 +83,16 @@ describe('DiscordNotifier destination dispatch', () => {
         const notifier = new DiscordNotifier();
         notifier.setEmbedStatSettings({ classDisplay: 'emoji' } as never);
 
-        notifier.setDestination({ kind: 'webhook', url: 'https://discord.com/api/webhooks/1/x' });
+        notifier.setDestinations([{ id: 'w3', kind: 'webhook', url: 'https://discord.com/api/webhooks/1/x' }]);
         await notifier.sendLog(logData, details);
         const webhookBody = JSON.stringify(vi.mocked(axios.post).mock.calls[0][1]);
 
         vi.mocked(axios.post).mockClear();
-        notifier.setDestination({
-            kind: 'bridge',
+        notifier.setDestinations([{
+            id: 'b14', kind: 'bridge',
             relayUrl: 'https://bot.example.com',
             token: 'axb1.x.y',
-        });
+        }]);
         await notifier.sendLog(logData, details);
         const bridgeBody = JSON.stringify(vi.mocked(axios.post).mock.calls[0][1]);
 
@@ -105,16 +112,16 @@ describe('DiscordNotifier destination dispatch', () => {
             return field.value as string;
         };
 
-        notifier.setDestination({ kind: 'webhook', url: 'https://discord.com/api/webhooks/1/x' });
+        notifier.setDestinations([{ id: 'w2', kind: 'webhook', url: 'https://discord.com/api/webhooks/1/x' }]);
         await notifier.sendLog(logData, detailsWithDamage);
         const webhookDamageField = findDamageField();
 
         vi.mocked(axios.post).mockClear();
-        notifier.setDestination({
-            kind: 'bridge',
+        notifier.setDestinations([{
+            id: 'b13', kind: 'bridge',
             relayUrl: 'https://bot.example.com',
             token: 'axb1.x.y',
-        });
+        }]);
         await notifier.sendLog(logData, detailsWithDamage);
         const bridgeDamageField = findDamageField();
 
@@ -134,11 +141,11 @@ describe('DiscordNotifier destination dispatch', () => {
     it('keeps the player name in a bridged top-list row despite the wide emoji token', async () => {
         const notifier = new DiscordNotifier();
         notifier.setEmbedStatSettings({ classDisplay: 'emoji' } as never);
-        notifier.setDestination({
-            kind: 'bridge',
+        notifier.setDestinations([{
+            id: 'b12', kind: 'bridge',
             relayUrl: 'https://bot.example.com',
             token: 'axb1.x.y',
-        });
+        }]);
 
         await notifier.sendLog(logData, detailsWithDamage);
 
@@ -159,11 +166,11 @@ describe('DiscordNotifier destination dispatch', () => {
     it('renders bridged top-list rows as per-segment code spans with the token outside them', async () => {
         const notifier = new DiscordNotifier();
         notifier.setEmbedStatSettings({ classDisplay: 'emoji' } as never);
-        notifier.setDestination({
-            kind: 'bridge',
+        notifier.setDestinations([{
+            id: 'b11', kind: 'bridge',
             relayUrl: 'https://bot.example.com',
             token: 'axb1.x.y',
-        });
+        }]);
 
         await notifier.sendLog(logData, detailsWithDamage);
 
@@ -184,7 +191,7 @@ describe('DiscordNotifier destination dispatch', () => {
     it('keeps webhook top-list rows fenced', async () => {
         const notifier = new DiscordNotifier();
         notifier.setEmbedStatSettings({ classDisplay: 'emoji' } as never);
-        notifier.setDestination({ kind: 'webhook', url: 'https://discord.com/api/webhooks/1/x' });
+        notifier.setDestinations([{ id: 'w1', kind: 'webhook', url: 'https://discord.com/api/webhooks/1/x' }]);
 
         await notifier.sendLog(logData, detailsWithDamage);
 
@@ -201,11 +208,11 @@ describe('DiscordNotifier destination dispatch', () => {
     it('renders the bridged class summary unfenced with the count in its own span', async () => {
         const notifier = new DiscordNotifier();
         notifier.setEmbedStatSettings({ classDisplay: 'emoji' } as never);
-        notifier.setDestination({
-            kind: 'bridge',
+        notifier.setDestinations([{
+            id: 'b10', kind: 'bridge',
             relayUrl: 'https://bot.example.com',
             token: 'axb1.x.y',
-        });
+        }]);
 
         await notifier.sendLog(logData, details);
 
@@ -245,11 +252,11 @@ describe('DiscordNotifier destination dispatch', () => {
 
         const notifier = new DiscordNotifier();
         notifier.setEmbedStatSettings({ classDisplay: 'emoji' } as never);
-        notifier.setDestination({
-            kind: 'bridge',
+        notifier.setDestinations([{
+            id: 'b9', kind: 'bridge',
             relayUrl: 'https://bot.example.com',
             token: 'axb1.x.y',
-        });
+        }]);
 
         await notifier.sendLog(logData, detailsWithManyEnemies);
 
@@ -266,10 +273,10 @@ describe('DiscordNotifier destination dispatch', () => {
     it('classifies a 401 as revoked and does not retry', async () => {
         vi.mocked(axios.post).mockRejectedValue({ response: { status: 401 } } as never);
         const notifier = new DiscordNotifier();
-        notifier.setDestination({ kind: 'bridge', relayUrl: 'https://b', token: 't' });
+        notifier.setDestinations([{ id: 'b8', kind: 'bridge', relayUrl: 'https://b', token: 't' }]);
 
         const result = await notifier.sendLog(logData, details);
-        expect(result).toMatchObject({ ok: false, reason: 'revoked' });
+        expect(result[0]).toMatchObject({ ok: false, reason: 'revoked' });
         expect(vi.mocked(axios.post)).toHaveBeenCalledTimes(1);
     });
 
@@ -281,13 +288,13 @@ describe('DiscordNotifier destination dispatch', () => {
     it('classifies a 400 as rejected and does not retry', async () => {
         vi.mocked(axios.post).mockRejectedValue({ response: { status: 400, data: { error: 'report is empty' } } } as never);
         const notifier = new DiscordNotifier();
-        notifier.setDestination({ kind: 'bridge', relayUrl: 'https://b', token: 't' });
+        notifier.setDestinations([{ id: 'b7', kind: 'bridge', relayUrl: 'https://b', token: 't' }]);
 
         const start = Date.now();
         const result = await notifier.sendLog(logData, details);
         const elapsed = Date.now() - start;
 
-        expect(result).toMatchObject({ ok: false, reason: 'rejected' });
+        expect(result[0]).toMatchObject({ ok: false, reason: 'rejected' });
         expect(vi.mocked(axios.post)).toHaveBeenCalledTimes(1);
         expect(elapsed).toBeLessThan(500);
     });
@@ -297,11 +304,11 @@ describe('DiscordNotifier destination dispatch', () => {
             response: { status: 403, data: { error: "the paired channel no longer exists" } },
         } as never);
         const notifier = new DiscordNotifier();
-        notifier.setDestination({ kind: 'bridge', relayUrl: 'https://b', token: 't' });
+        notifier.setDestinations([{ id: 'b6', kind: 'bridge', relayUrl: 'https://b', token: 't' }]);
 
         const result = await notifier.sendLog(logData, details);
-        expect(result).toMatchObject({ ok: false, reason: 'forbidden' });
-        expect((result as any).message).toContain('paired channel');
+        expect(result[0]).toMatchObject({ ok: false, reason: 'forbidden' });
+        expect((result[0] as any).message).toContain('paired channel');
     });
 
     it('retries a 429 once, waiting ~0ms when Retry-After is 0', async () => {
@@ -309,13 +316,13 @@ describe('DiscordNotifier destination dispatch', () => {
             .mockRejectedValueOnce({ response: { status: 429, headers: { 'retry-after': '0' } } } as never)
             .mockResolvedValueOnce({ status: 202, data: { queued: true } } as never);
         const notifier = new DiscordNotifier();
-        notifier.setDestination({ kind: 'bridge', relayUrl: 'https://b', token: 't' });
+        notifier.setDestinations([{ id: 'b5', kind: 'bridge', relayUrl: 'https://b', token: 't' }]);
 
         const start = Date.now();
         const result = await notifier.sendLog(logData, details);
         const elapsed = Date.now() - start;
 
-        expect(result).toEqual({ ok: true });
+        expect(result).toEqual([{ ok: true, destinationId: 'b5' }]);
         expect(vi.mocked(axios.post)).toHaveBeenCalledTimes(2);
         // `Retry-After: 0` means "retry immediately". The 2s constant fallback
         // is only for a missing/unparsable header, so this must be nowhere
@@ -328,13 +335,13 @@ describe('DiscordNotifier destination dispatch', () => {
             .mockRejectedValueOnce({ response: { status: 429, headers: { 'retry-after': '1' } } } as never)
             .mockResolvedValueOnce({ status: 202, data: { queued: true } } as never);
         const notifier = new DiscordNotifier();
-        notifier.setDestination({ kind: 'bridge', relayUrl: 'https://b', token: 't' });
+        notifier.setDestinations([{ id: 'b4', kind: 'bridge', relayUrl: 'https://b', token: 't' }]);
 
         const start = Date.now();
         const result = await notifier.sendLog(logData, details);
         const elapsed = Date.now() - start;
 
-        expect(result).toEqual({ ok: true });
+        expect(result).toEqual([{ ok: true, destinationId: 'b4' }]);
         expect(vi.mocked(axios.post)).toHaveBeenCalledTimes(2);
         // Must track the header (~1000ms), not the 2000ms fallback constant.
         expect(elapsed).toBeGreaterThanOrEqual(900);
@@ -346,13 +353,13 @@ describe('DiscordNotifier destination dispatch', () => {
             .mockRejectedValueOnce({ response: { status: 429, headers: { 'retry-after': '' } } } as never)
             .mockResolvedValueOnce({ status: 202, data: { queued: true } } as never);
         const notifier = new DiscordNotifier();
-        notifier.setDestination({ kind: 'bridge', relayUrl: 'https://b', token: 't' });
+        notifier.setDestinations([{ id: 'b3', kind: 'bridge', relayUrl: 'https://b', token: 't' }]);
 
         const start = Date.now();
         const result = await notifier.sendLog(logData, details);
         const elapsed = Date.now() - start;
 
-        expect(result).toEqual({ ok: true });
+        expect(result).toEqual([{ ok: true, destinationId: 'b3' }]);
         expect(vi.mocked(axios.post)).toHaveBeenCalledTimes(2);
         // `Number('')` is `0`, which is finite and >= 0 — an empty header
         // must NOT be read as "retry immediately"; it must fall back to the
@@ -363,7 +370,7 @@ describe('DiscordNotifier destination dispatch', () => {
     it('never falls back to another destination after a bridge failure', async () => {
         vi.mocked(axios.post).mockRejectedValue({ response: { status: 500 } } as never);
         const notifier = new DiscordNotifier();
-        notifier.setDestination({ kind: 'bridge', relayUrl: 'https://b', token: 't' });
+        notifier.setDestinations([{ id: 'b2', kind: 'bridge', relayUrl: 'https://b', token: 't' }]);
 
         await notifier.sendLog(logData, details);
         for (const call of vi.mocked(axios.post).mock.calls) {
@@ -388,7 +395,7 @@ describe('DiscordNotifier destination dispatch', () => {
         const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
         const notifier = new DiscordNotifier();
-        notifier.setDestination({ kind: 'bridge', relayUrl: 'https://b', token: secretToken });
+        notifier.setDestinations([{ id: 'b1', kind: 'bridge', relayUrl: 'https://b', token: secretToken }]);
         await notifier.sendLog(logData, details);
 
         for (const call of consoleErrorSpy.mock.calls) {
@@ -397,5 +404,85 @@ describe('DiscordNotifier destination dispatch', () => {
         }
 
         consoleErrorSpy.mockRestore();
+    });
+});
+
+describe('sendLog fan-out', () => {
+    beforeEach(() => {
+        mockedPost.mockReset();
+        mockedPost.mockResolvedValue({ status: 204, data: {} } as any);
+    });
+
+    it('posts once per enabled destination and returns one result each', async () => {
+        const notifier = new DiscordNotifier();
+        notifier.setDestinations([webhookDest, secondWebhookDest]);
+
+        const results = await notifier.sendLog(fanoutLogData);
+
+        expect(results).toEqual([
+            { ok: true, destinationId: 'w1' },
+            { ok: true, destinationId: 'w2' }
+        ]);
+        expect(mockedPost).toHaveBeenCalledTimes(2);
+        expect(mockedPost.mock.calls[0][0]).toBe(webhookDest.url);
+        expect(mockedPost.mock.calls[1][0]).toBe(secondWebhookDest.url);
+    });
+
+    it('posts sequentially — the second call starts only after the first settles', async () => {
+        const order: string[] = [];
+        mockedPost.mockImplementation(async (url: any) => {
+            order.push(`start:${url}`);
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            order.push(`end:${url}`);
+            return { status: 204, data: {} } as any;
+        });
+        const notifier = new DiscordNotifier();
+        notifier.setDestinations([webhookDest, secondWebhookDest]);
+
+        await notifier.sendLog(fanoutLogData);
+
+        expect(order).toEqual([
+            `start:${webhookDest.url}`, `end:${webhookDest.url}`,
+            `start:${secondWebhookDest.url}`, `end:${secondWebhookDest.url}`
+        ]);
+    });
+
+    it('keeps sending to the second destination when the first fails unrecoverably', async () => {
+        mockedPost.mockImplementation(async (url: any) => {
+            if (url === webhookDest.url) {
+                const error: any = new Error('revoked');
+                error.response = { status: 401 };
+                throw error;
+            }
+            return { status: 204, data: {} } as any;
+        });
+        const notifier = new DiscordNotifier();
+        notifier.setDestinations([webhookDest, secondWebhookDest]);
+
+        const results = await notifier.sendLog(fanoutLogData);
+
+        expect(results).toEqual([
+            { ok: false, destinationId: 'w1', reason: 'revoked', message: 'This link was revoked — pair again.' },
+            { ok: true, destinationId: 'w2' }
+        ]);
+    });
+
+    it('returns an empty result list when nothing is enabled', async () => {
+        const notifier = new DiscordNotifier();
+        notifier.setDestinations([]);
+
+        expect(await notifier.sendLog(fanoutLogData)).toEqual([]);
+        expect(mockedPost).not.toHaveBeenCalled();
+    });
+
+    it('reuses the caller-supplied map slice PNG for every destination', async () => {
+        const notifier = new DiscordNotifier();
+        notifier.setDestinations([webhookDest, secondWebhookDest]);
+        const mapSlicePng = new Uint8Array([1, 2, 3]);
+
+        await notifier.sendLog({ ...fanoutLogData, mapSlicePng }, { players: [], durationMS: 1000 });
+
+        // The PNG is an input, not something sendLog builds: two posts, one buffer.
+        expect(mockedPost).toHaveBeenCalledTimes(2);
     });
 });
