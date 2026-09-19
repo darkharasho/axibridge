@@ -92,11 +92,11 @@ describe('map slice send failure never blocks the report', () => {
             .mockResolvedValueOnce({ status: 204, data: {} } as never);
 
         const notifier = new DiscordNotifier();
-        notifier.setDestination({ kind: 'webhook', url: 'https://discord.example.com/webhook' });
+        notifier.setDestinations([{ id: 'w1', kind: 'webhook', url: 'https://discord.example.com/webhook' }]);
 
         const result = await notifier.sendLog(logDataWithSlice, minimalDetails);
 
-        expect(result.ok).toBe(true);
+        expect(result[0].ok).toBe(true);
         expect(vi.mocked(axios.post)).toHaveBeenCalledTimes(2);
 
         // Call 1 MUST be the image-bearing multipart request. Without this the
@@ -116,11 +116,11 @@ describe('map slice send failure never blocks the report', () => {
         vi.mocked(axios.post).mockResolvedValueOnce({ status: 204, data: {} } as never);
 
         const notifier = new DiscordNotifier();
-        notifier.setDestination({ kind: 'webhook', url: 'https://discord.example.com/webhook' });
+        notifier.setDestinations([{ id: 'w1', kind: 'webhook', url: 'https://discord.example.com/webhook' }]);
 
         const result = await notifier.sendLog(logDataWithSlice, minimalDetails);
 
-        expect(result.ok).toBe(true);
+        expect(result[0].ok).toBe(true);
         // Exactly one post: no plain-payload fallback, no duplicate report.
         expect(vi.mocked(axios.post)).toHaveBeenCalledTimes(1);
         expectSliceMultipart(vi.mocked(axios.post).mock.calls[0]);
