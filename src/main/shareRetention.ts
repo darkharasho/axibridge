@@ -40,8 +40,22 @@ export interface RetentionAction {
     reclaimed: number;
 }
 
-/** Never-opened reports are the most evictable, so they sort first. */
-const byLeastRecentlySeen = (a: RetentionEntry, b: RetentionEntry) => (a.seen ?? 0) - (b.seen ?? 0);
+/** `seen: null` (never opened) ranks below every real timestamp, however small. */
+const seenRank = (entry: RetentionEntry): number => (entry.seen === null ? -Infinity : entry.seen);
+
+/**
+ * Never-opened reports are the most evictable, so they sort first.
+ *
+ * `-Infinity - -Infinity` is `NaN`, which would make this comparator incoherent
+ * for two never-opened entries, so equal ranks are compared-equal before
+ * subtracting.
+ */
+const byLeastRecentlySeen = (a: RetentionEntry, b: RetentionEntry): number => {
+    const ra = seenRank(a);
+    const rb = seenRank(b);
+    if (ra === rb) return 0;
+    return ra - rb;
+};
 
 export const planRetention = (
     entries: RetentionEntry[],
@@ -66,7 +80,7 @@ export const planRetention = (
         if (total <= highWater) break;
         const current = live.get(candidate.id)!;
         if (current.stage !== 'full') continue;
-        const reclaimed = Math.round(current.bytes * REPLAY_SHARE_OF_REPORT);
+        const reclaimed = Math.max(0, Math.round(current.bytes * REPLAY_SHARE_OF_REPORT));
         actions.push({ id: current.id, from: 'full', to: 'demoted', reclaimed });
         current.stage = 'demoted';
         current.bytes -= reclaimed;
@@ -78,7 +92,7 @@ export const planRetention = (
         if (total <= highWater) break;
         const current = live.get(candidate.id)!;
         if (current.stage !== 'demoted') continue;
-        const reclaimed = current.bytes;
+        const reclaimed = Math.max(0, current.bytes);
         actions.push({ id: current.id, from: 'demoted', to: 'tombstone', reclaimed });
         current.stage = 'tombstone';
         current.bytes = 0;

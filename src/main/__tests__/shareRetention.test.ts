@@ -115,6 +115,24 @@ describe('planRetention', () => {
         expect(planRetention([justUnder])).toEqual([]);
     });
 
+    it('orders a never-opened report before a real seen: 0 timestamp, regardless of input order', () => {
+        // `?? 0` would tie these two and let input order decide the winner.
+        // Put the seen: 0 entry FIRST so that bug would pick it, not 'never'.
+        const entries = [
+            entry({ id: 'epoch-zero', bytes: 500, seen: 0 }),
+            entry({ id: 'never', bytes: 500, seen: null })
+        ];
+        expect(planRetention(entries, tiny)[0].id).toBe('never');
+    });
+
+    it('never reports a negative reclaimed amount for a malformed negative-bytes entry', () => {
+        const entries = [entry({ id: 'a', bytes: -500, seen: 1 })];
+        const actions = planRetention(entries, tiny);
+        for (const action of actions) {
+            expect(action.reclaimed).toBeGreaterThanOrEqual(0);
+        }
+    });
+
     // Cross-task constraint: the Worker's PATCH /r/:code is monotonic (full=0,
     // demoted=1, tombstone=2) and rejects any move to a lower rank. A plan that
     // emitted a promotion would be rejected by the Worker, so planRetention must
