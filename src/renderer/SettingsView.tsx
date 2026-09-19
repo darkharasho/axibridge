@@ -65,31 +65,31 @@ export function formatWeight(value: number) { return value.toFixed(2); }
 // Static data — defined outside so they are never recreated on re-render
 
 const IMPORT_SETTING_META: Array<{ key: string; label: string; description: string; section: string }> = [
-    { key: 'logDirectory', label: 'Log Directory', description: 'Path to the ArcDPS log folder.', section: 'Logs & Uploads' },
-    { key: 'dpsReportToken', label: 'dps.report Token', description: 'User token for uploads.', section: 'Logs & Uploads' },
+    { key: 'logDirectory', label: 'Log Directory', description: 'Path to the ArcDPS log folder.', section: 'Logs' },
+    { key: 'dpsReportToken', label: 'dps.report Token', description: 'User token for uploads.', section: 'Logs' },
 { key: 'discordEnemySplitSettings', label: 'Discord Team Split', description: 'Split enemy sections by Team ID.', section: 'Discord' },
     { key: 'discordSplitEnemiesByTeam', label: 'Split Enemies by Team', description: 'Single toggle for all Discord notification types.', section: 'Discord' },
     { key: 'discordWebhookUrl', label: 'Discord Webhook URL', description: 'Legacy single webhook URL.', section: 'Discord' },
     { key: 'webhooks', label: 'Webhook List', description: 'Saved webhook entries.', section: 'Discord' },
     { key: 'reportWebhooks', label: 'Report Webhooks', description: 'Webhooks that receive the web report link after upload.', section: 'Discord' },
     { key: 'selectedWebhookId', label: 'Selected Webhook', description: 'Active webhook entry.', section: 'Discord' },
-    { key: 'closeBehavior', label: 'Close Behavior', description: 'Minimize vs quit on close.', section: 'App' },
-    { key: 'colorPalette', label: 'Color Palette', description: 'Accent color palette for the UI.', section: 'App' },
-    { key: 'glassSurfaces', label: 'Glass Surfaces', description: 'Enable frosted-glass card surfaces.', section: 'App' },
-    { key: 'glassmorphic', label: 'Lillifox Mode', description: 'Aurora background with rounded glass cards (legacy look).', section: 'App' },
-    { key: 'particlesEnabled', label: 'Particle Effects', description: 'Enable particle animations and effects.', section: 'App' },
+    { key: 'closeBehavior', label: 'Close Behavior', description: 'Minimize vs quit on close.', section: 'Application' },
+    { key: 'colorPalette', label: 'Color Palette', description: 'Accent color palette for the UI.', section: 'Application' },
+    { key: 'glassSurfaces', label: 'Glass Surfaces', description: 'Enable frosted-glass card surfaces.', section: 'Application' },
+    { key: 'glassmorphic', label: 'Lillifox Mode', description: 'Aurora background with rounded glass cards (legacy look).', section: 'Application' },
+    { key: 'particlesEnabled', label: 'Particle Effects', description: 'Enable particle animations and effects.', section: 'Application' },
     { key: 'embedStatSettings', label: 'Embed Stat Toggles', description: 'Discord embed sections and lists.', section: 'Stats' },
     { key: 'mvpWeightProfiles', label: 'MVP Weights', description: 'Score weighting for MVP.', section: 'Stats' },
     { key: 'mvpWeights', label: 'MVP Weights (legacy)', description: 'Legacy MVP weighting imported from older exports.', section: 'Stats' },
     { key: 'statsViewSettings', label: 'Stats View Settings', description: 'Dashboard stats configuration.', section: 'Stats' },
     { key: 'disruptionMethod', label: 'CC/Strip Method', description: 'Count, duration, or tiered.', section: 'Stats' },
-    { key: 'githubRepoOwner', label: 'GitHub Owner', description: 'GitHub Pages owner/org.', section: 'GitHub' },
-    { key: 'githubRepoName', label: 'GitHub Repo', description: 'GitHub Pages repository.', section: 'GitHub' },
-    { key: 'githubBranch', label: 'GitHub Branch', description: 'Branch for web uploads.', section: 'GitHub' },
-    { key: 'githubPagesBaseUrl', label: 'GitHub Pages URL', description: 'Base URL for hosted reports.', section: 'GitHub' },
-    { key: 'githubToken', label: 'GitHub Token', description: 'Token used for uploads.', section: 'GitHub' },
-    { key: 'githubLogoPath', label: 'Web Logo', description: 'Logo path used for reports.', section: 'GitHub' },
-    { key: 'githubFavoriteRepos', label: 'Favorite Repos', description: 'Pinned repos list.', section: 'GitHub' }
+    { key: 'githubRepoOwner', label: 'GitHub Owner', description: 'GitHub Pages owner/org.', section: 'Web Report' },
+    { key: 'githubRepoName', label: 'GitHub Repo', description: 'GitHub Pages repository.', section: 'Web Report' },
+    { key: 'githubBranch', label: 'GitHub Branch', description: 'Branch for web uploads.', section: 'Web Report' },
+    { key: 'githubPagesBaseUrl', label: 'GitHub Pages URL', description: 'Base URL for hosted reports.', section: 'Web Report' },
+    { key: 'githubToken', label: 'GitHub Token', description: 'Token used for uploads.', section: 'Web Report' },
+    { key: 'githubLogoPath', label: 'Web Logo', description: 'Logo path used for reports.', section: 'Web Report' },
+    { key: 'githubFavoriteRepos', label: 'Favorite Repos', description: 'Pinned repos list.', section: 'Web Report' }
 ];
 
 /** Disk sizes, rounded to whole MB — precision no one reads past. */
@@ -1589,7 +1589,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     >
                     {/* Discord: Destinations and Report Links arrive in Task 9 */}
                     {/* Discord Embed Stats - Summary Sections */}
-                    <SettingsSection title="Discord Embed - Summary Sections" icon={Users} delay={0.1} sectionId="embed-summary">
+                    <SettingsSection title="Summary Sections" icon={Users} delay={0.1} sectionId="embed-summary">
                         <p className="text-sm text-gray-400 mb-4">
                             Configure which summary sections appear in Discord embed notifications.
                         </p>
@@ -1644,7 +1644,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     </SettingsSection>
 
                     {/* Discord Embed Stats - Top Lists */}
-                    <SettingsSection title="Discord Embed - Top Stats Lists" icon={BarChart3} delay={0.15} sectionId="embed-top">
+                    <SettingsSection title="Top Stats Lists" icon={BarChart3} delay={0.15} sectionId="embed-top">
                         <p className="text-sm text-gray-400 mb-2">
                             Configure which top stat player lists appear in Discord embed notifications.
                         </p>
@@ -2134,7 +2134,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
                     {/* Cloudflare R2 — hosts the out-of-band report sidecars */}
                     <SettingsSection
-                        title="Cloudflare R2 — Replay &amp; Slice Storage"
+                        title="Cloudflare R2"
                         icon={Key}
                         delay={0.09}
                         sectionId="r2-storage"
@@ -2243,7 +2243,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
                     {/* Parser Settings Section */}
                     <div ref={parserSettingsRef}>
-                    <SettingsSection title="Parser Settings" icon={Zap} delay={0.2} sectionId="parser-settings">
+                    <SettingsSection title="Report Data" icon={Zap} delay={0.2} sectionId="parser-settings">
                         <p className="text-sm text-gray-400 mb-4">
                             Combat logs are parsed in-process by Axilog, which ships with the app. There is nothing
                             to install, update or choose.
@@ -2308,6 +2308,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 <div className="divide-y divide-white/5">
                                     <Toggle
                                         label="Compute Damage Modifiers"
+                                        description="Also affects the in-app dashboard, not just published reports."
                                         enabled={parserSettings.computeDamageModifiers}
                                         onChange={(v) => saveParserSetting('computeDamageModifiers', v)}
                                     />
@@ -2341,7 +2342,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         data-settings-pane="stats"
                         style={{ display: selectedCategoryId === 'stats' ? undefined : 'none' }}
                     >
-                    <SettingsSection title="Dashboard - Top Stats & MVP" icon={BarChart3} delay={0.18} sectionId="dashboard-stats">
+                    <SettingsSection title="Top Stats & MVP" icon={BarChart3} delay={0.18} sectionId="dashboard-stats">
                         <p className="text-sm text-gray-400 mb-4">
                             Control the calculation and display of the top stats cards and MVP highlights.
                         </p>
@@ -2946,7 +2947,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     </SettingsSection>
 
                     {/* Close Behavior Section */}
-                    <SettingsSection title="Window Close Behavior" icon={Minimize} delay={0.2} sectionId="close-behavior">
+                    <SettingsSection title="Window & Close Behavior" icon={Minimize} delay={0.2} sectionId="close-behavior">
                         <p className="text-sm text-gray-400 mb-4">
                             Choose what happens when you click the close button.
                         </p>
