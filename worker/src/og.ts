@@ -7,6 +7,19 @@ const escapeHtml = (value: string): string =>
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
 
+/**
+ * JSON.stringify does not escape `<` or `/`, and the HTML tokenizer ends a
+ * <script> element at the literal text `</script` regardless of its type
+ * attribute. `loc` is attacker-influenceable, so escape before embedding.
+ */
+const embedJson = (value: unknown): string => {
+    const json = JSON.stringify(value);
+    return json
+        .replace(/</g, '\\u003c')
+        .replace(new RegExp(' ', 'g'), '\\u2028')
+        .replace(new RegExp(' ', 'g'), '\\u2029');
+};
+
 const formatDuration = (ms: number): string => {
     const total = Math.max(0, Math.round(ms / 1000));
     const minutes = Math.floor(total / 60);
@@ -36,7 +49,7 @@ export const renderPointerHtml = (
     const canonical = escapeHtml(`https://bridge.axi.link/r/${opts.code}`);
     const boot = record.stage === 'tombstone'
         ? 'null'
-        : JSON.stringify({ loc: record.loc, stage: record.stage });
+        : embedJson({ loc: record.loc, stage: record.stage });
 
     return `<!DOCTYPE html>
 <html lang="en">

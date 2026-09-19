@@ -49,4 +49,16 @@ describe('renderPointerHtml', () => {
         expect(html).toContain('&amp;');
         expect(html).not.toContain('<Zerg>');
     });
+
+    it('neutralises a script-closing sequence in the report location', () => {
+        const html = render({ ...base, loc: 'https://x.test/a.br</script><script>alert(1)</script>' });
+        expect(html).not.toContain('</script><script>');
+        expect(html).toContain('\\u003c');
+    });
+
+    it('keeps the escaped boot payload parseable as JSON', () => {
+        const html = render({ ...base, loc: 'https://x.test/a.br</script>' });
+        const body = /<script id="axibridge-share" type="application\/json">([\s\S]*?)<\/script>/.exec(html)![1];
+        expect(JSON.parse(body).loc).toBe('https://x.test/a.br</script>');
+    });
 });
