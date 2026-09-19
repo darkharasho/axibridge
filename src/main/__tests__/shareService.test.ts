@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { gzipSync, gunzipSync, constants as zlibConstants } from 'zlib';
+import { gzipSync, gunzipSync } from 'zlib';
 import { compressReport, shareLog, type ShareTarget } from '../shareService';
 
 const details = {

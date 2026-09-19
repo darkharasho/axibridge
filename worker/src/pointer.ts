@@ -28,7 +28,7 @@ export interface ShareSummary {
 
 export interface PointerRecord {
     v: 1;
-    /** Absolute URL of the brotli-compressed native report (Tier 1). */
+    /** Absolute URL of the gzip-compressed native report (Tier 1). */
     loc: string;
     /** Absolute URL of the raw .zevtc (Tier 2), when the user opted in. */
     raw?: string;

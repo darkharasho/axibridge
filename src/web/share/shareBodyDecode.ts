@@ -1,8 +1,8 @@
 /**
- * Decodes the bytes fetched from a share pointer's `loc`. The on-the-wire
- * compression format is not yet decided by the rest of the project (see
- * shareService.ts, which currently brotli-compresses), so this has to be
- * tolerant of whatever actually arrives instead of assuming one format:
+ * Decodes the bytes fetched from a share pointer's `loc`. `shareService.ts`
+ * gzips Tier 1 reports, but the bytes can still arrive in more than one state
+ * depending on what the host does with them, so this stays tolerant of each
+ * instead of assuming one:
  *
  *  - If the server sent a `Content-Encoding` the browser understood (gzip,
  *    br, zstd), `fetch` already decompressed it — the bytes here are plain

@@ -25,6 +25,40 @@ jobs:
       - name: Typecheck and lint
         run: npm run validate
 
+  # `docs/view/viewer.js` is a committed build artifact, so a change to
+  # `src/web/**` only reaches the deployed share viewer if someone remembers to
+  # run `npm run build:viewer` and commit the result. This job rebuilds it and
+  # fails when the committed copy does not match, which is the only thing
+  # standing between a viewer source change and a silently stale deploy.
+  #
+  # An exact-bytes comparison is safe here because the build was measured to be
+  # reproducible: the same sha256 came out of two local rebuilds on Node 24 and
+  # a rebuild on Node 22, all matching the committed copy.
+  viewer-bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Rebuild the share viewer bundle
+        run: npm run build:viewer
+
+      - name: Fail if the committed bundle is stale
+        run: |
+          if ! git diff --exit-code -- docs/view; then
+            echo "::error::docs/view is out of date. Run 'npm run build:viewer' and commit the result."
+            exit 1
+          fi
+
   audit-boons:
     runs-on: ubuntu-latest
     steps:
