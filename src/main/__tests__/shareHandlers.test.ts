@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const handlers = new Map<string, (event: unknown, payload: any) => Promise<unknown>>();
 
@@ -11,6 +11,7 @@ vi.mock('electron', () => ({
 }));
 
 import { registerShareHandlers } from '../handlers/shareHandlers';
+import { shareObjectKey } from '../shareService';
 
 const details = {
     fightName: 'Detonator',
@@ -27,6 +28,15 @@ describe('share IPC handlers', () => {
     beforeEach(() => {
         handlers.clear();
         vi.restoreAllMocks();
+        // `restoreAllMocks` does NOT undo `vi.stubGlobal`, so without this a
+        // `fetch` stubbed by one test leaks into every later one — which would
+        // either silently serve a stale stub or, once the stub is removed, let
+        // a test reach the real network.
+        vi.unstubAllGlobals();
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
     });
 
     it('rejects sharing a log with no details rather than uploading nothing', async () => {
@@ -48,7 +58,11 @@ describe('share IPC handlers', () => {
         });
         const result = await invoke('share-log', { logId: 'log-1' }) as { success: boolean; error: string };
         expect(result.success).toBe(false);
-        expect(result.error).toMatch(/R2|GitHub Pages|storage/i);
+        expect(result.error).toMatch(/R2/i);
+        // The copy must not promise a GitHub Pages backend: `resolveTarget` is
+        // R2-only, and R2 credentials alone are not enough either.
+        expect(result.error).not.toMatch(/GitHub Pages/i);
+        expect(result.error).toMatch(/Host replay data on R2|Host fight slice data on R2/);
     });
 
     it('returns a share url on the happy path', async () => {
@@ -66,7 +80,29 @@ describe('share IPC handlers', () => {
         // Proves the uploaded key is actually derived from the logId passed in —
         // a handler that hardcoded a key or dropped logId would still pass the
         // shape assertion above but fail this one.
-        expect(putObject).toHaveBeenCalledWith('shares/log-1.json.gz', expect.any(Buffer), 'application/gzip');
+        expect(putObject).toHaveBeenCalledWith(shareObjectKey('log-1'), expect.any(Buffer), 'application/gzip');
+    });
+
+    it('shares a log whose details are only in the on-disk cache, not the LRU', async () => {
+        // I4: the wiring in index.ts used to pass `getBulkLogDetails` alone — a
+        // memory-budgeted LRU — so a log evicted by a heavy session was reported
+        // as "parse it before sharing" even though its details were on disk.
+        // This models the fixed wiring: LRU miss, then persisted hit.
+        const getBulkLogDetails = vi.fn().mockReturnValue(null);
+        const loadPersistedLogDetails = vi.fn().mockResolvedValue(details);
+        const putObject = vi.fn().mockResolvedValue({ success: true, url: 'https://cdn.example.com/a.gz' });
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+            new Response(JSON.stringify({ code: 'k3Xm9qR2', url: 'https://bridge.axi.link/r/k3Xm9qR2' }), { status: 201 })
+        ));
+        registerShareHandlers({
+            store: { get: (k: string) => (k === 'githubToken' ? 'gho_valid' : undefined) },
+            getDetails: async (logId: string) => getBulkLogDetails(logId) ?? (await loadPersistedLogDetails(logId)),
+            resolveTarget: () => ({ putObject })
+        });
+        const result = await invoke('share-log', { logId: '/logs/a.zevtc' }) as { success: boolean; url: string };
+        expect(getBulkLogDetails).toHaveBeenCalledWith('/logs/a.zevtc');
+        expect(loadPersistedLogDetails).toHaveBeenCalledWith('/logs/a.zevtc');
+        expect(result).toMatchObject({ success: true, url: 'https://bridge.axi.link/r/k3Xm9qR2' });
     });
 
     it('plans retention from the entries it is handed', async () => {

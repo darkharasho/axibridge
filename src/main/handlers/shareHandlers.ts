@@ -44,7 +44,13 @@ export function registerShareHandlers(opts: ShareHandlerOptions) {
         if (!target) {
             return {
                 success: false,
-                error: 'Sharing needs somewhere to put the report. Connect Cloudflare R2 or GitHub Pages in Settings.'
+                // `resolveTarget` is R2-only, and `resolveR2Uploader`
+                // (githubHandlers.ts) returns null unless one of the two R2
+                // hosting toggles is on — so credentials alone are not enough
+                // and naming GitHub Pages here was simply untrue.
+                error: 'Sharing needs somewhere to put the report. In Settings → Cloudflare R2, connect '
+                    + 'your R2 bucket and turn on "Host replay data on R2" or "Host fight slice data on '
+                    + 'R2" — credentials alone are not enough while both toggles are off.'
             };
         }
 

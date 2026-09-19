@@ -1885,7 +1885,13 @@ if (!gotTheLock) {
         });
         registerShareHandlers({
             store,
-            getDetails: (logId: string) => getBulkLogDetails(logId),
+            // LRU residency is not the source of truth (see the comment on
+            // loadPersistedLogDetails). Gating on `getBulkLogDetails` alone told
+            // a user to "parse it before sharing" for a log whose details were
+            // sitting on disk, purely because the memory budget had evicted it.
+            // Same fallback order as the get-log-details path in uploadHandlers.
+            getDetails: async (logId: string) =>
+                getBulkLogDetails(logId) ?? (await loadPersistedLogDetails(logId)),
             resolveTarget: (s: any) => resolveR2Uploader(s).uploader ?? null
         });
     })

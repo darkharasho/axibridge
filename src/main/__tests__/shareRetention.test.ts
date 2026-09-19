@@ -125,38 +125,52 @@ describe('planRetention', () => {
         expect(planRetention(entries, tiny)[0].id).toBe('never');
     });
 
-    it('clamps the demote-branch reclaim for a malformed negative-bytes entry', () => {
-        // 'neg' is oldest, so it is the first candidate the demote pass acts on.
+    it('emits no demote step at all for a malformed negative-bytes entry', () => {
+        // 'neg' is oldest, so it is the first candidate the demote pass reaches.
         // Unclamped, Math.round(-500 * 0.66) = -330 — a plan step that claims to
-        // GROW the repo. 'big' just needs to push total (1500) over the 800 mark
-        // so the planner actually does work instead of short-circuiting on the
-        // initial total <= highWater guard.
+        // GROW the repo. Clamping that to 0 only turned it into a step that
+        // frees nothing while still costing the caller a Worker PATCH, so it is
+        // now skipped entirely. 'big' just needs to push total (1500) over the
+        // 800 mark so the planner does work instead of short-circuiting on the
+        // initial total <= highWater guard — and proves the skip does not
+        // abandon the rest of the plan.
         const entries = [
             entry({ id: 'neg', bytes: -500, seen: 1, stage: 'full' }),
             entry({ id: 'big', bytes: 2000, seen: 5, stage: 'full' })
         ];
         const actions = planRetention(entries, tiny);
-        expect(actions.length).toBeGreaterThan(0);
-        const negAction = actions.find((a) => a.id === 'neg');
-        expect(negAction).toMatchObject({ from: 'full', to: 'demoted' });
-        expect(negAction!.reclaimed).toBeGreaterThanOrEqual(0);
+        expect(actions.find((a) => a.id === 'neg')).toBeUndefined();
+        expect(actions.find((a) => a.id === 'big')).toMatchObject({ from: 'full', to: 'demoted' });
+        expect(actions.every((a) => a.reclaimed > 0)).toBe(true);
     });
 
-    it('clamps the tombstone-branch reclaim for a malformed negative-bytes entry', () => {
-        // 'neg' starts already 'demoted' so pass 2 (not pass 1) acts on it.
-        // Unclamped, the tombstone branch's reclaimed is current.bytes, i.e. -100
-        // directly — again a step that claims to GROW the repo. 'big' is sized so
-        // demoting it alone (pass 1) still leaves total (1600) above the 800
-        // mark, forcing pass 2 to run and reach 'neg'.
+    it('emits no tombstone step at all for a malformed negative-bytes entry', () => {
+        // 'neg' starts already 'demoted' so pass 2 (not pass 1) reaches it.
+        // Unclamped, the tombstone branch's reclaimed is current.bytes, i.e.
+        // -100 directly. As above, a zero-reclaim step is not a plan step.
+        // 'big' is sized so demoting it alone (pass 1) still leaves total above
+        // the 800 mark, forcing pass 2 to run and reach 'neg'.
         const entries = [
             entry({ id: 'neg', bytes: -100, seen: 1, stage: 'demoted' }),
             entry({ id: 'big', bytes: 5000, seen: 5, stage: 'full' })
         ];
         const actions = planRetention(entries, tiny);
         expect(actions.length).toBeGreaterThan(0);
-        const negAction = actions.find((a) => a.id === 'neg');
-        expect(negAction).toMatchObject({ from: 'demoted', to: 'tombstone' });
-        expect(negAction!.reclaimed).toBeGreaterThanOrEqual(0);
+        expect(actions.find((a) => a.id === 'neg')).toBeUndefined();
+        expect(actions.every((a) => a.reclaimed > 0)).toBe(true);
+    });
+
+    it('never emits a step that reclaims nothing', () => {
+        // A zero-byte entry is the ordinary (non-malformed) way to reach the
+        // same place: both passes would previously have emitted a full→demoted
+        // and a demoted→tombstone action for it, each freeing 0 bytes.
+        const entries = [
+            entry({ id: 'empty', bytes: 0, seen: 1, stage: 'full' }),
+            entry({ id: 'big', bytes: 5000, seen: 5, stage: 'full' })
+        ];
+        const actions = planRetention(entries, tiny);
+        expect(actions.find((a) => a.id === 'empty')).toBeUndefined();
+        expect(actions.every((a) => a.reclaimed > 0)).toBe(true);
     });
 
     // Cross-task constraint: the Worker's PATCH /r/:code is monotonic (full=0,
