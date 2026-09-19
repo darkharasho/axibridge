@@ -10,6 +10,7 @@ import { parseMaybeGzippedJson } from '../cloudflare/replaySidecar';
 import { resolvePartsJson } from '../partsReader';
 import { resolvePartUrl } from '../../shared/chunkedGzip';
 import { readEnabledWebhookIds } from '../discordDestinationResolver';
+import { recallDialogPath, rememberDialogPath } from '../dialogDefaults';
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -220,12 +221,14 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
         const parent = BrowserWindow.getFocusedWindow() || getWindow() || null;
         bringDialogParentToFront(parent);
         if (!parent) return { success: false, error: 'Window unavailable.' };
+        const settingsDir = recallDialogPath('settings-file');
         const result = await dialog.showSaveDialog(parent, {
             title: 'Export AxiBridge Settings',
-            defaultPath: 'axibridge-settings.json',
+            defaultPath: settingsDir ? path.join(settingsDir, 'axibridge-settings.json') : 'axibridge-settings.json',
             filters: [{ name: 'JSON', extensions: ['json'] }]
         });
         if (result.canceled || !result.filePath) return { success: false, canceled: true };
+        rememberDialogPath('settings-file', result.filePath);
 
         const settings = {
             logDirectory: store.get('logDirectory', null),
@@ -285,10 +288,12 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
         const result = await dialog.showOpenDialog(parent, {
             title: 'Import AxiBridge Settings',
             properties: ['openFile'],
+            defaultPath: recallDialogPath('settings-file'),
             filters: [{ name: 'JSON', extensions: ['json'] }]
         });
         if (result.canceled || result.filePaths.length === 0) return { success: false, canceled: true };
         const filePath = result.filePaths[0];
+        rememberDialogPath('settings-file', filePath);
         try {
             const raw = await fs.promises.readFile(filePath, 'utf-8');
             const parsed = JSON.parse(raw);
@@ -320,10 +325,12 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
         const result = await dialog.showOpenDialog(parent, {
             title: 'Select Settings File',
             properties: ['openFile'],
+            defaultPath: recallDialogPath('settings-file'),
             filters: [{ name: 'JSON', extensions: ['json'] }]
         });
         if (result.canceled || result.filePaths.length === 0) return { success: false, canceled: true };
         const filePath = result.filePaths[0];
+        rememberDialogPath('settings-file', filePath);
         try {
             const raw = await fs.promises.readFile(filePath, 'utf-8');
             const parsed = JSON.parse(raw);
