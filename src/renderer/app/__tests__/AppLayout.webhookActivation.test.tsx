@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, act } from '@testing-library/react';
+import { render, act, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 // Fix round 3, item 1 (updated for Task 9): the activation glue (auto-select
 // a newly linked bridge entry in the same settings save) now lives in
@@ -150,5 +151,58 @@ describe('AppLayout — bridge activation call site', () => {
         });
 
         expect(ctx.handleSaveWebhooks).toHaveBeenCalledWith([bridgeWebhook], 'bridge-1');
+    });
+});
+
+// Task 11 / Ruling S: `AppLayout.tsx`'s dropdown portal only renders when
+// BOTH `webhookDropdownOpen` is true AND `webhookDropdownStyle` is non-null
+// (see the `{webhookDropdownOpen && webhookDropdownStyle && createPortal(...)}`
+// gate). `renderAppLayout` below defaults `webhookDropdownStyle` to `{}` so
+// every test in this describe block only has to opt into `webhookDropdownOpen`
+// to get real `role="option"` rows in the DOM.
+function renderAppLayout(overrides: Record<string, unknown> = {}) {
+    const ctx = makeCtx({ webhookDropdownStyle: {}, ...overrides });
+    render(<AppLayout ctx={ctx} />);
+    return ctx;
+}
+
+describe('destination dropdown multi-select', () => {
+    const webhooks = [
+        { id: 'w1', name: 'Raid Channel', kind: 'webhook' as const, url: 'https://discord.com/api/webhooks/1/x' },
+        { id: 'w2', name: 'Guild Channel', kind: 'webhook' as const, url: 'https://discord.com/api/webhooks/2/y' }
+    ];
+
+    it('turning one destination on leaves the other on', async () => {
+        const user = userEvent.setup();
+        const handleSetDestinationEnabled = vi.fn();
+        renderAppLayout({ webhooks, enabledWebhookIds: ['w1'], handleSetDestinationEnabled, webhookDropdownOpen: true });
+        await user.click(screen.getByRole('option', { name: /Guild Channel/i }));
+        expect(handleSetDestinationEnabled).toHaveBeenCalledWith('w2', true);
+        expect(handleSetDestinationEnabled).toHaveBeenCalledTimes(1);
+    });
+
+    it('marks every enabled row as selected', () => {
+        renderAppLayout({ webhooks, enabledWebhookIds: ['w1', 'w2'], webhookDropdownOpen: true });
+        expect(screen.getByRole('option', { name: /Raid Channel/i })).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('option', { name: /Guild Channel/i })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('stays open after a toggle so several can be switched in one visit', async () => {
+        const user = userEvent.setup();
+        const setWebhookDropdownOpen = vi.fn();
+        renderAppLayout({ webhooks, enabledWebhookIds: [], setWebhookDropdownOpen, webhookDropdownOpen: true });
+        await user.click(screen.getByRole('option', { name: /Raid Channel/i }));
+        expect(setWebhookDropdownOpen).not.toHaveBeenCalledWith(false);
+    });
+
+    it('Disabled clears every enabled destination and closes', async () => {
+        const user = userEvent.setup();
+        const handleSetDestinationEnabled = vi.fn();
+        const setWebhookDropdownOpen = vi.fn();
+        renderAppLayout({ webhooks, enabledWebhookIds: ['w1', 'w2'], handleSetDestinationEnabled, setWebhookDropdownOpen, webhookDropdownOpen: true });
+        await user.click(screen.getByRole('option', { name: /^Disabled$/ }));
+        expect(handleSetDestinationEnabled).toHaveBeenCalledWith('w1', false);
+        expect(handleSetDestinationEnabled).toHaveBeenCalledWith('w2', false);
+        expect(setWebhookDropdownOpen).toHaveBeenCalledWith(false);
     });
 });

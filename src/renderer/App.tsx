@@ -27,7 +27,7 @@ import { useSectorOwners } from './app/hooks/useSectorOwners';
 import { extractDroppedLogFiles } from './app/utils/droppedFiles';
 import { DetailsCache } from './cache/DetailsCache';
 import { DetailsCacheProvider } from './cache/DetailsCacheContext';
-import { resolveWebhookSaveIntent, reconcileEnabledWebhookIds, toggleEnabledWebhookId } from './app/webhookSaveIntent';
+import { resolveWebhookSaveIntent, reconcileEnabledWebhookIds, toggleEnabledWebhookId, summarizeEnabledDestinations } from './app/webhookSaveIntent';
 import type { Webhook } from './WebhookModal';
 
 /** Strip details from log entries — logsForStats is metadata-only. */
@@ -465,16 +465,30 @@ function App() {
         () => webhooks.find((hook) => hook.id === selectedWebhookId) || null,
         [webhooks, selectedWebhookId]
     );
+    // Task 11 / Ruling U: the header dropdown's "Disabled" row calls
+    // `handleSetDestinationEnabled` once per currently-enabled id,
+    // synchronously, in a single onClick. React does not re-render between
+    // those calls, so a version of this callback that reads `enabledWebhookIds`
+    // from its own closure recomputes every call from the SAME stale array —
+    // each call overwrites the previous one's result and only the last id is
+    // ever actually removed. A ref kept in sync with the state lets
+    // consecutive synchronous calls compose correctly.
+    const enabledWebhookIdsRef = useRef(enabledWebhookIds);
+    useEffect(() => {
+        enabledWebhookIdsRef.current = enabledWebhookIds;
+    }, [enabledWebhookIds]);
+
     const handleSetDestinationEnabled = useCallback((id: string, enabled: boolean) => {
         // See `toggleEnabledWebhookId` (webhookSaveIntent.ts) for the logic.
-        const next = toggleEnabledWebhookId(enabledWebhookIds, id, enabled);
+        const next = toggleEnabledWebhookId(enabledWebhookIdsRef.current, id, enabled);
+        enabledWebhookIdsRef.current = next;
         setEnabledWebhookIds(next);
         // `selectedWebhookId` travels with the save: settingsHandlers still
         // returns it and the export/import list still reads it, so it mirrors
         // the first enabled id rather than going stale.
         handleUpdateSettings({ enabledWebhookIds: next, selectedWebhookId: next[0] ?? null });
         setSelectedWebhookId(next[0] ?? null);
-    }, [enabledWebhookIds, handleUpdateSettings, setEnabledWebhookIds, setSelectedWebhookId]);
+    }, [handleUpdateSettings, setEnabledWebhookIds, setSelectedWebhookId]);
 
     const handleSaveWebhooks = useCallback((nextWebhooks: Webhook[], selectId?: string) => {
         const intent = resolveWebhookSaveIntent(selectedWebhookId, nextWebhooks, selectId);
@@ -865,10 +879,12 @@ function App() {
                             aria-expanded={webhookDropdownOpen}
                         >
                             <span className="truncate flex items-center gap-1.5">
-                                {selectedWebhookNeedsRelink
+                                {/* With a count there is no single destination to badge, so the
+                                    bolt/warning icon only renders when exactly one is enabled. */}
+                                {enabledWebhookIds.length === 1 && (selectedWebhookNeedsRelink
                                     ? <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
-                                    : selectedWebhook?.kind === 'bridge' && <Zap className="w-3.5 h-3.5 shrink-0 text-purple-300" />}
-                                <span className="truncate">{selectedWebhook?.name || 'Disabled'}</span>
+                                    : selectedWebhook?.kind === 'bridge' && <Zap className="w-3.5 h-3.5 shrink-0 text-purple-300" />)}
+                                <span className="truncate">{summarizeEnabledDestinations(webhooks, enabledWebhookIds)}</span>
                             </span>
                             <ChevronDown className={`w-4 h-4 text-gray-500 shrink-0 transition-transform ${webhookDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
