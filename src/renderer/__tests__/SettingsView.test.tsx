@@ -1,4 +1,5 @@
 import { render, screen, waitFor, fireEvent, act, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import {
     SettingsView,
@@ -81,6 +82,16 @@ async function waitForLoad(mock: ReturnType<typeof makeElectronApiMock>) {
  */
 async function waitForSave(fn: ReturnType<typeof vi.fn>) {
     await waitFor(() => expect(fn).toHaveBeenCalled(), { timeout: 1000 });
+}
+
+/**
+ * Settings now pages by category (Task 5): only the selected category's pane
+ * is visible, so a section living in a non-default category is excluded from
+ * the accessibility tree (`getByRole`) until its category is selected. Tests
+ * that reach into a specific section call this first.
+ */
+function selectSettingsCategory(name: string) {
+    fireEvent.click(screen.getByRole('button', { name }));
 }
 
 // ---------------------------------------------------------------------------
@@ -195,17 +206,25 @@ describe('SettingsView', () => {
             expect(await screen.findByRole('heading', { name: 'Settings', level: 2 })).toBeInTheDocument();
         });
 
-        it('renders all major section headings', async () => {
+        it('renders all major section headings across their categories', async () => {
             renderSettings();
-            // Wait for at least one section to confirm the component mounted
-            expect(await screen.findByRole('heading', { name: 'Appearance' })).toBeInTheDocument();
-            expect(screen.getByRole('heading', { name: /dps\.report User Token/i })).toBeInTheDocument();
-            expect(screen.getByRole('heading', { name: /GitHub Pages Web Reports/i })).toBeInTheDocument();
-            expect(screen.getByRole('heading', { name: /Discord Embed - Summary Sections/i })).toBeInTheDocument();
+            // Discord is the default landing category — its sections need no navigation.
+            expect(await screen.findByRole('heading', { name: /Discord Embed - Summary Sections/i })).toBeInTheDocument();
             expect(screen.getByRole('heading', { name: /Discord Embed - Top Stats Lists/i })).toBeInTheDocument();
-            expect(screen.getByRole('heading', { name: /Help & Updates/i })).toBeInTheDocument();
+
+            selectSettingsCategory('Web Report');
+            expect(screen.getByRole('heading', { name: /GitHub Pages Web Reports/i })).toBeInTheDocument();
+
+            selectSettingsCategory('Stats');
             expect(screen.getByRole('heading', { name: /Dashboard - Top Stats & MVP/i })).toBeInTheDocument();
             expect(screen.getByRole('heading', { name: /MVP Weighting/i })).toBeInTheDocument();
+
+            selectSettingsCategory('Logs');
+            expect(screen.getByRole('heading', { name: /dps\.report User Token/i })).toBeInTheDocument();
+
+            selectSettingsCategory('Application');
+            expect(screen.getByRole('heading', { name: 'Appearance' })).toBeInTheDocument();
+            expect(screen.getByRole('heading', { name: /Help & Updates/i })).toBeInTheDocument();
             expect(screen.getByRole('heading', { name: /Window Close Behavior/i })).toBeInTheDocument();
         });
 
@@ -226,6 +245,7 @@ describe('SettingsView', () => {
         it('applies saved closeBehavior=quit to the UI', async () => {
             const { mock } = renderSettings({}, { closeBehavior: 'quit' });
             await waitForLoad(mock);
+            selectSettingsCategory('Application');
             await waitFor(() => {
                 const quitButton = screen.getByRole('button', { name: /Quit Application/i });
                 expect(quitButton.className).toMatch(/red/);
@@ -235,6 +255,7 @@ describe('SettingsView', () => {
         it('applies saved colorPalette to the UI', async () => {
             const { mock } = renderSettings({}, { colorPalette: 'amber-warm' });
             await waitForLoad(mock);
+            selectSettingsCategory('Application');
             await waitFor(() => {
                 const amberButton = screen.getByRole('button', { name: 'Amber Warm' });
                 expect(amberButton.className).toMatch(/white\/40/);
@@ -282,6 +303,7 @@ describe('SettingsView', () => {
             const { mock, callbacks } = renderSettings();
             await waitForLoad(mock);
             callbacks.onColorPaletteSaved.mockClear();
+            selectSettingsCategory('Application');
 
             fireEvent.click(screen.getByRole('button', { name: 'Emerald Mint' }));
 
@@ -311,6 +333,7 @@ describe('SettingsView', () => {
     describe('Appearance section', () => {
         it('activates the Amber Warm palette button when clicked', async () => {
             renderSettings();
+            selectSettingsCategory('Application');
             await screen.findByRole('heading', { name: 'Appearance' });
 
             const amberBtn = screen.getByRole('button', { name: 'Amber Warm' });
@@ -321,6 +344,7 @@ describe('SettingsView', () => {
 
         it('shows the Glass Surfaces toggle', async () => {
             renderSettings();
+            selectSettingsCategory('Application');
             await screen.findByRole('heading', { name: 'Appearance' });
 
             expect(screen.getByText('Glass Surfaces')).toBeInTheDocument();
@@ -466,6 +490,7 @@ describe('SettingsView', () => {
     describe('Dashboard Stats section', () => {
         it('toggles "Show Top Stats Section" and saves the updated setting', async () => {
             const { callbacks } = renderSettings();
+            selectSettingsCategory('Stats');
             await screen.findByRole('heading', { name: /Dashboard - Top Stats & MVP/i });
 
             fireEvent.click(screen.getByText('Show Top Stats Section'));
@@ -479,6 +504,7 @@ describe('SettingsView', () => {
 
         it('switching top stats mode to Per Second fires callback with perSecond', async () => {
             const { callbacks } = renderSettings();
+            selectSettingsCategory('Stats');
             await screen.findByRole('heading', { name: /Dashboard - Top Stats & MVP/i });
 
             fireEvent.click(screen.getByRole('button', { name: 'Per Second' }));
@@ -492,6 +518,7 @@ describe('SettingsView', () => {
 
         it('switching top stats mode to Per Minute fires callback with perMinute', async () => {
             const { callbacks } = renderSettings();
+            selectSettingsCategory('Stats');
             await screen.findByRole('heading', { name: /Dashboard - Top Stats & MVP/i });
 
             fireEvent.click(screen.getByRole('button', { name: 'Per Minute' }));
@@ -505,6 +532,7 @@ describe('SettingsView', () => {
 
         it('changing CC/Strip method fires onDisruptionMethodSaved', async () => {
             const { callbacks } = renderSettings();
+            selectSettingsCategory('Stats');
             await screen.findByRole('heading', { name: /Dashboard - Top Stats & MVP/i });
 
             // The button's accessible name includes its child "Select" text too,
@@ -525,6 +553,7 @@ describe('SettingsView', () => {
     describe('Top Stats Cards picker', () => {
         it('toggles a top stat card chip', async () => {
             renderSettings();
+            selectSettingsCategory('Stats');
             await screen.findByRole('heading', { name: /Dashboard - Top Stats & MVP/i });
 
             // Use aria-pressed attribute to distinguish chip buttons from navigation buttons
@@ -537,6 +566,7 @@ describe('SettingsView', () => {
 
         it('reset to defaults marks Down Contribution enabled', async () => {
             renderSettings();
+            selectSettingsCategory('Stats');
             await screen.findByRole('heading', { name: /Dashboard - Top Stats & MVP/i });
 
             // Two "Reset to defaults" buttons exist (dashboard-stats + MVP); scope to dashboard section
@@ -560,6 +590,7 @@ describe('SettingsView', () => {
                 { mvpWeightProfiles: { general: {}, offensive: { dps: 0.05 }, defensive: {} } },
             );
             await waitForLoad(mock);
+            selectSettingsCategory('Stats');
             await screen.findByRole('heading', { name: /MVP Weighting/i });
 
             const mvpSection = document.getElementById('mvp-weighting')!;
@@ -576,6 +607,7 @@ describe('SettingsView', () => {
 
         it('increments an MVP weight via the stepper', async () => {
             renderSettings();
+            selectSettingsCategory('Stats');
             await screen.findByRole('heading', { name: /MVP Weighting/i });
 
             const section = document.getElementById('mvp-weighting')!;
@@ -588,6 +620,7 @@ describe('SettingsView', () => {
 
         it('switches MVP buckets to Defensive', async () => {
             renderSettings();
+            selectSettingsCategory('Stats');
             await screen.findByRole('heading', { name: /MVP Weighting/i });
 
             const defensiveTab = await screen.findByRole('button', { name: /^Defensive$/i });
@@ -603,6 +636,7 @@ describe('SettingsView', () => {
     describe('Window Close Behavior', () => {
         it('Quit Application button becomes active (red) when clicked', async () => {
             renderSettings();
+            selectSettingsCategory('Application');
             await screen.findByRole('heading', { name: /Window Close Behavior/i });
 
             const quitBtn = screen.getByRole('button', { name: /Quit Application/i });
@@ -613,6 +647,7 @@ describe('SettingsView', () => {
 
         it('saves closeBehavior=quit in the next auto-save', async () => {
             const { mock } = renderSettings();
+            selectSettingsCategory('Application');
             await screen.findByRole('heading', { name: /Window Close Behavior/i });
             mock.saveSettings.mockClear();
 
@@ -628,6 +663,7 @@ describe('SettingsView', () => {
 
         it('Minimize to Tray button is active by default', async () => {
             renderSettings();
+            selectSettingsCategory('Application');
             await screen.findByRole('heading', { name: /Window Close Behavior/i });
 
             const minimizeBtn = screen.getByRole('button', { name: /Minimize to Tray/i });
@@ -642,6 +678,7 @@ describe('SettingsView', () => {
     describe('Export / Import', () => {
         it('Export Settings calls electronAPI.exportSettings', async () => {
             const { mock } = renderSettings();
+            selectSettingsCategory('Application');
             await screen.findByRole('heading', { name: /Export \/ Import/i });
 
             fireEvent.click(screen.getByRole('button', { name: /Export Settings/i }));
@@ -651,19 +688,21 @@ describe('SettingsView', () => {
 
         it('Import Settings calls electronAPI.selectSettingsFile', async () => {
             const { mock } = renderSettings();
+            selectSettingsCategory('Application');
             await screen.findByRole('heading', { name: /Export \/ Import/i });
 
-            fireEvent.click(screen.getByRole('button', { name: /Import Settings/i }));
+            fireEvent.click(within(document.getElementById('export-import')!).getByRole('button', { name: /Import Settings/i }));
 
             await waitFor(() => expect(mock.selectSettingsFile).toHaveBeenCalledOnce());
         });
 
         it('does not open the import modal when the file picker is cancelled', async () => {
             const { mock } = renderSettings();
+            selectSettingsCategory('Application');
             await screen.findByRole('heading', { name: /Export \/ Import/i });
 
             mock.selectSettingsFile.mockResolvedValue({ canceled: true });
-            fireEvent.click(screen.getByRole('button', { name: /Import Settings/i }));
+            fireEvent.click(within(document.getElementById('export-import')!).getByRole('button', { name: /Import Settings/i }));
 
             await act(async () => { await Promise.resolve(); });
             expect(screen.queryByText(/Choose what to import/i)).not.toBeInTheDocument();
@@ -671,13 +710,14 @@ describe('SettingsView', () => {
 
         it('opens the import modal when a valid settings file is returned', async () => {
             const { mock } = renderSettings();
+            selectSettingsCategory('Application');
             await screen.findByRole('heading', { name: /Export \/ Import/i });
 
             mock.selectSettingsFile.mockResolvedValue({
                 success: true,
                 settings: { closeBehavior: 'quit' },
             });
-            fireEvent.click(screen.getByRole('button', { name: /Import Settings/i }));
+            fireEvent.click(within(document.getElementById('export-import')!).getByRole('button', { name: /Import Settings/i }));
 
             expect(await screen.findByText(/Choose what to import/i)).toBeInTheDocument();
         });
@@ -690,6 +730,7 @@ describe('SettingsView', () => {
     describe('GitHub section', () => {
         it('Connect GitHub button calls startGithubOAuth', async () => {
             const { mock } = renderSettings();
+            selectSettingsCategory('Web Report');
             await screen.findByRole('heading', { name: /GitHub Pages Web Reports/i });
 
             fireEvent.click(screen.getByRole('button', { name: /Connect GitHub/i }));
@@ -700,6 +741,7 @@ describe('SettingsView', () => {
         it('Disconnect button shows "Not connected" status', async () => {
             const { mock } = renderSettings({}, { githubToken: 'some-token' });
             await waitForLoad(mock);
+            selectSettingsCategory('Web Report');
 
             fireEvent.click(screen.getByRole('button', { name: /Disconnect/i }));
 
@@ -722,6 +764,7 @@ describe('SettingsView', () => {
     describe('Help & Updates navigation', () => {
         it('Open Walkthrough button calls onOpenWalkthrough', async () => {
             const { callbacks } = renderSettings();
+            selectSettingsCategory('Application');
             await screen.findByRole('heading', { name: /Help & Updates/i });
 
             fireEvent.click(screen.getByRole('button', { name: /Open Walkthrough/i }));
@@ -731,6 +774,7 @@ describe('SettingsView', () => {
 
         it("View What's New button calls onOpenWhatsNew", async () => {
             const { callbacks } = renderSettings();
+            selectSettingsCategory('Application');
             await screen.findByRole('heading', { name: /Help & Updates/i });
 
             fireEvent.click(screen.getByRole('button', { name: /View What's New/i }));
@@ -824,5 +868,87 @@ describe('includeMapSlice default', () => {
     it('defaults on in every declaration site', () => {
         expect(RENDERER_DEFAULTS.includeMapSlice).toBe(true);
         expect((HANDLER_DEFAULTS as any).includeMapSlice).toBe(true);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Category navigation (Task 5: paged settings + nested rail)
+// ---------------------------------------------------------------------------
+
+const defaultProps = {
+    onBack: vi.fn(),
+    onEmbedStatSettingsSaved: vi.fn(),
+    onOpenWhatsNew: vi.fn(),
+    onOpenWalkthrough: vi.fn(),
+    onHelpUpdatesFocusConsumed: vi.fn(),
+    onParserSettingsFocusConsumed: vi.fn(),
+    onHowToConsumed: vi.fn(),
+    onMvpWeightsSaved: vi.fn(),
+    onStatsViewSettingsSaved: vi.fn(),
+    onDisruptionMethodSaved: vi.fn(),
+    onColorPaletteSaved: vi.fn(),
+    onGlassSurfacesSaved: vi.fn(),
+    onGlassmorphicSaved: vi.fn(),
+    onParticlesEnabledSaved: vi.fn(),
+    onAllowLocalJsonSaved: vi.fn(),
+    onParserSettingsSaved: vi.fn(),
+    onR2PreciseReplaySaved: vi.fn(),
+    onR2HostingEnabledSaved: vi.fn(),
+    onR2SliceEnabledSaved: vi.fn(),
+    onR2CredentialsChanged: vi.fn(),
+    onLogsHealed: vi.fn(),
+} as any;
+
+const renderSettingsView = (overrides: Record<string, unknown> = {}) => {
+    window.electronAPI = makeElectronApiMock() as any;
+    return render(<SettingsView {...defaultProps} {...overrides} />);
+};
+
+describe('category navigation', () => {
+    it('shows only the selected category pane', async () => {
+        renderSettingsView();
+        // Discord is the default landing category.
+        expect(document.querySelector('[data-settings-pane="discord"]')).not.toHaveStyle({ display: 'none' });
+        expect(document.querySelector('[data-settings-pane="web-report"]')).toHaveStyle({ display: 'none' });
+    });
+
+    it('keeps every section mounted so search can still read hidden panes', () => {
+        renderSettingsView();
+        // A Web Report section exists in the DOM while Discord is selected.
+        expect(document.querySelector('#parser-settings')).not.toBeNull();
+    });
+
+    it('switches panes when a subsection in another category is clicked', async () => {
+        const user = userEvent.setup();
+        renderSettingsView();
+        await user.click(screen.getByRole('button', { name: /Web Report/i }));
+        await user.click(screen.getByRole('button', { name: /Report Data/i }));
+        expect(document.querySelector('[data-settings-pane="web-report"]')).not.toHaveStyle({ display: 'none' });
+        expect(document.querySelector('[data-settings-pane="discord"]')).toHaveStyle({ display: 'none' });
+    });
+
+    it('expands only one category at a time', async () => {
+        const user = userEvent.setup();
+        renderSettingsView();
+        await user.click(screen.getByRole('button', { name: /Web Report/i }));
+        // Discord's subsections collapse when Web Report expands.
+        expect(screen.queryByRole('button', { name: /Summary Sections/i })).toBeNull();
+        expect(screen.getByRole('button', { name: /Report Data/i })).toBeInTheDocument();
+    });
+
+    it('selects the owning category when a deep link targets another pane', async () => {
+        const { rerender } = renderSettingsView({ parserSettingsFocusTrigger: 0 });
+        rerender(<SettingsView {...defaultProps} parserSettingsFocusTrigger={1} />);
+        await waitFor(() => {
+            expect(document.querySelector('[data-settings-pane="web-report"]')).not.toHaveStyle({ display: 'none' });
+        });
+    });
+
+    it('lands on Help & Updates from a cold open on Discord', async () => {
+        const { rerender } = renderSettingsView({ helpUpdatesFocusTrigger: 0 });
+        rerender(<SettingsView {...defaultProps} helpUpdatesFocusTrigger={1} />);
+        await waitFor(() => {
+            expect(document.querySelector('[data-settings-pane="application"]')).not.toHaveStyle({ display: 'none' });
+        });
     });
 });
