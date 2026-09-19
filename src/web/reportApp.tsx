@@ -297,7 +297,16 @@ export function NoEgoRollup({ commanderRows, playerRows }: NoEgoRollupProps) {
     );
 }
 
-export function ReportApp() {
+/**
+ * Bypasses ReportApp's own fetch-driven loading (used by the standalone
+ * share-link viewer entry, which has already fetched and decoded a report
+ * payload from a share pointer's `loc` before ReportApp ever mounts).
+ */
+export interface ReportAppInjectedSource {
+    report: ReportPayload;
+}
+
+export function ReportApp({ injectedSource }: { injectedSource?: ReportAppInjectedSource } = {}) {
     const initialSearchParams = useMemo(() => new URLSearchParams(window.location.search), []);
     const [report, setReport] = useState<ReportPayload | null>(null);
     const [index, setIndex] = useState<ReportIndexEntry[] | null>(null);
@@ -947,6 +956,25 @@ export function ReportApp() {
 
     useEffect(() => {
         let isMounted = true;
+
+        if (injectedSource) {
+            setError(null);
+            setIndex([]);
+            setRollupData(null);
+            setRollupError(null);
+            setRollupLoading(false);
+            setRollupRequestedCount(0);
+            setReportPathHint(null);
+            const { palette, glass, glassmorphic: gm } = readPaletteFromReport(injectedSource.report.stats);
+            setColorPalette(palette);
+            setGlassSurfaces(glass);
+            setGlassmorphic(gm);
+            setReport(injectedSource.report);
+            return () => {
+                isMounted = false;
+            };
+        }
+
         const reportPath = reportId ? `${basePath}reports/${reportId}/report.json` : `${basePath}report.json`;
         setError(null);
         setReport(null);
@@ -1045,7 +1073,7 @@ export function ReportApp() {
         return () => {
             isMounted = false;
         };
-    }, [basePath, isRollupView, reportId]);
+    }, [basePath, isRollupView, reportId, injectedSource]);
 
     useEffect(() => {
         if (!isRollupView || !index) {

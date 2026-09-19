@@ -22,6 +22,7 @@
         "typecheck": "cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc --noEmit && cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc -p electron/tsconfig.json --noEmit --tsBuildInfoFile node_modules/.cache/axibridge/electron.typecheck.tsbuildinfo",
         "validate": "npm run typecheck && npm run lint",
         "build:web": "npm run sync:metrics-spec && cross-env NODE_OPTIONS=--max-old-space-size=6144 vite build --config vite.web.config.ts",
+        "build:viewer": "cross-env NODE_OPTIONS=--max-old-space-size=6144 vite build --config vite.viewer.config.ts",
         "build:linux": "npm run build && electron-builder --linux",
         "build:win": "npm run build && electron-builder --win",
         "build:all": "npm run build && electron-builder --linux --win",
