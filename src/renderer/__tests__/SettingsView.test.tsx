@@ -955,3 +955,51 @@ describe('category navigation', () => {
         });
     });
 });
+
+describe('cross-category search', () => {
+    it('finds a Web Report setting while Discord is selected, labelled with its category', async () => {
+        const user = userEvent.setup();
+        renderSettingsView();
+        await user.type(screen.getByPlaceholderText(/search settings/i), 'damage modifiers');
+        const result = await screen.findByRole('button', { name: /Web Report › Report Data/i });
+        expect(result).toBeInTheDocument();
+    });
+
+    it('navigates to the result’s category when it is selected', async () => {
+        const user = userEvent.setup();
+        renderSettingsView();
+        await user.type(screen.getByPlaceholderText(/search settings/i), 'damage modifiers');
+        await user.click(await screen.findByRole('button', { name: /Web Report › Report Data/i }));
+        await waitFor(() => {
+            expect(document.querySelector('[data-settings-pane="web-report"]')).not.toHaveStyle({ display: 'none' });
+        });
+    });
+
+    it('shows a per-category match count on the rail', async () => {
+        const user = userEvent.setup();
+        renderSettingsView();
+        await user.type(screen.getByPlaceholderText(/search settings/i), 'damage modifiers');
+        const webReportButton = await screen.findByRole('button', { name: /Web Report/i });
+        expect(webReportButton).toHaveTextContent('1');
+        // An unmatched category is visibly zero, not silently absent.
+        expect(screen.getByRole('button', { name: /Stats/i })).toHaveTextContent('0');
+    });
+
+    it('restores the category pane when the query is cleared', async () => {
+        const user = userEvent.setup();
+        renderSettingsView();
+        const input = screen.getByPlaceholderText(/search settings/i);
+        await user.type(input, 'damage modifiers');
+        await user.clear(input);
+        await waitFor(() => {
+            expect(document.querySelector('[data-settings-pane="discord"]')).not.toHaveStyle({ display: 'none' });
+        });
+    });
+
+    it('reports no results for a query nothing matches', async () => {
+        const user = userEvent.setup();
+        renderSettingsView();
+        await user.type(screen.getByPlaceholderText(/search settings/i), 'zzzznotasetting');
+        expect(await screen.findByText(/No settings match/i)).toBeInTheDocument();
+    });
+});

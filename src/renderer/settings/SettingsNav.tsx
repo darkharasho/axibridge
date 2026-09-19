@@ -8,6 +8,14 @@ interface SettingsNavProps {
     activeSectionId: string;
     /** Per-category count of sections matching the current search, or null when not searching. */
     matchCountsByCategory: Record<string, number> | null;
+    /**
+     * Section ids matching the current search, or null when not searching.
+     * Filters the expanded category's subsection list the same way the
+     * mobile stepper already filtered `FLATTENED_SECTIONS` — without this,
+     * an expanded category during a search still lists every subsection,
+     * including ones the query doesn't match.
+     */
+    matchedSectionIds: readonly string[] | null;
     onSelectCategory: (categoryId: string) => void;
     onSelectSection: (sectionId: string) => void;
 }
@@ -23,6 +31,7 @@ export function SettingsNav({
     selectedCategoryId,
     activeSectionId,
     matchCountsByCategory,
+    matchedSectionIds,
     onSelectCategory,
     onSelectSection
 }: SettingsNavProps) {
@@ -59,23 +68,33 @@ export function SettingsNav({
                                 </span>
                             )}
                         </button>
-                        {isExpanded && (
-                            <div className="ml-6 flex flex-col gap-0.5 py-0.5">
-                                {category.sections.map((section) => (
-                                    <button
-                                        key={section.id}
-                                        type="button"
-                                        data-settings-nav-id={section.id}
-                                        onClick={() => onSelectSection(section.id)}
-                                        className={`text-left px-2 py-1 rounded-[4px] text-xs transition-colors ${
-                                            section.id === activeSectionId ? 'text-white' : 'text-gray-400'
-                                        }`}
-                                    >
-                                        {section.label}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                        {isExpanded && (() => {
+                            const sections = matchedSectionIds
+                                ? category.sections.filter((section) => matchedSectionIds.includes(section.id))
+                                : category.sections;
+                            return (
+                                <div className="ml-6 flex flex-col gap-0.5 py-0.5">
+                                    {sections.length === 0 && (
+                                        <div className="px-2 py-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                                            No matches
+                                        </div>
+                                    )}
+                                    {sections.map((section) => (
+                                        <button
+                                            key={section.id}
+                                            type="button"
+                                            data-settings-nav-id={section.id}
+                                            onClick={() => onSelectSection(section.id)}
+                                            className={`text-left px-2 py-1 rounded-[4px] text-xs transition-colors ${
+                                                section.id === activeSectionId ? 'text-white' : 'text-gray-400'
+                                            }`}
+                                        >
+                                            {section.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            );
+                        })()}
                     </div>
                 );
             })}
