@@ -6,6 +6,7 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { parseVersion, compareVersion, extractReleaseNotesRangeFromFile } from '../versionUtils';
 import { formatAutoUpdateErrorMessage } from '../../shared/autoUpdateErrors';
+import { restoreMissingAppImage, discardAppImagePlaceholder } from '../appImageInstall';
 
 // ─── Release notes fetcher (GitHub API) ──────────────────────────────────────
 
@@ -119,7 +120,34 @@ export function registerAppHandlers(opts: AppHandlerOptions) {
     });
 
     ipcMain.on('restart-app', () => {
+        // electron-updater unlinks $APPIMAGE as the very first thing it does on
+        // install. When that file has gone from disk under a long-running
+        // session — our AppImages are versioned, so an update writes a new name
+        // and deletes the old one — the install dies on a raw ENOENT before the
+        // downloaded installer is even touched. Put the path back first.
+        const appImagePath = process.env.APPIMAGE;
+        const hasStagedInstaller = Boolean((autoUpdater as any).installerPath);
+        const outcome = hasStagedInstaller ? restoreMissingAppImage(appImagePath) : 'present';
+
+        if (outcome === 'failed') {
+            log.error(`[AutoUpdater] $APPIMAGE is missing and could not be recreated: ${appImagePath}`);
+            getWindow()?.webContents.send('update-error', {
+                message: 'The AppImage this session is running from is no longer on disk, so the update cannot replace it. '
+                    + 'Restart AxiBridge from your current AppImage and try again.',
+            });
+            return;
+        }
+        if (outcome === 'restored') {
+            log.warn(`[AutoUpdater] $APPIMAGE was missing; recreated ${appImagePath} so the install can proceed.`);
+        }
+
         autoUpdater.quitAndInstall();
+
+        // quitAndInstall only quits when the install succeeded. If it bailed,
+        // the placeholder would otherwise sit there as an empty AppImage.
+        if (outcome === 'restored' && discardAppImagePlaceholder(appImagePath)) {
+            log.warn('[AutoUpdater] Install did not run; removed the placeholder AppImage.');
+        }
     });
 
     ipcMain.handle('get-app-version', () => {
