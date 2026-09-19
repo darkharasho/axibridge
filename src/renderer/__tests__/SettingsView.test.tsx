@@ -1019,17 +1019,33 @@ describe('section naming', () => {
         for (const heading of headings) {
             expect(heading.textContent?.toLowerCase() ?? '').not.toContain('embed');
         }
-        // Check body text within sections for user-visible embed references
-        // (Store keys like embedStatSettings or IDs like embed-summary are ok, they're not rendered text)
+        // Check body text within sections — blanket assertion for all visible text
         const sections = Array.from(document.querySelectorAll('[data-settings-section="true"]'));
         for (const section of sections) {
-            const text = section.textContent ?? '';
-            // Check for common user-facing patterns with "embed"
-            expect(text).not.toContain('embed notification');
-            expect(text).not.toContain('embed post');
-            // Simple word check to catch "embed" when not part of a variable name
-            expect(text).not.toMatch(/\bdiscord\s+embed\b/i);
+            const text = section.textContent?.toLowerCase() ?? '';
+            expect(text).not.toContain('embed');
         }
+    });
+
+    it('never shows the word "embed" in the import modal', async () => {
+        const { mock } = renderSettings();
+        selectSettingsCategory('Application');
+        await screen.findByRole('heading', { name: /Export \/ Import/i });
+
+        // Mock file picker to return settings that trigger import modal
+        mock.selectSettingsFile.mockResolvedValue({
+            success: true,
+            settings: { closeBehavior: 'quit' },
+        });
+
+        // Open the import modal
+        fireEvent.click(within(document.getElementById('export-import')!).getByRole('button', { name: /Import Settings/i }));
+
+        // Wait for modal and check for "embed" in modal content
+        const importModal = await screen.findByText(/Choose what to import/i);
+        const modalContainer = importModal.closest('div[role="presentation"]') || document.body;
+        const modalText = modalContainer.textContent?.toLowerCase() ?? '';
+        expect(modalText).not.toContain('embed');
     });
 
     it('titles the renamed sections by their destination, not their implementation', () => {

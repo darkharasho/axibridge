@@ -78,7 +78,7 @@ const IMPORT_SETTING_META: Array<{ key: string; label: string; description: stri
     { key: 'glassSurfaces', label: 'Glass Surfaces', description: 'Enable frosted-glass card surfaces.', section: 'Application' },
     { key: 'glassmorphic', label: 'Lillifox Mode', description: 'Aurora background with rounded glass cards (legacy look).', section: 'Application' },
     { key: 'particlesEnabled', label: 'Particle Effects', description: 'Enable particle animations and effects.', section: 'Application' },
-    { key: 'embedStatSettings', label: 'Embed Stat Toggles', description: 'Discord embed sections and lists.', section: 'Stats' },
+    { key: 'embedStatSettings', label: 'Discord Stat Toggles', description: 'Discord summary sections and top stat lists.', section: 'Stats' },
     { key: 'mvpWeightProfiles', label: 'MVP Weights', description: 'Score weighting for MVP.', section: 'Stats' },
     { key: 'mvpWeights', label: 'MVP Weights (legacy)', description: 'Legacy MVP weighting imported from older exports.', section: 'Stats' },
     { key: 'statsViewSettings', label: 'Stats View Settings', description: 'Dashboard stats configuration.', section: 'Stats' },
