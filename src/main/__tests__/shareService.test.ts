@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { brotliDecompressSync } from 'zlib';
+import { brotliCompressSync, brotliDecompressSync, constants as zlibConstants } from 'zlib';
 import { compressReport, shareLog, type ShareTarget } from '../shareService';
 
 const details = {
@@ -35,6 +35,15 @@ describe('compressReport', () => {
     it('produces something smaller than the raw JSON', () => {
         const raw = Buffer.byteLength(JSON.stringify({ padding: 'a'.repeat(10000) }));
         expect(compressReport({ padding: 'a'.repeat(10000) }).length).toBeLessThan(raw);
+    });
+
+    it('compresses at quality 11, not some lower default', () => {
+        const input = { padding: 'a'.repeat(10000) };
+        const raw = Buffer.from(JSON.stringify(input), 'utf8');
+        const lowQuality = brotliCompressSync(raw, {
+            params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 1 }
+        });
+        expect(compressReport(input).length).toBeLessThan(lowQuality.length);
     });
 });
 
@@ -83,13 +92,57 @@ describe('shareLog', () => {
         expect(fetchImpl).not.toHaveBeenCalled();
     });
 
-    it('surfaces a worker rejection', async () => {
+    it.each([
+        [400, 'Missing report location.'],
+        [401, 'GitHub authentication required.'],
+        [413, 'Payload too large.'],
+        [429, 'Share rate limit reached. Try again later.'],
+        [503, 'Could not allocate a share code. Try again.'],
+        [500, 'internal error']
+    ])('surfaces a worker rejection for status %i verbatim', async (status, workerError) => {
+        const fetchImpl = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify({ error: workerError }), { status })
+        );
+        const result = await shareLog(details, 'log-1', deps({ fetchImpl: fetchImpl as any }));
+        expect(result.success).toBe(false);
+        expect(result.error).toBe(workerError);
+    });
+
+    it('surfaces the 429 rate-limit message distinctly and human-readably', async () => {
         const fetchImpl = vi.fn().mockResolvedValue(
             new Response(JSON.stringify({ error: 'Share rate limit reached. Try again later.' }), { status: 429 })
         );
         const result = await shareLog(details, 'log-1', deps({ fetchImpl: fetchImpl as any }));
         expect(result.success).toBe(false);
         expect(result.error).toContain('rate limit');
+    });
+
+    it('resolves (does not reject) when putObject rejects, and never calls the worker', async () => {
+        const target: ShareTarget = { putObject: vi.fn().mockRejectedValue(new Error('Not signed in to Cloudflare.')) };
+        const fetchImpl = okWorker();
+        const result = await shareLog(details, 'log-1', deps({ target, fetchImpl: fetchImpl as any }));
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Not signed in to Cloudflare.');
+        expect(fetchImpl).not.toHaveBeenCalled();
+    });
+
+    it('resolves (does not reject) when the report has a circular reference', async () => {
+        const circular: any = { fightName: 'Detonator' };
+        circular.self = circular;
+        const target = okTarget();
+        const fetchImpl = okWorker();
+        const result = await shareLog(circular, 'log-1', deps({ target, fetchImpl: fetchImpl as any }));
+        expect(result.success).toBe(false);
+        expect(target.putObject).not.toHaveBeenCalled();
+        expect(fetchImpl).not.toHaveBeenCalled();
+    });
+
+    it('rejects a non-https upload location before calling the worker', async () => {
+        const target: ShareTarget = { putObject: vi.fn().mockResolvedValue({ success: true, url: 'http://cdn.example.com/a.br' }) };
+        const fetchImpl = okWorker();
+        const result = await shareLog(details, 'log-1', deps({ target, fetchImpl: fetchImpl as any }));
+        expect(result.success).toBe(false);
+        expect(fetchImpl).not.toHaveBeenCalled();
     });
 
     it('surfaces a network failure reaching the worker', async () => {

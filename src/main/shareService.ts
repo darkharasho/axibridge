@@ -38,11 +38,24 @@ export const compressReport = (details: unknown): Buffer =>
         params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 11 }
     });
 
+const errorMessage = (err: unknown, fallback: string): string =>
+    (err instanceof Error && err.message) || fallback;
+
+const isHttpsUrl = (value: string): boolean => {
+    try {
+        return new URL(value).protocol === 'https:';
+    } catch {
+        return false;
+    }
+};
+
 /**
  * Publishes an already-parsed report to the user's own storage, then registers
  * a tiny pointer with the Cloudflare Worker and returns the resulting short
- * link. Never throws — every failure mode (missing auth, upload failure,
- * worker rejection, network failure) resolves to `{ success: false, error }`.
+ * link. Never throws — every failure mode (missing auth, a throwing or failing
+ * upload — e.g. an expired Cloudflare session — a non-https upload location,
+ * worker rejection, or network failure) resolves to `{ success: false, error }`
+ * naming the failing step, instead of rejecting.
  *
  * The Worker's `POST /r` contract (worker/src/index.ts) returns 201 with
  * `{ code, url }` on success and 400/401/413/429/503/500 with `{ error }`
@@ -59,10 +72,24 @@ export const shareLog = async (
         return { success: false, error: 'Connect GitHub in Settings to create share links.' };
     }
 
-    const body = compressReport(details);
-    const put = await deps.target.putObject(`shares/${logId}.json.br`, body, 'application/json');
+    let body: Buffer;
+    try {
+        body = compressReport(details);
+    } catch (err) {
+        return { success: false, error: errorMessage(err, 'Failed to compress the report.') };
+    }
+
+    let put: { success: boolean; url?: string; error?: string };
+    try {
+        put = await deps.target.putObject(`shares/${logId}.json.br`, body, 'application/json');
+    } catch (err) {
+        return { success: false, error: errorMessage(err, 'Failed to upload the report.') };
+    }
     if (!put.success || !put.url) {
         return { success: false, error: put.error || 'Failed to upload the report.' };
+    }
+    if (!isHttpsUrl(put.url)) {
+        return { success: false, error: 'Uploaded report location must be an https URL.' };
     }
 
     const fetchImpl = deps.fetchImpl ?? fetch;
