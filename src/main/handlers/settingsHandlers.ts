@@ -9,6 +9,7 @@ import { isR2SliceEnabled } from './githubHandlers';
 import { parseMaybeGzippedJson } from '../cloudflare/replaySidecar';
 import { resolvePartsJson } from '../partsReader';
 import { resolvePartUrl } from '../../shared/chunkedGzip';
+import { readEnabledWebhookIds } from '../discordDestinationResolver';
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -158,6 +159,7 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             reportWebhookSelection: store.get('reportWebhookSelection', null),
             reportWebhookSeen: store.get('reportWebhookSeen', null),
             selectedWebhookId: store.get('selectedWebhookId', null),
+            enabledWebhookIds: readEnabledWebhookIds(store),
             dpsReportToken: store.get('dpsReportToken', null),
             closeBehavior: store.get('closeBehavior', 'minimize'),
             embedStatSettings: store.get('embedStatSettings', DEFAULT_EMBED_STATS),
@@ -239,6 +241,7 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             reportWebhookSelection: store.get('reportWebhookSelection', null),
             reportWebhookSeen: store.get('reportWebhookSeen', null),
             selectedWebhookId: store.get('selectedWebhookId', null),
+            enabledWebhookIds: readEnabledWebhookIds(store),
             dpsReportToken: store.get('dpsReportToken', null),
             closeBehavior: store.get('closeBehavior', 'minimize'),
             embedStatSettings: store.get('embedStatSettings', DEFAULT_EMBED_STATS),
