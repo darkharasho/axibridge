@@ -1,4 +1,4 @@
-import { brotliCompressSync, constants as zlibConstants } from 'zlib';
+import { gzipSync, constants as zlibConstants } from 'zlib';
 import { buildShareSummary } from '../shared/shareSummary';
 
 export const DEFAULT_WORKER_URL = 'https://bridge.axi.link/r';
@@ -30,12 +30,18 @@ export interface ShareResult {
 }
 
 /**
- * Tier 1 is the native axilog block, brotli quality 11. Measured: ~0.78 MB for a
- * typical 42-player fight, ~4.2 MB for a large one.
+ * Tier 1 is the native axilog block, gzip at maximum level.
+ *
+ * NOT brotli, despite brotli compressing this payload measurably better: the
+ * viewer decodes these bytes in-browser via `DecompressionStream`, which supports
+ * gzip and deflate but not brotli, and `putObject` sets only a Content-Type so
+ * there is no `Content-Encoding: br` for `fetch` to auto-inflate. Same reasoning,
+ * and same gzip choice, as the replay and slice sidecars
+ * (`githubHandlers.ts:1933`, `replaySidecar.ts:10`).
  */
 export const compressReport = (details: unknown): Buffer =>
-    brotliCompressSync(Buffer.from(JSON.stringify(details), 'utf8'), {
-        params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 11 }
+    gzipSync(Buffer.from(JSON.stringify(details), 'utf8'), {
+        level: zlibConstants.Z_BEST_COMPRESSION
     });
 
 const errorMessage = (err: unknown, fallback: string): string =>
@@ -81,7 +87,7 @@ export const shareLog = async (
 
     let put: { success: boolean; url?: string; error?: string };
     try {
-        put = await deps.target.putObject(`shares/${logId}.json.br`, body, 'application/json');
+        put = await deps.target.putObject(`shares/${logId}.json.gz`, body, 'application/gzip');
     } catch (err) {
         return { success: false, error: errorMessage(err, 'Failed to upload the report.') };
     }

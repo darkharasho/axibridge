@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { brotliCompressSync, brotliDecompressSync, constants as zlibConstants } from 'zlib';
+import { gzipSync, gunzipSync, constants as zlibConstants } from 'zlib';
 import { compressReport, shareLog, type ShareTarget } from '../shareService';
 
 const details = {
@@ -12,7 +12,7 @@ const details = {
 };
 
 const okTarget = (): ShareTarget & { putObject: ReturnType<typeof vi.fn> } => ({
-    putObject: vi.fn().mockResolvedValue({ success: true, url: 'https://cdn.example.com/a.br' })
+    putObject: vi.fn().mockResolvedValue({ success: true, url: 'https://cdn.example.com/a.gz' })
 });
 
 const okWorker = () => vi.fn().mockResolvedValue(
@@ -27,8 +27,8 @@ const deps = (over: Partial<Parameters<typeof shareLog>[2]> = {}) => ({
 });
 
 describe('compressReport', () => {
-    it('round-trips through brotli', () => {
-        const restored = JSON.parse(brotliDecompressSync(compressReport(details)).toString('utf8'));
+    it('round-trips through gunzipSync', () => {
+        const restored = JSON.parse(gunzipSync(compressReport(details)).toString('utf8'));
         expect(restored).toEqual(details);
     });
 
@@ -37,17 +37,15 @@ describe('compressReport', () => {
         expect(compressReport({ padding: 'a'.repeat(10000) }).length).toBeLessThan(raw);
     });
 
-    it('compresses better than quality 1, guarding against a collapse to the weakest setting', () => {
-        // This does not pin quality 11 specifically (an exact byte count is brittle
-        // across brotli versions) — it only guards against silently regressing to
-        // quality 1. Measured: q1 -> 49 bytes, q11 -> 31 bytes on this fixture, and
-        // dropping quality 11 to 6 still leaves this assertion passing.
+    it('compresses better than gzip level 1, guarding against a collapse to the weakest setting', () => {
+        // This does not pin Z_BEST_COMPRESSION specifically (an exact byte count is
+        // brittle across zlib versions) — it only guards against silently
+        // regressing to the weakest gzip level. Measured on this fixture: level 1
+        // -> 96 bytes, Z_BEST_COMPRESSION -> 61 bytes.
         const input = { padding: 'a'.repeat(10000) };
         const raw = Buffer.from(JSON.stringify(input), 'utf8');
-        const lowQuality = brotliCompressSync(raw, {
-            params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 1 }
-        });
-        expect(compressReport(input).length).toBeLessThan(lowQuality.length);
+        const lowLevel = gzipSync(raw, { level: 1 });
+        expect(compressReport(input).length).toBeLessThan(lowLevel.length);
     });
 });
 
@@ -60,13 +58,13 @@ describe('shareLog', () => {
         });
     });
 
-    it('uploads brotli-compressed bytes under a .br key', async () => {
+    it('uploads gzip-compressed bytes under a .json.gz key', async () => {
         const target = okTarget();
         await shareLog(details, 'log-1', deps({ target }));
         const [key, body, contentType] = target.putObject.mock.calls[0];
-        expect(key).toBe('shares/log-1.json.br');
-        expect(contentType).toBe('application/json');
-        expect(JSON.parse(brotliDecompressSync(body).toString('utf8'))).toEqual(details);
+        expect(key).toBe('shares/log-1.json.gz');
+        expect(contentType).toBe('application/gzip');
+        expect(JSON.parse(gunzipSync(body).toString('utf8'))).toEqual(details);
     });
 
     it('posts the summary and the uploaded location to the worker', async () => {
@@ -74,7 +72,7 @@ describe('shareLog', () => {
         await shareLog(details, 'log-1', deps({ fetchImpl: fetchImpl as any }));
         const [, init] = fetchImpl.mock.calls[0];
         const body = JSON.parse(init.body);
-        expect(body.loc).toBe('https://cdn.example.com/a.br');
+        expect(body.loc).toBe('https://cdn.example.com/a.gz');
         expect(body.sum.f).toBe('Detonator');
         expect(init.headers.Authorization).toBe('Bearer gho_valid');
     });

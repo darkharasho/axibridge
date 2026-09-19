@@ -66,7 +66,7 @@ describe('share IPC handlers', () => {
         // Proves the uploaded key is actually derived from the logId passed in —
         // a handler that hardcoded a key or dropped logId would still pass the
         // shape assertion above but fail this one.
-        expect(putObject).toHaveBeenCalledWith('shares/log-1.json.br', expect.any(Buffer), 'application/json');
+        expect(putObject).toHaveBeenCalledWith('shares/log-1.json.gz', expect.any(Buffer), 'application/gzip');
     });
 
     it('plans retention from the entries it is handed', async () => {
