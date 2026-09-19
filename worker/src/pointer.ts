@@ -53,7 +53,7 @@ export const generateCode = (bytes?: Uint8Array): string => {
 export const isValidCode = (code: string): boolean =>
     typeof code === 'string' && new RegExp(`^[0-9A-Za-z]{${CODE_LENGTH}}$`).test(code);
 
-const isSummary = (value: any): value is ShareSummary =>
+export const isSummary = (value: any): value is ShareSummary =>
     !!value
     && typeof value.f === 'string'
     && typeof value.m === 'string'

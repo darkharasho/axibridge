@@ -13,6 +13,17 @@ const fakeKv = (): KVLike & { store: Map<string, string> } => {
     };
 };
 
+/** A KV fake whose `put` always rejects, to simulate the ~1 write/sec KV ceiling. */
+const flakyKv = (): KVLike & { store: Map<string, string> } => {
+    const store = new Map<string, string>();
+    return {
+        store,
+        get: async (key) => store.get(key) ?? null,
+        put: async () => { throw new Error('KV rate limited'); },
+        delete: async (key) => { store.delete(key); }
+    };
+};
+
 const env = (kv: KVLike): Env => ({ SHARE: kv, VIEWER_URL: 'https://bridge.axi.link/view' });
 
 const okUser = () => vi.fn().mockResolvedValue(
@@ -37,6 +48,13 @@ const post = (body: unknown, token = 'gho_valid') =>
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' },
         body: JSON.stringify(body)
+    });
+
+const postRaw = (rawBody: string, url = 'https://bridge.axi.link/r', token = 'gho_valid') =>
+    new Request(url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: rawBody
     });
 
 describe('POST /r', () => {
@@ -79,6 +97,98 @@ describe('POST /r', () => {
         const res = await handleRequest(post({ loc: 'x', sum: summary }), env(kv), okUser() as any);
         expect(res.status).toBe(429);
     });
+
+    it.each([
+        ['javascript:alert(1)'],
+        ['http://example.com/r.json'],
+        ['file:///etc/passwd']
+    ])('rejects a %s location', async (loc) => {
+        const res = await handleRequest(post({ loc, sum: summary }), env(fakeKv()), okUser() as any);
+        expect(res.status).toBe(400);
+    });
+
+    it('accepts a normal https location', async () => {
+        const res = await handleRequest(post({ loc: 'https://cdn.example.com/a.br', sum: summary }), env(fakeKv()), okUser() as any);
+        expect(res.status).toBe(201);
+    });
+
+    it('rejects an oversized body with 413', async () => {
+        const res = await handleRequest(
+            postRaw(JSON.stringify({ loc: 'https://cdn.example.com/a.br', sum: summary, filler: 'x'.repeat(5000) })),
+            env(fakeKv()),
+            okUser() as any
+        );
+        expect(res.status).toBe(413);
+    });
+
+    it('rejects an oversized loc with 400', async () => {
+        const res = await handleRequest(
+            post({ loc: `https://cdn.example.com/${'a'.repeat(600)}`, sum: summary }),
+            env(fakeKv()),
+            okUser() as any
+        );
+        expect(res.status).toBe(400);
+    });
+
+    it('rejects an oversized summary field with 400', async () => {
+        const res = await handleRequest(
+            post({ loc: 'https://cdn.example.com/a.br', sum: { ...summary, m: 'm'.repeat(200) } }),
+            env(fakeKv()),
+            okUser() as any
+        );
+        expect(res.status).toBe(400);
+    });
+
+    it('does not overwrite an existing record on code collision', async () => {
+        const kv = fakeKv();
+        await kv.put('p:00000000', JSON.stringify(record({ owner: 'someone-else' })));
+        const spy = vi.spyOn(globalThis.crypto, 'getRandomValues')
+            .mockImplementationOnce(((arr: Uint8Array) => { arr.fill(0); return arr; }) as any)
+            .mockImplementationOnce(((arr: Uint8Array) => { arr.fill(1); return arr; }) as any);
+        try {
+            const res = await handleRequest(
+                post({ loc: 'https://cdn.example.com/a.br', sum: summary }),
+                env(kv),
+                okUser() as any
+            );
+            expect(res.status).toBe(201);
+            const body = await res.json() as { code: string };
+            expect(body.code).toBe('11111111');
+            expect(JSON.parse(kv.store.get('p:00000000')!).owner).toBe('someone-else');
+        } finally {
+            spy.mockRestore();
+        }
+    });
+
+    it('503s when every code attempt collides', async () => {
+        const kv = fakeKv();
+        const spy = vi.spyOn(globalThis.crypto, 'getRandomValues')
+            .mockImplementation(((arr: Uint8Array) => { arr.fill(0); return arr; }) as any);
+        await kv.put('p:00000000', JSON.stringify(record({ owner: 'someone-else' })));
+        try {
+            const res = await handleRequest(
+                post({ loc: 'https://cdn.example.com/a.br', sum: summary }),
+                env(kv),
+                okUser() as any
+            );
+            expect(res.status).toBe(503);
+        } finally {
+            spy.mockRestore();
+        }
+    });
+
+    it('derives the returned url from the request origin', async () => {
+        const res = await handleRequest(
+            postRaw(
+                JSON.stringify({ loc: 'https://cdn.example.com/a.br', sum: summary }),
+                'https://staging.workers.dev/r'
+            ),
+            env(fakeKv()),
+            okUser() as any
+        );
+        const body = await res.json() as { code: string; url: string };
+        expect(body.url).toBe(`https://staging.workers.dev/r/${body.code}`);
+    });
 });
 
 describe('GET /r/:code', () => {
@@ -118,6 +228,35 @@ describe('GET /r/:code', () => {
         expect(res.status).toBe(200);
         expect(await res.text()).toContain('no longer stored');
     });
+
+    it('still returns 200 when the lastSeen stamp write rejects', async () => {
+        const kv = flakyKv();
+        kv.store.set('p:k3Xm9qR2', JSON.stringify(record()));
+        const res = await handleRequest(new Request('https://bridge.axi.link/r/k3Xm9qR2'), env(kv), okUser() as any);
+        expect(res.status).toBe(200);
+        expect(await res.text()).toContain('og:title');
+    });
+
+    it('defers the lastSeen stamp to waitUntil when a ctx is provided', async () => {
+        const kv = fakeKv();
+        await kv.put('p:k3Xm9qR2', JSON.stringify(record({ seen: 1 })));
+        const waitUntil = vi.fn();
+        const res = await handleRequest(
+            new Request('https://bridge.axi.link/r/k3Xm9qR2'),
+            env(kv),
+            okUser() as any,
+            { waitUntil }
+        );
+        expect(res.status).toBe(200);
+        expect(waitUntil).toHaveBeenCalledTimes(1);
+    });
+
+    it('sets a short edge cache-control on the HTML response', async () => {
+        const kv = fakeKv();
+        await kv.put('p:k3Xm9qR2', JSON.stringify(record()));
+        const res = await handleRequest(new Request('https://bridge.axi.link/r/k3Xm9qR2'), env(kv), okUser() as any);
+        expect(res.headers.get('cache-control')).toBe('public, s-maxage=60');
+    });
 });
 
 describe('PATCH /r/:code', () => {
@@ -149,6 +288,22 @@ describe('PATCH /r/:code', () => {
         await kv.put('p:k3Xm9qR2', JSON.stringify(record()));
         const res = await handleRequest(patch('k3Xm9qR2', 'archived'), env(kv), okUser() as any);
         expect(res.status).toBe(400);
+    });
+
+    it('rejects promoting a tombstone back to full and leaves it demoted', async () => {
+        const kv = fakeKv();
+        await kv.put('p:k3Xm9qR2', JSON.stringify(record({ stage: 'demoted' })));
+        const res = await handleRequest(patch('k3Xm9qR2', 'full'), env(kv), okUser() as any);
+        expect(res.status).toBe(400);
+        expect(JSON.parse(kv.store.get('p:k3Xm9qR2')!).stage).toBe('demoted');
+    });
+
+    it('allows an idempotent retry at the same stage', async () => {
+        const kv = fakeKv();
+        await kv.put('p:k3Xm9qR2', JSON.stringify(record({ stage: 'demoted' })));
+        const res = await handleRequest(patch('k3Xm9qR2', 'demoted'), env(kv), okUser() as any);
+        expect(res.status).toBe(200);
+        expect(JSON.parse(kv.store.get('p:k3Xm9qR2')!).stage).toBe('demoted');
     });
 });
 
