@@ -36,7 +36,7 @@ export function SettingsNav({
     onSelectSection
 }: SettingsNavProps) {
     return (
-        <nav className="flex flex-col gap-0.5" aria-label="Settings categories">
+        <nav className="flex flex-col gap-1.5" aria-label="Settings categories">
             {categories.map((category) => {
                 const isExpanded = category.id === selectedCategoryId;
                 const Icon = category.icon;
@@ -73,7 +73,7 @@ export function SettingsNav({
                                 ? category.sections.filter((section) => matchedSectionIds.includes(section.id))
                                 : category.sections;
                             return (
-                                <div className="ml-6 flex flex-col gap-0.5 py-0.5">
+                                <div className="ml-6 flex flex-col gap-1 py-1">
                                     {sections.length === 0 && (
                                         <div className="px-2 py-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
                                             No matches
