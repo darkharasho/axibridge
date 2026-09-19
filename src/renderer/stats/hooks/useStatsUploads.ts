@@ -1,5 +1,6 @@
 import { useContext, useEffect, useState } from 'react';
 import { computeStatsSync } from '../incrementalAggregation';
+import { shareIdentity } from '../../../shared/shareIdentity';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 import { isReplayElided } from '../../workers/replayTransfer';
 import { buildReportMeta as buildReportMetaFromDetails } from '../utils/buildReportMeta';
@@ -287,7 +288,7 @@ export const useStatsUploads = ({
             await onWebUpload({
                 meta,
                 stats: uploadStats,
-                logIds: logs.map((l) => l.permalink).filter(Boolean),
+                logIds: logs.map((l) => shareIdentity(l)).filter(Boolean),
                 ...(normalizedRepoFullName ? { repoFullName: normalizedRepoFullName } : {}),
                 ...(repoParts.length === 2 ? { repoOwner: repoParts[0], repoName: repoParts[1] } : {}),
                 ...(Array.isArray(reportWebhookIds) ? { reportWebhookIds } : {}),

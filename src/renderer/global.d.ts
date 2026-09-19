@@ -554,6 +554,10 @@ declare global {
     interface ILogData {
         id: string;
         permalink: string;
+        /** Our own share link, e.g. https://bridge.axi.link/r/k3Xm9qR2. */
+        shareUrl?: string;
+        /** The 8-character share code backing `shareUrl`. */
+        shareId?: string;
         filePath: string;
         status?: 'queued' | 'pending' | 'uploading' | 'retrying' | 'discord' | 'calculating' | 'parsing' | 'success' | 'error';
         error?: string;
