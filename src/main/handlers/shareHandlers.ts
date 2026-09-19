@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import { shareLog, type ShareResult, type ShareTarget } from '../shareService';
 import { planRetention, type RetentionAction, type RetentionEntry } from '../shareRetention';
+import { SHARE_LOG_CHANNEL, SHARE_PLAN_RETENTION_CHANNEL } from '../../shared/shareChannels';
 
 export interface ShareHandlerOptions {
     store: any;
@@ -10,19 +11,32 @@ export interface ShareHandlerOptions {
     resolveTarget: (store: any) => ShareTarget | null;
 }
 
+const errorMessage = (err: unknown, fallback: string): string =>
+    (err instanceof Error && err.message) || fallback;
+
 export function registerShareHandlers(opts: ShareHandlerOptions) {
     const { store, getDetails, resolveTarget } = opts;
 
-    ipcMain.handle('share-log', async (_event, payload: { logId: string }): Promise<ShareResult> => {
+    ipcMain.handle(SHARE_LOG_CHANNEL, async (_event, payload: { logId: string }): Promise<ShareResult> => {
         const logId = payload?.logId;
         if (!logId) return { success: false, error: 'No log specified.' };
 
-        const details = getDetails(logId);
+        let details: any;
+        try {
+            details = getDetails(logId);
+        } catch (err) {
+            return { success: false, error: errorMessage(err, 'Failed to load that log’s details.') };
+        }
         if (!details) {
             return { success: false, error: 'That log has no details yet — parse it before sharing.' };
         }
 
-        const target = resolveTarget(store);
+        let target: ShareTarget | null;
+        try {
+            target = resolveTarget(store);
+        } catch (err) {
+            return { success: false, error: errorMessage(err, 'Failed to resolve where to store the report.') };
+        }
         if (!target) {
             return {
                 success: false,
@@ -30,13 +44,20 @@ export function registerShareHandlers(opts: ShareHandlerOptions) {
             };
         }
 
-        return shareLog(details, logId, {
-            target,
-            githubToken: (store.get('githubToken') as string | undefined) ?? null
-        });
+        let githubToken: string | null;
+        try {
+            githubToken = (store?.get?.('githubToken') as string | undefined) ?? null;
+        } catch (err) {
+            return { success: false, error: errorMessage(err, 'Failed to read your GitHub connection.') };
+        }
+
+        // shareLog itself is proven never to reject — every failure mode inside
+        // it resolves to `{ success: false, error }` — so it is deliberately not
+        // wrapped in another try/catch here.
+        return shareLog(details, logId, { target, githubToken });
     });
 
-    ipcMain.handle('share-plan-retention', async (_event, payload: {
+    ipcMain.handle(SHARE_PLAN_RETENTION_CHANNEL, async (_event, payload: {
         entries?: RetentionEntry[];
         budgetBytes?: number;
         highWaterPct?: number;

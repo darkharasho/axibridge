@@ -92,4 +92,76 @@ describe('share IPC handlers', () => {
         const result = await invoke('share-plan-retention', { entries: [] }) as { actions: unknown[] };
         expect(result.actions).toEqual([]);
     });
+
+    describe('adversarial dependencies never escape as rejections', () => {
+        // Fix-round 1: the handler's own pre-work (getDetails, resolveTarget,
+        // store.get) was called with no try/catch, so a throwing dependency or a
+        // null store propagated as an unhandled rejection out of ipcMain.handle
+        // instead of the documented `{ success: false, error }` shape. Every case
+        // below drives the handler with a dependency that throws (or a store
+        // that is missing/broken) and asserts the promise still *resolves* to a
+        // failure object — the specific wrong behaviour each one catches is an
+        // escaped exception / rejected promise, not merely a wrong error string.
+
+        it('share-log: getDetails throwing resolves to a failure object, not a rejection', async () => {
+            registerShareHandlers({
+                store: { get: () => 'gho_valid' },
+                getDetails: () => { throw new Error('disk read failed'); },
+                resolveTarget: () => ({ putObject: vi.fn() })
+            });
+            const result = await invoke('share-log', { logId: 'log-1' }) as { success: boolean; error: string };
+            expect(result).toEqual({ success: false, error: 'disk read failed' });
+        });
+
+        it('share-log: resolveTarget throwing resolves to a failure object, not a rejection', async () => {
+            registerShareHandlers({
+                store: { get: () => 'gho_valid' },
+                getDetails: () => details,
+                resolveTarget: () => { throw new Error('R2 credentials malformed'); }
+            });
+            const result = await invoke('share-log', { logId: 'log-1' }) as { success: boolean; error: string };
+            expect(result).toEqual({ success: false, error: 'R2 credentials malformed' });
+        });
+
+        it('share-log: a null store does not throw when reading githubToken', async () => {
+            const putObject = vi.fn().mockResolvedValue({ success: true, url: 'https://cdn.example.com/a.br' });
+            registerShareHandlers({
+                store: null,
+                getDetails: () => details,
+                resolveTarget: () => ({ putObject })
+            });
+            const result = await invoke('share-log', { logId: 'log-1' }) as { success: boolean; error?: string };
+            // No token can be read from a null store, so shareLog's own contract
+            // (never throws, reports missing auth) takes over from here — the
+            // point of this test is only that we got a returned object at all.
+            expect(result.success).toBe(false);
+            expect(result.error).toMatch(/github/i);
+        });
+
+        it('share-log: a throwing store.get resolves to a failure object, not a rejection', async () => {
+            registerShareHandlers({
+                store: { get: () => { throw new Error('store corrupted'); } },
+                getDetails: () => details,
+                resolveTarget: () => ({ putObject: vi.fn() })
+            });
+            const result = await invoke('share-log', { logId: 'log-1' }) as { success: boolean; error: string };
+            expect(result).toEqual({ success: false, error: 'store corrupted' });
+        });
+
+        it('share-log: an undefined payload resolves to a failure object, not a rejection', async () => {
+            registerShareHandlers({
+                store: { get: () => 'gho_valid' },
+                getDetails: () => details,
+                resolveTarget: () => ({ putObject: vi.fn() })
+            });
+            const result = await invoke('share-log', undefined) as { success: boolean; error: string };
+            expect(result).toEqual({ success: false, error: 'No log specified.' });
+        });
+
+        it('share-plan-retention: an undefined payload resolves cleanly with no actions', async () => {
+            registerShareHandlers({ store: { get: () => undefined }, getDetails: () => details, resolveTarget: () => null });
+            const result = await invoke('share-plan-retention', undefined) as { success: boolean; actions: unknown[] };
+            expect(result).toEqual({ success: true, actions: [] });
+        });
+    });
 });

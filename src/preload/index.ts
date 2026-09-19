@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
+import { SHARE_LOG_CHANNEL, SHARE_PLAN_RETENTION_CHANNEL } from '../shared/shareChannels'
 
 contextBridge.exposeInMainWorld('electronAPI', {
     selectDirectory: () => ipcRenderer.invoke('select-directory'),
@@ -199,7 +200,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // Share links (bridge.axi.link) — create a short link for a parsed log, and
     // plan budget-driven retention for already-published reports.
-    shareLog: (logId: string) => ipcRenderer.invoke('share-log', { logId }),
+    shareLog: (logId: string) => ipcRenderer.invoke(SHARE_LOG_CHANNEL, { logId }),
     sharePlanRetention: (payload: { entries: unknown[]; budgetBytes?: number; highWaterPct?: number }) =>
-        ipcRenderer.invoke('share-plan-retention', payload),
+        ipcRenderer.invoke(SHARE_PLAN_RETENTION_CHANNEL, payload),
 })
