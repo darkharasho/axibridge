@@ -1593,6 +1593,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     <div style={{ display: settingsSearchMatches ? 'none' : undefined }}>
                     <div
                         data-settings-pane="discord"
+                        className="space-y-4"
                         style={{ display: selectedCategoryId === 'discord' ? undefined : 'none' }}
                     >
                     <SettingsSection title="Destinations" icon={MessageSquare} delay={0.02} sectionId="destinations">
@@ -1848,6 +1849,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
                     <div
                         data-settings-pane="web-report"
+                        className="space-y-4"
                         style={{ display: selectedCategoryId === 'web-report' ? undefined : 'none' }}
                     >
                     {/* GitHub Pages Hosting */}
@@ -2362,6 +2364,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
                     <div
                         data-settings-pane="stats"
+                        className="space-y-4"
                         style={{ display: selectedCategoryId === 'stats' ? undefined : 'none' }}
                     >
                     <SettingsSection title="Top Stats & MVP" icon={BarChart3} delay={0.18} sectionId="dashboard-stats">
@@ -2858,6 +2861,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
                     <div
                         data-settings-pane="logs"
+                        className="space-y-4"
                         style={{ display: selectedCategoryId === 'logs' ? undefined : 'none' }}
                     >
                     <SettingsSection title="Log Directory" icon={FolderOpen} delay={0.04} sectionId="log-directory">
@@ -2934,6 +2938,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
                     <div
                         data-settings-pane="application"
+                        className="space-y-4"
                         style={{ display: selectedCategoryId === 'application' ? undefined : 'none' }}
                     >
                     <SettingsSection title="Appearance" icon={Sparkles} delay={0.02} sectionId="appearance">
