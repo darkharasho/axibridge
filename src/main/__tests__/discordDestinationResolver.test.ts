@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-    applyDiscordDestination,
+    applyDiscordDestinations,
     handleDiscordSendResult,
-    resolveDiscordDestination,
+    readEnabledWebhookIds,
+    resolveDiscordDestinations,
     shouldSendDiscord,
     shouldBuildMapSlice,
     type DestinationStore,
@@ -40,86 +41,6 @@ const webhookEntry: StoredWebhookEntry = {
     kind: 'webhook',
     url: 'https://discord.com/api/webhooks/1/x'
 };
-
-describe('resolveDiscordDestination', () => {
-    // Ruling C: a bridge destination has no discordWebhookUrl, so the old
-    // gate (`selectedWebhookId && discordWebhookUrl`) was permanently false
-    // for bridge users. The resolver must recognize a bridge entry on its own.
-    it('resolves a bridge destination even with no legacy discordWebhookUrl set', () => {
-        const store = new FakeStore({
-            webhooks: [bridgeEntry],
-            selectedWebhookId: 'bridge-1',
-            discordWebhookUrl: null
-        });
-
-        expect(resolveDiscordDestination(store)).toEqual({
-            kind: 'bridge',
-            relayUrl: 'https://bot.example.com',
-            token: 'axb1.secret'
-        });
-    });
-
-    it('resolves a webhook destination from the selected entry', () => {
-        const store = new FakeStore({
-            webhooks: [webhookEntry],
-            selectedWebhookId: 'webhook-1'
-        });
-
-        expect(resolveDiscordDestination(store)).toEqual({
-            kind: 'webhook',
-            url: 'https://discord.com/api/webhooks/1/x'
-        });
-    });
-
-    it('falls back to the legacy discordWebhookUrl only when webhooks is genuinely empty', () => {
-        // An unmigrated, pre-webhooks[] store: honour the legacy field.
-        const store = new FakeStore({
-            webhooks: [],
-            selectedWebhookId: null,
-            discordWebhookUrl: 'https://discord.com/api/webhooks/legacy/y'
-        });
-
-        expect(resolveDiscordDestination(store)).toEqual({
-            kind: 'webhook',
-            url: 'https://discord.com/api/webhooks/legacy/y'
-        });
-    });
-
-    it('resolves to null when nothing is configured', () => {
-        const store = new FakeStore({});
-        expect(resolveDiscordDestination(store)).toBeNull();
-    });
-
-    // Fix round 1, item 1 (Critical): Ruling C's "fall back to legacy when
-    // unresolvable" and the mirror policy ("keep discordWebhookUrl in sync
-    // with the selection") were jointly unsatisfiable — the mirror write
-    // from a real webhook selection fed straight back into this fallback the
-    // moment the user picked "Disabled" (selectedWebhookId: null), silently
-    // re-arming a destination the UI showed as off. New ruling: with a
-    // non-empty webhooks list, an unresolvable or null selection means OFF.
-    it('does not fall back to legacy once webhooks[] is non-empty, even if a selection is missing', () => {
-        const store = new FakeStore({
-            webhooks: [webhookEntry],
-            selectedWebhookId: 'missing-id',
-            discordWebhookUrl: 'https://discord.com/api/webhooks/legacy/y'
-        });
-
-        expect(resolveDiscordDestination(store)).toBeNull();
-    });
-
-    it('resolves to null for "Disabled" (selectedWebhookId: null) even with a mirrored legacy URL still in the store', () => {
-        // The exact reviewer repro: the mirror that a prior selection wrote
-        // into discordWebhookUrl must not resurrect a destination once the
-        // user has explicitly selected nothing.
-        const store = new FakeStore({
-            webhooks: [webhookEntry],
-            selectedWebhookId: null,
-            discordWebhookUrl: webhookEntry.url
-        });
-
-        expect(resolveDiscordDestination(store)).toBeNull();
-    });
-});
 
 // Fix round 1, item 2: this is the exact seam `index.ts`'s two send-gate
 // call sites are wired to. There is no repo-wide test that imports
@@ -159,96 +80,6 @@ describe('shouldSendDiscord', () => {
 
     it('is false when nothing is configured', () => {
         expect(shouldSendDiscord(new FakeStore({}))).toBe(false);
-    });
-});
-
-describe('applyDiscordDestination', () => {
-    // Ruling F: app boot used to call discord.setWebhookUrl(legacy) directly
-    // and never looked at webhooks[]/selectedWebhookId, so a bridge-only user
-    // booted with no destination at all.
-    it('activates a bridge destination and clears the legacy mirror', () => {
-        const store = new FakeStore({
-            webhooks: [bridgeEntry],
-            selectedWebhookId: 'bridge-1',
-            discordWebhookUrl: 'https://discord.com/api/webhooks/stale/z'
-        });
-        const setDestination = vi.fn();
-        const discord = { setDestination } as any;
-
-        applyDiscordDestination(store, discord);
-
-        expect(setDestination).toHaveBeenCalledWith({
-            kind: 'bridge',
-            relayUrl: 'https://bot.example.com',
-            token: 'axb1.secret'
-        });
-        // A URL the user has since replaced with a bridge must not survive
-        // where the send-gate or a later boot could resurrect it.
-        expect(store.get('discordWebhookUrl')).toBeNull();
-    });
-
-    // Fix round 1, item 1: the reviewer's second manifestation — deleting or
-    // deselecting the active webhook must not leave the old mirror live to
-    // be resurrected by this same function on the next call (e.g. at boot).
-    it('clears the destination and the mirror when Disabled is selected despite a stale legacy URL', () => {
-        const store = new FakeStore({
-            webhooks: [webhookEntry],
-            selectedWebhookId: null,
-            discordWebhookUrl: webhookEntry.url
-        });
-        const setDestination = vi.fn();
-
-        applyDiscordDestination(store, { setDestination } as any);
-
-        expect(setDestination).toHaveBeenCalledWith(null);
-        expect(store.get('discordWebhookUrl')).toBeNull();
-    });
-
-    it('mirrors a webhook destination back onto discordWebhookUrl', () => {
-        const store = new FakeStore({ webhooks: [webhookEntry], selectedWebhookId: 'webhook-1' });
-        const setDestination = vi.fn();
-        applyDiscordDestination(store, { setDestination } as any);
-
-        expect(setDestination).toHaveBeenCalledWith({ kind: 'webhook', url: webhookEntry.url });
-        expect(store.get('discordWebhookUrl')).toBe(webhookEntry.url);
-    });
-
-    // Ruling H, rebuilt on the real flow (fix round 1, item 3): the id of a
-    // newly linked entry is freshly generated by the renderer
-    // (`crypto.randomUUID()`), so `selectedWebhookId` can never already
-    // point at it before the link — the "renderer pre-selected it" premise
-    // the old version of this test relied on is impossible. The real flow
-    // is `applySettings` re-deriving twice for one `saveSettings({ webhooks,
-    // selectedWebhookId })` call: once when the `webhooks` field is applied
-    // (selection not yet updated), and again when the `selectedWebhookId`
-    // field is applied. This test would fail if the WebhookModal link flow's
-    // auto-selection (item 3) were removed — the first call demonstrates
-    // exactly that failure mode.
-    it('activates a newly linked bridge entry only once its own id is also selected', () => {
-        const store = new FakeStore({ webhooks: [], selectedWebhookId: null });
-        const setDestination = vi.fn();
-        const discord = { setDestination } as any;
-
-        // Step 1: the `webhooks` field lands first (as it does in
-        // `applySettings`'s field-by-field processing), before the
-        // `selectedWebhookId` field of the same save is applied. Per Ruling
-        // C (item 1), a non-empty webhooks[] with no resolvable selection is
-        // OFF — this is the "auto-selection removed" failure mode.
-        store.set('webhooks', [bridgeEntry]);
-        applyDiscordDestination(store, discord);
-        expect(setDestination).toHaveBeenLastCalledWith(null);
-
-        // Step 2: the `selectedWebhookId` field of the same save lands,
-        // naming the just-linked entry's own (freshly generated) id — this
-        // is what item 3's auto-selection actually does.
-        store.set('selectedWebhookId', 'bridge-1');
-        applyDiscordDestination(store, discord);
-
-        expect(setDestination).toHaveBeenLastCalledWith({
-            kind: 'bridge',
-            relayUrl: 'https://bot.example.com',
-            token: 'axb1.secret'
-        });
     });
 });
 
@@ -356,5 +187,129 @@ describe('shouldBuildMapSlice', () => {
         // an embedStatSettings that predates the key.
         expect(shouldBuildMapSlice(new FakeStore({}))).toBe(true);
         expect(shouldBuildMapSlice(new FakeStore({ embedStatSettings: {} }))).toBe(true);
+    });
+});
+
+describe('readEnabledWebhookIds (migration)', () => {
+    it('derives the enabled list from selectedWebhookId when absent', () => {
+        const store = new FakeStore({ webhooks: [webhookEntry], selectedWebhookId: 'webhook-1' });
+        expect(readEnabledWebhookIds(store)).toEqual(['webhook-1']);
+    });
+
+    it('derives an empty list when selectedWebhookId is null', () => {
+        const store = new FakeStore({ webhooks: [webhookEntry], selectedWebhookId: null });
+        expect(readEnabledWebhookIds(store)).toEqual([]);
+    });
+
+    it('prefers a stored enabledWebhookIds over selectedWebhookId', () => {
+        const store = new FakeStore({
+            webhooks: [webhookEntry, bridgeEntry],
+            selectedWebhookId: 'webhook-1',
+            enabledWebhookIds: ['bridge-1']
+        });
+        expect(readEnabledWebhookIds(store)).toEqual(['bridge-1']);
+    });
+
+    it('treats a stored empty array as "everything off", not as absent', () => {
+        const store = new FakeStore({
+            webhooks: [webhookEntry],
+            selectedWebhookId: 'webhook-1',
+            enabledWebhookIds: []
+        });
+        expect(readEnabledWebhookIds(store)).toEqual([]);
+    });
+});
+
+describe('resolveDiscordDestinations', () => {
+    it('resolves an unmigrated install to exactly its selected destination', () => {
+        const store = new FakeStore({ webhooks: [webhookEntry, bridgeEntry], selectedWebhookId: 'webhook-1' });
+        expect(resolveDiscordDestinations(store)).toEqual([
+            { id: 'webhook-1', kind: 'webhook', url: webhookEntry.url }
+        ]);
+    });
+
+    it('resolves two enabled destinations, in webhooks[] order', () => {
+        const store = new FakeStore({
+            webhooks: [webhookEntry, bridgeEntry],
+            enabledWebhookIds: ['bridge-1', 'webhook-1']
+        });
+        expect(resolveDiscordDestinations(store)).toEqual([
+            { id: 'webhook-1', kind: 'webhook', url: webhookEntry.url },
+            { id: 'bridge-1', kind: 'bridge', relayUrl: bridgeEntry.relayUrl, token: bridgeEntry.token }
+        ]);
+    });
+
+    it('resolves to NO destinations — never the legacy URL — when everything is turned off', () => {
+        const store = new FakeStore({
+            webhooks: [webhookEntry],
+            enabledWebhookIds: [],
+            discordWebhookUrl: 'https://discord.com/api/webhooks/legacy/x'
+        });
+        expect(resolveDiscordDestinations(store)).toEqual([]);
+        expect(shouldSendDiscord(store)).toBe(false);
+    });
+
+    it('still honours the legacy discordWebhookUrl when webhooks is genuinely empty', () => {
+        const store = new FakeStore({
+            webhooks: [],
+            discordWebhookUrl: 'https://discord.com/api/webhooks/legacy/x'
+        });
+        expect(resolveDiscordDestinations(store)).toEqual([
+            { id: 'legacy', kind: 'webhook', url: 'https://discord.com/api/webhooks/legacy/x' }
+        ]);
+    });
+
+    it('skips a bridge entry whose token was revoked, keeping the other destination', () => {
+        const revoked = { ...bridgeEntry, token: undefined };
+        const store = new FakeStore({
+            webhooks: [webhookEntry, revoked],
+            enabledWebhookIds: ['webhook-1', 'bridge-1']
+        });
+        expect(resolveDiscordDestinations(store)).toEqual([
+            { id: 'webhook-1', kind: 'webhook', url: webhookEntry.url }
+        ]);
+    });
+
+    it('ignores an enabled id that no longer matches any webhook entry', () => {
+        const store = new FakeStore({ webhooks: [webhookEntry], enabledWebhookIds: ['webhook-1', 'ghost'] });
+        expect(resolveDiscordDestinations(store)).toEqual([
+            { id: 'webhook-1', kind: 'webhook', url: webhookEntry.url }
+        ]);
+    });
+});
+
+describe('applyDiscordDestinations', () => {
+    it('mirrors the first enabled webhook URL and the first enabled id', () => {
+        const store = new FakeStore({
+            webhooks: [webhookEntry, bridgeEntry],
+            enabledWebhookIds: ['webhook-1', 'bridge-1']
+        });
+        const discord = { setDestinations: vi.fn() } as any;
+        applyDiscordDestinations(store, discord);
+        expect(store.get('discordWebhookUrl')).toBe(webhookEntry.url);
+        expect(store.get('selectedWebhookId')).toBe('webhook-1');
+        expect(discord.setDestinations).toHaveBeenCalledWith([
+            { id: 'webhook-1', kind: 'webhook', url: webhookEntry.url },
+            { id: 'bridge-1', kind: 'bridge', relayUrl: bridgeEntry.relayUrl, token: bridgeEntry.token }
+        ]);
+    });
+
+    it('clears both mirrors when nothing is enabled', () => {
+        const store = new FakeStore({ webhooks: [webhookEntry], enabledWebhookIds: [] });
+        const discord = { setDestinations: vi.fn() } as any;
+        applyDiscordDestinations(store, discord);
+        expect(store.get('discordWebhookUrl')).toBeNull();
+        expect(store.get('selectedWebhookId')).toBeNull();
+        expect(discord.setDestinations).toHaveBeenCalledWith([]);
+    });
+
+    it('clears the legacy URL mirror when only a bridge is enabled', () => {
+        const store = new FakeStore({
+            webhooks: [bridgeEntry],
+            enabledWebhookIds: ['bridge-1'],
+            discordWebhookUrl: 'https://discord.com/api/webhooks/stale/x'
+        });
+        applyDiscordDestinations(store, { setDestinations: vi.fn() } as any);
+        expect(store.get('discordWebhookUrl')).toBeNull();
     });
 });
