@@ -1591,7 +1591,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     {/* Discord Embed Stats - Summary Sections */}
                     <SettingsSection title="Summary Sections" icon={Users} delay={0.1} sectionId="embed-summary">
                         <p className="text-sm text-gray-400 mb-4">
-                            Configure which summary sections appear in Discord embed notifications.
+                            Configure which summary sections appear in Discord reports.
                         </p>
                         <div className="divide-y divide-white/5">
                             <Toggle
@@ -1638,7 +1638,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     });
                                 }}
                                 label="Split Enemies by Team"
-                                description="Use Team ID sections for enemy summary/class breakdown in image, embed, and tiled posts"
+                                description="Use Team ID sections for enemy summary/class breakdown in image, formatted, and tiled posts"
                             />
                         </div>
                     </SettingsSection>
@@ -1646,7 +1646,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     {/* Discord Embed Stats - Top Lists */}
                     <SettingsSection title="Top Stats Lists" icon={BarChart3} delay={0.15} sectionId="embed-top">
                         <p className="text-sm text-gray-400 mb-2">
-                            Configure which top stat player lists appear in Discord embed notifications.
+                            Configure which top stat player lists appear in Discord reports.
                         </p>
                         <div className="mb-4 pb-4 border-b border-white/10">
                             <label className="text-xs text-gray-500 block mb-2">Max rows per top stat list</label>

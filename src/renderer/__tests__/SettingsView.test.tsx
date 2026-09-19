@@ -1012,11 +1012,23 @@ describe('cross-category search', () => {
 });
 
 describe('section naming', () => {
-    it('never shows the word "embed" in a section heading', () => {
+    it('never shows the word "embed" in a section heading or body copy', () => {
         renderSettingsView();
+        // Check headings
         const headings = Array.from(document.querySelectorAll('[data-settings-section="true"] h3'));
         for (const heading of headings) {
             expect(heading.textContent?.toLowerCase() ?? '').not.toContain('embed');
+        }
+        // Check body text within sections for user-visible embed references
+        // (Store keys like embedStatSettings or IDs like embed-summary are ok, they're not rendered text)
+        const sections = Array.from(document.querySelectorAll('[data-settings-section="true"]'));
+        for (const section of sections) {
+            const text = section.textContent ?? '';
+            // Check for common user-facing patterns with "embed"
+            expect(text).not.toContain('embed notification');
+            expect(text).not.toContain('embed post');
+            // Simple word check to catch "embed" when not part of a variable name
+            expect(text).not.toMatch(/\bdiscord\s+embed\b/i);
         }
     });
 
