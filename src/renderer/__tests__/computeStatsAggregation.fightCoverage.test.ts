@@ -70,7 +70,10 @@ describe('computeStatsAggregation (fight coverage)', () => {
 
         const placeholderFight = (stats.fightBreakdown || []).find((fight: any) => fight.id === 'log-2');
         expect(placeholderFight).toBeTruthy();
-        expect(placeholderFight.duration).toBe('01:30');
+        // Normalized, not passed through: the log persists '01:30' but every
+        // detailed row renders formatDurationMs, and a placeholder row in a
+        // different format is what made this fault visible to a user.
+        expect(placeholderFight.duration).toBe('1:30');
         expect(placeholderFight.squadCount).toBe(22);
         expect(placeholderFight.enemyCount).toBe(31);
         expect(placeholderFight.enemyDeaths).toBe(6);

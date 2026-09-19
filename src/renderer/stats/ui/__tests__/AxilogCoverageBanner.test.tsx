@@ -113,3 +113,50 @@ describe('AxilogCoverageBanner', () => {
         expect(screen.getByText(/1 could not be re-parsed/)).toBeTruthy();
     });
 });
+
+/**
+ * A log whose details never reached the aggregation stream is the worse of the
+ * two gaps: it contributes nothing at all, yet still takes a row in the fight
+ * breakdown, so the table header and the totals disagree. Same banner, same
+ * re-parse — but it must not borrow the Axilog wording, whose named causes
+ * (Elite Insights, dps.report, a JSON import) are all wrong here.
+ */
+describe('AxilogCoverageBanner unresolved logs', () => {
+    const coverageUnresolved = (logs: Array<{ id: string; filePath: string }>) =>
+        summarizeAxilogCoverage([], logs);
+
+    it('names logs excluded from every total', () => {
+        renderBanner({
+            coverage: coverageUnresolved([
+                { id: 'a', filePath: '/a.zevtc' },
+                { id: 'b', filePath: '/b.zevtc' },
+            ]),
+        });
+        expect(screen.getByText(/2 logs could not be read back from the cache/)).toBeTruthy();
+        expect(screen.getByText(/excluded from every total below/)).toBeTruthy();
+    });
+
+    it('does not blame an engine for a cache miss', () => {
+        renderBanner({ coverage: coverageUnresolved([{ id: 'a', filePath: '/a.zevtc' }]) });
+        expect(screen.queryByText(/Elite Insights/)).toBeNull();
+        expect(screen.queryByText(/before the Axilog cutover/)).toBeNull();
+    });
+
+    it('offers the re-parse, which is what actually refills the cache', async () => {
+        const onHeal = vi.fn();
+        renderBanner({ coverage: coverageUnresolved([{ id: 'a', filePath: '/a.zevtc' }]), onHeal });
+        await userEvent.click(screen.getByRole('button', { name: /Re-parse 1/ }));
+        expect(onHeal).toHaveBeenCalled();
+    });
+
+    it('counts both gaps together when a selection has each', () => {
+        const coverage = summarizeAxilogCoverage(
+            [{ log: { id: 'a', filePath: '/a.zevtc', parseSource: 'dps.report' }, hasAxilog: false }],
+            [{ id: 'b', filePath: '/b.zevtc' }],
+        );
+        renderBanner({ coverage });
+        expect(screen.getByRole('button', { name: /Show 2/ })).toBeTruthy();
+        expect(screen.getByText(/loaded from dps.report/)).toBeTruthy();
+        expect(screen.getByText(/could not be read back from the cache/)).toBeTruthy();
+    });
+});

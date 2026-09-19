@@ -12,7 +12,7 @@
 import { useState } from 'react';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import type { AxilogCoverage } from '../utils/axilogCoverage';
-import { describeAxilogGap, isHealable } from '../utils/axilogCoverage';
+import { describeAxilogGap, describeUnresolvedGap, isHealable } from '../utils/axilogCoverage';
 import type { AxilogHealState } from '../hooks/useAxilogHeal';
 
 type AxilogCoverageBannerProps = {
@@ -33,7 +33,11 @@ export const AxilogCoverageBanner = ({
     // The published web report is a snapshot: its logs cannot be re-parsed and
     // its reader cannot act on this, so it stays out of the way there.
     if (embedded) return null;
-    const missing = coverage.missingLogs;
+    // Both gaps are repaired by the same re-parse and both silently distort the
+    // numbers on screen, so they share one banner rather than stacking two.
+    const axilogGap = coverage.missingLogs;
+    const unresolved = coverage.unresolvedLogs;
+    const missing = [...axilogGap, ...unresolved];
     if (missing.length === 0 && !healState.running && healState.healed === 0) return null;
 
     const healable = missing.filter(isHealable);
@@ -78,9 +82,14 @@ export const AxilogCoverageBanner = ({
                         Incomplete data
                     </div>
                     <div className="text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}>
-                        {describeAxilogGap(coverage)}{' '}
-                        Damage, positioning, boons and replay from{' '}
-                        {missing.length === 1 ? 'it' : 'them'} are missing from every total below.
+                        {axilogGap.length > 0 && (
+                            <>
+                                {describeAxilogGap(coverage)}{' '}
+                                Damage, positioning, boons and replay from{' '}
+                                {axilogGap.length === 1 ? 'it' : 'them'} are missing from every total below.{' '}
+                            </>
+                        )}
+                        {describeUnresolvedGap(coverage)}
                         {remedy ? ` ${remedy}` : ''}
                     </div>
                     {healState.running && (
@@ -126,7 +135,7 @@ export const AxilogCoverageBanner = ({
             {detailsOpen && (
                 <ul className="mt-2 pt-2 border-t border-white/[0.07] space-y-0.5 max-h-40 overflow-y-auto">
                     {missing.map((log) => (
-                        <li key={log.id || log.filePath} className="flex items-baseline gap-2 text-[10px]">
+                        <li key={`${log.id || log.filePath}:${log.label}`} className="flex items-baseline gap-2 text-[10px]">
                             <span className="truncate" style={{ color: 'var(--text-secondary)' }}>{log.label}</span>
                             {!isHealable(log) && (
                                 <span className="flex-shrink-0" style={{ color: 'var(--status-error)' }}>source file missing</span>
