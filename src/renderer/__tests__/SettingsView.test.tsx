@@ -65,6 +65,10 @@ function renderSettings(
         onGlassSurfacesSaved: vi.fn(),
         onOpenWhatsNew: vi.fn(),
         onOpenWalkthrough: vi.fn(),
+        webhooks: [],
+        enabledWebhookIds: [],
+        onSaveWebhooks: vi.fn(),
+        onSetDestinationEnabled: vi.fn(),
     };
 
     render(<SettingsView {...callbacks} {...props} />);
@@ -900,6 +904,10 @@ const defaultProps = {
     onR2SliceEnabledSaved: vi.fn(),
     onR2CredentialsChanged: vi.fn(),
     onLogsHealed: vi.fn(),
+    webhooks: [],
+    enabledWebhookIds: [],
+    onSaveWebhooks: vi.fn(),
+    onSetDestinationEnabled: vi.fn(),
 } as any;
 
 const renderSettingsView = (overrides: Record<string, unknown> = {}) => {
@@ -1062,5 +1070,34 @@ describe('section naming', () => {
         expect(sectionTitles).toContain('Cloudflare R2');
         expect(sectionTitles).toContain('Top Stats & MVP');
         expect(sectionTitles).toContain('Window & Close Behavior');
+    });
+});
+
+describe('Discord › Destinations', () => {
+    const webhooks = [
+        { id: 'w1', name: 'Raid Channel', kind: 'webhook' as const, url: 'https://discord.com/api/webhooks/1/x' },
+        { id: 'b1', name: 'Axi › #reports', kind: 'bridge' as const, relayUrl: 'https://bot.example.com', token: 'axb1.s' }
+    ];
+
+    it('renders the destinations card inside the Discord pane', () => {
+        renderSettingsView({ webhooks, enabledWebhookIds: ['w1'] });
+        const pane = document.querySelector('[data-settings-pane="discord"]')!;
+        expect(pane.querySelector('#destinations')).not.toBeNull();
+        expect(screen.getByText('Raid Channel')).toBeInTheDocument();
+    });
+
+    it('reports a toggle up to the owner without touching the other rows', async () => {
+        const user = userEvent.setup();
+        const onSetDestinationEnabled = vi.fn();
+        renderSettingsView({ webhooks, enabledWebhookIds: ['w1'], onSetDestinationEnabled });
+        await user.click(screen.getByRole('switch', { name: /Axi › #reports/i }));
+        expect(onSetDestinationEnabled).toHaveBeenCalledWith('b1', true);
+        expect(onSetDestinationEnabled).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders Report Links inside the Discord pane too', () => {
+        renderSettingsView({ webhooks, enabledWebhookIds: [] });
+        const pane = document.querySelector('[data-settings-pane="discord"]')!;
+        expect(pane.querySelector('#report-links')).not.toBeNull();
     });
 });

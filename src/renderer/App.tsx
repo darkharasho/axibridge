@@ -27,6 +27,8 @@ import { useSectorOwners } from './app/hooks/useSectorOwners';
 import { extractDroppedLogFiles } from './app/utils/droppedFiles';
 import { DetailsCache } from './cache/DetailsCache';
 import { DetailsCacheProvider } from './cache/DetailsCacheContext';
+import { resolveWebhookSaveIntent } from './app/webhookSaveIntent';
+import type { Webhook } from './WebhookModal';
 
 /** Strip details from log entries — logsForStats is metadata-only. */
 const stripDetailsFromEntries = (entries: ILogData[]): ILogData[] =>
@@ -73,6 +75,7 @@ function App() {
         particlesEnabled, setParticlesEnabled,
         webhooks, setWebhooks,
         selectedWebhookId, setSelectedWebhookId,
+        enabledWebhookIds, setEnabledWebhookIds,
         discordDestinationStatus, setDiscordDestinationStatus,
         handleUpdateSettings,
         handleSelectDirectory,
@@ -462,6 +465,31 @@ function App() {
         () => webhooks.find((hook) => hook.id === selectedWebhookId) || null,
         [webhooks, selectedWebhookId]
     );
+    const handleSetDestinationEnabled = useCallback((id: string, enabled: boolean) => {
+        const next = enabled
+            ? [...enabledWebhookIds.filter((existing) => existing !== id), id]
+            : enabledWebhookIds.filter((existing) => existing !== id);
+        setEnabledWebhookIds(next);
+        // `selectedWebhookId` travels with the save: settingsHandlers still
+        // returns it and the export/import list still reads it, so it mirrors
+        // the first enabled id rather than going stale.
+        handleUpdateSettings({ enabledWebhookIds: next, selectedWebhookId: next[0] ?? null });
+        setSelectedWebhookId(next[0] ?? null);
+    }, [enabledWebhookIds, handleUpdateSettings, setEnabledWebhookIds, setSelectedWebhookId]);
+
+    const handleSaveWebhooks = useCallback((nextWebhooks: Webhook[], selectId?: string) => {
+        const intent = resolveWebhookSaveIntent(selectedWebhookId, nextWebhooks, selectId);
+        setWebhooks(intent.webhooks);
+        // A freshly linked bridge must be enabled in the same save, or the
+        // main process re-derives the destination list without it and the
+        // newly linked channel never activates.
+        const nextEnabled = selectId
+            ? [...enabledWebhookIds.filter((id) => id !== selectId), selectId]
+            : enabledWebhookIds.filter((id) => nextWebhooks.some((w) => w.id === id));
+        setEnabledWebhookIds(nextEnabled);
+        if (intent.selectedWebhookId !== undefined) setSelectedWebhookId(intent.selectedWebhookId);
+        handleUpdateSettings({ ...intent, enabledWebhookIds: nextEnabled });
+    }, [selectedWebhookId, enabledWebhookIds, handleUpdateSettings, setWebhooks, setEnabledWebhookIds, setSelectedWebhookId]);
     // A revoked bridge token clears `token` but leaves the entry (and its
     // selection) in place, so a `discordDestinationStatus` banner is the only
     // signal a live send failed -- and that state is renderer-only, so it is
@@ -1147,7 +1175,7 @@ function App() {
         ...filePickerState, logDirectory
     }), [filePickerState, logDirectory]);
     const appLayoutCtx = useMemo(() => ({
-        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, axilogCoverage, handleLogsHealed, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, glassmorphic, setGlassmorphic, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, setR2HostingEnabled, setR2SliceEnabled, refreshR2Status, setParserSettings, parserSettings, setParserSetting, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, howToTrigger, handleHowToConsumed, isBulkUploadActive
+        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, axilogCoverage, handleLogsHealed, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, glassmorphic, setGlassmorphic, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, setR2HostingEnabled, setR2SliceEnabled, refreshR2Status, setParserSettings, parserSettings, setParserSetting, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, howToTrigger, handleHowToConsumed, isBulkUploadActive, enabledWebhookIds, handleSetDestinationEnabled, handleSaveWebhooks
     }), [
         shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded,
         updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason,
@@ -1165,6 +1193,7 @@ function App() {
         handleWebUpload, handleWhatsNewClose, handleWalkthroughClose,
         handleWalkthroughLearnMore, handleHelpUpdatesFocusConsumed, handleParserSettingsFocusConsumed,
         howToTrigger, handleHowToConsumed,
+        enabledWebhookIds, handleSetDestinationEnabled, handleSaveWebhooks,
     ]);
 
     return (

@@ -30,6 +30,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     const [particlesEnabled, setParticlesEnabled] = useState(DEFAULT_PARTICLES_ENABLED);
     const [webhooks, setWebhooks] = useState<Webhook[]>([]);
     const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
+    const [enabledWebhookIds, setEnabledWebhookIds] = useState<string[]>([]);
     const [discordDestinationStatus, setDiscordDestinationStatus] = useState<{ webhookId: string | null; reason: string; message: string } | null>(null);
 
     // Init-time values consumed by useAppNavigation
@@ -78,6 +79,9 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
             }
             if (settings.selectedWebhookId) {
                 setSelectedWebhookId(settings.selectedWebhookId);
+            }
+            if (Array.isArray(settings.enabledWebhookIds)) {
+                setEnabledWebhookIds(settings.enabledWebhookIds);
             }
             if (settings.embedStatSettings) {
                 setEmbedStatSettings({ ...DEFAULT_EMBED_STATS, ...settings.embedStatSettings });
@@ -187,6 +191,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         particlesEnabled, setParticlesEnabled,
         webhooks, setWebhooks,
         selectedWebhookId, setSelectedWebhookId,
+        enabledWebhookIds, setEnabledWebhookIds,
         discordDestinationStatus, setDiscordDestinationStatus,
         handleUpdateSettings,
         handleSelectDirectory,
@@ -198,7 +203,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     }), [
         logDirectory, notificationType, embedStatSettings, mvpWeights,
         statsViewSettings, disruptionMethod, allowLocalJson, r2PreciseReplay, r2HostingEnabled, r2SliceEnabled, colorPalette, glassSurfaces, glassmorphic, particlesEnabled,
-        webhooks, selectedWebhookId, discordDestinationStatus, handleUpdateSettings, handleSelectDirectory,
+        webhooks, selectedWebhookId, enabledWebhookIds, discordDestinationStatus, handleUpdateSettings, handleSelectDirectory,
         settingsLoaded, whatsNewVersion, whatsNewNotes, walkthroughSeen,
         shouldOpenWhatsNew,
     ]);
