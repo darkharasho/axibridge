@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
     applyDiscordDestinations,
-    handleDiscordSendResult,
+    handleDiscordSendResults,
     readEnabledWebhookIds,
     resolveDiscordDestinations,
     shouldSendDiscord,
@@ -83,91 +83,71 @@ describe('shouldSendDiscord', () => {
     });
 });
 
-describe('handleDiscordSendResult', () => {
-    it('ignores a successful result', () => {
-        const store = new FakeStore({});
-        const discord = { setDestination: vi.fn() } as any;
-        const win = { webContents: { send: vi.fn() } };
+describe('handleDiscordSendResults', () => {
+    const secondBridge: StoredWebhookEntry = {
+        id: 'bridge-2', kind: 'bridge', relayUrl: 'https://bot.example.com', token: 'axb1.other'
+    };
 
-        handleDiscordSendResult(store, discord, win, { ok: true });
-
-        expect(win.webContents.send).not.toHaveBeenCalled();
-    });
-
-    it('clears a revoked token, re-derives the destination to null, and notifies the renderer', () => {
+    it('clears the revoked bridge token on that row only', () => {
         const store = new FakeStore({
-            webhooks: [bridgeEntry],
-            selectedWebhookId: 'bridge-1'
+            webhooks: [bridgeEntry, secondBridge],
+            enabledWebhookIds: ['bridge-1', 'bridge-2']
         });
-        const setDestination = vi.fn();
-        const discord = { setDestination } as any;
         const win = { webContents: { send: vi.fn() } };
 
-        handleDiscordSendResult(store, discord, win, {
-            ok: false,
-            reason: 'revoked',
-            message: 'This link was revoked — pair again.'
-        });
+        handleDiscordSendResults(store, { setDestinations: vi.fn() } as any, win, [
+            { ok: false, destinationId: 'bridge-1', reason: 'revoked', message: 'This link was revoked — pair again.' },
+            { ok: true, destinationId: 'bridge-2' }
+        ]);
 
-        const storedWebhooks = store.get('webhooks') as StoredWebhookEntry[];
-        expect(storedWebhooks[0].token).toBeUndefined();
-        expect(setDestination).toHaveBeenLastCalledWith(null);
-        expect(win.webContents.send).toHaveBeenCalledWith('discord-destination-status', {
-            webhookId: 'bridge-1',
-            reason: 'revoked',
-            message: 'This link was revoked — pair again.'
-        });
+        const stored = store.get('webhooks') as StoredWebhookEntry[];
+        expect(stored.find((w) => w.id === 'bridge-1')?.token).toBeUndefined();
+        expect(stored.find((w) => w.id === 'bridge-2')?.token).toBe('axb1.other');
+        // The surviving bridge is still resolvable and still sending.
+        expect(resolveDiscordDestinations(store)).toEqual([
+            { id: 'bridge-2', kind: 'bridge', relayUrl: secondBridge.relayUrl, token: secondBridge.token }
+        ]);
     });
 
-    // Fix round 1, item 13: `classify()` in discord.ts returns the same
-    // revoked/forbidden/rate-limited shapes for a webhook destination as for
-    // a bridge one, but the bridge-flavoured wording and unlink-on-revoke
-    // behaviour must not fire for a plain webhook — that keeps its
-    // pre-Task-9 console-only behaviour.
-    it('does nothing for a webhook destination, even on a "revoked" (401) result', () => {
-        const store = new FakeStore({ webhooks: [webhookEntry], selectedWebhookId: 'webhook-1' });
-        const discord = { setDestination: vi.fn() } as any;
+    it('notifies the renderer once per failing destination', () => {
+        const store = new FakeStore({ webhooks: [bridgeEntry], enabledWebhookIds: ['bridge-1'] });
         const win = { webContents: { send: vi.fn() } };
 
-        handleDiscordSendResult(store, discord, win, {
-            ok: false,
-            reason: 'revoked',
-            message: 'This link was revoked — pair again.'
-        });
+        handleDiscordSendResults(store, null, win, [
+            { ok: false, destinationId: 'bridge-1', reason: 'forbidden', message: 'Axi cannot post in that channel.' }
+        ]);
 
-        expect(discord.setDestination).not.toHaveBeenCalled();
-        expect(win.webContents.send).not.toHaveBeenCalled();
-        expect(store.get('webhooks')).toEqual([webhookEntry]);
-    });
-
-    it('does nothing when nothing is selected', () => {
-        const store = new FakeStore({ webhooks: [bridgeEntry], selectedWebhookId: null });
-        const discord = { setDestination: vi.fn() } as any;
-        const win = { webContents: { send: vi.fn() } };
-
-        handleDiscordSendResult(store, discord, win, { ok: false, reason: 'network', message: 'boom' });
-
-        expect(win.webContents.send).not.toHaveBeenCalled();
-    });
-
-    it('surfaces a non-revoked failure without touching the stored webhooks', () => {
-        const store = new FakeStore({ webhooks: [bridgeEntry], selectedWebhookId: 'bridge-1' });
-        const discord = { setDestination: vi.fn() } as any;
-        const win = { webContents: { send: vi.fn() } };
-
-        handleDiscordSendResult(store, discord, win, {
-            ok: false,
-            reason: 'forbidden',
-            message: 'Axi cannot post in that channel.'
-        });
-
-        expect(discord.setDestination).not.toHaveBeenCalled();
-        expect((store.get('webhooks') as StoredWebhookEntry[])[0].token).toBe('axb1.secret');
         expect(win.webContents.send).toHaveBeenCalledWith('discord-destination-status', {
             webhookId: 'bridge-1',
             reason: 'forbidden',
             message: 'Axi cannot post in that channel.'
         });
+    });
+
+    it('ignores a plain webhook failure — console only, no store write, no banner', () => {
+        const store = new FakeStore({ webhooks: [webhookEntry], enabledWebhookIds: ['webhook-1'] });
+        const win = { webContents: { send: vi.fn() } };
+
+        handleDiscordSendResults(store, null, win, [
+            { ok: false, destinationId: 'webhook-1', reason: 'revoked', message: 'x' }
+        ]);
+
+        expect(win.webContents.send).not.toHaveBeenCalled();
+        expect((store.get('webhooks') as StoredWebhookEntry[])[0].url).toBe(webhookEntry.url);
+    });
+
+    it('does nothing for an all-successful send', () => {
+        const store = new FakeStore({ webhooks: [bridgeEntry], enabledWebhookIds: ['bridge-1'] });
+        const win = { webContents: { send: vi.fn() } };
+
+        handleDiscordSendResults(store, null, win, [{ ok: true, destinationId: 'bridge-1' }]);
+
+        expect(win.webContents.send).not.toHaveBeenCalled();
+    });
+
+    it('tolerates an undefined result list', () => {
+        const store = new FakeStore({ webhooks: [bridgeEntry] });
+        expect(() => handleDiscordSendResults(store, null, null, undefined)).not.toThrow();
     });
 });
 

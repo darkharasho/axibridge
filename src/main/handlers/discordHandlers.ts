@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron';
 import type { DiscordNotifier } from '../discord';
+import { applyDiscordDestinations } from '../discordDestinationResolver';
 
 export interface DiscordHandlerOptions {
     store: any;
@@ -17,8 +18,8 @@ export function registerDiscordHandlers(opts: DiscordHandlerOptions) {
     } = opts;
 
     ipcMain.on('set-discord-webhook', (_event, url: string) => {
-        getDiscord()?.setWebhookUrl(url);
         store.set('discordWebhookUrl', url);
+        applyDiscordDestinations(store, getDiscord());
     });
 
     ipcMain.on('set-console-log-forwarding', (_event, enabled: boolean) => {

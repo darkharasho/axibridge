@@ -17,8 +17,8 @@ import { linkBridgeChannel } from './bridgeLink';
 import {
     shouldSendDiscord as shouldSendDiscordFn,
     shouldBuildMapSlice as shouldBuildMapSliceFn,
-    applyDiscordDestination as applyDiscordDestinationFn,
-    handleDiscordSendResult as handleDiscordSendResultFn
+    applyDiscordDestinations as applyDiscordDestinationsFn,
+    handleDiscordSendResults as handleDiscordSendResultsFn
 } from './discordDestinationResolver';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
@@ -274,9 +274,9 @@ let axilogManager: AxilogManager | null = null
  * Electron-app side effects.
  */
 const resolveShouldSendDiscord = () => shouldSendDiscordFn(store);
-const applyDiscordDestination = () => applyDiscordDestinationFn(store, discord);
-const handleDiscordSendResult = (sendResult: Awaited<ReturnType<DiscordNotifier['sendLog']>> | undefined) =>
-    handleDiscordSendResultFn(store, discord, win, sendResult);
+const applyDiscordDestinations = () => applyDiscordDestinationsFn(store, discord);
+const handleDiscordSendResults = (sendResults: Awaited<ReturnType<DiscordNotifier['sendLog']>> | undefined) =>
+    handleDiscordSendResultsFn(store, discord, win, sendResults);
 
 const mapSliceCacheDir = () => path.join(app.getPath('userData'), 'map-tiles');
 
@@ -818,8 +818,8 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                             }
                         }
                         const mapSlicePng = await mapSliceFor(prunedDetails, prunedDetails?.fightName ?? '');
-                        const sendResult = await discord?.sendLog({ ...syntheticResult, filePath, mode: 'embed', splitEnemiesByTeam, mapSlicePng }, prunedDetails);
-                        handleDiscordSendResult(sendResult);
+                        const sendResults = await discord?.sendLog({ ...syntheticResult, filePath, mode: 'embed', splitEnemiesByTeam, mapSlicePng }, prunedDetails);
+                        handleDiscordSendResults(sendResults);
                     }
                 } catch (discordError: any) {
                     console.error('[Main] Discord notification failed:', discordError?.message || discordError);
@@ -968,8 +968,8 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                     // `prunedDetails` is null when the local parse failed, which
                     // posts the link-only embed rather than nothing at all.
                     const mapSlicePng = await mapSliceFor(prunedDetails, prunedDetails?.fightName ?? '');
-                    const sendResult = await discord?.sendLog({ ...result, filePath, mode: 'embed', splitEnemiesByTeam, mapSlicePng }, prunedDetails);
-                    handleDiscordSendResult(sendResult);
+                    const sendResults = await discord?.sendLog({ ...result, filePath, mode: 'embed', splitEnemiesByTeam, mapSlicePng }, prunedDetails);
+                    handleDiscordSendResults(sendResults);
                 }
             } catch (discordError: any) {
                 console.error('[Main] Discord notification failed:', discordError?.message || discordError);
@@ -1284,7 +1284,7 @@ function initServices() {
     // falling back to the legacy discordWebhookUrl, so a bridge-only user
     // boots with their destination active rather than needing to re-save
     // settings before their first report after launch can send (Ruling F).
-    applyDiscordDestination();
+    applyDiscordDestinations();
 
     // Initialize embed stat settings
     const embedStatSettings = store.get('embedStatSettings');
@@ -1671,14 +1671,14 @@ if (!gotTheLock) {
             console.log(msg);
         });
 
-        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], reportWebhooks?: any[], selectedWebhookId?: string | null, dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, mvpWeightProfiles?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, colorPalette?: string, glassSurfaces?: boolean, glassmorphic?: boolean, particlesEnabled?: boolean, githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean, allowLocalJson?: boolean, r2AccountId?: string | null, r2AccessKeyId?: string | null, r2SecretAccessKey?: string | null, r2BucketName?: string | null, r2PublicUrl?: string | null, r2PreciseReplay?: boolean, r2HostingEnabled?: boolean, r2SliceEnabled?: boolean, reportWebhookSelection?: string[], reportWebhookSeen?: string[] }) => {
+        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], reportWebhooks?: any[], selectedWebhookId?: string | null, enabledWebhookIds?: string[], dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, mvpWeightProfiles?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, colorPalette?: string, glassSurfaces?: boolean, glassmorphic?: boolean, particlesEnabled?: boolean, githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean, allowLocalJson?: boolean, r2AccountId?: string | null, r2AccessKeyId?: string | null, r2SecretAccessKey?: string | null, r2BucketName?: string | null, r2PublicUrl?: string | null, r2PreciseReplay?: boolean, r2HostingEnabled?: boolean, r2SliceEnabled?: boolean, reportWebhookSelection?: string[], reportWebhookSeen?: string[] }) => {
             if (settings.logDirectory !== undefined) {
                 store.set('logDirectory', settings.logDirectory);
                 if (settings.logDirectory) watcher?.start(settings.logDirectory);
             }
             if (settings.discordWebhookUrl !== undefined) {
                 store.set('discordWebhookUrl', settings.discordWebhookUrl);
-                discord?.setWebhookUrl(settings.discordWebhookUrl);
+                applyDiscordDestinations();
             }
             if (settings.discordNotificationType !== undefined) {
                 store.set('discordNotificationType', settings.discordNotificationType);
@@ -1706,7 +1706,7 @@ if (!gotTheLock) {
                 // channel is stored but never activated (Ruling H). This also
                 // picks up a refreshed token on the already-selected entry,
                 // e.g. after a revoke-and-relink.
-                applyDiscordDestination();
+                applyDiscordDestinations();
             }
             if (settings.reportWebhooks !== undefined) {
                 store.set('reportWebhooks', settings.reportWebhooks);
@@ -1719,7 +1719,11 @@ if (!gotTheLock) {
             }
             if (settings.selectedWebhookId !== undefined) {
                 store.set('selectedWebhookId', settings.selectedWebhookId);
-                applyDiscordDestination();
+                applyDiscordDestinations();
+            }
+            if (settings.enabledWebhookIds !== undefined) {
+                store.set('enabledWebhookIds', settings.enabledWebhookIds);
+                applyDiscordDestinations();
             }
             if (settings.dpsReportToken !== undefined) {
                 store.set('dpsReportToken', settings.dpsReportToken);

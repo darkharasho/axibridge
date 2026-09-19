@@ -144,38 +144,51 @@ export interface DestinationWindow {
 }
 
 /**
- * Act on a failed `sendLog` result: a revoked bridge token is dead forever,
- * so stop using it rather than retrying a credential that will never
- * authenticate again, and surface the failure to the renderer either way.
+ * Act on a send's per-destination results: a revoked bridge token is dead
+ * forever, so stop using it rather than retrying a credential that will
+ * never authenticate again, and surface the failure to the renderer either
+ * way.
  *
- * Fix round 1, item 13: scoped to bridge destinations only. `classify()` in
- * discord.ts returns the same `revoked`/`forbidden`/`rate-limited` shapes
- * for a webhook destination too (Discord webhook calls can 401/403/429 just
- * like a relay call can), but the wording here ("This link was revoked —
- * pair again.") and the unlink-the-token behavior only make sense for a
- * bridge. A plain webhook failure keeps its pre-Task-9 behaviour: console
- * only, via discord.ts's own `console.error`, no banner and no store write.
+ * Each result is handled against its OWN row. With fan-out, one destination
+ * failing says nothing about the others — a revoked bridge clears `token` on
+ * that entry alone and every other enabled destination keeps sending.
+ *
+ * Scoped to bridge destinations only. `classify()` in discord.ts returns the
+ * same `revoked`/`forbidden`/`rate-limited` shapes for a webhook destination
+ * too (Discord webhook calls can 401/403/429 just like a relay call can), but
+ * the wording ("This link was revoked — pair again.") and the unlink-the-token
+ * behaviour only make sense for a bridge. A plain webhook failure stays
+ * console-only, via discord.ts's own `console.error`.
  */
-export function handleDiscordSendResult(
+export function handleDiscordSendResults(
     store: DestinationStore,
     discord: DiscordNotifier | null,
     win: DestinationWindow | null,
-    sendResult: SendResult | undefined
+    sendResults: SendResult[] | undefined
 ): void {
-    if (!sendResult || sendResult.ok) return;
-    const selectedId = store.get('selectedWebhookId', null) as string | null;
-    const webhooks = store.get('webhooks', []) as StoredWebhookEntry[];
-    const selected = selectedId ? webhooks.find((w) => w.id === selectedId) : undefined;
-    if (selected?.kind !== 'bridge') return;
+    if (!sendResults?.length) return;
 
-    if (sendResult.reason === 'revoked') {
-        const nextWebhooks = webhooks.map((w) => (w.id === selectedId ? { ...w, token: undefined } : w));
-        store.set('webhooks', nextWebhooks);
-        applyDiscordDestinations(store, discord);
+    let webhooksChanged = false;
+    for (const result of sendResults) {
+        if (result.ok) continue;
+        const webhooks = store.get('webhooks', []) as StoredWebhookEntry[];
+        const entry = webhooks.find((w) => w.id === result.destinationId);
+        if (entry?.kind !== 'bridge') continue;
+
+        if (result.reason === 'revoked') {
+            store.set('webhooks', webhooks.map((w) => (
+                w.id === result.destinationId ? { ...w, token: undefined } : w
+            )));
+            webhooksChanged = true;
+        }
+        win?.webContents.send('discord-destination-status', {
+            webhookId: result.destinationId,
+            reason: result.reason,
+            message: result.message
+        });
     }
-    win?.webContents.send('discord-destination-status', {
-        webhookId: selectedId,
-        reason: sendResult.reason,
-        message: sendResult.message
-    });
+
+    // Re-derive once, after every row has been updated — re-deriving inside
+    // the loop would make the notifier's list churn mid-iteration.
+    if (webhooksChanged) applyDiscordDestinations(store, discord);
 }
