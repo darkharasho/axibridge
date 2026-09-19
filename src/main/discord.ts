@@ -1281,6 +1281,10 @@ export class DiscordNotifier {
                     };
 
                     const baseEmbed = {
+                        author: {
+                            name: 'AxiBridge',
+                            icon_url: DISCORD_WEBHOOK_AVATAR_URL,
+                        },
                         title: formatFightTitleForDiscord(jsonDetails, logData),
                         url: toReportLink(logData.permalink),
                         description: desc,
@@ -1293,7 +1297,10 @@ export class DiscordNotifier {
 
 
                     const getEmbedBaseCharCount = (embed: typeof baseEmbed) => {
-                        return getSubstitutedLength(embed.title, isBridge)
+                        // The author name repeats on every embed this message
+                        // splits into, so it is charged with the rest of the base.
+                        return getSubstitutedLength(embed.author?.name, isBridge)
+                            + getSubstitutedLength(embed.title, isBridge)
                             + getSubstitutedLength(embed.description, isBridge)
                             + getSubstitutedLength(embed.footer?.text, isBridge);
                     };
