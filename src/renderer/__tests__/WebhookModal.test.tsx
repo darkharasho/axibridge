@@ -14,6 +14,20 @@ const bridgeWebhook: Webhook = {
     channelId: 'chan-222'
 };
 
+const renderModal = (overrides: Partial<React.ComponentProps<typeof WebhookModal>> = {}) => {
+    const props = {
+        isOpen: true,
+        onClose: () => {},
+        webhooks: [] as Webhook[],
+        enabledWebhookIds: [] as string[],
+        onSave: vi.fn(),
+        onSetEnabled: vi.fn(),
+        ...overrides
+    };
+    render(<WebhookModal {...props} />);
+    return props;
+};
+
 describe('WebhookModal — AxiTools bridge link flow', () => {
     beforeEach(() => {
         (window as any).electronAPI = { ...(window as any).electronAPI };
@@ -31,11 +45,11 @@ describe('WebhookModal — AxiTools bridge link flow', () => {
         });
         const onSave = vi.fn();
 
-        render(<WebhookModal isOpen webhooks={[]} onClose={() => {}} onSave={onSave} />);
+        renderModal({ webhooks: [], onSave });
 
         fireEvent.click(screen.getByText('Link AxiTools channel'));
         fireEvent.change(screen.getByPlaceholderText('axb1.…'), { target: { value: 'axb1.aGVsbG8.secretsecretsecretsecretsecretsecret' } });
-        fireEvent.click(screen.getByText('Link Channel'));
+        fireEvent.click(screen.getByRole('button', { name: /^link$/i }));
 
         await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
 
@@ -56,11 +70,11 @@ describe('WebhookModal — AxiTools bridge link flow', () => {
         (window as any).electronAPI.linkBridgeChannel = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'));
         const onSave = vi.fn();
 
-        render(<WebhookModal isOpen webhooks={[]} onClose={() => {}} onSave={onSave} />);
+        renderModal({ webhooks: [], onSave });
 
         fireEvent.click(screen.getByText('Link AxiTools channel'));
         fireEvent.change(screen.getByPlaceholderText('axb1.…'), { target: { value: 'axb1.aGVsbG8.secretsecretsecretsecretsecretsecret' } });
-        fireEvent.click(screen.getByText('Link Channel'));
+        fireEvent.click(screen.getByRole('button', { name: /^link$/i }));
 
         await waitFor(() => expect(screen.getByText(/ECONNREFUSED/)).toBeInTheDocument());
         expect(onSave).not.toHaveBeenCalled();
@@ -72,7 +86,7 @@ describe('WebhookModal — AxiTools bridge link flow', () => {
     // commits instantly.
     it('commits an Unlink immediately, the same way Link does', () => {
         const onSave = vi.fn();
-        render(<WebhookModal isOpen webhooks={[bridgeWebhook]} onClose={() => {}} onSave={onSave} />);
+        renderModal({ webhooks: [bridgeWebhook], onSave });
 
         fireEvent.click(screen.getByTitle('Unlink'));
 
@@ -84,7 +98,7 @@ describe('WebhookModal — AxiTools bridge link flow', () => {
     // inside the isLinking form, so it vanished once linking succeeded — a
     // linked user never saw it again.
     it('keeps the "posted by the Axi bot" note visible on an already-linked bridge row', () => {
-        render(<WebhookModal isOpen webhooks={[bridgeWebhook]} onClose={() => {}} onSave={() => {}} />);
+        renderModal({ webhooks: [bridgeWebhook] });
         expect(screen.getByText(/posted by the Axi bot/)).toBeInTheDocument();
     });
 
@@ -96,7 +110,7 @@ describe('WebhookModal — AxiTools bridge link flow', () => {
     // state is derived purely from the stored entry.
     it('renders a bridge row with no token as "Re-link required", derived purely from persisted state', () => {
         const revokedWebhook: Webhook = { ...bridgeWebhook, token: undefined };
-        render(<WebhookModal isOpen webhooks={[revokedWebhook]} onClose={() => {}} onSave={() => {}} />);
+        renderModal({ webhooks: [revokedWebhook] });
 
         expect(screen.getByText('Re-link required')).toBeInTheDocument();
         expect(screen.queryByText('Bridge')).not.toBeInTheDocument();
@@ -122,11 +136,11 @@ describe('WebhookModal — AxiTools bridge link flow', () => {
         const revokedWebhook: Webhook = { ...bridgeWebhook, token: undefined };
         const onSave = vi.fn();
 
-        render(<WebhookModal isOpen webhooks={[revokedWebhook]} onClose={() => {}} onSave={onSave} />);
+        renderModal({ webhooks: [revokedWebhook], onSave });
 
         fireEvent.click(screen.getByText('Link AxiTools channel'));
         fireEvent.change(screen.getByPlaceholderText('axb1.…'), { target: { value: 'axb1.aGVsbG8.newsecretnewsecretnewsecretnewsecret' } });
-        fireEvent.click(screen.getByText('Link Channel'));
+        fireEvent.click(screen.getByRole('button', { name: /^link$/i }));
 
         await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
 
@@ -155,11 +169,11 @@ describe('WebhookModal — AxiTools bridge link flow', () => {
         });
         const onSave = vi.fn();
 
-        render(<WebhookModal isOpen webhooks={[rowA, rowB]} onClose={() => {}} onSave={onSave} />);
+        renderModal({ webhooks: [rowA, rowB], onSave });
 
         fireEvent.click(screen.getByText('Link AxiTools channel'));
         fireEvent.change(screen.getByPlaceholderText('axb1.…'), { target: { value: 'axb1.aGVsbG8.newsecretnewsecretnewsecretnewsecret' } });
-        fireEvent.click(screen.getByText('Link Channel'));
+        fireEvent.click(screen.getByRole('button', { name: /^link$/i }));
 
         await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
 
@@ -200,12 +214,12 @@ describe('WebhookModal — AxiTools bridge link flow', () => {
         const onSave = vi.fn();
 
         expect(() => {
-            render(<WebhookModal isOpen webhooks={[legacyWebhook]} onClose={() => {}} onSave={onSave} />);
+            renderModal({ webhooks: [legacyWebhook], onSave });
         }).not.toThrow();
 
         fireEvent.click(screen.getByText('Link AxiTools channel'));
         fireEvent.change(screen.getByPlaceholderText('axb1.…'), { target: { value: 'axb1.aGVsbG8.legacysecretlegacysecretlegacysecret' } });
-        fireEvent.click(screen.getByText('Link Channel'));
+        fireEvent.click(screen.getByRole('button', { name: /^link$/i }));
 
         await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
 
