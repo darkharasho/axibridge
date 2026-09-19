@@ -20,6 +20,20 @@ document.head.appendChild(styleTag);
 document.documentElement.classList.add('web-report');
 document.body.classList.add('web-report');
 
+/**
+ * Where this bundle's sibling static assets (logos, class icons, `logo.json`)
+ * live.
+ *
+ * Derived from `import.meta.url`, NOT from `window.location`: the page is
+ * served by the Worker at `<origin>/r/<code>`, which is not a directory and
+ * has no assets under it, while this module is served from
+ * `<origin>/view/viewer.js` on the GitHub Pages origin. `new URL('.', ...)`
+ * therefore yields `<origin>/view/`, a real directory. Passing it explicitly
+ * also stops ReportApp probing for an asset base, which under `/r/<code>` can
+ * only produce guaranteed-404 requests — two of them against the Worker.
+ */
+const VIEWER_ASSET_BASE = new URL('.', import.meta.url).href;
+
 type ViewerState =
     | { kind: 'loading' }
     | { kind: 'tombstone' }
@@ -67,6 +81,14 @@ function LoadingCard() {
     );
 }
 
+/**
+ * Deliberately hedged copy. `stage: 'demoted'` is only a LABEL today — nothing
+ * in the pipeline rewrites the stored object with `combatReplay` stripped (see
+ * the "not yet implemented" note in src/main/shareRetention.ts), so the bytes
+ * this viewer just decoded may well still contain the replay and render it.
+ * Saying replay "is not included" would therefore be a flat contradiction of
+ * what is on screen. Once stripping ships, this can be made definite again.
+ */
 function DemotedBanner() {
     return (
         <div
@@ -82,7 +104,7 @@ function DemotedBanner() {
             }}
             role="status"
         >
-            This report was demoted to save storage space — map replay data is not included.
+            This report was demoted to save storage space, so map replay data may be unavailable.
         </div>
     );
 }
@@ -160,7 +182,7 @@ function ViewerRoot() {
             return (
                 <>
                     {state.demoted && <DemotedBanner />}
-                    <ReportApp injectedSource={{ report: state.report }} />
+                    <ReportApp injectedSource={{ report: state.report }} assetBase={VIEWER_ASSET_BASE} />
                 </>
             );
         default:

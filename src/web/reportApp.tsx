@@ -38,8 +38,10 @@ import {
 } from 'lucide-react';
 
 
+import { planAssetBaseResolution, probeAssetBasePath } from './assetBasePath';
+
 const glassCard = 'border border-white/10 rounded-2xl shadow-xl backdrop-blur-md glass-card';
-const ASSET_BASE_PATH_PROBE_PATHS = ['reports/index.json', 'logo.json'] as const;
+
 
 const buildReportHref = (baseHref: string, reportId: string): string => {
     const next = new URL(baseHref);
@@ -306,7 +308,15 @@ export interface ReportAppInjectedSource {
     report: ReportPayload;
 }
 
-export function ReportApp({ injectedSource }: { injectedSource?: ReportAppInjectedSource } = {}) {
+export function ReportApp({ injectedSource, assetBase }: {
+    injectedSource?: ReportAppInjectedSource;
+    /**
+     * Absolute (or root-relative) directory the static assets are served from.
+     * When set it is authoritative and the probe is skipped entirely — see
+     * `planAssetBaseResolution`.
+     */
+    assetBase?: string;
+} = {}) {
     const initialSearchParams = useMemo(() => new URLSearchParams(window.location.search), []);
     const [report, setReport] = useState<ReportPayload | null>(null);
     const [index, setIndex] = useState<ReportIndexEntry[] | null>(null);
@@ -393,6 +403,12 @@ export function ReportApp({ injectedSource }: { injectedSource?: ReportAppInject
     }, []);
     const baseHref = useMemo(() => new URL(basePath, window.location.origin).toString(), [basePath]);
     const themedIndexHref = baseHref;
+    // Under the share viewer the page is served at /r/<code>, so both of these
+    // resolve straight back to the page you are already on (the Worker's route
+    // regex tolerates the trailing slash, and `?view=rollup` just re-serves it
+    // in rollup mode with an empty index). There is no report index to go back
+    // to at all, so the chrome that links to one is suppressed.
+    const showIndexChrome = !injectedSource;
     const rollupHref = useMemo(
         () => buildRollupHref(baseHref),
         [baseHref]
@@ -403,21 +419,11 @@ export function ReportApp({ injectedSource }: { injectedSource?: ReportAppInject
     }, []);
     const isNarrowViewport = viewportWidth < 1024;
     const isCompactViewport = viewportWidth < 640;
-    const assetBasePathCandidates = useMemo(() => {
-        const primary = basePath;
-        const candidates = [primary, './', '/'];
-        const deduped: string[] = [];
-        candidates.forEach((value) => {
-            let normalized = value || '/';
-            if (normalized !== './' && !normalized.endsWith('/')) {
-                normalized = `${normalized}/`;
-            }
-            if (!deduped.includes(normalized)) {
-                deduped.push(normalized);
-            }
-        });
-        return deduped;
-    }, [basePath, isDevLocalWeb]);
+    const assetBasePlan = useMemo(
+        () => planAssetBaseResolution({ assetBase, basePath }),
+        [assetBase, basePath, isDevLocalWeb]
+    );
+    const assetBasePathCandidates = assetBasePlan.candidates;
     const [assetBasePath, setAssetBasePath] = useState<string>(assetBasePathCandidates[0] || '/');
     const extractHeadingText = (node: React.ReactNode): string => {
         if (typeof node === 'string' || typeof node === 'number') return String(node);
@@ -498,26 +504,16 @@ export function ReportApp({ injectedSource }: { injectedSource?: ReportAppInject
     useEffect(() => {
         setAssetBasePath(assetBasePathCandidates[0] || '/');
         let isMounted = true;
-        const resolve = async () => {
-            for (const candidate of assetBasePathCandidates) {
-                for (const probePath of ASSET_BASE_PATH_PROBE_PATHS) {
-                    try {
-                        const response = await fetch(joinAssetPath(candidate, probePath), { cache: 'no-store' });
-                        if (response.ok) {
-                            if (isMounted) setAssetBasePath(candidate);
-                            return;
-                        }
-                    } catch {
-                        // Try next probe path or candidate.
-                    }
-                }
-            }
-        };
-        void resolve();
+        // `probeAssetBasePath` performs NO fetches when the plan carries an
+        // explicit asset base — under /r/<code> every probe is a guaranteed
+        // 404, two of them against the Worker.
+        void probeAssetBasePath(assetBasePlan).then((resolved) => {
+            if (resolved && isMounted) setAssetBasePath(resolved);
+        });
         return () => {
             isMounted = false;
         };
-    }, [assetBasePathCandidates]);
+    }, [assetBasePathCandidates, assetBasePlan]);
     const renderHighlightedMatch = (text: string, query: string) => {
         const trimmed = query.trim();
         if (!trimmed) return text;
@@ -1638,7 +1634,7 @@ export function ReportApp({ injectedSource }: { injectedSource?: ReportAppInject
                                 ×
                             </button>
                         </div>
-                        <div className="px-5 pb-4">
+                        {showIndexChrome && <div className="px-5 pb-4">
                             <a
                                 href={themedIndexHref}
                                 className="report-back-link w-full inline-flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[color:var(--accent-bg)] text-[10px] uppercase tracking-[0.35em] text-gray-100 transition-colors hover:bg-[color:var(--accent-border)]"
@@ -1651,7 +1647,7 @@ export function ReportApp({ injectedSource }: { injectedSource?: ReportAppInject
                                 </span>
                                 Back to Reports
                             </a>
-                        </div>
+                        </div>}
                         <nav className="flex-1 min-h-0 px-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] space-y-2 text-sm overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
                             {navGroups.map((group) => {
                                 const GroupIcon = group.icon;
@@ -1813,7 +1809,7 @@ export function ReportApp({ injectedSource }: { injectedSource?: ReportAppInject
                                 );
                             })}
                         </nav>
-                        <div className="border-t border-white/10">
+                        {showIndexChrome && <div className="border-t border-white/10">
                             <a
                                 href={themedIndexHref}
                                 className="report-back-link w-full inline-flex items-center gap-3 px-6 py-4 bg-[color:var(--accent-bg)] text-[10px] uppercase tracking-[0.35em] text-gray-100 transition-colors hover:bg-[color:var(--accent-border)]"
@@ -1826,7 +1822,7 @@ export function ReportApp({ injectedSource }: { injectedSource?: ReportAppInject
                                 </span>
                                 Back to Reports
                             </a>
-                        </div>
+                        </div>}
                     </div>
                 </aside>
                 <div className={`max-w-[2150px] mx-1 sm:mx-2 px-4 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 mobile-bottom-pad ${isNarrowViewport ? '' : 'lg:mx-auto lg:pl-[17rem] lg:pr-10'}`}>
@@ -1962,13 +1958,13 @@ export function ReportApp({ injectedSource }: { injectedSource?: ReportAppInject
                         off-screen. Stacking drops the row to ~291px and the
                         flex-1/truncate pair keeps it bounded on narrower phones. */}
                     <div className="flex items-stretch gap-1.5 rounded-2xl bg-slate-950/70 border border-white/15 backdrop-blur-xl px-3 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.45)]">
-                        <a
+                        {showIndexChrome && <a
                             href={themedIndexHref}
                             className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
                         >
                             <ArrowLeft className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                             <span className="max-w-full truncate">Back</span>
-                        </a>
+                        </a>}
                         <button
                             onClick={() => setTocOpen(true)}
                             className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
@@ -2060,13 +2056,13 @@ export function ReportApp({ injectedSource }: { injectedSource?: ReportAppInject
                                     <BarChart3 className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                                     {rollupData?.uniqueRaids || 0} Raids
                                 </div>
-                                <a
+                                {showIndexChrome && <a
                                     href={themedIndexHref}
                                     className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 inline-flex items-center justify-center gap-2 hover:border-[color:var(--accent-border)] transition-colors"
                                 >
                                     <ArrowLeft className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                                     Back To Reports
-                                </a>
+                                </a>}
                             </div>
                         </div>
 
@@ -2428,7 +2424,7 @@ export function ReportApp({ injectedSource }: { injectedSource?: ReportAppInject
                         <div className={`${glassCard} p-6 text-gray-300`} style={glassCardStyle}>Loading reports...</div>
                     )}
 
-                    {!error && index && sortedIndex.length > 0 && (
+                    {showIndexChrome && !error && index && sortedIndex.length > 0 && (
                         <a
                             href={rollupHref}
                             className={`${glassCard} mb-4 px-5 py-4 transition-all duration-200 group block overflow-hidden relative hover:-translate-y-0.5`}
