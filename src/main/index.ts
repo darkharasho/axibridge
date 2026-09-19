@@ -58,6 +58,7 @@ import {
     formatAutoUpdateErrorMessage,
     isRetryableAutoUpdateError,
 } from '../shared/autoUpdateErrors';
+import { restoreMissingAppImage } from './appImageInstall';
 import { fetchImageBuffer } from './imageFetcher';
 import { setupConsoleLogger } from './consoleLogger';
 import {
@@ -1489,6 +1490,14 @@ app.on('activate', () => {
 
 app.on('before-quit', () => {
     isQuitting = true;
+    // autoInstallOnAppQuit runs the same doInstall that unlinks $APPIMAGE
+    // first, so a session whose AppImage file has gone from disk would fail its
+    // install silently on the way out. Same guard as the explicit restart path.
+    if (process.env.APPIMAGE && (autoUpdater as any).installerPath) {
+        if (restoreMissingAppImage(process.env.APPIMAGE) === 'restored') {
+            log.warn(`[AutoUpdater] $APPIMAGE was missing; recreated ${process.env.APPIMAGE} for the install-on-quit.`);
+        }
+    }
     axilogManager?.killActiveProcess();
     // Autosave is debounced; a quit inside that window would otherwise drop
     // names learned from the last few parses.
