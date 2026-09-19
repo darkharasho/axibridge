@@ -299,7 +299,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const statsResult = useStatsStore((s) => s.result);
     const [settingsNavOpen, setSettingsNavOpen] = useState(false);
     const [settingsSearch, setSettingsSearch] = useState('');
-    const [settingsSearchHidden, setSettingsSearchHidden] = useState<Set<string>>(new Set());
+    /** Matching section ids in flattened order, or null when not searching. */
+    const [settingsSearchMatches, setSettingsSearchMatches] = useState<string[] | null>(null);
     const [metricsSpecSearch, setMetricsSpecSearch] = useState('');
     const [metricsSpecSearchResults, setMetricsSpecSearchResults] = useState<Array<{ index: number; text: string; tag: string; section: string; hitId: number }>>([]);
     const [metricsSpecSearchFocused, setMetricsSpecSearchFocused] = useState(false);
@@ -895,26 +896,44 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         setImportSelections((prev) => ({ ...prev, [key]: !prev[key] }));
     };
 
-    // Settings search: scan rendered text content of each section and hide non-matches
+    // Settings search: scan each section's rendered text and collect matches.
+    //
+    // This reads `textContent` from the live DOM rather than from a built
+    // index, exactly as it did before categories — which is why category
+    // panes hide with `display: none` instead of unmounting. `textContent`
+    // is unaffected by `display`, so a section in a collapsed pane is still
+    // searchable; unmounting would make search blind to four-fifths of
+    // Settings.
     useEffect(() => {
         const query = settingsSearch.trim().toLowerCase();
         if (!query) {
-            setSettingsSearchHidden(new Set());
+            setSettingsSearchMatches(null);
             return;
         }
         const container = settingsScrollRef.current;
         if (!container) return;
-        const hidden = new Set<string>();
+        const matches: string[] = [];
         for (const section of FLATTENED_SECTIONS) {
             const el = container.querySelector<HTMLElement>(`#${section.id}`);
-            if (!el) { hidden.add(section.id); continue; }
-            const text = el.textContent?.toLowerCase() ?? '';
-            if (!text.includes(query)) {
-                hidden.add(section.id);
+            const text = el?.textContent?.toLowerCase() ?? '';
+            if (text.includes(query) || section.label.toLowerCase().includes(query)) {
+                matches.push(section.id);
             }
         }
-        setSettingsSearchHidden(hidden);
+        setSettingsSearchMatches(matches);
     }, [settingsSearch]);
+
+    /** Per-category match counts for the rail badges, or null when not searching. */
+    const matchCountsByCategory = useMemo(() => {
+        if (!settingsSearchMatches) return null;
+        const counts: Record<string, number> = {};
+        for (const category of SETTINGS_CATEGORIES) counts[category.id] = 0;
+        for (const id of settingsSearchMatches) {
+            const categoryId = categoryIdForSection(id);
+            if (categoryId) counts[categoryId] += 1;
+        }
+        return counts;
+    }, [settingsSearchMatches]);
 
     const scrollToSettingsSection = (id: string) => {
         const container = settingsScrollRef.current;
@@ -1514,7 +1533,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     categories={SETTINGS_CATEGORIES}
                                     selectedCategoryId={selectedCategoryId}
                                     activeSectionId={activeSettingsSectionIdRef.current}
-                                    matchCountsByCategory={null}
+                                    matchCountsByCategory={matchCountsByCategory}
+                                    matchedSectionIds={settingsSearchMatches}
                                     onSelectCategory={(categoryId) => {
                                         setSelectedCategoryId(categoryId);
                                         const first = SETTINGS_CATEGORIES.find((c) => c.id === categoryId)?.sections[0];
@@ -1533,13 +1553,43 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     transition={{ duration: 1, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
                     className="min-h-0 overflow-y-auto pr-2 space-y-4"
                 >
+                    {settingsSearchMatches && (
+                        <div className="flex flex-col gap-1">
+                            {settingsSearchMatches.length === 0 && (
+                                <div className="px-3 py-6 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
+                                    No settings match “{settingsSearch}”.
+                                </div>
+                            )}
+                            {settingsSearchMatches.map((id) => {
+                                const categoryId = categoryIdForSection(id);
+                                const categoryLabel = SETTINGS_CATEGORIES.find((c) => c.id === categoryId)?.label ?? '';
+                                return (
+                                    <button
+                                        key={id}
+                                        type="button"
+                                        onClick={() => {
+                                            setSettingsSearch('');
+                                            navigateToSection(id);
+                                        }}
+                                        className="w-full text-left px-3 py-2 rounded-[4px] text-sm transition-colors"
+                                        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}
+                                    >
+                                        <span style={{ color: 'var(--text-muted)' }}>{categoryLabel} ›</span>
+                                        {' '}
+                                        {labelForSection(id)}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                    <div style={{ display: settingsSearchMatches ? 'none' : undefined }}>
                     <div
                         data-settings-pane="discord"
                         style={{ display: selectedCategoryId === 'discord' ? undefined : 'none' }}
                     >
                     {/* Discord: Destinations and Report Links arrive in Task 9 */}
                     {/* Discord Embed Stats - Summary Sections */}
-                    <SettingsSection title="Discord Embed - Summary Sections" icon={Users} delay={0.1} sectionId="embed-summary" hidden={settingsSearchHidden.has('embed-summary')}>
+                    <SettingsSection title="Discord Embed - Summary Sections" icon={Users} delay={0.1} sectionId="embed-summary">
                         <p className="text-sm text-gray-400 mb-4">
                             Configure which summary sections appear in Discord embed notifications.
                         </p>
@@ -1594,7 +1644,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     </SettingsSection>
 
                     {/* Discord Embed Stats - Top Lists */}
-                    <SettingsSection title="Discord Embed - Top Stats Lists" icon={BarChart3} delay={0.15} sectionId="embed-top" hidden={settingsSearchHidden.has('embed-top')}>
+                    <SettingsSection title="Discord Embed - Top Stats Lists" icon={BarChart3} delay={0.15} sectionId="embed-top">
                         <p className="text-sm text-gray-400 mb-2">
                             Configure which top stat player lists appear in Discord embed notifications.
                         </p>
@@ -1777,7 +1827,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         icon={Cloud}
                         delay={0.08}
                         sectionId="github-pages"
-                        hidden={settingsSearchHidden.has('github-pages')}
                         action={githubAuthStatus === 'connected' ? (
                             <button
                                 onClick={() => {
@@ -2089,7 +2138,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         icon={Key}
                         delay={0.09}
                         sectionId="r2-storage"
-                        hidden={settingsSearchHidden.has('r2-storage')}
                     >
                         <p className="text-sm text-gray-400 mb-2">
                             Optional. When configured, the bulky out-of-band parts of a published report — map replay data and fight slice data — are uploaded to R2 instead of GitHub Pages, keeping the report repository small. Requires a Cloudflare R2 bucket with public access enabled.
@@ -2195,7 +2243,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
                     {/* Parser Settings Section */}
                     <div ref={parserSettingsRef}>
-                    <SettingsSection title="Parser Settings" icon={Zap} delay={0.2} sectionId="parser-settings" hidden={settingsSearchHidden.has('parser-settings')}>
+                    <SettingsSection title="Parser Settings" icon={Zap} delay={0.2} sectionId="parser-settings">
                         <p className="text-sm text-gray-400 mb-4">
                             Combat logs are parsed in-process by Axilog, which ships with the app. There is nothing
                             to install, update or choose.
@@ -2293,7 +2341,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         data-settings-pane="stats"
                         style={{ display: selectedCategoryId === 'stats' ? undefined : 'none' }}
                     >
-                    <SettingsSection title="Dashboard - Top Stats & MVP" icon={BarChart3} delay={0.18} sectionId="dashboard-stats" hidden={settingsSearchHidden.has('dashboard-stats')}>
+                    <SettingsSection title="Dashboard - Top Stats & MVP" icon={BarChart3} delay={0.18} sectionId="dashboard-stats">
                         <p className="text-sm text-gray-400 mb-4">
                             Control the calculation and display of the top stats cards and MVP highlights.
                         </p>
@@ -2602,7 +2650,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     </SettingsSection>
 
                     {/* MVP Weighting Section */}
-                    <SettingsSection title="MVP Weighting" icon={BarChart3} delay={0.18} sectionId="mvp-weighting" hidden={settingsSearchHidden.has('mvp-weighting')}>
+                    <SettingsSection title="MVP Weighting" icon={BarChart3} delay={0.18} sectionId="mvp-weighting">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex gap-2">
                                 {(['offensive', 'defensive', 'general'] as const).map((b) => (
@@ -2651,7 +2699,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         })}
                     </SettingsSection>
 
-                    <SettingsSection title="Boon Uptime Resolution" icon={BarChart3} delay={0.19} sectionId="boon-uptime-resolution" hidden={settingsSearchHidden.has('boon-uptime-resolution')}>
+                    <SettingsSection title="Boon Uptime Resolution" icon={BarChart3} delay={0.19} sectionId="boon-uptime-resolution">
                         <p className="text-sm text-gray-400 mb-4">
                             Control the bucket interval used for boon uptime timeline charts. Finer resolution reveals short coverage gaps but increases data size.
                         </p>
@@ -2708,7 +2756,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     </SettingsSection>
 
                     {/* Commander Thresholds Section */}
-                    <SettingsSection title="Commander Thresholds" icon={BarChart3} delay={0.185} sectionId="commander-thresholds" hidden={settingsSearchHidden.has('commander-thresholds')}>
+                    <SettingsSection title="Commander Thresholds" icon={BarChart3} delay={0.185} sectionId="commander-thresholds">
                         <div className="flex items-center justify-between mb-4">
                             <p className="text-sm text-gray-400">
                                 Tune the thresholds that drive Commander tab severity colors and insight detectors.
@@ -2791,7 +2839,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     >
                     {/* Logs: Log Directory arrives in Task 10 */}
                     {/* DPS Report Token Section */}
-                    <SettingsSection title="dps.report User Token" icon={Key} delay={0.05} sectionId="dps-token" hidden={settingsSearchHidden.has('dps-token')}>
+                    <SettingsSection title="dps.report User Token" icon={Key} delay={0.05} sectionId="dps-token">
                         <p className="text-sm text-gray-400 mb-4">
                             Optional: Add your dps.report user token to associate uploads with your account.
                             You can find your token at{' '}
@@ -2845,7 +2893,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         data-settings-pane="application"
                         style={{ display: selectedCategoryId === 'application' ? undefined : 'none' }}
                     >
-                    <SettingsSection title="Appearance" icon={Sparkles} delay={0.02} sectionId="appearance" hidden={settingsSearchHidden.has('appearance')}>
+                    <SettingsSection title="Appearance" icon={Sparkles} delay={0.02} sectionId="appearance">
                         <p className="text-sm text-gray-400 mb-4">
                             Choose a color palette for the interface accent colors.
                         </p>
@@ -2898,7 +2946,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     </SettingsSection>
 
                     {/* Close Behavior Section */}
-                    <SettingsSection title="Window Close Behavior" icon={Minimize} delay={0.2} sectionId="close-behavior" hidden={settingsSearchHidden.has('close-behavior')}>
+                    <SettingsSection title="Window Close Behavior" icon={Minimize} delay={0.2} sectionId="close-behavior">
                         <p className="text-sm text-gray-400 mb-4">
                             Choose what happens when you click the close button.
                         </p>
@@ -2933,7 +2981,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         </div>
                     </SettingsSection>
 
-                    <SettingsSection title="Export / Import Settings" icon={Download} delay={0.2} sectionId="export-import" hidden={settingsSearchHidden.has('export-import')}>
+                    <SettingsSection title="Export / Import Settings" icon={Download} delay={0.2} sectionId="export-import">
                         <p className="text-sm text-gray-400 mb-4">
                             Save your current configuration to a file or import it on another machine.
                         </p>
@@ -2963,7 +3011,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     </SettingsSection>
 
                     <div ref={helpUpdatesRef}>
-                        <SettingsSection title="Help & Updates" icon={Sparkles} delay={0.18} sectionId="help-updates" hidden={settingsSearchHidden.has('help-updates')}>
+                        <SettingsSection title="Help & Updates" icon={Sparkles} delay={0.18} sectionId="help-updates">
                             <p className="text-sm text-gray-400 mb-4">
                                 Review release notes, reopen onboarding, or browse the complete feature guide.
                             </p>
@@ -2993,7 +3041,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         </SettingsSection>
                     </div>
 
-                    <div id="legal" data-settings-section="true" data-settings-label="Legal" className="rounded-[4px] p-4 text-xs text-gray-400" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', display: settingsSearchHidden.has('legal') ? 'none' : undefined }}>
+                    <div id="legal" data-settings-section="true" data-settings-label="Legal" className="rounded-[4px] p-4 text-xs text-gray-400" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                         <div className="flex items-center justify-between mb-2">
                             <div className="text-sm font-semibold text-gray-200">Legal Notice</div>
                             <div className="flex items-center gap-2">
@@ -3059,6 +3107,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         </p>
                     </div>
                     </div>
+                    </div>
 
                     <div className="h-[12vh] min-h-10 max-h-28" />
                     {/* Save Button (hidden with auto-save) */}
@@ -3107,8 +3156,13 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 </button>
                             </div>
                             <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2 pb-4">
+                                {settingsSearchMatches?.length === 0 && (
+                                    <div className="px-3 py-6 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
+                                        No settings match “{settingsSearch}”.
+                                    </div>
+                                )}
                                 {FLATTENED_SECTIONS.map((item) => {
-                                    if (settingsSearchHidden.has(item.id)) return null;
+                                    if (settingsSearchMatches && !settingsSearchMatches.includes(item.id)) return null;
                                     return (
                                         <button
                                             key={item.id}
