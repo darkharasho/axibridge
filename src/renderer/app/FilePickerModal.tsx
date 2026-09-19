@@ -154,16 +154,21 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
     // Keyboard navigation ref for container
     const containerRef = useRef<HTMLDivElement>(null);
 
+    const hasQuery = filePickerFilter.trim().length > 0;
+
     // Filter down the items
     const filteredAvailable = useMemo(() => {
         const query = filePickerFilter.trim().toLowerCase();
         if (!query) return filePickerAvailable;
-        return filePickerAvailable.filter((entry: any) =>
+        // Search the whole folder, not just the loaded month window. Otherwise
+        // typing a name that only exists in older logs looks like "no such log"
+        // when it is really "not loaded yet".
+        return filePickerAll.filter((entry: any) =>
             // Match the subfolder too, so typing an encounter or map folder
             // name narrows to that folder's logs.
             (entry.relativePath || entry.name).toLowerCase().includes(query)
         );
-    }, [filePickerAvailable, filePickerFilter]);
+    }, [filePickerAvailable, filePickerAll, filePickerFilter]);
 
     useEffect(() => {
         if (filePickerOpen && containerRef.current) {
@@ -841,7 +846,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                 ) : filteredAvailable.length === 0 ? (
                                     <div className="flex-1 flex flex-col items-center justify-center gap-3 text-sm text-gray-500">
                                         <span>{filePickerAvailable.length > 0 || filePickerAll.length > 0 ? 'No logs matching your current filters.' : 'No logs found in this folder.'}</span>
-                                        {filePickerHasMore && (
+                                        {filePickerHasMore && !hasQuery && (
                                             <button onClick={() => setFilePickerMonthWindow((prev: number) => prev + 1)} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-400 border-white/10 hover:text-white transition-colors">
                                                 Load older logs
                                             </button>
@@ -870,7 +875,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                 />
                                             ))}
                                         </div>
-                                        {!filePickerLoading && filePickerHasMore && filePickerAtBottom && (
+                                        {!filePickerLoading && filePickerHasMore && !hasQuery && filePickerAtBottom && (
                                             <div className="mt-4 pb-4 flex justify-center">
                                                 <button onClick={() => setFilePickerMonthWindow((prev: number) => prev + 1)} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-400 border-white/10 hover:text-white transition-colors">
                                                     Load older logs
