@@ -263,9 +263,15 @@ function App() {
     const handleLogsHealed = useCallback((filePaths: string[]) => {
         if (filePaths.length === 0) return;
         const healed = new Set(filePaths);
+        // A healed log always gets a fresh object, even when nothing about it
+        // changes: re-parse refills the DetailsCache, and only a new array
+        // identity restarts the aggregation stream so it can read what it now
+        // holds. A log healed out of the "details never arrived" state is
+        // typically already parseSource 'axilog', so keying the rewrite on that
+        // field alone would leave the stale totals on screen.
         const mark = (entry: ILogData): ILogData => (
-            healed.has(String(entry.filePath || '')) && entry.parseSource !== 'axilog'
-                ? { ...entry, parseSource: 'axilog' as const }
+            healed.has(String(entry.filePath || ''))
+                ? { ...entry, parseSource: 'axilog' as const, detailsStatus: 'loaded' as const }
                 : entry
         );
         setLogsDeferred((currentLogs) => currentLogs.map(mark));

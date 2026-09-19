@@ -159,6 +159,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
     // in IndexedDB and would report phantom gaps.
     const [axilogCoverage, setAxilogCoverage] = useState<AxilogCoverage>(EMPTY_AXILOG_COVERAGE);
     const coverageEntriesRef = useRef<Array<{ log: any; hasAxilog: boolean }>>([]);
+    const unresolvedLogsRef = useRef<any[]>([]);
     const workerAggregationStartedAtRef = useRef(0);
     // Guards the stuck-elided-replay recovery flush so it fires at most once per
     // settle (keyed by the settled completedAt), preventing a flush loop.
@@ -455,6 +456,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
             // Each pass re-observes every log, so start from empty rather than
             // accumulating across streams.
             coverageEntriesRef.current = [];
+            unresolvedLogsRef.current = [];
             const publishProgress = (phase: 'streaming' | 'computing', force = false) => {
                 const now = performance.now();
                 if (!force && now - lastStreamProgressUpdateRef.current < 120 && index < totalLogs) return;
@@ -530,6 +532,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
                     // still hydrating is not missing Axilog data, and counting
                     // it would flash a warning that retracts itself.
                     if (details) coverageEntriesRef.current.push({ log, hasAxilog: detailsHaveAxilogData(details) });
+                    else if (!isLogPendingIngestion(log)) unresolvedLogsRef.current.push(log);
                     const payloadKey = statsLogKey(log, index);
                     const entry = getPayloadEntryForWorker(log, details, index);
                     if (entry.sent) {
@@ -552,7 +555,7 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
                     prefetchAndStep();
                 } else {
                     publishProgress('computing', true);
-                    setAxilogCoverage(summarizeAxilogCoverage(coverageEntriesRef.current));
+                    setAxilogCoverage(summarizeAxilogCoverage(coverageEntriesRef.current, unresolvedLogsRef.current));
                     // Mid-bulk results are transient (more logs/details are coming);
                     // skip the heavy replay transfer until the set settles.
                     const skipReplay = logs.some(isLogPendingIngestion);
@@ -605,15 +608,17 @@ export const useStatsAggregationWorker = ({ logs, precomputedStats, mvpWeights, 
         });
 
         const coverageEntries: Array<{ log: any; hasAxilog: boolean }> = [];
+        const unresolvedLogs: any[] = [];
         for (const log of logs) {
             const logId = log?.id || log?.filePath;
             const cachedDetails = detailsCache && logId ? detailsCache.peek(logId) : null;
             if (cachedDetails) coverageEntries.push({ log, hasAxilog: detailsHaveAxilogData(cachedDetails) });
+            else if (!isLogPendingIngestion(log)) unresolvedLogs.push(log);
             const logWithDetails = cachedDetails ? { ...log, details: cachedDetails } : log;
             aggregator.ingestLog(logWithDetails);
             // logWithDetails goes out of scope — eligible for GC
         }
-        const coverage = summarizeAxilogCoverage(coverageEntries);
+        const coverage = summarizeAxilogCoverage(coverageEntries, unresolvedLogs);
 
         let result: any;
         try {

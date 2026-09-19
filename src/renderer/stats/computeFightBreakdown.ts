@@ -5,7 +5,7 @@ import { formatDurationMs } from './utils/dashboardUtils';
 import { getWvwTeamColor, teamMapFromLog } from '../../shared/wvwTeams';
 import { partitionSquadPlayers } from '../../shared/playerIdentity';
 import { computeSquadBarrier } from '../../shared/combatMetrics';
-import { getEncounterDurationMs } from '@axiapps/bridge-metrics';
+import { getEncounterDurationMs, parseEncounterDurationMs } from '@axiapps/bridge-metrics';
 
 const resolvePermalink = (details: any, log: any): string => {
     const direct = log?.permalink || details?.permalink;
@@ -29,6 +29,11 @@ const resolveFightDurationLabel = (details: any, log: any): string => {
     if (nativeMs !== null) return formatDurationMs(nativeMs);
     const durationMs = Number(details?.durationMS || 0);
     if (durationMs > 0) return formatDurationMs(durationMs);
+    // Details-less log: `encounterDuration` is persisted on the log itself, but
+    // in EI's "0m 22s 205ms" spelling. Reformat rather than render it raw — a
+    // row in a different format is how this fault first reached a user.
+    const fallbackMs = parseEncounterDurationMs(log?.encounterDuration);
+    if (fallbackMs > 0) return formatDurationMs(fallbackMs);
     const fallback = typeof log?.encounterDuration === 'string' ? log.encounterDuration.trim() : '';
     return fallback || '--:--';
 };

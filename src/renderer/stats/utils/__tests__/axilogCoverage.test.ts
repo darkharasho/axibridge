@@ -11,6 +11,7 @@ import {
     detailsHaveAxilogData,
     summarizeAxilogCoverage,
     describeAxilogGap,
+    describeUnresolvedGap,
     isHealable,
     toCoverageLog,
     EMPTY_AXILOG_COVERAGE,
@@ -123,5 +124,39 @@ describe('describeAxilogGap', () => {
     it('agrees with itself about number', () => {
         expect(describeAxilogGap(missing(1, 'dps.report'))).toContain('This log was');
         expect(describeAxilogGap(missing(2, 'dps.report'))).toContain('These 2 logs were');
+    });
+});
+
+/**
+ * Logs whose details never reached the aggregation stream are a different
+ * fault from logs parsed without Axilog data, and they travel separately so
+ * the banner can say the right thing about each. They are the more damaging
+ * of the two: they contribute nothing to any aggregate at all.
+ */
+describe('unresolved logs', () => {
+    it('defaults to empty so existing callers are unaffected', () => {
+        expect(summarizeAxilogCoverage([{ log: { id: 'a' }, hasAxilog: true }]).unresolvedLogs).toEqual([]);
+        expect(EMPTY_AXILOG_COVERAGE.unresolvedLogs).toEqual([]);
+    });
+
+    it('records them without touching the resolved count or the Axilog gap', () => {
+        const coverage = summarizeAxilogCoverage(
+            [{ log: { id: 'a', filePath: '/a.zevtc' }, hasAxilog: true }],
+            [{ id: 'b', filePath: '/b.zevtc', fightLabel: 'Red BL' }],
+        );
+        expect(coverage.resolved).toBe(1);
+        expect(coverage.withAxilog).toBe(1);
+        expect(coverage.missingLogs).toEqual([]);
+        expect(coverage.unresolvedLogs).toHaveLength(1);
+        expect(coverage.unresolvedLogs[0].label).toBe('Red BL');
+    });
+
+    it('describes the exclusion rather than guessing at a cause', () => {
+        const one = summarizeAxilogCoverage([], [{ id: 'a', filePath: '/a.zevtc' }]);
+        expect(describeUnresolvedGap(one)).toMatch(/^One log could not be read back from the cache/);
+        expect(describeUnresolvedGap(one)).toMatch(/excluded from every total below/);
+        const two = summarizeAxilogCoverage([], [{ id: 'a' }, { id: 'b' }]);
+        expect(describeUnresolvedGap(two)).toMatch(/^2 logs could not be read back/);
+        expect(describeUnresolvedGap(EMPTY_AXILOG_COVERAGE)).toBe('');
     });
 });

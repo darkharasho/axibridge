@@ -153,3 +153,36 @@ describe('ingestLogFightBreakdown barrier generated vs absorbed', () => {
         expect(fb.incomingBarrierAbsorbed).toBe(0);
     });
 });
+
+/**
+ * A log whose details were evicted from the cache before the aggregation
+ * stream reached it still produces a breakdown row — it just has to build that
+ * row out of the leftovers persisted on `ILogData`. Reported by a user whose
+ * 51-fight report showed six rows as "-- • Red BL" with a duration in a
+ * different format, sorted to the end and numbered F46-F51 despite being
+ * chronologically interleaved.
+ */
+describe('ingestLogFightBreakdown without details', () => {
+    // arcdps names the file when the fight ENDS, in local time.
+    const endMs = new Date(2026, 8, 17, 21, 40, 12, 0).getTime();
+    const detailsLess = {
+        id: '20260917-214012.zevtc',
+        filePath: '/logs/20260917-214012.zevtc',
+        encounterDuration: '0m 22s 205ms',
+    };
+
+    it('recovers the fight start from the filename instead of reporting epoch 0', () => {
+        const fb = ingestLogFightBreakdown(detailsLess, 45);
+        expect(fb.timestamp).toBe(endMs - 22205);
+    });
+
+    it('renders the duration in the same format as every other row', () => {
+        const fb = ingestLogFightBreakdown(detailsLess, 45);
+        expect(fb.duration).toBe('0:22');
+    });
+
+    it('still reports nothing when the filename carries no timestamp', () => {
+        const fb = ingestLogFightBreakdown({ id: 'x', filePath: '/logs/fight.zevtc' }, 0);
+        expect(fb.timestamp).toBe(0);
+    });
+});

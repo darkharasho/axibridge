@@ -42,9 +42,23 @@ export interface AxilogCoverage {
     resolved: number;
     withAxilog: number;
     missingLogs: AxilogCoverageLog[];
+    /**
+     * Logs the aggregation stream reached with no details at all, and which
+     * were not still hydrating — so this is not "not here yet", it is "not
+     * coming". Such a log contributes nothing to any aggregate: it does not
+     * reach `stats.total`, yet it still takes a row in the fight breakdown, so
+     * the table header and the totals disagree with nothing on screen to say
+     * why. Re-parsing from the `.zevtc` is the remedy, same as `missingLogs`.
+     */
+    unresolvedLogs: AxilogCoverageLog[];
 }
 
-export const EMPTY_AXILOG_COVERAGE: AxilogCoverage = { resolved: 0, withAxilog: 0, missingLogs: [] };
+export const EMPTY_AXILOG_COVERAGE: AxilogCoverage = {
+    resolved: 0,
+    withAxilog: 0,
+    missingLogs: [],
+    unresolvedLogs: [],
+};
 
 /**
  * True when `details` carries a real Axilog carry-set.
@@ -80,12 +94,15 @@ export const toCoverageLog = (log: any): AxilogCoverageLog => ({
 /**
  * Fold per-log observations into a coverage summary.
  *
- * Callers pass only logs whose details they actually resolved — a log still
+ * `entries` carries only logs whose details actually resolved — a log still
  * hydrating is not missing Axilog data, it is merely not here yet, and
  * counting it would flash a warning that retracts itself a second later.
+ * `unresolved` is the separate, narrower set the caller has already judged to
+ * be done waiting; the same "still hydrating" rule governs what may go in it.
  */
 export const summarizeAxilogCoverage = (
     entries: Array<{ log: any; hasAxilog: boolean }>,
+    unresolved: any[] = [],
 ): AxilogCoverage => {
     const missingLogs: AxilogCoverageLog[] = [];
     let withAxilog = 0;
@@ -93,7 +110,28 @@ export const summarizeAxilogCoverage = (
         if (hasAxilog) withAxilog += 1;
         else missingLogs.push(toCoverageLog(log));
     }
-    return { resolved: entries.length, withAxilog, missingLogs };
+    return {
+        resolved: entries.length,
+        withAxilog,
+        missingLogs,
+        unresolvedLogs: unresolved.map(toCoverageLog),
+    };
+};
+
+/**
+ * The one-line explanation for logs that reached aggregation with no details.
+ *
+ * Deliberately says "excluded from every total" rather than naming a cause:
+ * the cause is on the cache side (an evicted LRU entry whose IndexedDB write
+ * never landed), which is not something the reader can see or act on. What
+ * they can act on is the re-parse.
+ */
+export const describeUnresolvedGap = (coverage: AxilogCoverage): string => {
+    const n = coverage.unresolvedLogs.length;
+    if (n === 0) return '';
+    return n === 1
+        ? 'One log could not be read back from the cache, so it is excluded from every total below even though it still appears in the fight breakdown.'
+        : `${n} logs could not be read back from the cache, so they are excluded from every total below even though they still appear in the fight breakdown.`;
 };
 
 /**

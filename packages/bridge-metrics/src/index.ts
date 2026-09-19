@@ -12,7 +12,7 @@ export { isResUtilitySkill } from './resUtility';
 export { canonicalSkillId, withVariantLabel } from './skillCanonicalId';
 export { classifyResurrectSkill, RESURRECT_SKILLS, DEFAULT_UTILITY_WINDOW_MS } from './resurrectCatalog';
 export type { ResurrectKind, ResurrectSkill } from './resurrectCatalog';
-export { resolveFightTimestamp, parseTimestamp as parseFightTimestamp } from './timestampUtils';
+export { resolveFightTimestamp, parseTimestamp as parseFightTimestamp, parseArcdpsFilenameMs, parseEncounterDurationMs } from './timestampUtils';
 export * from './reportMetrics';
 export * from './positioning';
 export * from './playerIdentity';

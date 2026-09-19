@@ -4470,7 +4470,7 @@ type SpikeFight = {
                 embedded={embedded}
                 coverage={axilogCoverage}
                 healState={healState}
-                onHeal={() => heal(axilogCoverage.missingLogs)}
+                onHeal={() => heal([...axilogCoverage.missingLogs, ...axilogCoverage.unresolvedLogs])}
             />
 
             <WebUploadBanner
