@@ -209,14 +209,14 @@ describe('SettingsView', () => {
         it('renders all major section headings across their categories', async () => {
             renderSettings();
             // Discord is the default landing category — its sections need no navigation.
-            expect(await screen.findByRole('heading', { name: /Discord Embed - Summary Sections/i })).toBeInTheDocument();
-            expect(screen.getByRole('heading', { name: /Discord Embed - Top Stats Lists/i })).toBeInTheDocument();
+            expect(await screen.findByRole('heading', { name: /Summary Sections/i })).toBeInTheDocument();
+            expect(screen.getByRole('heading', { name: /Top Stats Lists/i })).toBeInTheDocument();
 
             selectSettingsCategory('Web Report');
             expect(screen.getByRole('heading', { name: /GitHub Pages Web Reports/i })).toBeInTheDocument();
 
             selectSettingsCategory('Stats');
-            expect(screen.getByRole('heading', { name: /Dashboard - Top Stats & MVP/i })).toBeInTheDocument();
+            expect(screen.getByRole('heading', { name: /Top Stats & MVP/i })).toBeInTheDocument();
             expect(screen.getByRole('heading', { name: /MVP Weighting/i })).toBeInTheDocument();
 
             selectSettingsCategory('Logs');
@@ -225,7 +225,7 @@ describe('SettingsView', () => {
             selectSettingsCategory('Application');
             expect(screen.getByRole('heading', { name: 'Appearance' })).toBeInTheDocument();
             expect(screen.getByRole('heading', { name: /Help & Updates/i })).toBeInTheDocument();
-            expect(screen.getByRole('heading', { name: /Window Close Behavior/i })).toBeInTheDocument();
+            expect(screen.getByRole('heading', { name: /Window & Close Behavior/i })).toBeInTheDocument();
         });
 
         it('calls getSettings on mount', async () => {
@@ -369,10 +369,10 @@ describe('SettingsView', () => {
     // Discord Embed — Summary Sections
     // -----------------------------------------------------------------------
 
-    describe('Discord Embed - Summary Sections', () => {
+    describe('Summary Sections', () => {
         it('toggles Squad Summary off and updates the embed settings', async () => {
             const { callbacks } = renderSettings();
-            await screen.findByRole('heading', { name: /Discord Embed - Summary Sections/i });
+            await screen.findByRole('heading', { name: /Summary Sections/i });
 
             fireEvent.click(screen.getByText('Squad Summary'));
 
@@ -386,7 +386,7 @@ describe('SettingsView', () => {
         it('toggling Enemy Summary on/off updates embedStats', async () => {
             const { mock } = renderSettings({}, { embedStatSettings: { ...DEFAULT_EMBED_STATS, showEnemySummary: false } });
             await waitForLoad(mock);
-            await screen.findByRole('heading', { name: /Discord Embed - Summary Sections/i });
+            await screen.findByRole('heading', { name: /Summary Sections/i });
 
             fireEvent.click(screen.getByText('Enemy Summary'));
 
@@ -415,7 +415,7 @@ describe('SettingsView', () => {
     // Discord Embed — Top Stats Lists
     // -----------------------------------------------------------------------
 
-    describe('Discord Embed - Top Stats Lists', () => {
+    describe('Top Stats Lists', () => {
         it('"Disable All" sets all top-list embed stats to false', async () => {
             // allTopListsEnabled requires every stat (including optional ones) to be true.
             // Render with all top-list stats enabled so the button reads "Disable All".
@@ -433,7 +433,7 @@ describe('SettingsView', () => {
                     showDamageMitigation: true,
                 },
             });
-            await screen.findByRole('heading', { name: /Discord Embed - Top Stats Lists/i });
+            await screen.findByRole('heading', { name: /Top Stats Lists/i });
 
             fireEvent.click(screen.getByRole('button', { name: 'Disable All' }));
 
@@ -450,7 +450,7 @@ describe('SettingsView', () => {
         it('button label flips to "Disable All" after "Enable All" is clicked', async () => {
             // Start with one stat disabled so "Enable All" appears
             renderSettings({}, { embedStatSettings: { ...DEFAULT_EMBED_STATS, showDamage: false } });
-            await screen.findByRole('heading', { name: /Discord Embed - Top Stats Lists/i });
+            await screen.findByRole('heading', { name: /Top Stats Lists/i });
 
             const enableBtn = screen.getByRole('button', { name: 'Enable All' });
             fireEvent.click(enableBtn);
@@ -460,7 +460,7 @@ describe('SettingsView', () => {
 
         it('updating class display to Emoji saves the correct value', async () => {
             const { callbacks } = renderSettings();
-            await screen.findByRole('heading', { name: /Discord Embed - Top Stats Lists/i });
+            await screen.findByRole('heading', { name: /Top Stats Lists/i });
 
             fireEvent.click(screen.getByRole('button', { name: 'Emoji' }));
 
@@ -473,7 +473,7 @@ describe('SettingsView', () => {
 
         it('updating class display to Short name saves the correct value', async () => {
             const { callbacks } = renderSettings();
-            await screen.findByRole('heading', { name: /Discord Embed - Top Stats Lists/i });
+            await screen.findByRole('heading', { name: /Top Stats Lists/i });
 
             fireEvent.click(screen.getByRole('button', { name: 'Short name' }));
 
@@ -493,7 +493,7 @@ describe('SettingsView', () => {
         it('toggles "Show Top Stats Section" and saves the updated setting', async () => {
             const { callbacks } = renderSettings();
             selectSettingsCategory('Stats');
-            await screen.findByRole('heading', { name: /Dashboard - Top Stats & MVP/i });
+            await screen.findByRole('heading', { name: /Top Stats & MVP/i });
 
             fireEvent.click(screen.getByText('Show Top Stats Section'));
 
@@ -507,7 +507,7 @@ describe('SettingsView', () => {
         it('switching top stats mode to Per Second fires callback with perSecond', async () => {
             const { callbacks } = renderSettings();
             selectSettingsCategory('Stats');
-            await screen.findByRole('heading', { name: /Dashboard - Top Stats & MVP/i });
+            await screen.findByRole('heading', { name: /Top Stats & MVP/i });
 
             fireEvent.click(screen.getByRole('button', { name: 'Per Second' }));
 
@@ -521,7 +521,7 @@ describe('SettingsView', () => {
         it('switching top stats mode to Per Minute fires callback with perMinute', async () => {
             const { callbacks } = renderSettings();
             selectSettingsCategory('Stats');
-            await screen.findByRole('heading', { name: /Dashboard - Top Stats & MVP/i });
+            await screen.findByRole('heading', { name: /Top Stats & MVP/i });
 
             fireEvent.click(screen.getByRole('button', { name: 'Per Minute' }));
 
@@ -535,7 +535,7 @@ describe('SettingsView', () => {
         it('changing CC/Strip method fires onDisruptionMethodSaved', async () => {
             const { callbacks } = renderSettings();
             selectSettingsCategory('Stats');
-            await screen.findByRole('heading', { name: /Dashboard - Top Stats & MVP/i });
+            await screen.findByRole('heading', { name: /Top Stats & MVP/i });
 
             // The button's accessible name includes its child "Select" text too,
             // so locate by the label text and climb to the button element.
@@ -556,7 +556,7 @@ describe('SettingsView', () => {
         it('toggles a top stat card chip', async () => {
             renderSettings();
             selectSettingsCategory('Stats');
-            await screen.findByRole('heading', { name: /Dashboard - Top Stats & MVP/i });
+            await screen.findByRole('heading', { name: /Top Stats & MVP/i });
 
             // Use aria-pressed attribute to distinguish chip buttons from navigation buttons
             const dpsChips = await screen.findAllByRole('button', { name: /^DPS$/i });
@@ -569,7 +569,7 @@ describe('SettingsView', () => {
         it('reset to defaults marks Down Contribution enabled', async () => {
             renderSettings();
             selectSettingsCategory('Stats');
-            await screen.findByRole('heading', { name: /Dashboard - Top Stats & MVP/i });
+            await screen.findByRole('heading', { name: /Top Stats & MVP/i });
 
             // Two "Reset to defaults" buttons exist (dashboard-stats + MVP); scope to dashboard section
             const dashboardSection = document.getElementById('dashboard-stats')!;
@@ -635,11 +635,11 @@ describe('SettingsView', () => {
     // Window Close Behavior
     // -----------------------------------------------------------------------
 
-    describe('Window Close Behavior', () => {
+    describe('Window & Close Behavior', () => {
         it('Quit Application button becomes active (red) when clicked', async () => {
             renderSettings();
             selectSettingsCategory('Application');
-            await screen.findByRole('heading', { name: /Window Close Behavior/i });
+            await screen.findByRole('heading', { name: /Window & Close Behavior/i });
 
             const quitBtn = screen.getByRole('button', { name: /Quit Application/i });
             fireEvent.click(quitBtn);
@@ -650,7 +650,7 @@ describe('SettingsView', () => {
         it('saves closeBehavior=quit in the next auto-save', async () => {
             const { mock } = renderSettings();
             selectSettingsCategory('Application');
-            await screen.findByRole('heading', { name: /Window Close Behavior/i });
+            await screen.findByRole('heading', { name: /Window & Close Behavior/i });
             mock.saveSettings.mockClear();
 
             fireEvent.click(screen.getByRole('button', { name: /Quit Application/i }));
@@ -666,7 +666,7 @@ describe('SettingsView', () => {
         it('Minimize to Tray button is active by default', async () => {
             renderSettings();
             selectSettingsCategory('Application');
-            await screen.findByRole('heading', { name: /Window Close Behavior/i });
+            await screen.findByRole('heading', { name: /Window & Close Behavior/i });
 
             const minimizeBtn = screen.getByRole('button', { name: /Minimize to Tray/i });
             expect(minimizeBtn.className).toMatch(/blue/);
@@ -1008,5 +1008,28 @@ describe('cross-category search', () => {
         renderSettingsView();
         await user.type(screen.getByPlaceholderText(/search settings/i), 'zzzznotasetting');
         expect(await screen.findByText(/No settings match/i)).toBeInTheDocument();
+    });
+});
+
+describe('section naming', () => {
+    it('never shows the word "embed" in a section heading', () => {
+        renderSettingsView();
+        const headings = Array.from(document.querySelectorAll('[data-settings-section="true"] h3'));
+        for (const heading of headings) {
+            expect(heading.textContent?.toLowerCase() ?? '').not.toContain('embed');
+        }
+    });
+
+    it('titles the renamed sections by their destination, not their implementation', () => {
+        renderSettingsView();
+        // Look for section headings specifically within h3 elements of settings sections
+        const sections = document.querySelectorAll('[data-settings-section="true"] h3');
+        const sectionTitles = Array.from(sections).map(s => s.textContent ?? '');
+        expect(sectionTitles).toContain('Summary Sections');
+        expect(sectionTitles).toContain('Top Stats Lists');
+        expect(sectionTitles).toContain('Report Data');
+        expect(sectionTitles).toContain('Cloudflare R2');
+        expect(sectionTitles).toContain('Top Stats & MVP');
+        expect(sectionTitles).toContain('Window & Close Behavior');
     });
 });
