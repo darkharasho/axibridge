@@ -234,7 +234,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                                                 ) : (
                                                     <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-[3px] text-[10px] font-semibold uppercase tracking-wide bg-purple-500/20 text-purple-300">
                                                         <Zap className="w-3 h-3" />
-                                                        Linked
+                                                        Bridge
                                                     </span>
                                                 )
                                             ) : (
@@ -280,16 +280,18 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                                             This link was revoked. Run <code className="rounded-[3px] border border-white/10 bg-black/40 px-1 text-purple-300">/bridge pair</code> in Discord again and paste the new key below to restore delivery.
                                         </p>
                                     )}
-                                    {/* Fix round 1, items 6/7: this note lived only inside the
-                                        isLinking form, so it vanished the moment linking
-                                        succeeded. Keep it visible on every bridge row. Merged
-                                        with the "run /bridge revoke" reminder into one paragraph
-                                        (rather than two, as originally) so a plain-text mention of
-                                        the slash command doesn't read as a separate styled element. */}
                                     {isBridge && !needsRelink && (
-                                        <p className="mt-2 text-[11px] text-amber-400/80">
-                                            Also run /bridge revoke in Discord to invalidate the key. Bridged reports are posted by the Axi bot, so they appear as <span className="font-semibold">Axi</span> rather than AxiBridge. If the bot is offline, bridged reports are not delivered.
-                                        </p>
+                                        <>
+                                            <p className="mt-2 text-[11px] text-gray-500">
+                                                Also run <code className="rounded-[3px] border border-white/10 bg-black/40 px-1 text-purple-300">/bridge revoke</code> in Discord to invalidate the key.
+                                            </p>
+                                            {/* Fix round 1, items 6/7: this note lived only inside the
+                                                isLinking form, so it vanished the moment linking
+                                                succeeded. Keep it visible on every bridge row. */}
+                                            <p className="mt-1 text-[11px] text-amber-400/80">
+                                                Bridged reports are posted by the Axi bot, so they appear as <span className="font-semibold">Axi</span> rather than AxiBridge. If the bot is offline, bridged reports are not delivered.
+                                            </p>
+                                        </>
                                     )}
                                 </div>
                             )}
@@ -354,9 +356,15 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                             In Discord, run <code className="rounded-[3px] border border-white/10 bg-black/40 px-1 text-purple-300">/bridge pair</code> in the channel that should receive reports, then paste the key here.
                         </p>
                     </div>
-                    <p className="text-xs text-amber-400/80">
-                        Bridged reports are posted by the Axi bot, so they appear as <span className="font-semibold">Axi</span> rather than AxiBridge. If the bot is offline, bridged reports are not delivered.
-                    </p>
+                    {/* Fix round 1 (task 8 review): the "posted by the Axi bot" note used
+                        to be duplicated here AND on every already-linked row below (Fix
+                        round 1, items 6/7 made the row copy persistent but never removed
+                        this one). With both mounted in the same card, linking a second
+                        channel while an existing bridge row is visible showed the identical
+                        sentence twice on one screen. The persistent per-row copy already
+                        covers the disclaimer -- it reappears the instant this form closes
+                        and the newly linked row renders -- so this transient copy is dropped
+                        rather than duplicated. */}
                     {bridgeLinkError && (
                         <p className="text-xs text-rose-300">{bridgeLinkError}</p>
                     )}
