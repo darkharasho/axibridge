@@ -29,6 +29,25 @@ const MARGIN_SCALE = SLICE_HEIGHT / (SLICE_HEIGHT - 2 * SLICE_MARGIN_PX);
  *  into a corner. Must stay under 0.5 or the two bounds it implies cross. */
 export const BEACON_BAND_INSET = 0.33;
 
+/**
+ * What separates a fight from the commute either side of it.
+ *
+ * The path spans the whole log, so a report that opened with a run in or ended
+ * with a wipe-and-waypoint drew a long straight leg to spawn. That leg is not
+ * the fight, and because the frame is sized to hold the path, it also dragged
+ * the crop wide enough to throw away the hi-res detail the slice exists for --
+ * on a real 316s log the path spanned 2001 continent units against a 1000-unit
+ * clamp, so most of the trail ran off the image anyway.
+ *
+ * A step is transit when it is BOTH a clear outlier against this log's own
+ * movement and fast in absolute terms. Either test alone misfires: a purely
+ * relative one splits a tight, stationary fight at its largest ordinary step,
+ * while a purely absolute one cannot tell a 5s bin from a 0.8s one, since a
+ * long log's bins cover proportionally more ground.
+ */
+export const TRANSIT_STEP_FACTOR = 6;
+export const TRANSIT_MIN_UNITS = 60;
+
 export interface ContinentFrame { cx1: number; cy1: number; cx2: number; cy2: number; }
 
 /**
@@ -51,8 +70,19 @@ export function eiPixelToContinent(map: WvwMap, px: number, py: number): [number
     ];
 }
 
+/** One time bin of the squad path: where the squad was, and how much of the
+ *  squad was sampled there. The weight is what lets `fightSegment` tell the
+ *  fight from the commute -- both are runs of bins, but only one is where the
+ *  squad spent its time. */
+export interface PathBin { point: [number, number]; samples: number; }
+
 /** The squad's centre of mass over time, in the tracks' own space. */
 export function centroidPath(tracks: PixelSample[][], bins: number = CENTROID_BINS): Array<[number, number]> {
+    return centroidBins(tracks, bins).map(b => b.point);
+}
+
+/** `centroidPath`, keeping each bin's sample count. */
+export function centroidBins(tracks: PixelSample[][], bins: number = CENTROID_BINS): PathBin[] {
     const nonEmpty = tracks.filter(t => t.length > 0);
     if (nonEmpty.length === 0) return [];
 
@@ -83,12 +113,60 @@ export function centroidPath(tracks: PixelSample[][], bins: number = CENTROID_BI
         }
     }
 
-    const path: Array<[number, number]> = [];
+    const path: PathBin[] = [];
     for (const bin of sums) {
         if (bin.n === 0) continue;       // an unsampled bin is a hole, not an origin
-        path.push([bin.x / bin.n, bin.y / bin.n]);
+        path.push({ point: [bin.x / bin.n, bin.y / bin.n], samples: bin.n });
     }
     return path;
+}
+
+/**
+ * The index range of the fight within a path that may also contain transit.
+ *
+ * The path is cut at every transit step and the heaviest surviving run wins --
+ * heaviest by sample count, not by length, because that is the run where the
+ * squad actually spent the fight. Picking the run that holds the first point
+ * instead would be wrong in exactly the common case: a report that opens with
+ * the run in would keep the approach and discard the fight.
+ *
+ * Returns the whole path when nothing looks like transit, which is the usual
+ * case -- six of the eight recorded fixtures are returned untouched.
+ */
+export function fightSegment(points: Array<[number, number]>, weights: number[]): { from: number; to: number } {
+    const whole = { from: 0, to: Math.max(0, points.length - 1) };
+    if (points.length < 2) return whole;
+
+    const steps: number[] = [];
+    for (let i = 1; i < points.length; i++) {
+        steps.push(Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]));
+    }
+    // Median, not mean: the transit steps this is meant to find would otherwise
+    // inflate the very scale used to detect them.
+    const median = [...steps].sort((a, b) => a - b)[steps.length >> 1];
+    if (!Number.isFinite(median)) return whole;
+    const limit = Math.max(TRANSIT_MIN_UNITS, TRANSIT_STEP_FACTOR * median);
+
+    let best = whole;
+    let bestWeight = -1;
+    let from = 0;
+    let weight = weights[0] ?? 0;
+    const close = (to: number) => {
+        if (weight > bestWeight) {
+            bestWeight = weight;
+            best = { from, to };
+        }
+    };
+    for (let i = 1; i < points.length; i++) {
+        if (steps[i - 1] > limit) {
+            close(i - 1);
+            from = i;
+            weight = 0;
+        }
+        weight += weights[i] ?? 0;
+    }
+    close(points.length - 1);
+    return best;
 }
 
 /** The clamped, aspect-forced crop around a path of continent points. */
@@ -266,25 +344,33 @@ export function buildSliceDrawList(details: any, zone: string): SliceDrawList | 
         const map = resolveMapFromDetails(details, zone);
         if (!map || !WVW_TILE_DATA[map]) return null;
 
-        const pixelPath = centroidPath(squadPixelTracks(details));
-        if (pixelPath.length === 0) return null;
+        const bins = centroidBins(squadPixelTracks(details));
+        if (bins.length === 0) return null;
 
-        const continentPath: Array<[number, number]> = [];
+        const projected: Array<[number, number]> = [];
         // The pixel samples that survived projection, index-aligned with
-        // `continentPath`, so the caption can name the same point the beacon
+        // `projected`, so the caption can name the same point the beacon
         // is drawn at rather than a sample that was thrown away.
-        const keptPixels: Array<[number, number]> = [];
-        for (const [px, py] of pixelPath) {
+        const projectedPixels: Array<[number, number]> = [];
+        const weights: number[] = [];
+        for (const { point: [px, py], samples } of bins) {
             const c = eiPixelToContinent(map, px, py);
             // Both components must be finite, not merely `c` non-null: a NaN
             // sample projects to [NaN, NaN], which is truthy and would produce
             // a NaN frame -> no tiles -> no image at all.
             if (c && Number.isFinite(c[0]) && Number.isFinite(c[1])) {
-                continentPath.push(c);
-                keptPixels.push([px, py]);
+                projected.push(c);
+                projectedPixels.push([px, py]);
+                weights.push(samples);
             }
         }
-        if (continentPath.length === 0) return null;
+        if (projected.length === 0) return null;
+
+        // Transit is dropped before anything downstream sees the path, so the
+        // frame, the beacon and the caption all describe the same fight.
+        const { from, to } = fightSegment(projected, weights);
+        const continentPath = projected.slice(from, to + 1);
+        const keptPixels = projectedPixels.slice(from, to + 1);
 
         const frame = frameForPath(continentPath);
         if (!frame) return null;

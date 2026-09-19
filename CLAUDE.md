@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Project Is
 
-AxiBridge is an Electron desktop app for Guild Wars 2 players that watches the arcdps log folder, uploads logs to dps.report, computes WvW fight statistics, and sends formatted summaries to Discord webhooks or publishes persistent web reports to GitHub Pages.
+AxiBridge is an Electron desktop app for Guild Wars 2 players that watches the arcdps log folder, parses each log in-process with axilog, computes WvW fight statistics, and sends formatted summaries to Discord (webhooks or a bridged AxiTools bot) or publishes persistent web reports to GitHub Pages. Logs are also uploaded to dps.report, but only for the shareable permalink — not for parsing.
 
 ## Commands
 
@@ -69,14 +69,15 @@ The preload script (`src/preload/index.ts`) exposes `window.electronAPI` to the 
 src/
   main/          # Electron main process
     index.ts     # App bootstrap, IPC handlers, all settings persistence
-    uploader.ts  # dps.report upload queue (max 3 concurrent) with retry logic
+    axilogParser.ts # THE parser: @axiapps/axilog native Rust bindings, in-process
+    uploader.ts  # dps.report upload queue (max 3 concurrent) with retry logic — permalinks only
     watcher.ts   # chokidar-based folder watcher for .evtc/.zevtc files
     discord.ts   # Discord webhook formatting and posting
     integration.ts  # AppImage desktop integration
   preload/
     index.ts     # contextBridge – exposes electronAPI to renderer
   shared/        # Code shared across main, renderer, and web
-    dpsReportTypes.ts    # TypeScript interfaces for EI JSON (Player, Target, etc.)
+    dpsReportTypes.ts    # TypeScript interfaces for the EI-shaped JSON (Player, Target, etc.)
     dashboardMetrics.ts  # Per-player metric extraction functions
     boonGeneration.ts    # Boon uptime/output calculations
     combatMetrics.ts     # Combat stat helpers
@@ -118,11 +119,31 @@ src/
 ### Data Flow
 
 1. **Log detection**: `LogWatcher` (chokidar) emits `log-detected` → main process IPC sends to renderer.
-2. **Upload**: `Uploader` queues .evtc/.zevtc files, posts to `dps.report/uploadContent`, then fetches EI JSON via `dps.report/getJson`. Max 3 concurrent uploads, 1 concurrent detail fetch.
-3. **State**: All `ILogData` entries live in renderer state (App.tsx). Persisted via `electronAPI.saveLogs`.
-4. **Stats computation**: `incrementalAggregation.ts` is the single codepath — `IncrementalAggregator` folds logs in one at a time, and `computeStatsSync` wraps it for one-shot use. For >8 logs it streams through a Web Worker (`statsWorker.ts`); otherwise it runs inline. The `useStatsAggregationWorker` hook manages both paths and falls back to inline `computeStatsSync` if the worker fails.
-5. **Discord**: Main process receives screenshot/embed requests from renderer → `DiscordNotifier` posts to configured webhooks.
-6. **Web report**: Main process builds a static `dist-web/` site with `report.json` embedded, then pushes to GitHub Pages via git.
+2. **Parse**: `axilogParser.ts` parses the log in-process via the native `@axiapps/axilog` bindings (~0.3s/log) and emits an EI-shaped JSON object plus a native `details.native` block. This is the only parser — see "Parser Backend" below.
+3. **Upload**: `Uploader` queues .evtc/.zevtc files and posts to `dps.report/uploadContent` to obtain a shareable permalink. Max 3 concurrent uploads. `dps.report/getJson` is no longer used.
+4. **State**: All `ILogData` entries live in renderer state (App.tsx). Persisted via `electronAPI.saveLogs`.
+5. **Stats computation**: `incrementalAggregation.ts` is the single codepath — `IncrementalAggregator` folds logs in one at a time, and `computeStatsSync` wraps it for one-shot use. For >8 logs it streams through a Web Worker (`statsWorker.ts`); otherwise it runs inline. The `useStatsAggregationWorker` hook manages both paths and falls back to inline `computeStatsSync` if the worker fails.
+6. **Discord**: Main process receives screenshot/embed requests from renderer → `DiscordNotifier` posts to configured webhooks.
+7. **Web report**: Main process builds a static `dist-web/` site with `report.json` embedded, then pushes to GitHub Pages via git.
+
+### Parser Backend
+
+**axilog is the only parser.** The Elite Insights .NET CLI backend was removed:
+there is no `parserBackend` setting, no EI binary download, and no
+`src/main/eiParser.ts`. `src/main/eliteInsightsRemoval.ts` runs unconditionally at
+startup to delete the ~90 MB CLI + private .NET runtime left behind by older
+installs and to retire the dead store keys.
+
+Two things outlive the binary and are easy to confuse with it:
+
+- **The EI *shape*.** `axilogParser.ts` still emits the EI-shaped JSON object the
+  stats pipeline reads, alongside a richer `details.native` block. "EI JSON" in
+  this codebase means that shape, not that Elite Insights produced it.
+- **Persisted logs.** `ParseSource` (see
+  `src/renderer/stats/utils/axilogCoverage.ts`) still recognizes `'elite-insights'`,
+  `'dps.report'` and `'json-import'` because logs ingested before the removal remain
+  in users' history with no native data. Those logs render migrated views empty; the
+  remedy is re-parsing, surfaced by `HistoryReparseCard` and the coverage banner.
 
 ### Metrics System
 
