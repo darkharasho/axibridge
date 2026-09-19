@@ -37,7 +37,11 @@ describe('compressReport', () => {
         expect(compressReport({ padding: 'a'.repeat(10000) }).length).toBeLessThan(raw);
     });
 
-    it('compresses at quality 11, not some lower default', () => {
+    it('compresses better than quality 1, guarding against a collapse to the weakest setting', () => {
+        // This does not pin quality 11 specifically (an exact byte count is brittle
+        // across brotli versions) — it only guards against silently regressing to
+        // quality 1. Measured: q1 -> 49 bytes, q11 -> 31 bytes on this fixture, and
+        // dropping quality 11 to 6 still leaves this assertion passing.
         const input = { padding: 'a'.repeat(10000) };
         const raw = Buffer.from(JSON.stringify(input), 'utf8');
         const lowQuality = brotliCompressSync(raw, {
