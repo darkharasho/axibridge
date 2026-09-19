@@ -92,10 +92,24 @@ export function useDetailsHydration({
             });
             return;
         }
-        // Populate LRU + IndexedDB (fire-and-forget — structured clone runs async)
-        if (detailsCache && result.details) {
-            if (log.id) detailsCache.putSync(log.id, result.details);
-            if (log.filePath && log.filePath !== log.id) detailsCache.putSync(log.filePath, result.details);
+        // Populate LRU + IndexedDB. The write itself starts immediately; what
+        // is awaited here is only its outcome.
+        const persisted = Boolean(await detailsCache?.putDurable(log.id, log.filePath, result.details));
+        if (!persisted) {
+            // The parse succeeded but the details are memory-only, so they will
+            // be gone as soon as the LRU evicts them. Leaving the log 'idle'
+            // keeps it a hydration candidate for after that eviction rather
+            // than stamping a durability claim the cache cannot honour.
+            setLogs((currentLogs) => {
+                const idx = currentLogs.findIndex((entry) => entry.filePath === log.filePath);
+                if (idx < 0) return currentLogs;
+                const updated = [...currentLogs];
+                const existing = updated[idx];
+                if (existing.detailsStatus !== 'loading') return currentLogs;
+                updated[idx] = { ...existing, detailsStatus: 'idle' as const };
+                return updated;
+            });
+            return;
         }
         setLogs((currentLogs) => {
             const existingIndex = currentLogs.findIndex((entry) => entry.filePath === log.filePath);
@@ -132,7 +146,12 @@ export function useDetailsHydration({
                         !cachedDetails.targets.some((t: any) => Array.isArray(t?.buffs) && t.buffs.length > 0);
                     const hasStaleDetails = cachedDetails && (!cachedDetails.damageModMap || !cachedDetails.conditionMetrics || targetsLackBuffs);
                     if (hasStaleDetails) return Boolean(log.permalink);
-                    if (cachedDetails) return false;
+                    // A cache hit whose durable write was rejected is readable
+                    // right now and gone after the next eviction. Keeping it a
+                    // candidate lets the write be retried, and lets the attempt
+                    // counter carry it to 'exhausted' — and into the coverage
+                    // banner — if the store stays broken.
+                    if (cachedDetails && detailsCache?.isDurable(log.id) !== false) return false;
                     // Already hydrated this session → details are in IndexedDB.
                     // The worker reads via getLocal (LRU + IDB), so no re-fetch needed.
                     if (log.detailsStatus === 'loaded') return false;
@@ -236,19 +255,20 @@ export function useDetailsHydration({
                                 window.clearTimeout(timeoutId);
                             }
                         });
-                        if (result?.success && result.details) {
+                        if (result?.success && result.details && await detailsCache?.putDurable(log.id, filePath, result.details)) {
                             detailsHydrationAttemptsRef.current.delete(filePath);
-                            if (detailsCache) {
-                                // Store under both id and filePath — logsForStats
-                                // entries may still have the old filePath-based id
-                                // from before the real id was assigned.
-                                if (log.id) detailsCache.putSync(log.id, result.details);
-                                if (filePath && filePath !== log.id) detailsCache.putSync(filePath, result.details);
-                            }
                             hydratedBatch.push({ filePath, details: result.details });
                             if (hydratedBatch.length >= flushThreshold) {
                                 flushHydratedBatch();
                             }
+                        } else if (result?.success && result.details) {
+                            // Parsed fine, but the details did not reach durable
+                            // storage. Counting it as a failure — rather than
+                            // clearing the attempt counter as a success would —
+                            // lets the existing exhaustion path end the retries
+                            // and surface the log in the coverage banner, where
+                            // the user can re-parse it.
+                            failedPaths.add(filePath);
                         } else {
                             if ((result as any)?.terminal) {
                                 terminalFailures.add(filePath);

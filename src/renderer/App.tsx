@@ -773,10 +773,12 @@ function App() {
     useEffect(() => {
         const cache = detailsCacheRef.current;
         if (!cache || !window.electronAPI?.onDetailsPrewarm) return;
-        const cleanup = window.electronAPI.onDetailsPrewarm((payload: any) => {
+        const cleanup = window.electronAPI.onDetailsPrewarm(async (payload: any) => {
             if (payload?.details && (payload.logId || payload.filePath)) {
                 const logId = payload.logId || payload.filePath;
-                cache.putSync(logId, payload.details);
+                // Await the outcome, not the write: 'loaded' means the worker
+                // can read this back later, which only IndexedDB can promise.
+                if (!await cache.putDurable(logId, undefined, payload.details)) return;
                 setLogsDeferred((currentLogs) => {
                     const idx = currentLogs.findIndex(
                         (l) => (l.id && l.id === logId) || (l.filePath && l.filePath === logId)

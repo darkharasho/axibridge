@@ -62,12 +62,12 @@ export function useAxilogHeal({
             if (result?.success && result.details) {
                 // Both keys: streaming reads by id, hydration wrote by filePath,
                 // and logsForStats entries can still carry the pre-id filePath.
-                if (detailsCache) {
-                    if (target.id) detailsCache.putSync(target.id, result.details);
-                    if (target.filePath && target.filePath !== target.id) {
-                        detailsCache.putSync(target.filePath, result.details);
-                    }
-                }
+                // The durability of this write is deliberately not checked: the
+                // re-parse handler has already written the details back into the
+                // main-process store, so even a rejected cache write leaves the
+                // log repaired at the source and re-fetchable over IPC. The LRU
+                // half is enough to make this aggregation pass see it.
+                await detailsCache?.putDurable(target.id, target.filePath, result.details);
                 healedPaths.push(target.filePath);
             } else {
                 failures.push({ label: target.label, error: String(result?.error || 'Re-parse failed.') });
