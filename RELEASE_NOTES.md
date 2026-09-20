@@ -1,7 +1,10 @@
 # Release Notes
 
-Version v3.15.2 — September 20, 2026
+Version v3.15.3 — September 20, 2026
+
+## Share Links Are Faster and More Reliable
+The fights repo that backs share links is now fully managed for you — it's created automatically the first time you need it, and there's nothing to configure in settings anymore. Share blobs are also read directly from raw.githubusercontent.com instead of waiting on a GitHub Pages build, so a brand new share link resolves right away instead of sitting there until Pages catches up.
 
 ## Fixes
-
-- Fixed Fight Breakdown rows getting stuck on "Pending" instead of linking out. Share links from v3.15.0 meant new logs no longer got a dps.report permalink, and several parts of the app were only checking for that permalink to know a log was ready — so fight links, details loading, and replays could all silently fail to show up. Everything now checks the share link first and falls back to the dps.report link, so things load like they should again.
+- GitHub API calls now time out after 60 seconds of socket inactivity, so a dead connection can no longer stall log processing indefinitely.
+- Share failures are now logged to main.log, making them easier to diagnose if a share link doesn't go through.
