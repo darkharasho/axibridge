@@ -99,3 +99,49 @@ describe('createGithubShareTarget', () => {
         expect(createGithubShareTarget(opts(vi.fn())).ensureCors).toBeUndefined();
     });
 });
+
+describe('createGithubShareTarget.deleteObject', () => {
+    const existing = { status: 200, data: { sha: 'deadbeef' } };
+
+    it('deletes the object with the sha the Contents API requires', async () => {
+        const request = vi.fn<GithubRequestFn>()
+            .mockResolvedValueOnce(existing)
+            .mockResolvedValueOnce({ status: 200, data: {} });
+
+        const result = await createGithubShareTarget(opts(request)).deleteObject!('shares/abc-123.json.gz');
+
+        expect(result).toEqual({ success: true });
+        const [method, apiPath, token, body] = request.mock.calls[1];
+        expect(method).toBe('DELETE');
+        expect(apiPath).toBe('/repos/someone/axibridge-fights/contents/shares/abc-123.json.gz');
+        expect(token).toBe('tok');
+        expect(body).toMatchObject({ sha: 'deadbeef', branch: 'main' });
+    });
+
+    // Retention is idempotent: an interrupted run is re-run from the ledger, and
+    // "the object is gone" is already true for a file that was never there.
+    it('treats an already-absent object as success and issues no DELETE', async () => {
+        const request = vi.fn<GithubRequestFn>().mockResolvedValueOnce(missing);
+
+        expect(await createGithubShareTarget(opts(request)).deleteObject!('shares/gone.json.gz'))
+            .toEqual({ success: true });
+        expect(request).toHaveBeenCalledTimes(1);
+    });
+
+    it('reports a GitHub API failure rather than claiming the bytes are freed', async () => {
+        const request = vi.fn<GithubRequestFn>()
+            .mockResolvedValueOnce(existing)
+            .mockResolvedValueOnce({ status: 403, data: { message: 'Resource not accessible' } });
+
+        const result = await createGithubShareTarget(opts(request)).deleteObject!('shares/abc.json.gz');
+        expect(result.success).toBe(false);
+        expect(result.error).toMatch(/403/);
+        expect(result.error).toMatch(/Resource not accessible/);
+    });
+
+    it('never throws when the request layer does', async () => {
+        const request = vi.fn<GithubRequestFn>().mockRejectedValue(new Error('socket hang up'));
+        const result = await createGithubShareTarget(opts(request)).deleteObject!('shares/abc.json.gz');
+        expect(result).toEqual({ success: false, error: 'socket hang up' });
+    });
+});

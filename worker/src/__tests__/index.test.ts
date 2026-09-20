@@ -789,3 +789,128 @@ describe('contentSecurityPolicy', () => {
         expect(styleSrc).toBe("style-src 'unsafe-inline' https://fonts.googleapis.com");
     });
 });
+
+const postMeta = (body: unknown, token = 'gho_valid') =>
+    new Request('https://bridge.axi.link/r/meta', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+
+describe('POST /r/meta', () => {
+    it('returns the live last-seen stamp, not the pointer’s frozen `seen` field', async () => {
+        const kv = fakeKv();
+        kv.store.set('p:k3Xm9qR2', JSON.stringify(record({ seen: 1, bytes: 900 })));
+        kv.store.set('s:k3Xm9qR2', '1758300000000');
+
+        const res = await handleRequest(postMeta({ codes: ['k3Xm9qR2'] }), env(kv), okUser() as any);
+        expect(res.status).toBe(200);
+        const body = await res.json() as any;
+        expect(body.meta.k3Xm9qR2).toEqual({ stage: 'full', bytes: 900, seen: 1758300000000 });
+    });
+
+    // Without this the client cannot distinguish "never opened" from "opened at
+    // the epoch", and `Number('')` is 0 — a real timestamp that would sort as
+    // least-recently-seen and evict a brand new link first.
+    it('reports a never-opened link as seen: null rather than 0', async () => {
+        const kv = fakeKv();
+        kv.store.set('p:k3Xm9qR2', JSON.stringify(record()));
+
+        const body = await (await handleRequest(postMeta({ codes: ['k3Xm9qR2'] }), env(kv), okUser() as any)).json() as any;
+        expect(body.meta.k3Xm9qR2.seen).toBeNull();
+    });
+
+    it('reports a pointer created before `bytes` existed as bytes: null', async () => {
+        const kv = fakeKv();
+        kv.store.set('p:k3Xm9qR2', JSON.stringify(record()));
+
+        const body = await (await handleRequest(postMeta({ codes: ['k3Xm9qR2'] }), env(kv), okUser() as any)).json() as any;
+        expect(body.meta.k3Xm9qR2.bytes).toBeNull();
+    });
+
+    it('reports the current stage so a client ledger can be reconciled', async () => {
+        const kv = fakeKv();
+        kv.store.set('p:k3Xm9qR2', JSON.stringify(record({ stage: 'demoted' })));
+
+        const body = await (await handleRequest(postMeta({ codes: ['k3Xm9qR2'] }), env(kv), okUser() as any)).json() as any;
+        expect(body.meta.k3Xm9qR2.stage).toBe('demoted');
+    });
+
+    // Last-seen is a view-activity signal. Unauthenticated, it would let anyone
+    // holding a link poll how often it is opened, and probing codes would
+    // reveal which links exist at all.
+    it('requires authentication', async () => {
+        const res = await handleRequest(
+            new Request('https://bridge.axi.link/r/meta', { method: 'POST', body: '{"codes":[]}' }),
+            env(fakeKv()),
+            vi.fn().mockResolvedValue(new Response('', { status: 401 })) as any
+        );
+        expect(res.status).toBe(401);
+    });
+
+    it('omits a code owned by someone else instead of refusing the whole batch', async () => {
+        const kv = fakeKv();
+        kv.store.set('p:k3Xm9qR2', JSON.stringify(record({ owner: 'somebody-else' })));
+        kv.store.set('p:Zz00Aa11', JSON.stringify(record({ owner: 'darkharasho' })));
+
+        const body = await (await handleRequest(
+            postMeta({ codes: ['k3Xm9qR2', 'Zz00Aa11'] }), env(kv), okUser() as any
+        )).json() as any;
+        expect(Object.keys(body.meta)).toEqual(['Zz00Aa11']);
+    });
+
+    it('omits unknown and malformed codes', async () => {
+        const kv = fakeKv();
+        kv.store.set('p:Zz00Aa11', JSON.stringify(record()));
+
+        const body = await (await handleRequest(
+            postMeta({ codes: ['Zz00Aa11', 'MissingX', 'nope', 42, null] }), env(kv), okUser() as any
+        )).json() as any;
+        expect(Object.keys(body.meta)).toEqual(['Zz00Aa11']);
+    });
+
+    it('rejects a batch larger than the cap', async () => {
+        const res = await handleRequest(
+            postMeta({ codes: new Array(251).fill('Zz00Aa11') }), env(fakeKv()), okUser() as any
+        );
+        expect(res.status).toBe(400);
+        expect((await res.json() as any).error).toMatch(/Too many codes/);
+    });
+
+    it('rejects a body with no codes array', async () => {
+        const res = await handleRequest(postMeta({}), env(fakeKv()), okUser() as any);
+        expect(res.status).toBe(400);
+    });
+
+    it('rejects malformed JSON', async () => {
+        const res = await handleRequest(
+            postRaw('{not json', 'https://bridge.axi.link/r/meta'), env(fakeKv()), okUser() as any
+        );
+        expect(res.status).toBe(400);
+    });
+
+    it('is charged against the same per-owner rate limit as creating a link', async () => {
+        const res = await handleRequest(
+            postMeta({ codes: [] }), env(fakeKv(), fakeRateLimiter({ exhausted: true })), okUser() as any
+        );
+        expect(res.status).toBe(429);
+    });
+
+    it('refuses any method other than POST', async () => {
+        const res = await handleRequest(
+            new Request('https://bridge.axi.link/r/meta'), env(fakeKv()), okUser() as any
+        );
+        expect(res.status).toBe(405);
+    });
+
+    // The read path must stay the only thing that stamps `s:`, and it must
+    // never rewrite `p:` — the meta route is a pure read on both keys.
+    it('writes nothing', async () => {
+        const kv = fakeKv();
+        kv.store.set('p:k3Xm9qR2', JSON.stringify(record()));
+        const before = new Map(kv.store);
+
+        await handleRequest(postMeta({ codes: ['k3Xm9qR2'] }), env(kv), okUser() as any);
+        expect([...kv.store.entries()]).toEqual([...before.entries()]);
+    });
+});

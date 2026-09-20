@@ -27,6 +27,16 @@ export interface ShareTarget {
         contentType: string
     ): Promise<{ success: boolean; url?: string; error?: string }>;
     ensureCors?(origin: string): Promise<{ success: boolean; error?: string }>;
+    /**
+     * Remove an object. Used only by the tombstone rung of retention, which is
+     * the one place we stop hosting bytes at all — the link itself survives,
+     * because the pointer and its summary card live in KV.
+     *
+     * OPTIONAL, like `ensureCors`: a target that cannot delete simply never
+     * reaches the tombstone rung, and `shareReclaim` skips the action rather
+     * than reporting bytes it did not free.
+     */
+    deleteObject?(key: string): Promise<{ success: boolean; error?: string }>;
 }
 
 /** Everything that may appear in an object key without needing URL-encoding. */
@@ -71,6 +81,17 @@ export interface ShareResult {
     code?: string;
     url?: string;
     error?: string;
+    /**
+     * Where the report bytes physically landed, and how big they are.
+     *
+     * Present only on success, and carried purely so the caller can record a
+     * `shareLedger` row: retention needs the object key to re-upload a stripped
+     * copy, the public URL to fetch the report back from, and the size to total
+     * against the budget. `shareLog` itself never reads them.
+     */
+    key?: string;
+    loc?: string;
+    bytes?: number;
 }
 
 /**
@@ -152,9 +173,10 @@ export const shareLog = async (
         }
     }
 
+    const key = shareObjectKey(logId);
     let put: { success: boolean; url?: string; error?: string };
     try {
-        put = await deps.target.putObject(shareObjectKey(logId), body, 'application/gzip');
+        put = await deps.target.putObject(key, body, 'application/gzip');
     } catch (err) {
         return { success: false, error: errorMessage(err, 'Failed to upload the report.') };
     }
@@ -205,5 +227,5 @@ export const shareLog = async (
     if (response.status !== 201) {
         return { success: false, error: payload.error || `Share service returned ${response.status}.` };
     }
-    return { success: true, code: payload.code, url: payload.url };
+    return { success: true, code: payload.code, url: payload.url, key, loc: put.url, bytes: body.length };
 };
