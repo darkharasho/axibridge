@@ -1,5 +1,18 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
-import { SHARE_LOG_CHANNEL, SHARE_PLAN_RETENTION_CHANNEL } from '../shared/shareChannels'
+import type {
+    SHARE_LOG_CHANNEL as SharedShareLogChannel,
+    SHARE_PLAN_RETENTION_CHANNEL as SharedSharePlanRetentionChannel,
+} from '../shared/shareChannels'
+
+// The preload runs sandboxed, where `require` resolves Electron built-ins and
+// nothing else — a value import of a relative file throws "module not found"
+// at load time and takes the whole electronAPI bridge down with it, so the
+// renderer boots with `window.electronAPI` undefined. The channel names are
+// therefore written out literally here. `import type` is erased at compile
+// time, so it emits no require, and the annotations below still fail the
+// typecheck if these literals ever drift from the shared constants.
+const SHARE_LOG_CHANNEL: typeof SharedShareLogChannel = 'share-log'
+const SHARE_PLAN_RETENTION_CHANNEL: typeof SharedSharePlanRetentionChannel = 'share-plan-retention'
 
 contextBridge.exposeInMainWorld('electronAPI', {
     selectDirectory: () => ipcRenderer.invoke('select-directory'),
