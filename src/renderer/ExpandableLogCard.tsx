@@ -16,6 +16,7 @@ import { useLogDetails } from './cache/useLogDetails';
 import { buildFightLabelV2, computeFightAvgPosition } from '../shared/mapUtils';
 import { getWvwTeamColor, teamMapFromLog, WVW_TEAM_COLOR_META, WVW_TEAM_COLOR_ORDER, type WvwTeamColor } from '../shared/wvwTeams';
 import { detailsHaveAxilogData } from './stats/utils/axilogCoverage';
+import { shareIdentity } from '../shared/shareIdentity';
 import { deriveReviveLogSummary, reviveePlayerKey, type ReviveLogSummary } from '@axiapps/bridge-metrics';
 
 // Track which logs have already played their arrival/success animations (survives virtualization remounts)
@@ -246,6 +247,16 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         return 'Unknown Borderland';
     };
     const cardTitle = `${formattedDateTime()} - ${borderlandLabel()}`;
+
+    // Which link this card opens. `shareIdentity` prefers our own share link and
+    // falls back to the dps.report permalink, so a log persisted before share
+    // links existed keeps working untouched. The label follows the url rather
+    // than being hardcoded — calling an AxiBridge link "dps.report" would name
+    // the wrong site.
+    const reportUrl = shareIdentity(log);
+    const reportLinkLabel = log.shareUrl && reportUrl === log.shareUrl.trim()
+        ? 'Open Fight Report'
+        : 'Open dps.report Report';
     // Details only load once the card is expanded, so fall back to the ingestion
     // record while collapsed: a log from dps.report, the Elite Insights engine or
     // a JSON import definitionally has no Axilog data. A log with neither
@@ -1158,39 +1169,37 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                             <button
                                 onClick={async (e) => {
                                     e.stopPropagation();
-                                    console.log('Opening permalink:', log.permalink);
-                                    if (log.permalink) {
-                                        try {
-                                            const result = await window.electronAPI.openExternal(log.permalink);
-                                            console.log('Open external result:', result);
-                                            if (!result || !result.success) {
-                                                console.error('Failed to open link via Electron:', result?.error || 'No result returned');
-                                                window.open(log.permalink, '_blank');
-                                            }
-                                        } catch (err) {
-                                            console.error('Error calling openExternal:', err);
-                                            window.open(log.permalink, '_blank');
+                                    if (!reportUrl) {
+                                        console.warn('No report link available for this log');
+                                        return;
+                                    }
+                                    try {
+                                        const result = await window.electronAPI.openExternal(reportUrl);
+                                        if (!result || !result.success) {
+                                            console.error('Failed to open link via Electron:', result?.error || 'No result returned');
+                                            window.open(reportUrl, '_blank');
                                         }
-                                    } else {
-                                        console.warn('No permalink available for this log');
+                                    } catch (err) {
+                                        console.error('Error calling openExternal:', err);
+                                        window.open(reportUrl, '_blank');
                                     }
                                 }}
-                                disabled={!log.permalink}
-                                className={`log-card-dps-link-btn w-full py-2.5 rounded-[4px] text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] ${!log.permalink
+                                disabled={!reportUrl}
+                                className={`log-card-dps-link-btn w-full py-2.5 rounded-[4px] text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] ${!reportUrl
                                     ? 'text-white/50 cursor-not-allowed'
                                     : 'text-white hover:brightness-110'
                                     }`}
                                 style={{
-                                    background: !log.permalink
+                                    background: !reportUrl
                                         ? 'color-mix(in srgb, var(--brand-primary) 30%, transparent)'
                                         : 'color-mix(in srgb, var(--brand-primary) 70%, transparent)',
-                                    border: `1px solid ${!log.permalink
+                                    border: `1px solid ${!reportUrl
                                         ? 'color-mix(in srgb, var(--brand-primary) 10%, transparent)'
                                         : 'color-mix(in srgb, var(--brand-primary) 25%, transparent)'}`,
                                 }}
                             >
                                 <ExternalLink className="w-4 h-4" />
-                                <span>{log.permalink ? 'Open dps.report Report' : 'Link Pending...'}</span>
+                                <span>{reportUrl ? reportLinkLabel : 'Link Pending...'}</span>
                             </button>
                         </div>
                     </motion.div>

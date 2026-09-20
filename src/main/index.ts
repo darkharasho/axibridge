@@ -10,6 +10,7 @@ import { buildFightLabelV2, computeFightAvgPosition } from '../shared/mapUtils';
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
 import { LogWatcher } from './watcher'
 import { Uploader, UploadResult } from './uploader'
+import { shareLog } from './shareService'
 import { waitForPermalink } from './permalinkWait'
 import { DiscordNotifier } from './discord';
 import { buildMapSlice, registerMapSliceResult } from './mapSlice';
@@ -88,7 +89,7 @@ import {
     normalizeMvpWeights,
 } from './handlers/settingsHandlers';
 import { registerUploadHandlers } from './handlers/uploadHandlers';
-import { registerGithubHandlers, resolveR2Uploader } from './handlers/githubHandlers';
+import { registerGithubHandlers, resolveShareTarget, shouldUploadToDpsReport } from './handlers/githubHandlers';
 import { registerCloudflareHandlers } from './handlers/cloudflareHandlers';
 import { registerParserHandlers } from './handlers/parserHandlers';
 import { registerReparseHandlers } from './handlers/reparseHandlers';
@@ -703,8 +704,11 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
             win?.webContents.send('parser:parse-progress', { logId: fileId, filePath, data });
         });
 
-        // Start dps.report upload in parallel (for permalink only) — don't await yet
-        const permalinkPromise = uploader
+        // Start dps.report upload in parallel (for permalink only) — don't await yet.
+        // Skipped entirely once share links have somewhere to write: the share
+        // link replaces the permalink, so uploading to a third party as well
+        // would be pure waste. See `shouldUploadToDpsReport`.
+        const permalinkPromise = uploader && shouldUploadToDpsReport(store)
             ? uploader.upload(filePath).catch((err: any) => {
                 console.warn(`[Main] dps.report parallel upload failed for ${filePath}:`, err?.message || err);
                 return null as UploadResult | null;
@@ -768,6 +772,36 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 });
             }
 
+            // ─── Share link (Tier 1) ─────────────────────────────────────────
+            // Unlike the dps.report upload this CANNOT run in parallel with the
+            // parse: it publishes the parsed report, so it has nothing to send
+            // until `prunedDetails` exists. It therefore sits on the critical
+            // path ahead of the Discord post, which is deliberate — the embed
+            // links to this URL, so posting first would post the wrong link.
+            //
+            // Every failure here is non-fatal by design: `shareLog` resolves
+            // `{ success: false }` rather than throwing, and a log with no share
+            // link still has its permalink (when dps.report ran) and its stats.
+            const shareLink: { shareUrl?: string; shareId?: string } = {};
+            if (prunedDetails) {
+                try {
+                    const target = await resolveShareTarget(store);
+                    if (target) {
+                        const githubToken = (store.get('githubToken') as string | undefined) ?? null;
+                        const shared = await shareLog(prunedDetails, filePath, { target, githubToken });
+                        if (shared.success && shared.url) {
+                            shareLink.shareUrl = shared.url;
+                            shareLink.shareId = shared.code;
+                            console.log(`[Main] Share link minted for ${filePath}: ${shared.url}`);
+                        } else {
+                            console.warn(`[Main] Share link failed for ${filePath}: ${shared.error || 'unknown error'}`);
+                        }
+                    }
+                } catch (shareError: any) {
+                    console.warn(`[Main] Share link threw for ${filePath}:`, shareError?.message || shareError);
+                }
+            }
+
             // Discord notifications — must happen before upload-complete to match
             // the dps.report ordering (discord → upload-complete), otherwise the
             // card flips from "done" back to "discord" status.
@@ -789,8 +823,11 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 const resolvedPermalink = await waitForPermalink(permalinkPromise);
                 if (resolvedPermalink) {
                     syntheticResult.permalink = resolvedPermalink;
-                } else {
-                    console.warn(`[Main] No dps.report permalink available for ${filePath}; posting Discord embed without a report link.`);
+                } else if (!shareLink.shareUrl) {
+                    // Only a problem when the embed has no link at all. With a
+                    // share link there is nothing to wait for — the dps.report
+                    // upload was skipped on purpose.
+                    console.warn(`[Main] No report link available for ${filePath}; posting Discord embed without one.`);
                 }
             }
 
@@ -800,6 +837,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                     filePath,
                     status: 'discord',
                     permalink: syntheticResult.permalink,
+                    ...shareLink,
                     uploadTime: syntheticResult.uploadTime,
                     encounterDuration: syntheticResult.encounterDuration,
                     fightName: syntheticResult.fightName
@@ -820,7 +858,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                             }
                         }
                         const mapSlicePng = await mapSliceFor(prunedDetails, prunedDetails?.fightName ?? '');
-                        const sendResults = await discord?.sendLog({ ...syntheticResult, filePath, mode: 'embed', splitEnemiesByTeam, mapSlicePng }, prunedDetails);
+                        const sendResults = await discord?.sendLog({ ...syntheticResult, ...shareLink, filePath, mode: 'embed', splitEnemiesByTeam, mapSlicePng }, prunedDetails);
                         handleDiscordSendResults(sendResults);
                     }
                 } catch (discordError: any) {
@@ -838,6 +876,7 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
             win?.webContents.send('upload-complete', {
                 ...syntheticResult,
                 ...detailsSummary,
+                ...shareLink,
                 filePath,
                 status: hasUsableDetails ? 'calculating' : 'success',
                 detailsStatus: hasUsableDetails ? 'available' as const : 'idle' as const,
@@ -1681,7 +1720,7 @@ if (!gotTheLock) {
             console.log(msg);
         });
 
-        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], reportWebhooks?: any[], selectedWebhookId?: string | null, enabledWebhookIds?: string[], dpsReportToken?: string | null, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, mvpWeightProfiles?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, colorPalette?: string, glassSurfaces?: boolean, glassmorphic?: boolean, particlesEnabled?: boolean, githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean, allowLocalJson?: boolean, r2AccountId?: string | null, r2AccessKeyId?: string | null, r2SecretAccessKey?: string | null, r2BucketName?: string | null, r2PublicUrl?: string | null, r2PreciseReplay?: boolean, r2HostingEnabled?: boolean, r2SliceEnabled?: boolean, reportWebhookSelection?: string[], reportWebhookSeen?: string[] }) => {
+        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], reportWebhooks?: any[], selectedWebhookId?: string | null, enabledWebhookIds?: string[], dpsReportToken?: string | null, dpsReportEnabled?: boolean, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, mvpWeightProfiles?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, colorPalette?: string, glassSurfaces?: boolean, glassmorphic?: boolean, particlesEnabled?: boolean, githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean, allowLocalJson?: boolean, r2AccountId?: string | null, r2AccessKeyId?: string | null, r2SecretAccessKey?: string | null, r2BucketName?: string | null, r2PublicUrl?: string | null, r2PreciseReplay?: boolean, r2HostingEnabled?: boolean, r2SliceEnabled?: boolean, reportWebhookSelection?: string[], reportWebhookSeen?: string[] }) => {
             if (settings.logDirectory !== undefined) {
                 store.set('logDirectory', settings.logDirectory);
                 if (settings.logDirectory) watcher?.start(settings.logDirectory);
@@ -1741,6 +1780,9 @@ if (!gotTheLock) {
                 if (typeof settings.dpsReportToken === 'string' && settings.dpsReportToken.trim().length > 0) {
                     setUploadRetryPaused(false, null);
                 }
+            }
+            if (settings.dpsReportEnabled !== undefined) {
+                store.set('dpsReportEnabled', settings.dpsReportEnabled);
             }
             if (settings.closeBehavior !== undefined) {
                 store.set('closeBehavior', settings.closeBehavior);
@@ -1892,7 +1934,7 @@ if (!gotTheLock) {
             // Same fallback order as the get-log-details path in uploadHandlers.
             getDetails: async (logId: string) =>
                 getBulkLogDetails(logId) ?? (await loadPersistedLogDetails(logId)),
-            resolveTarget: (s: any) => resolveR2Uploader(s).uploader ?? null
+            resolveTarget: (s: any) => resolveShareTarget(s)
         });
     })
 }

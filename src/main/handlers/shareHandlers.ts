@@ -7,8 +7,8 @@ export interface ShareHandlerOptions {
     store: any;
     /** Parsed details for a log, or null if it has not been parsed. */
     getDetails: (logId: string) => any;
-    /** Where Tier 1 bytes go — the user's R2, or null when nothing is configured. */
-    resolveTarget: (store: any) => ShareTarget | null;
+    /** Where Tier 1 bytes go — the user's R2 or their fights repo, null if neither. */
+    resolveTarget: (store: any) => ShareTarget | null | Promise<ShareTarget | null>;
 }
 
 const errorMessage = (err: unknown, fallback: string): string =>
@@ -44,13 +44,14 @@ export function registerShareHandlers(opts: ShareHandlerOptions) {
         if (!target) {
             return {
                 success: false,
-                // `resolveTarget` is R2-only, and `resolveR2Uploader`
-                // (githubHandlers.ts) returns null unless one of the two R2
-                // hosting toggles is on — so credentials alone are not enough
-                // and naming GitHub Pages here was simply untrue.
-                error: 'Sharing needs somewhere to put the report. In Settings → Cloudflare R2, connect '
-                    + 'your R2 bucket and turn on "Host replay data on R2" or "Host fight slice data on '
-                    + 'R2" — credentials alone are not enough while both toggles are off.'
+                // `resolveTarget` is the two-rung ladder (`resolveShareTarget`):
+                // R2 if connected, else the managed fights repo on GitHub Pages.
+                // It only returns null when NEITHER is available, so the copy
+                // names the easier rung first — connecting GitHub is what most
+                // users have already done to publish web reports.
+                error: 'Sharing needs somewhere to put the report. Connect GitHub in Settings and '
+                    + 'AxiBridge will create a repository for your fights automatically, or connect '
+                    + 'Cloudflare R2 if you would rather host them there.'
             };
         }
 

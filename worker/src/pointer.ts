@@ -33,6 +33,16 @@ export interface PointerRecord {
     /** Absolute URL of the raw .zevtc (Tier 2), when the user opted in. */
     raw?: string;
     stage: Stage;
+    /**
+     * Size of the Tier 1 object at `loc`, in bytes.
+     *
+     * Recorded at creation because retention is BUDGET-driven: without a size
+     * per pointer there is no way to total a user's footprint against the ~1 GiB
+     * Pages ceiling, and `planRetention` cannot run at all. Optional because
+     * pointers created before this field existed do not carry one; treat a
+     * missing value as unknown, not as zero.
+     */
+    bytes?: number;
     sum: ShareSummary;
     created: number;
     /** Last resolve, epoch ms. Drives least-recently-used retention. */

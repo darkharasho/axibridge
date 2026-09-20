@@ -30,6 +30,7 @@ import { getProfessionAbbrev, getProfessionBase, getProfessionEmoji } from '../s
 import { getProfessionEmojiToken } from '@axiapps/bridge-metrics/professionUtils';
 import { partitionSquadPlayers } from '../shared/playerIdentity';
 import { resolveEnemyClassLabel } from '../shared/computePlayerAggregation';
+import { shareIdentity } from '../shared/shareIdentity';
 import { Player } from '../shared/dpsReportTypes';
 import { TIMESTAMP_MS_THRESHOLD } from '../shared/constants';
 import { buildFightLabelV2, computeFightAvgPosition } from '../shared/mapUtils';
@@ -124,6 +125,24 @@ const DEFAULT_EMBED_STATS: IEmbedStatSettings = {
 export const toReportLink = (permalink?: string): string | undefined => {
     const trimmed = typeof permalink === 'string' ? permalink.trim() : '';
     return /^https?:\/\/\S+$/i.test(trimmed) ? trimmed : undefined;
+};
+
+/**
+ * The link an embed points at, and what to call it.
+ *
+ * Share links supersede dps.report, so `shareIdentity` decides WHICH url wins.
+ * The label has to follow that choice rather than stay hardcoded: a share link
+ * labelled "dps.report" would send readers somewhere the name does not match,
+ * and is the kind of thing nobody notices until a user asks why our link claims
+ * to be someone else's site.
+ */
+export const reportLinkFor = (
+    logData: { permalink?: string | null; shareUrl?: string | null }
+): { url: string; label: string } | undefined => {
+    const url = toReportLink(shareIdentity(logData));
+    if (!url) return undefined;
+    const share = typeof logData?.shareUrl === 'string' ? logData.shareUrl.trim() : '';
+    return { url, label: share && url === share ? 'AxiBridge' : 'dps.report' };
 };
 
 const DISCORD_EMBED_CHAR_LIMIT = 6000;
@@ -449,7 +468,7 @@ export class DiscordNotifier {
         this.disruptionMethod = method || DEFAULT_DISRUPTION_METHOD;
     }
 
-    public async sendLog(logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean, mapSlicePng?: Uint8Array }, jsonDetails?: any): Promise<SendResult[]> {
+    public async sendLog(logData: { permalink: string, shareUrl?: string, shareId?: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean, mapSlicePng?: Uint8Array }, jsonDetails?: any): Promise<SendResult[]> {
         if (this.destinations.length === 0) {
             console.log("No Discord destination configured, skipping notification.");
             return [];
@@ -498,7 +517,7 @@ export class DiscordNotifier {
         }
     }
 
-    private async resend(dest: DiscordDestination, logData: { permalink: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean, mapSlicePng?: Uint8Array }, jsonDetails?: any): Promise<void> {
+    private async resend(dest: DiscordDestination, logData: { permalink: string, shareUrl?: string, shareId?: string, id: string, filePath: string, imageBuffer?: Uint8Array, imageBuffers?: Uint8Array[], suppressContent?: boolean, mode?: 'image' | 'embed', splitEnemiesByTeam?: boolean, mapSlicePng?: Uint8Array }, jsonDetails?: any): Promise<void> {
         const isBridge = dest.kind === 'bridge';
         const mode = logData.imageBuffer ? 'image' : (logData.mode || 'embed');
         console.log(`[Discord] sending log. Mode: ${mode}`);
@@ -514,10 +533,10 @@ export class DiscordNotifier {
 
                 let content = '';
                 if (logData.id !== 'stats-dashboard' && !logData.suppressContent) {
-                    const reportLink = toReportLink(logData.permalink);
+                    const reportLink = reportLinkFor(logData);
                     content = `**${formatFightTitleForDiscord(jsonDetails, logData)}**`;
                     if (reportLink) {
-                        content += `\n[dps.report](${reportLink})`;
+                        content += `\n[${reportLink.label}](${reportLink.url})`;
                     }
                 }
 
@@ -1286,7 +1305,7 @@ export class DiscordNotifier {
                             icon_url: DISCORD_WEBHOOK_AVATAR_URL,
                         },
                         title: formatFightTitleForDiscord(jsonDetails, logData),
-                        url: toReportLink(logData.permalink),
+                        url: reportLinkFor(logData)?.url,
                         description: desc,
                         color: getEmbedColor(jsonDetails.fightName),
                         timestamp: new Date().toISOString(),
@@ -1406,8 +1425,8 @@ export class DiscordNotifier {
                             title: "Log Uploaded",
                             description: (() => {
                                 const fileName = logData.filePath.split(/[\\\/]/).pop();
-                                const reportLink = toReportLink(logData.permalink);
-                                return `**Log:** ${reportLink ? `[${fileName}](${reportLink})` : fileName}`;
+                                const reportLink = reportLinkFor(logData);
+                                return `**Log:** ${reportLink ? `[${fileName}](${reportLink.url})` : fileName}`;
                             })(),
                             color: 3447003,
                             timestamp: new Date().toISOString()

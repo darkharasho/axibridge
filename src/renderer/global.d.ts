@@ -333,6 +333,8 @@ export interface IElectronAPI {
         selectedWebhookId: string | null;
         enabledWebhookIds?: string[];
         dpsReportToken: string | null;
+        /** Keep uploading logs to dps.report for a permalink. Off = share links only. */
+        dpsReportEnabled: boolean;
         closeBehavior: 'minimize' | 'quit';
         embedStatSettings: IEmbedStatSettings;
         mvpWeights: IMvpWeights;
@@ -385,6 +387,7 @@ export interface IElectronAPI {
         webhooks?: IWebhook[];
         selectedWebhookId?: string | null;
         dpsReportToken?: string | null;
+        dpsReportEnabled?: boolean;
         closeBehavior?: 'minimize' | 'quit';
         embedStatSettings?: IEmbedStatSettings;
         mvpWeights?: IMvpWeights;

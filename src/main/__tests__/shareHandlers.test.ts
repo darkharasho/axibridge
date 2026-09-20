@@ -58,11 +58,13 @@ describe('share IPC handlers', () => {
         });
         const result = await invoke('share-log', { logId: 'log-1' }) as { success: boolean; error: string };
         expect(result.success).toBe(false);
+        // `resolveTarget` is now the two-rung ladder, so this message is only
+        // reached when BOTH rungs are unavailable and it must name both. It
+        // leads with GitHub: that rung needs no Cloudflare account, and most
+        // users have already connected it to publish web reports.
+        expect(result.error).toMatch(/GitHub/i);
         expect(result.error).toMatch(/R2/i);
-        // The copy must not promise a GitHub Pages backend: `resolveTarget` is
-        // R2-only, and R2 credentials alone are not enough either.
-        expect(result.error).not.toMatch(/GitHub Pages/i);
-        expect(result.error).toMatch(/Host replay data on R2|Host fight slice data on R2/);
+        expect(result.error.indexOf('GitHub')).toBeLessThan(result.error.indexOf('R2'));
     });
 
     it('returns a share url on the happy path', async () => {

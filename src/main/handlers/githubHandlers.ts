@@ -28,6 +28,13 @@ import {
     type R2Uploader
 } from '../cloudflare/uploader';
 import { CLOUDFLARE_OAUTH_CLIENT_ID } from '../cloudflare/oauth';
+import { createGithubShareTarget } from '../githubShareTarget';
+import {
+    fightsRepoName,
+    shareTargetConfigured as isShareTargetConfigured,
+    shouldUploadToDpsReport as shouldUploadToDpsReportPolicy
+} from '../shareTargetPolicy';
+import type { ShareTarget } from '../shareService';
 import {
     REPLAY_SIDECAR_CONTENT_TYPE,
     REPLAY_SIDECAR_FILENAME,
@@ -654,6 +661,77 @@ export const resolveR2Uploader = (store: any): R2UploaderResolution => {
         return { uploader: null, missingFields: [], partiallyConfigured: false };
     }
     return resolveR2Credentials(store);
+};
+
+// ─── Share-link storage (Tier 1) ──────────────────────────────────────────────
+
+/**
+ * `shareTargetPolicy`'s predicates, bound to this module's R2 resolution so
+ * callers do not each have to remember to ask about R2 first.
+ */
+export const shareTargetConfigured = (store: any): boolean =>
+    isShareTargetConfigured(store, Boolean(resolveR2Uploader(store).uploader));
+
+export const shouldUploadToDpsReport = (store: any): boolean =>
+    shouldUploadToDpsReportPolicy(store, Boolean(resolveR2Uploader(store).uploader));
+
+/**
+ * Create the fights repo and turn on Pages if they are not already there, and
+ * return where its files are publicly readable.
+ *
+ * Idempotent: a 422 from the create call means the repo already exists, which
+ * is the steady state after the first share and not an error.
+ */
+export const ensureFightsRepo = async (store: any, token: string): Promise<{
+    owner: string; repo: string; branch: string; baseUrl: string;
+}> => {
+    const user = await getGithubUser(token);
+    const authenticatedUser = user?.login;
+    if (!authenticatedUser) throw new Error('Unable to determine your GitHub username.');
+
+    const owner = ((store?.get?.('githubRepoOwner') as string | undefined)?.trim()) || authenticatedUser;
+    const repo = fightsRepoName(store);
+    if (!repo) throw new Error('Connect a GitHub repository in Settings before sharing.');
+    const branch = ((store?.get?.('githubBranch') as string | undefined)?.trim()) || 'main';
+
+    const existing = await githubApiRequest('GET', `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}`, token);
+    if (existing.status === 404) {
+        log.info(`[Main] Creating fights repo ${owner}/${repo} for share links.`);
+        try {
+            await createGithubRepo(owner, repo, token, authenticatedUser);
+        } catch (err: any) {
+            // Someone else (or a parallel share) won the race. Harmless.
+            if (!/\(422\)/.test(String(err?.message))) throw err;
+        }
+    } else if (existing.status >= 300) {
+        throw new Error(`GitHub API error (${existing.status}) checking ${owner}/${repo}`);
+    }
+
+    const pagesInfo = await ensureGithubPages(owner, repo, branch, token);
+    const baseUrl = pagesInfo?.html_url || `https://${owner}.github.io/${repo}`;
+    store?.set?.('githubFightsRepoName', repo);
+    store?.set?.('githubFightsPagesBaseUrl', baseUrl);
+    return { owner, repo, branch, baseUrl };
+};
+
+export const resolveShareTarget = async (store: any): Promise<ShareTarget | null> => {
+    const { uploader: r2 } = resolveR2Uploader(store);
+    if (r2) return r2;
+
+    const token = store?.get?.('githubToken') as string | undefined;
+    if (!token) return null;
+    if (!fightsRepoName(store)) return null;
+
+    const { owner, repo, branch, baseUrl } = await ensureFightsRepo(store, token);
+    return createGithubShareTarget({
+        owner,
+        repo,
+        branch,
+        token,
+        baseUrl,
+        request: githubApiRequest,
+        maxBytes: MAX_GITHUB_BLOB_BYTES
+    });
 };
 
 /**

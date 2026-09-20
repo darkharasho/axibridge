@@ -182,6 +182,40 @@ describe('POST /r', () => {
         expect(JSON.parse(kv.store.get(`p:${code}`)!).owner).toBe('darkharasho');
     });
 
+    // Budget-driven retention cannot run without a size per pointer: there is
+    // no other way to total a user's footprint against the Pages ceiling.
+    it('records the report size when the client sends one', async () => {
+        const kv = fakeKv();
+        const res = await handleRequest(
+            post({ loc: 'https://cdn.example.com/a.br', sum: summary, bytes: 1234567 }),
+            env(kv), okUser() as any
+        );
+        const { code } = await res.json() as { code: string };
+        expect(JSON.parse(kv.store.get(`p:${code}`)!).bytes).toBe(1234567);
+    });
+
+    it('omits bytes rather than storing a nonsense size', async () => {
+        for (const bytes of [0, -1, 'big', null, NaN, undefined]) {
+            const kv = fakeKv();
+            const res = await handleRequest(
+                post({ loc: 'https://cdn.example.com/a.br', sum: summary, bytes }),
+                env(kv), okUser() as any
+            );
+            const { code } = await res.json() as { code: string };
+            expect(JSON.parse(kv.store.get(`p:${code}`)!)).not.toHaveProperty('bytes');
+        }
+    });
+
+    it('floors a fractional size so the stored value is a whole byte count', async () => {
+        const kv = fakeKv();
+        const res = await handleRequest(
+            post({ loc: 'https://cdn.example.com/a.br', sum: summary, bytes: 99.9 }),
+            env(kv), okUser() as any
+        );
+        const { code } = await res.json() as { code: string };
+        expect(JSON.parse(kv.store.get(`p:${code}`)!).bytes).toBe(99);
+    });
+
     it('rejects an unauthenticated request', async () => {
         const fetchImpl = vi.fn().mockResolvedValue(new Response('{}', { status: 401 }));
         const res = await handleRequest(post({ loc: 'x', sum: summary }, 'bad'), env(fakeKv()), fetchImpl as any);
