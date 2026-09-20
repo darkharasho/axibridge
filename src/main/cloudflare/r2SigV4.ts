@@ -1,6 +1,7 @@
 import https from 'node:https';
 import { createHash, createHmac } from 'node:crypto';
 import log from 'electron-log';
+import { CLOUDFLARE_IDLE_TIMEOUT_MS } from './restClient';
 
 // ─── R2 SigV4 transport ───────────────────────────────────────────────────────
 //
@@ -17,6 +18,24 @@ export interface R2Config {
     bucketName: string;
     publicUrl: string;
 }
+
+/**
+ * Arm the idle timeout on an R2 request.
+ *
+ * Every call below is a bare `https.request` with no timeout of its own, so a
+ * socket that is accepted and then goes silent leaves the promise unsettled for
+ * the life of the process. `r2PutObject` in particular is awaited on the ingest
+ * critical path, so that one hang stops log processing entirely. `destroy(err)`
+ * routes through each caller's existing 'error' handler, which already settles
+ * the promise as a failure — no new resolution path to get wrong.
+ */
+const armIdleTimeout = (req: import('node:http').ClientRequest, label: string): void => {
+    req.setTimeout(CLOUDFLARE_IDLE_TIMEOUT_MS, () => {
+        req.destroy(new Error(
+            `R2 request timed out after ${CLOUDFLARE_IDLE_TIMEOUT_MS}ms of inactivity: ${label}`
+        ));
+    });
+};
 
 export const r2SignedRequest = (
     method: string,
@@ -84,6 +103,7 @@ export const r2EnsureBucketCors = async (config: R2Config, newOrigin: string): P
             res.on('end', () => resolve((res.statusCode === 200) ? data : null));
         });
         req.on('error', () => resolve(null));
+        armIdleTimeout(req, 'GET bucket CORS');
         req.end();
     });
 
@@ -133,6 +153,7 @@ export const r2EnsureBucketCors = async (config: R2Config, newOrigin: string): P
             });
         });
         req.on('error', (err: Error) => resolve({ success: false, error: `R2 CORS request error: ${err.message}` }));
+        armIdleTimeout(req, 'PUT bucket CORS');
         req.write(putBody);
         req.end();
     });
@@ -154,6 +175,7 @@ export const r2PutObject = (key: string, body: Buffer, contentType: string, conf
             });
         });
         req.on('error', (err: Error) => resolve({ success: false, error: `R2 request error: ${err.message}` }));
+        armIdleTimeout(req, `PUT ${key}`);
         req.write(body);
         req.end();
     });
@@ -175,6 +197,7 @@ export const r2DeleteObject = (key: string, config: R2Config): Promise<{ success
             });
         });
         req.on('error', (err: Error) => resolve({ success: false, error: `R2 DELETE error: ${err.message}` }));
+        armIdleTimeout(req, `DELETE ${key}`);
         req.end();
     });
 };

@@ -555,14 +555,10 @@ const markUploadRetryResolved = (filePath: string) => {
     sendUploadRetryQueueUpdate();
 };
 
-const processLogFile = async (filePath: string, options?: { retry?: boolean }) => {
-    const fileId = path.basename(filePath);
-    if (activeUploads.has(filePath)) {
-        console.log(`[Main] processLogFile skipped (already active): ${filePath}`);
-        return;
-    }
-    activeUploads.add(filePath);
-    console.log(`[Main] processLogFile start: ${filePath}`);
+// The body of `processLogFile`. Split out so the `activeUploads` entry can be
+// released in a single `finally` below, no matter which of the many paths
+// through here returns or throws.
+const runLogFile = async (filePath: string, fileId: string, options?: { retry?: boolean }) => {
 
     const ext = path.extname(filePath).toLowerCase();
     if (ext === '.json') {
@@ -623,8 +619,6 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 status: 'error',
                 error: jsonError?.message || 'Failed to read local JSON file'
             });
-        } finally {
-            activeUploads.delete(filePath);
         }
         return;
     }
@@ -913,7 +907,6 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                 console.warn(`[Main] dps.report permalink resolution failed for ${filePath}:`, err?.message || err);
             });
 
-            activeUploads.delete(filePath);
             return;
         } catch (eiError: any) {
             // No parse fallback exists any more — dps.report's JSON carries no
@@ -1090,6 +1083,27 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
             error: error?.message || 'Unknown error during processing'
         });
         console.log(`[Main] upload-complete exception: ${filePath} msg=${error?.message || error}`);
+    }
+};
+
+// `activeUploads` is what stops the same file being ingested twice, so an entry
+// that is added and never removed silently blocks every later attempt at that
+// log — the user sees nothing but `processLogFile skipped (already active)` in
+// the log and a card that never leaves "pending". The body has many exits
+// (an early `return` per path, throws from the parse, and awaits on the share
+// step that can be slow), so the release belongs in one `finally` here rather
+// than being repeated at each of them, where it was previously missed on the
+// local-parse path.
+const processLogFile = async (filePath: string, options?: { retry?: boolean }) => {
+    const fileId = path.basename(filePath);
+    if (activeUploads.has(filePath)) {
+        console.log(`[Main] processLogFile skipped (already active): ${filePath}`);
+        return;
+    }
+    activeUploads.add(filePath);
+    console.log(`[Main] processLogFile start: ${filePath}`);
+    try {
+        await runLogFile(filePath, fileId, options);
     } finally {
         activeUploads.delete(filePath);
     }
