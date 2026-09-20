@@ -9,20 +9,17 @@
  * bytes) and only then tombstoned down to the KV summary card, which we store
  * anyway for Discord previews. That is why a share link never 404s.
  *
- * ┌─ NOT YET IMPLEMENTED ──────────────────────────────────────────────────┐
- * │ THE BYTE-STRIPPING STEP DOES NOT EXIST. Nothing anywhere rewrites or   │
- * │ re-uploads a Tier 1 object with `combatReplay` removed —              │
- * │ `shareService.compressReport` gzips the whole `details` block, replay  │
- * │ included. Today `stage: 'demoted'` changes exactly two things: the OG  │
- * │ description string, and a banner in the viewer.                       │
- * │                                                                        │
- * │ So every `reclaimed` value this module emits is a PROJECTION, derived  │
- * │ from REPLAY_SHARE_OF_REPORT — it is NOT measured, and no bytes are     │
- * │ actually freed by acting on this plan. Whoever wires this up must      │
- * │ implement `stripReplay(details)` + re-`putObject` BEFORE issuing the   │
- * │ PATCH, and should re-derive `reclaimed` from the real post-strip size, │
- * │ before trusting any of these numbers.                                 │
- * └────────────────────────────────────────────────────────────────────────┘
+ * This module only PLANS. `shareReclaim.reclaimShareSpace` executes the plan —
+ * it re-uploads a replay-stripped copy (`shareReplayStrip`), deletes the object
+ * at the tombstone rung, and PATCHes the pointer — and `shareHandlers` runs it
+ * at publish time, right after each share is recorded in `shareLedger`.
+ *
+ * The `reclaimed` figure below is still a PROJECTION, derived from
+ * `REPLAY_SHARE_OF_REPORT`, because this module cannot know a report's
+ * post-strip size without fetching and rewriting it. It is used only to decide
+ * how far down the plan to go. The numbers reported to a user come from
+ * `ReclaimStepResult.reclaimed`, which is measured: size before minus size
+ * after. Do not surface these ones.
  *
  * The Worker's PATCH /r/:code is monotonic (full=0, demoted=1, tombstone=2) and
  * rejects a move to a lower rank, because promoting a tombstone back to `full`
@@ -52,9 +49,9 @@ export interface RetentionAction {
     from: RetentionStage;
     to: RetentionStage;
     /**
-     * Bytes this single step is PROJECTED to free — see the "not yet
-     * implemented" note in the module header. Always > 0: a step that frees
-     * nothing is not emitted at all.
+     * Bytes this single step is PROJECTED to free — see the module header, and
+     * prefer `ReclaimStepResult.reclaimed` for anything a user reads. Always
+     * > 0: a step that frees nothing is not emitted at all.
      */
     reclaimed: number;
 }

@@ -72,7 +72,7 @@ const omit = (obj: any, keys: string[]): any => {
     return out;
 };
 
-const pruneCombatReplayData = (value: any, keepPositions: boolean): any => {
+export const pruneCombatReplayData = (value: any, keepPositions: boolean): any => {
     const fields = keepPositions
         ? ['start', 'down', 'dead', 'positions']
         : ['start', 'down', 'dead'];

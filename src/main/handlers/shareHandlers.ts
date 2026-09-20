@@ -1,6 +1,8 @@
 import { ipcMain } from 'electron';
 import { shareLog, type ShareResult, type ShareTarget } from '../shareService';
 import { planRetention, type RetentionAction, type RetentionEntry } from '../shareRetention';
+import { recordShare } from '../shareLedger';
+import { reclaimShareSpace } from '../shareReclaim';
 import { SHARE_LOG_CHANNEL, SHARE_PLAN_RETENTION_CHANNEL } from '../../shared/shareChannels';
 
 export interface ShareHandlerOptions {
@@ -65,7 +67,52 @@ export function registerShareHandlers(opts: ShareHandlerOptions) {
         // shareLog itself is proven never to reject — every failure mode inside
         // it resolves to `{ success: false, error }` — so it is deliberately not
         // wrapped in another try/catch here.
-        return shareLog(details, logId, { target, githubToken });
+        const result = await shareLog(details, logId, { target, githubToken });
+        if (!result.success || !result.code || !result.key || !result.loc) return result;
+
+        // The ledger row is what makes this share visible to retention at all.
+        // Recorded before the reclaim below so that the share that pushes a user
+        // over budget is itself an eviction candidate.
+        recordShare(store, {
+            code: result.code,
+            key: result.key,
+            loc: result.loc,
+            bytes: result.bytes ?? 0,
+            stage: 'full',
+            created: Date.now()
+        });
+
+        // Retention runs at publish time, as the design specifies: it is the
+        // only moment we already hold the token, the target and the ledger, and
+        // it needs no cron or background service.
+        //
+        // Deliberately awaited rather than fired and forgotten. A reclaim issues
+        // GitHub writes against the same repo this share just wrote to, and
+        // overlapping them races the Contents API sha that `putObject` reads.
+        // It is also the only thing that can report a failure to the user.
+        //
+        // Never allowed to fail the share. The link is already minted and
+        // working by this point; a storage problem is the next run's business.
+        try {
+            const reclaim = await reclaimShareSpace({ store, target, githubToken });
+            if (reclaim.steps.length > 0) {
+                const freed = reclaim.steps.reduce((sum, step) => sum + step.reclaimed, 0);
+                console.log(
+                    `[Share] Retention reclaimed ${freed} bytes across ${reclaim.steps.length} report(s); `
+                    + `footprint ${reclaim.before} → ${reclaim.after} bytes.`
+                );
+            }
+            if (reclaim.stillOverBudget) {
+                console.warn(
+                    '[Share] Share storage is still over its high-water mark after retention ran. '
+                    + 'Everything left is either pinned or already tombstoned.'
+                );
+            }
+        } catch (err) {
+            console.warn('[Share] (non-blocking) Retention failed:', errorMessage(err, 'unknown error'));
+        }
+
+        return result;
     });
 
     ipcMain.handle(SHARE_PLAN_RETENTION_CHANNEL, async (_event, payload: {
