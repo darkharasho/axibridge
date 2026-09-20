@@ -62,6 +62,14 @@ export const renderPointerHtml = (
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
 <link rel="canonical" href="${canonical}">
+<!-- Root-relative on purpose. These are served by GitHub Pages from this
+     repo's docs/ on the SAME origin as the Worker (docs/CNAME is
+     bridge.axi.link); the Worker only owns /r and /r/*, so everything else on
+     the origin falls through to Pages. Without an explicit link a browser
+     requests the bare /favicon.ico, which 404'd until docs/favicon.ico existed
+     -- that file is the fallback for crawlers and clients that ignore the SVG. -->
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="icon" sizes="any" href="/favicon.ico">
 </head>
 <body>
 <script id="axibridge-share" type="application/json">${boot}</script>
