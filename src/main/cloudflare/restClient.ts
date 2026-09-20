@@ -11,6 +11,18 @@ import https from 'node:https';
  */
 export const CLOUDFLARE_USER_AGENT = 'AxiBridge/1.0 (+https://github.com/darkharasho/axibridge)';
 
+/**
+ * Inactivity timeout for every Cloudflare request.
+ *
+ * `request.setTimeout` arms the SOCKET's idle timer, not a deadline on the whole
+ * transfer, so a large object still streaming never trips it while a connection
+ * that has gone silent does. Without it a dropped socket leaves the promise
+ * unsettled forever — and these calls are awaited on the ingest critical path,
+ * so one of them hanging stops the app processing logs at all and leaves every
+ * card stuck on "pending". That is the shape users reported as "frozen".
+ */
+export const CLOUDFLARE_IDLE_TIMEOUT_MS = 60_000;
+
 export const CLOUDFLARE_API_HOST = 'api.cloudflare.com';
 export const CLOUDFLARE_API_BASE = '/client/v4';
 
@@ -162,6 +174,14 @@ export const cloudflareRequest = (options: CloudflareRequestOptions): Promise<Cl
             }
         );
         req.on('error', (err: Error) => reject(err));
+        // `destroy(err)` surfaces through the 'error' handler above, so the
+        // promise rejects rather than being abandoned unsettled.
+        req.setTimeout(CLOUDFLARE_IDLE_TIMEOUT_MS, () => {
+            req.destroy(new Error(
+                `Cloudflare request timed out after ${CLOUDFLARE_IDLE_TIMEOUT_MS}ms of inactivity: `
+                + `${options.method} ${options.path}`
+            ));
+        });
         if (options.body) req.write(options.body);
         req.end();
     });
