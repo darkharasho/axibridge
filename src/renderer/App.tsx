@@ -1157,6 +1157,7 @@ function App() {
                                         removeLogFromActivity(log);
                                     }}
                                     onRemove={() => removeLogFromActivity(log)}
+                                    onShared={(patch) => queueLogUpdate({ id: log.id, filePath: log.filePath, ...patch } as ILogData)}
                                     embedStatSettings={embedStatSettings}
                                     disruptionMethod={disruptionMethod}
                                     useClassIcons={true}
@@ -1187,6 +1188,7 @@ function App() {
                                             removeLogFromActivity(log);
                                         }}
                                         onRemove={() => removeLogFromActivity(log)}
+                                        onShared={(patch) => queueLogUpdate({ id: log.id, filePath: log.filePath, ...patch } as ILogData)}
                                         embedStatSettings={embedStatSettings}
                                         disruptionMethod={disruptionMethod}
                                         useClassIcons={true}

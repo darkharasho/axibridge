@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ExpandableLogCard } from '../ExpandableLogCard';
 import { DetailsCacheProvider } from '../cache/DetailsCacheContext';
 import { DetailsCache } from '../cache/DetailsCache';
@@ -90,5 +90,72 @@ describe('ExpandableLogCard report link', () => {
     it('treats a blank share link as absent rather than opening an empty url', () => {
         renderCard({ id: 'l', status: 'success', shareUrl: '   ', permalink: PERMALINK });
         expect(screen.getByRole('button', { name: /Open dps\.report Report/ })).toBeEnabled();
+    });
+});
+
+// The automatic mint on the parse path is the only other place a share link is
+// created, so for a log that predates share links -- or whose automatic mint
+// failed -- this button is the ONLY way one ever appears.
+describe('ExpandableLogCard share action', () => {
+    const SHARE = 'https://bridge.axi.link/r/k3Xm9qR2';
+    const PERMALINK = 'https://dps.report/abc-123';
+
+    // The shared setup defines `window.electronAPI` with `configurable: false`,
+    // so this stub is assigned over it and assigned back -- `delete` throws.
+    const realElectronAPI = (window as any).electronAPI;
+    const stubShareLog = (shareLog: any) => {
+        (window as any).electronAPI = { ...realElectronAPI, shareLog };
+        return shareLog;
+    };
+    afterEach(() => {
+        (window as any).electronAPI = realElectronAPI;
+    });
+
+    const renderShareCard = (log: any, onShared?: (patch: any) => void) => render(
+        <ExpandableLogCard
+            log={log}
+            isExpanded
+            onToggle={() => {}}
+            onShared={onShared}
+            motionEnabled={false}
+            particlesEnabled={false}
+        />
+    );
+
+    const shareButton = () => screen.getByRole('button', { name: /Create Share Link/ });
+
+    it('offers to mint a link for a log that has none', () => {
+        renderShareCard({ id: 'l', filePath: '/logs/a.zevtc', status: 'success', permalink: PERMALINK });
+        expect(shareButton()).toBeEnabled();
+    });
+
+    it('hides the action once the log already has a share link', () => {
+        renderShareCard({ id: 'l', filePath: '/logs/a.zevtc', status: 'success', shareUrl: SHARE });
+        expect(screen.queryByRole('button', { name: /Create Share Link/ })).not.toBeInTheDocument();
+    });
+
+    it('hands the minted url to the parent, keyed by file path', async () => {
+        const shareLog = stubShareLog(vi.fn().mockResolvedValue({ success: true, url: SHARE, code: 'k3Xm9qR2' }));
+        const onShared = vi.fn();
+        renderShareCard({ id: 'l', filePath: '/logs/a.zevtc', status: 'success' }, onShared);
+
+        fireEvent.click(shareButton());
+
+        await waitFor(() => expect(onShared).toHaveBeenCalledWith({ shareUrl: SHARE, shareId: 'k3Xm9qR2' }));
+        expect(shareLog).toHaveBeenCalledWith('/logs/a.zevtc');
+    });
+
+    // `share-log` resolves `{ success: false, error }` instead of throwing, so a
+    // failed share must surface as visible copy rather than a silent no-op.
+    it('shows the reason a share failed and tells the parent nothing', async () => {
+        stubShareLog(vi.fn().mockResolvedValue({ success: false, error: 'Connect GitHub in Settings.' }));
+        const onShared = vi.fn();
+        renderShareCard({ id: 'l', filePath: '/logs/a.zevtc', status: 'success' }, onShared);
+
+        fireEvent.click(shareButton());
+
+        await screen.findByRole('alert');
+        expect(screen.getByRole('alert')).toHaveTextContent('Connect GitHub in Settings.');
+        expect(onShared).not.toHaveBeenCalled();
     });
 });

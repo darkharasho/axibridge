@@ -74,3 +74,16 @@ describe('renderPointerHtml', () => {
         expect(JSON.parse(body).loc).toBe('https://x.test/a.br</script>');
     });
 });
+
+// The Worker owns only /r and /r/*; everything else on bridge.axi.link falls
+// through to GitHub Pages serving this repo's docs/. Both hrefs are therefore
+// root-relative paths into docs/, and both files have to actually be there --
+// a share page with no icon link makes the browser request the bare
+// /favicon.ico, which is exactly the 404 this fixes.
+describe('renderPointerHtml favicon', () => {
+    it('points at the icons docs/ serves on the same origin', () => {
+        const html = render(base);
+        expect(html).toContain('<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">');
+        expect(html).toContain('<link rel="icon" sizes="any" href="/favicon.ico">');
+    });
+});

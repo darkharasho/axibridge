@@ -2,7 +2,7 @@ import { forwardRef, memo, useEffect, useRef, useState } from 'react';
 import { useParticleEffect, PRESETS } from './particles';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EASE, DURATION } from './motion';
-import { ChevronDown, ChevronUp, ExternalLink, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, ExternalLink, Share2, Trash2 } from 'lucide-react';
 import { getPlayerDamage, getPlayerDps, getPlayerDownsTaken, getPlayerDeaths, getPlayerDamageTaken, getPlayerDodges, getPlayerMissed, getPlayerBlocked, getPlayerEvaded, getPlayerResurrects, createDistanceToTagResolver, getTargetStatTotal } from '../shared/dashboardMetrics';
 import { applySquadStabilityGeneration as applyStabilityGeneration, computeIncomingDisruptions as getIncomingDisruptions, computeDownContribution as getPlayerDownContribution, computeOutgoingCrowdControl as getPlayerOutgoingCrowdControl, computeSquadBarrier as getPlayerSquadBarrier, computeSquadHealing as getPlayerSquadHealing } from '../shared/combatMetrics';
 import { Player } from '../shared/dpsReportTypes';
@@ -37,6 +37,12 @@ interface ExpandableLogCardProps {
     onToggle: () => void;
     onCancel?: () => void;
     onRemove?: () => void;
+    /**
+     * Called once a share link has been minted for this log. The card never
+     * mutates `log` itself — the parent owns log state and is what persists
+     * the new url, so without this prop the button is inert by design.
+     */
+    onShared?: (patch: { shareUrl: string; shareId?: string }) => void;
     layoutEnabled?: boolean;
     motionEnabled?: boolean;
     particlesEnabled?: boolean;
@@ -46,7 +52,7 @@ interface ExpandableLogCardProps {
 }
 
 const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>(
-    ({ log, isExpanded, onToggle, onCancel, onRemove, layoutEnabled = true, motionEnabled = true, particlesEnabled = true, embedStatSettings, disruptionMethod, useClassIcons }, ref) => {
+    ({ log, isExpanded, onToggle, onCancel, onRemove, onShared, layoutEnabled = true, motionEnabled = true, particlesEnabled = true, embedStatSettings, disruptionMethod, useClassIcons }, ref) => {
     const { details: cachedDetails } = useLogDetails(
         isExpanded ? log.id : undefined
     );
@@ -257,6 +263,40 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
     const reportLinkLabel = log.shareUrl && reportUrl === log.shareUrl.trim()
         ? 'Open Fight Report'
         : 'Open dps.report Report';
+
+    // Minting is otherwise ingest-only: the automatic pass in the main process
+    // (`src/main/index.ts`) runs exactly once, on parse. Every log that predates
+    // share links — and every log whose automatic mint failed that one time —
+    // can only get a link from here, which is why this action exists for as long
+    // as `shareUrl` is absent and disappears the moment one lands.
+    const [isSharing, setIsSharing] = useState(false);
+    const [shareError, setShareError] = useState<string | null>(null);
+    // The main-process handler keys details off the log's file path, the same
+    // identity `getBulkLogDetails` uses; `id` is the fallback the rest of this
+    // component already treats as interchangeable with it.
+    const shareTargetId = log.filePath || log.id || '';
+    const canMintShareLink = Boolean(shareTargetId) && !(typeof log.shareUrl === 'string' && log.shareUrl.trim());
+
+    const handleCreateShareLink = async () => {
+        if (isSharing || !canMintShareLink) return;
+        setIsSharing(true);
+        setShareError(null);
+        try {
+            // `share-log` resolves `{ success: false, error }` for every failure
+            // mode rather than rejecting, so the catch below is for a broken
+            // bridge (no electronAPI), not for an ordinary failed share.
+            const result = await window.electronAPI.shareLog(shareTargetId);
+            if (result?.success && result.url) {
+                onShared?.({ shareUrl: result.url, shareId: result.code });
+            } else {
+                setShareError(result?.error || 'Could not create a share link.');
+            }
+        } catch (err: any) {
+            setShareError(err?.message || 'Could not create a share link.');
+        } finally {
+            setIsSharing(false);
+        }
+    };
     // Details only load once the card is expanded, so fall back to the ingestion
     // record while collapsed: a log from dps.report, the Elite Insights engine or
     // a JSON import definitionally has no Axilog data. A log with neither
@@ -1166,6 +1206,30 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                 </div>
                             )}
 
+                            {canMintShareLink && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        void handleCreateShareLink();
+                                    }}
+                                    disabled={isSharing}
+                                    className="log-card-share-link-btn w-full py-2.5 rounded-[4px] text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] text-white hover:brightness-110 disabled:cursor-not-allowed disabled:text-white/50"
+                                    style={{
+                                        background: 'color-mix(in srgb, var(--brand-primary) 30%, transparent)',
+                                        border: '1px solid color-mix(in srgb, var(--brand-primary) 25%, transparent)',
+                                    }}
+                                >
+                                    <Share2 className="w-4 h-4" />
+                                    <span>{isSharing ? 'Creating Share Link...' : 'Create Share Link'}</span>
+                                </button>
+                            )}
+
+                            {shareError && (
+                                <p role="alert" className="text-xs text-center" style={{ color: 'var(--danger, #f87171)' }}>
+                                    {shareError}
+                                </p>
+                            )}
+
                             <button
                                 onClick={async (e) => {
                                     e.stopPropagation();
@@ -1220,6 +1284,10 @@ const areEqual = (prev: ExpandableLogCardProps, next: ExpandableLogCardProps) =>
         && prev.embedStatSettings === next.embedStatSettings
         && prev.disruptionMethod === next.disruptionMethod
         && prev.useClassIcons === next.useClassIcons;
+    // `onShared` is deliberately absent: the call sites pass an inline arrow, so
+    // comparing it would make every list render a miss and undo this memo. The
+    // closure it captures is only ever stale in lockstep with `log`, which is
+    // compared above.
 };
 
 export const ExpandableLogCard = memo(ExpandableLogCardBase, areEqual);
