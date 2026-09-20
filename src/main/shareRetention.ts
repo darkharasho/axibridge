@@ -30,8 +30,41 @@
 export const PAGES_BUDGET_BYTES = 1024 * 1024 * 1024;
 export const DEFAULT_HIGH_WATER_PCT = 0.8;
 
-/** Replay data is ~66% of a published report; demoting reclaims that much. */
-export const REPLAY_SHARE_OF_REPORT = 0.66;
+/**
+ * Fraction of a published report's STORED bytes that demoting reclaims.
+ *
+ * Measured, not assumed. Running `stripShareReplay` over every fixture in
+ * `test-fixtures/native/` and comparing gzip sizes gives, per fight:
+ *
+ *     3.5 MB raw / 518 KB gz -> 189 KB   63.5%
+ *     4.2 MB raw / 606 KB gz -> 469 KB   22.7%
+ *     4.1 MB raw / 594 KB gz -> 468 KB   21.3%
+ *     5.1 MB raw / 704 KB gz -> 525 KB   25.4%
+ *     5.5 MB raw / 837 KB gz -> 533 KB   36.3%
+ *     5.7 MB raw / 792 KB gz -> 632 KB   20.3%
+ *     5.9 MB raw / 814 KB gz -> 616 KB   24.3%
+ *    31.6 MB raw / 4.3 MB gz -> 2.5 MB   41.3%
+ *
+ * n=8, min 20.3%, median 25.4%, max 63.5%.
+ *
+ * This was 0.66 until it was measured, on the strength of the profiling note
+ * that replay is ~66% of a published report. That figure is real but describes
+ * a different thing: the RAW size of a multi-fight session `report.json`. Two
+ * corrections apply here. Position tracks are long runs of near-identical
+ * numbers, so gzip already removes most of their cost — the same strip that
+ * frees 30% of the raw JSON frees only ~10% of it again once compressed, and
+ * retention budgets against stored bytes, not raw ones. And a share is one
+ * fight, whose non-replay blocks (catalogs, buff maps, skill maps) are a fixed
+ * overhead that a session report amortises over many fights.
+ *
+ * Over-projecting is the harmful direction: the planner stops demoting once the
+ * PROJECTED total drops under the high-water mark, so at 0.66 it believed it
+ * had freed ~2.6x what it really had and left the user over budget. The spread
+ * above (20%-63%) means a single run will still miss in either direction; that
+ * residual is what `ReclaimResult.stillOverBudget` reports, and the next
+ * publish re-plans against the ledger's now-measured sizes.
+ */
+export const REPLAY_SHARE_OF_REPORT = 0.25;
 
 export type RetentionStage = 'full' | 'demoted' | 'tombstone';
 

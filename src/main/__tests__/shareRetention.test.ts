@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     DEFAULT_HIGH_WATER_PCT,
     PAGES_BUDGET_BYTES,
+    REPLAY_SHARE_OF_REPORT,
     planRetention,
     type RetentionEntry
 } from '../shareRetention';
@@ -47,18 +48,32 @@ describe('planRetention', () => {
     });
 
     it('reports how many bytes a demotion reclaims', () => {
+        // Derived from the constant rather than written out, because the
+        // constant is a MEASURED value and has already moved once (0.66 -> 0.25
+        // when it was measured against gzipped rather than raw bytes). A
+        // hard-coded 660 here turned that correction into a test failure that
+        // said nothing about the behaviour under test.
         const actions = planRetention([entry({ id: 'a', bytes: 1000 })], tiny);
-        expect(actions[0].reclaimed).toBe(660);
+        expect(actions[0].reclaimed).toBe(Math.round(1000 * REPLAY_SHARE_OF_REPORT));
     });
 
-    it('stops as soon as it is under the mark', () => {
+    it('stops as soon as it is under the mark, leaving later candidates alone', () => {
         const entries = [
-            entry({ id: 'a', bytes: 500, seen: 1 }),
-            entry({ id: 'b', bytes: 500, seen: 2 }),
-            entry({ id: 'c', bytes: 500, seen: 3 })
+            entry({ id: 'a', bytes: 1000, seen: 1 }),
+            entry({ id: 'b', bytes: 1000, seen: 2 }),
+            entry({ id: 'c', bytes: 1000, seen: 3 })
         ];
-        // 1500 total, need <= 800. Demoting 'a' reclaims 330 -> 1170, 'b' -> 840, 'c' -> 510.
-        expect(planRetention(entries, tiny).map((a) => a.id)).toEqual(['a', 'b', 'c']);
+        // Sized so the mark falls exactly between the second and third demote,
+        // which is the only way to prove the loop STOPS rather than merely
+        // ordering correctly. Each demote reclaims 1000 * REPLAY_SHARE_OF_REPORT
+        // (250), so from 3000 the totals run 2750 -> 2500 -> 2250; a high-water
+        // of 2500 is reached by 'b' and 'c' is never touched. `tiny` cannot
+        // express this: its 800-byte mark is unreachable by demotion alone at
+        // any realistic reclaim rate, so every entry would be demoted AND
+        // tombstoned and the assertion would test nothing.
+        const budgetBytes = 2500 / 0.8;
+        expect(planRetention(entries, { budgetBytes, highWaterPct: 0.8 }).map((a) => a.id))
+            .toEqual(['a', 'b']);
     });
 
     it('never touches a pinned report', () => {
@@ -127,8 +142,9 @@ describe('planRetention', () => {
 
     it('emits no demote step at all for a malformed negative-bytes entry', () => {
         // 'neg' is oldest, so it is the first candidate the demote pass reaches.
-        // Unclamped, Math.round(-500 * 0.66) = -330 — a plan step that claims to
-        // GROW the repo. Clamping that to 0 only turned it into a step that
+        // Unclamped, Math.round(-500 * REPLAY_SHARE_OF_REPORT) is negative — a
+        // plan step that claims to GROW the repo. Clamping that to 0 only
+        // turned it into a step that
         // frees nothing while still costing the caller a Worker PATCH, so it is
         // now skipped entirely. 'big' just needs to push total (1500) over the
         // 800 mark so the planner does work instead of short-circuiting on the

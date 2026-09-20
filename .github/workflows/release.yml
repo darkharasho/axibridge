@@ -110,8 +110,44 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
+  # The share Worker ships on the same tag as the app that talks to it.
+  #
+  # Until this existed the Worker moved only when someone deployed it by hand,
+  # so a release could ship a client expecting a route the live Worker did not
+  # have. It runs off `test` rather than `build`, because nothing about the
+  # Electron artifacts gates it — and ahead of `publish`, so the route a
+  # release's clients call is live before the release is announced.
+  #
+  # Skips with a warning when CLOUDFLARE_API_TOKEN is unset, rather than
+  # failing: a fork, or this repo before the secret is added, must still be
+  # able to cut a release. Give the token the "Edit Cloudflare Workers"
+  # template scoped to the axi.link zone.
+  deploy-worker:
+    needs: [test]
+    runs-on: ubuntu-latest
+    # Via env, not `secrets.* != ''` directly: the secrets context is not
+    # available in an `if` conditional, where it evaluates to empty and would
+    # skip the deploy silently on every run.
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Skip notice
+        if: ${{ env.CLOUDFLARE_API_TOKEN == '' }}
+        run: echo "::warning::CLOUDFLARE_API_TOKEN is not set — skipping the share Worker deploy. bridge.axi.link/r will keep serving whatever was deployed last."
+
+      - name: Deploy share Worker
+        if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config worker/wrangler.toml
+
   publish:
-    needs: [build]
+    needs: [build, deploy-worker]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
