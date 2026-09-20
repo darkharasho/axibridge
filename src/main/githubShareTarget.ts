@@ -120,6 +120,37 @@ export const createGithubShareTarget = (opts: GithubShareTargetOptions): ShareTa
             } catch (err: any) {
                 return { success: false, error: err?.message || 'Failed to store the report on GitHub.' };
             }
+        },
+
+        /**
+         * The tombstone rung: stop hosting the report bytes entirely. The share
+         * link keeps working — the pointer and its summary card are in KV, and
+         * the Worker renders that card for a tombstoned pointer — so this is
+         * the one deletion the demote-never-delete rule permits.
+         *
+         * An already-absent file is reported as SUCCESS. Retention is
+         * idempotent by design (an interrupted run is re-run from the ledger),
+         * and the post-condition this call promises is "the object is gone",
+         * which a 404 already satisfies.
+         */
+        async deleteObject(key) {
+            try {
+                const sha = await existingSha(key);
+                if (!sha) return { success: true };
+
+                const resp = await request('DELETE', contentsPath(key), token, {
+                    message: `share: tombstone ${key}`,
+                    sha,
+                    branch
+                });
+                if (resp.status >= 300) {
+                    const detail = typeof resp.data?.message === 'string' ? resp.data.message : 'Unknown error';
+                    return { success: false, error: `GitHub API error (${resp.status}) removing report: ${detail}` };
+                }
+                return { success: true };
+            } catch (err: any) {
+                return { success: false, error: err?.message || 'Failed to remove the report from GitHub.' };
+            }
         }
     };
 };

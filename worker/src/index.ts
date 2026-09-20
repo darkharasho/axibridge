@@ -39,6 +39,17 @@ export const MAX_BODY_BYTES = 4096;
 export const MAX_LOC_BYTES = 512;
 export const MAX_SUMMARY_FIELD = 128;
 
+/**
+ * How many codes one `POST /r/meta` may ask about.
+ *
+ * Bounded by `MAX_BODY_BYTES`, not by taste: an 8-character code costs 11 bytes
+ * once quoted and comma-separated, so 4096 bytes holds roughly 370. 250 leaves
+ * headroom for the enclosing object and keeps a user with hundreds of shares to
+ * two or three requests, which matters because this route is charged against
+ * the same per-owner rate limit as creating a link.
+ */
+export const MAX_META_CODES = 250;
+
 const MAX_CODE_ATTEMPTS = 5;
 
 const json = (status: number, body: unknown) =>
@@ -311,6 +322,66 @@ const resolvePointer = async (code: string, env: Env, ctx?: ExecutionContextLike
     });
 };
 
+/**
+ * Batch lookup of the retention facts the client cannot derive locally:
+ * the live last-seen timestamp, and the stage the Worker believes a pointer is
+ * at.
+ *
+ * `seen` exists only here. The read path stamps `s:<code>` on every resolve and
+ * has done since the beginning, but nothing could read it back, so
+ * `planRetention` had no last-seen input and its LRU ordering degenerated to
+ * whatever order the caller happened to pass. This route is what makes the
+ * eviction order genuinely least-recently-used.
+ *
+ * AUTHENTICATED AND OWNER-SCOPED, even though it returns no report bytes. A
+ * pointer's last-seen timestamp is a view-activity signal: unauthenticated, it
+ * would let anyone holding a link poll how often it is being opened, and — by
+ * probing codes — discover which links are live at all. Codes the caller does
+ * not own are answered as `null` rather than refused, so one foreign code in a
+ * batch does not cost the caller the other 249.
+ */
+const lookupMeta = async (request: Request, env: Env, fetchImpl: typeof fetch): Promise<Response> => {
+    const owner = await resolveOwner(bearer(request), fetchImpl);
+    if (!owner) return json(401, { error: 'GitHub authentication required.' });
+    // Charged against the same per-owner ceiling as POST and PATCH: it costs an
+    // uncached api.github.com/user round-trip plus up to MAX_META_CODES KV
+    // reads, which is not cheaper than creating a link.
+    if (!(await checkRateLimit(durableRateLimiter(env.RATE_LIMITER), owner))) {
+        return json(429, { error: 'Share rate limit reached. Try again later.' });
+    }
+
+    const bounded = await readBoundedBody(request);
+    if ('response' in bounded) return bounded.response;
+
+    let body: any;
+    try {
+        body = JSON.parse(bounded.body);
+    } catch {
+        return json(400, { error: 'Malformed JSON body.' });
+    }
+    if (!Array.isArray(body?.codes)) return json(400, { error: 'Missing codes.' });
+    if (body.codes.length > MAX_META_CODES) return json(400, { error: 'Too many codes.' });
+
+    const meta: Record<string, { stage: Stage; bytes: number | null; seen: number | null }> = {};
+    for (const candidate of body.codes) {
+        if (!isValidCode(candidate)) continue;
+        const record = parsePointer(await env.SHARE.get(key(candidate)));
+        if (!record || record.owner !== owner) continue;
+        // `s:` is absent until the link has been opened at least once, and
+        // `Number('')` is 0 — a real epoch timestamp — so an unparseable value
+        // has to become null, not a 1970 date that would sort as
+        // least-recently-seen and evict a brand new link first.
+        const stamped = Number(await env.SHARE.get(seenKey(candidate)));
+        meta[candidate] = {
+            stage: record.stage,
+            bytes: typeof record.bytes === 'number' ? record.bytes : null,
+            seen: Number.isFinite(stamped) && stamped > 0 ? stamped : null
+        };
+    }
+
+    return json(200, { meta });
+};
+
 const patchPointer = async (
     code: string,
     request: Request,
@@ -370,6 +441,15 @@ export const handleRequest = async (
         if (pathname === '/r' || pathname === '/r/') {
             if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 });
             return await createPointer(request, env, fetchImpl);
+        }
+
+        // Before the `/r/<code>` match below. `meta` is not a valid code (codes
+        // are 8 characters), so that route would 404 it rather than shadow this
+        // one — but ordering it first keeps the two from ever depending on the
+        // code format staying longer than four characters.
+        if (pathname === '/r/meta' || pathname === '/r/meta/') {
+            if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+            return await lookupMeta(request, env, fetchImpl);
         }
 
         const match = /^\/r\/([^/]+)\/?$/.exec(pathname);

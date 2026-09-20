@@ -12,6 +12,7 @@ vi.mock('electron', () => ({
 
 import { registerShareHandlers } from '../handlers/shareHandlers';
 import { shareObjectKey } from '../shareService';
+import { SHARE_LEDGER_KEY } from '../shareLedger';
 
 const details = {
     fightName: 'Detonator',
@@ -261,5 +262,106 @@ describe('share IPC handlers', () => {
             expect(typeof result.error).toBe('string');
         });
 
+    });
+});
+
+describe('share-log: retention wiring', () => {
+    beforeEach(() => {
+        handlers.clear();
+        vi.restoreAllMocks();
+        vi.unstubAllGlobals();
+    });
+    afterEach(() => vi.unstubAllGlobals());
+
+    /** A store whose `set` actually persists, so the ledger can be read back. */
+    const ledgerStore = (over: Record<string, any> = {}) => {
+        const data: Record<string, any> = { githubToken: 'gho_valid', ...over };
+        return { get: (k: string) => data[k], set: (k: string, v: any) => { data[k] = v; }, data };
+    };
+
+    const workerCreated = () => new Response(
+        JSON.stringify({ code: 'k3Xm9qR2', url: 'https://bridge.axi.link/r/k3Xm9qR2' }), { status: 201 }
+    );
+
+    it('records a ledger row so the share becomes visible to retention', async () => {
+        const store = ledgerStore();
+        vi.stubGlobal('fetch', vi.fn(async (url: any) => (
+            String(url).endsWith('/meta') ? new Response(JSON.stringify({ meta: {} }), { status: 200 }) : workerCreated()
+        )));
+        registerShareHandlers({
+            store,
+            getDetails: () => details,
+            resolveTarget: () => ({
+                putObject: async () => ({ success: true, url: 'https://u.github.io/f/shares/a.json.gz' })
+            })
+        });
+
+        await invoke('share-log', { logId: '/logs/a.zevtc' });
+
+        expect(store.data[SHARE_LEDGER_KEY]).toHaveLength(1);
+        expect(store.data[SHARE_LEDGER_KEY][0]).toMatchObject({
+            code: 'k3Xm9qR2',
+            key: shareObjectKey('/logs/a.zevtc'),
+            loc: 'https://u.github.io/f/shares/a.json.gz',
+            stage: 'full'
+        });
+        expect(store.data[SHARE_LEDGER_KEY][0].bytes).toBeGreaterThan(0);
+    });
+
+    it('records nothing when the share itself failed', async () => {
+        const store = ledgerStore();
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+            new Response(JSON.stringify({ error: 'nope' }), { status: 429 })
+        ));
+        registerShareHandlers({
+            store,
+            getDetails: () => details,
+            resolveTarget: () => ({ putObject: async () => ({ success: true, url: 'https://u.github.io/f/a.gz' }) })
+        });
+
+        const result = await invoke('share-log', { logId: '/logs/a.zevtc' }) as { success: boolean };
+        expect(result.success).toBe(false);
+        expect(store.data[SHARE_LEDGER_KEY]).toBeUndefined();
+    });
+
+    // The link is already minted and working by the time retention runs. A
+    // storage problem is the next run's business, never this share's failure.
+    it('still returns the link when retention throws', async () => {
+        const store = ledgerStore();
+        vi.stubGlobal('fetch', vi.fn(async (url: any) => {
+            if (String(url).endsWith('/meta')) throw new Error('worker down');
+            return workerCreated();
+        }));
+        registerShareHandlers({
+            store,
+            getDetails: () => details,
+            resolveTarget: () => ({ putObject: async () => ({ success: true, url: 'https://u.github.io/f/a.gz' }) })
+        });
+
+        const result = await invoke('share-log', { logId: '/logs/a.zevtc' }) as { success: boolean; url: string };
+        expect(result).toMatchObject({ success: true, url: 'https://bridge.axi.link/r/k3Xm9qR2' });
+    });
+
+    // Retention issues GitHub writes against the repo this share just wrote to.
+    // Overlapping them races the Contents API sha that `putObject` reads, so the
+    // reclaim must be finished before the handler resolves.
+    it('finishes retention before resolving, never fire-and-forget', async () => {
+        const store = ledgerStore();
+        let metaCalls = 0;
+        vi.stubGlobal('fetch', vi.fn(async (url: any) => {
+            if (String(url).endsWith('/meta')) {
+                metaCalls += 1;
+                return new Response(JSON.stringify({ meta: {} }), { status: 200 });
+            }
+            return workerCreated();
+        }));
+        registerShareHandlers({
+            store,
+            getDetails: () => details,
+            resolveTarget: () => ({ putObject: async () => ({ success: true, url: 'https://u.github.io/f/a.gz' }) })
+        });
+
+        await invoke('share-log', { logId: '/logs/a.zevtc' });
+        expect(metaCalls).toBe(1);
     });
 });
