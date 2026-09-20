@@ -15,7 +15,7 @@ export default defineConfig({
         environment: 'jsdom',
         setupFiles: ['src/renderer/test/setup.ts'],
         css: true,
-        include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+        include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'worker/**/*.test.ts', 'scripts/**/*.test.ts'],
         exclude: ['node_modules/**', 'tests/**', 'dist/**', 'dist-*', 'dist_*', 'web/**']
     }
 });

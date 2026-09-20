@@ -1,7 +1,7 @@
 import { useStatsSharedContext } from '../StatsViewContext';
 
 export const OverviewSection = () => {
-    const { stats } = useStatsSharedContext();
+    const { stats, singleFight } = useStatsSharedContext();
     const alliedDeaths = Math.max(0, Number(stats.totalSquadDeaths || 0));
     const enemyDeaths = Math.max(0, Number(stats.totalEnemyDeaths || 0));
     const alliedDowns = Math.max(0, Number(stats.totalSquadDowns || 0));
@@ -9,7 +9,13 @@ export const OverviewSection = () => {
 
     return (
         <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Averages over one sample, and a win/loss tally of a single
+                result, say nothing a reader cannot read off the fight header
+                directly above — which already carries squad vs enemies and the
+                outcome. Squad KDR is worse than redundant here: one fight
+                routinely ends with zero squad deaths, and the aggregate card
+                renders that as an unqualified infinity. */}
+            {!singleFight && <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="overview-card" style={{ borderTop: '1px solid var(--border-default)', borderRight: '1px solid var(--border-default)', borderBottom: '1px solid var(--border-default)', borderLeft: '2px solid var(--status-success)', borderRadius: 'var(--radius-md)', padding: '16px 20px' }}>
                     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                         <div className="text-left">
@@ -42,7 +48,7 @@ export const OverviewSection = () => {
                         </div>
                     </div>
                 </div>
-            </div>
+            </div>}
             <div className="overview-card" style={{ borderRadius: 'var(--radius-md)', padding: '16px 20px' }}>
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                     <div className="text-left">

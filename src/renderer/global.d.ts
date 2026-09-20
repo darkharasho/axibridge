@@ -514,6 +514,12 @@ export interface IElectronAPI {
         | { ok: false; error: string }
     >;
     onDiscordDestinationStatus: (callback: (payload: { webhookId: string | null; reason: string; message: string }) => void) => () => void;
+
+    // Share links (bridge.axi.link) — create a short link for a parsed log, and
+    // plan budget-driven retention for already-published reports.
+    shareLog: (logId: string) => Promise<{ success: boolean; code?: string; url?: string; error?: string }>;
+    sharePlanRetention: (payload: { entries: unknown[]; budgetBytes?: number; highWaterPct?: number }) =>
+        Promise<{ success: boolean; actions: Array<{ id: string; from: string; to: string; reclaimed: number }> }>;
 }
 
 /** Payload of the `parser:get-status` IPC handler. */
@@ -554,6 +560,10 @@ declare global {
     interface ILogData {
         id: string;
         permalink: string;
+        /** Our own share link, e.g. https://bridge.axi.link/r/k3Xm9qR2. */
+        shareUrl?: string;
+        /** The 8-character share code backing `shareUrl`. */
+        shareId?: string;
         filePath: string;
         status?: 'queued' | 'pending' | 'uploading' | 'retrying' | 'discord' | 'calculating' | 'parsing' | 'success' | 'error';
         error?: string;
