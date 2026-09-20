@@ -186,3 +186,37 @@ describe('ingestLogFightBreakdown without details', () => {
         expect(fb.timestamp).toBe(0);
     });
 });
+
+describe('ingestLogFightBreakdown report link', () => {
+    // Since share links shipped, `shouldUploadToDpsReport` skips the dps.report
+    // upload as soon as sharing has somewhere to write, so a freshly-parsed log
+    // carries a `shareUrl` and NO `permalink`. A row that only looks at
+    // `permalink` renders every fight as an unclickable "Pending".
+    const mkLinkLog = (link: Record<string, unknown>) => ({
+        filePath: 'f1',
+        ...link,
+        details: {
+            durationMS: 10000,
+            players: [{ notInSquad: false, teamID: 50, dpsAll: [{ damage: 0 }], defenses: [{}], statsAll: [{}] }],
+            targets: [],
+        },
+    });
+
+    it('uses the share link when there is no dps.report permalink', () => {
+        const fb = ingestLogFightBreakdown(mkLinkLog({ shareUrl: 'https://bridge.axi.link/r/abc123' }), 0);
+        expect(fb.permalink).toBe('https://bridge.axi.link/r/abc123');
+    });
+
+    it('prefers the share link over a legacy permalink', () => {
+        const fb = ingestLogFightBreakdown(mkLinkLog({
+            shareUrl: 'https://bridge.axi.link/r/abc123',
+            permalink: 'https://dps.report/legacy',
+        }), 0);
+        expect(fb.permalink).toBe('https://bridge.axi.link/r/abc123');
+    });
+
+    it('still falls back to the permalink for logs parsed before sharing', () => {
+        const fb = ingestLogFightBreakdown(mkLinkLog({ permalink: 'https://dps.report/legacy' }), 0);
+        expect(fb.permalink).toBe('https://dps.report/legacy');
+    });
+});
