@@ -792,13 +792,17 @@ const processLogFile = async (filePath: string, options?: { retry?: boolean }) =
                         if (shared.success && shared.url) {
                             shareLink.shareUrl = shared.url;
                             shareLink.shareId = shared.code;
-                            console.log(`[Main] Share link minted for ${filePath}: ${shared.url}`);
+                            log.info(`[Main] Share link minted for ${filePath}: ${shared.url}`);
                         } else {
-                            console.warn(`[Main] Share link failed for ${filePath}: ${shared.error || 'unknown error'}`);
+                            // electron-log, not console: a share that silently
+                            // falls back to no link is the single most likely
+                            // thing to need diagnosing from a user's main.log,
+                            // and console.* never reaches that file.
+                            log.error(`[Main] Share link failed for ${filePath}: ${shared.error || 'unknown error'}`);
                         }
                     }
                 } catch (shareError: any) {
-                    console.warn(`[Main] Share link threw for ${filePath}:`, shareError?.message || shareError);
+                    log.error(`[Main] Share link threw for ${filePath}:`, shareError?.message || shareError);
                 }
             }
 

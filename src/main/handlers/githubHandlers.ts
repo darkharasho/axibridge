@@ -191,6 +191,14 @@ const pollGithubDeviceToken = async (deviceCode: string, intervalSeconds: number
 const encodeGitPath = (value: string) =>
     value.split('/').map((part) => encodeURIComponent(part)).join('/');
 
+// Socket INACTIVITY, not total duration — `request.setTimeout` arms the
+// socket's idle timer, so a 35 MB blob upload that is still streaming never
+// trips it, while a connection that has gone silent does. Without this every
+// call here could hang forever: share resolution is awaited on the ingest
+// critical path, so one dead socket stops the app processing logs at all and
+// leaves every card stuck on "pending".
+const GITHUB_API_IDLE_TIMEOUT_MS = 60_000;
+
 const githubApiRequest = (method: string, apiPath: string, token: string, body?: any): Promise<{ status: number; data: any }> => {
     const payload = body ? JSON.stringify(body) : null;
     return new Promise((resolve, reject) => {
@@ -221,6 +229,13 @@ const githubApiRequest = (method: string, apiPath: string, token: string, body?:
             }
         );
         req.on('error', (err) => reject(err));
+        // `destroy(err)` surfaces through the 'error' handler above, so the
+        // promise rejects rather than being abandoned unsettled.
+        req.setTimeout(GITHUB_API_IDLE_TIMEOUT_MS, () => {
+            req.destroy(new Error(
+                `GitHub API request timed out after ${GITHUB_API_IDLE_TIMEOUT_MS}ms of inactivity: ${method} ${apiPath}`
+            ));
+        });
         if (payload) req.write(payload);
         req.end();
     });
@@ -675,30 +690,72 @@ export const shareTargetConfigured = (store: any): boolean =>
 export const shouldUploadToDpsReport = (store: any): boolean =>
     shouldUploadToDpsReportPolicy(store, Boolean(resolveR2Uploader(store).uploader));
 
-/**
- * Create the fights repo and turn on Pages if they are not already there, and
- * return where its files are publicly readable.
- *
- * Idempotent: a 422 from the create call means the repo already exists, which
- * is the steady state after the first share and not an error.
- */
-export const ensureFightsRepo = async (store: any, token: string): Promise<{
-    owner: string; repo: string; branch: string; baseUrl: string;
-}> => {
-    const user = await getGithubUser(token);
-    const authenticatedUser = user?.login;
-    if (!authenticatedUser) throw new Error('Unable to determine your GitHub username.');
+export interface FightsRepoTarget {
+    owner: string;
+    repo: string;
+    branch: string;
+    baseUrl: string;
+}
 
-    const owner = ((store?.get?.('githubRepoOwner') as string | undefined)?.trim()) || authenticatedUser;
-    const repo = fightsRepoName(store);
-    if (!repo) throw new Error('Connect a GitHub repository in Settings before sharing.');
-    const branch = ((store?.get?.('githubBranch') as string | undefined)?.trim()) || 'main';
+// Where the fights repo's contents are publicly readable.
+//
+// NOT GitHub Pages. The fights repo is a content store, not a site: it holds
+// `README.md` plus `shares/<name>-<hash>.json.gz` and nothing else, and the
+// viewer that renders those blobs is ours (bridge.axi.link), fetching the KV
+// pointer's `loc` client-side. Pages would therefore buy us nothing but a
+// build to wait on — and a Pages build is exactly what made the first share
+// link a user ever minted 404 for minutes. raw.githubusercontent serves the
+// blob the moment the Contents-API commit lands, and answers with
+// `access-control-allow-origin: *`, which is the one hard requirement (the
+// viewer fetches it cross-origin).
+//
+// Already-minted links are unaffected: KV stores an absolute `loc`, so old
+// Pages URLs keep resolving on repos that already have Pages enabled. This
+// changes new links only.
+const RAW_CONTENT_HOST = 'https://raw.githubusercontent.com';
+
+/**
+ * Successful provisioning, keyed by the store settings it was derived from.
+ *
+ * Holds the in-flight PROMISE, not just the result, so a raid's worth of logs
+ * arriving together share one provisioning attempt instead of each racing to
+ * create the same repo. Rejections are evicted (see `ensureFightsRepo`) — a
+ * dropped socket must not disable sharing for the rest of the session.
+ */
+const fightsRepoProvisioning = new Map<string, Promise<FightsRepoTarget>>();
+
+export const resetFightsRepoCache = () => {
+    fightsRepoProvisioning.clear();
+};
+
+const provisionFightsRepo = async (
+    store: any,
+    ownerSetting: string,
+    repo: string,
+    branch: string,
+    token: string
+): Promise<FightsRepoTarget> => {
+    // Asking GitHub who we are costs a round trip, so only ask when we actually
+    // need the answer: to stand in for an unset owner, or to tell `createGithubRepo`
+    // whether it is creating under a user or an org.
+    let authenticatedUser: string | null = null;
+    const resolveAuthenticatedUser = async () => {
+        if (!authenticatedUser) {
+            authenticatedUser = (await getGithubUser(token))?.login || null;
+            if (!authenticatedUser) throw new Error('Unable to determine your GitHub username.');
+        }
+        return authenticatedUser;
+    };
+
+    const owner = ownerSetting || (await resolveAuthenticatedUser());
 
     const existing = await githubApiRequest('GET', `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}`, token);
     if (existing.status === 404) {
         log.info(`[Main] Creating fights repo ${owner}/${repo} for share links.`);
+        // Public and auto_init: public so raw.githubusercontent will serve the
+        // blobs anonymously, auto_init so `branch` exists before the first PUT.
         try {
-            await createGithubRepo(owner, repo, token, authenticatedUser);
+            await createGithubRepo(owner, repo, token, await resolveAuthenticatedUser());
         } catch (err: any) {
             // Someone else (or a parallel share) won the race. Harmless.
             if (!/\(422\)/.test(String(err?.message))) throw err;
@@ -707,11 +764,43 @@ export const ensureFightsRepo = async (store: any, token: string): Promise<{
         throw new Error(`GitHub API error (${existing.status}) checking ${owner}/${repo}`);
     }
 
-    const pagesInfo = await ensureGithubPages(owner, repo, branch, token);
-    const baseUrl = pagesInfo?.html_url || `https://${owner}.github.io/${repo}`;
     store?.set?.('githubFightsRepoName', repo);
-    store?.set?.('githubFightsPagesBaseUrl', baseUrl);
-    return { owner, repo, branch, baseUrl };
+    return {
+        owner,
+        repo,
+        branch,
+        baseUrl: `${RAW_CONTENT_HOST}/${encodeGitPath(owner)}/${encodeGitPath(repo)}/${encodeGitPath(branch)}`
+    };
+};
+
+/**
+ * Create the fights repo if it is not already there and return where its files
+ * are publicly readable. Fully managed: the user never names or configures it.
+ *
+ * Idempotent, and memoized for the life of the process — this runs once per
+ * shared log on the ingest critical path, where re-asking "does the repo
+ * exist?" for every fight of a raid spends rate limit on an answer that cannot
+ * have changed. A 422 from the create call means the repo already exists,
+ * which is the steady state after the first share and not an error.
+ */
+export const ensureFightsRepo = async (store: any, token: string): Promise<FightsRepoTarget> => {
+    const repo = fightsRepoName(store);
+    if (!repo) throw new Error('Connect a GitHub repository in Settings before sharing.');
+    const ownerSetting = ((store?.get?.('githubRepoOwner') as string | undefined)?.trim()) || '';
+    const branch = ((store?.get?.('githubBranch') as string | undefined)?.trim()) || 'main';
+
+    // Keyed on the SETTINGS rather than the resolved owner so that a cache hit
+    // costs nothing; resolving the owner is itself a network call.
+    const cacheKey = `${ownerSetting}/${repo}/${branch}`;
+    const cached = fightsRepoProvisioning.get(cacheKey);
+    if (cached) return cached;
+
+    const pending = provisionFightsRepo(store, ownerSetting, repo, branch, token).catch((err) => {
+        fightsRepoProvisioning.delete(cacheKey);
+        throw err;
+    });
+    fightsRepoProvisioning.set(cacheKey, pending);
+    return pending;
 };
 
 export const resolveShareTarget = async (store: any): Promise<ShareTarget | null> => {
