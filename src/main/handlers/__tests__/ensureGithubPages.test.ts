@@ -32,6 +32,10 @@ function installHttpsMock() {
         const req = new EventEmitter() as any;
         let payload = '';
         req.write = (chunk: string) => { payload += chunk; };
+        // githubApiRequest arms an idle timeout on every request; these mock
+        // responses always arrive, so nothing ever fires it.
+        req.setTimeout = () => req;
+        req.destroy = () => undefined;
         req.end = () => {
             const call: RecordedCall = {
                 method: options.method,
