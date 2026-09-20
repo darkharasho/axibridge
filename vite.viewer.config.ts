@@ -18,6 +18,13 @@ export default defineConfig({
     // Electron app and the full web report) into `docs/view/` would just be
     // dead weight next to `viewer.js`.
     publicDir: false,
+    // Emit asset URLs relative to the bundle rather than root-absolute. The
+    // stats Web Worker chunk was referenced as `/assets/statsWorker-*.js`,
+    // which resolves against `bridge.axi.link` — the Worker origin, not the
+    // GitHub Pages origin this bundle and its chunks are served from — so the
+    // worker failed to construct and aggregation silently fell back to the
+    // inline `computeStatsSync` path.
+    base: './',
     build: {
         outDir: 'docs/view',
         emptyOutDir: false,

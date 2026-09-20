@@ -29334,7 +29334,7 @@ const $4 = (e) => {
     if (a.includes("/web/web/"))
       return `../${t}`;
   }
-  const n = "/";
+  const n = "./";
   return `${n.endsWith("/") ? n : `${n}/`}${t}`;
 }, lv = ({ className: e }) => {
   const t = $4("svg/commander_tag_outline.svg");
@@ -34802,7 +34802,7 @@ const Ig = {
     if (!(typeof Worker > "u") && !V && m)
       return H.current || (H.current = new Worker(new URL(
         /* @vite-ignore */
-        "/assets/statsWorker-DKNvCdx0.js",
+        "" + new URL("assets/statsWorker-DKNvCdx0.js", import.meta.url).href,
         import.meta.url
       ), { type: "module" }), oe.current.markAllUnsent(), H.current.onmessage = (Se) => {
         var Ve, Ue;
@@ -90628,7 +90628,7 @@ function yBe({ sidecar: e, includedOrdinals: t, mvpWeights: n, statsViewSettings
     p.current || (p.current = new Worker(
       new URL(
         /* @vite-ignore */
-        "/assets/statsWorker-DKNvCdx0.js",
+        "" + new URL("assets/statsWorker-DKNvCdx0.js", import.meta.url).href,
         import.meta.url
       ),
       { type: "module" }
