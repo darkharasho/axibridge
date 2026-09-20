@@ -18,23 +18,23 @@
  * generated at publish time by `src/main/handlers/githubHandlers.ts`; it does
  * not live in `public/`, and 404ing on it is already handled.
  */
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const VIEWER_ASSETS = [
-    'img/AxiBridge-white.png',
-    'svg/AxiBridge.svg',
-    'svg/commander_tag_outline.svg',
-    'svg/custom-icons/dam_mit.svg',
-    'svg/custom-icons/gw2_aegis.svg',
-    'svg/custom-icons/gw2_boon.svg',
-    'svg/custom-icons/gw2_fury.svg',
-    'svg/custom-icons/gw2_sigil.svg',
-    'svg/custom-icons/mouse.svg'
-];
-
 export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+/**
+ * The list lives in `scripts/viewer-assets.json` so that the guard test can
+ * read it without importing this module. Importing a `.mjs` from a `.ts` test
+ * makes Vite externalise it, and on Windows the resulting `C:\...` path is
+ * handed to Node as an import specifier whose backslashes are escape
+ * sequences — a bare `SyntaxError: Invalid or unexpected token` with no frame.
+ */
+export const VIEWER_ASSETS = JSON.parse(
+    readFileSync(path.join(REPO_ROOT, 'scripts', 'viewer-assets.json'), 'utf8')
+).assets;
+
 export const VIEWER_ASSET_SOURCE_DIR = path.join(REPO_ROOT, 'public');
 export const VIEWER_ASSET_OUT_DIR = path.join(REPO_ROOT, 'docs', 'view');
 
@@ -45,7 +45,7 @@ export const copyViewerAssets = () => {
     if (missing.length > 0) {
         throw new Error(
             `copy-viewer-assets: missing source asset(s) under public/:\n  ${missing.join('\n  ')}\n` +
-                'Update VIEWER_ASSETS in scripts/copy-viewer-assets.mjs if the asset was renamed.'
+                'Update the list in scripts/viewer-assets.json if the asset was renamed.'
         );
     }
     for (const relativePath of VIEWER_ASSETS) {
