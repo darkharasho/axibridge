@@ -219,6 +219,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
 export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onParserSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2SliceEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed, webhooks, enabledWebhookIds, onSaveWebhooks, onSetDestinationEnabled, logDirectory, onChangeLogDirectory }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
+    const [dpsReportEnabled, setDpsReportEnabled] = useState<boolean>(true);
     const [reportWebhooks, setReportWebhooks] = useState<IReportWebhook[]>([]);
     const [closeBehavior, setCloseBehavior] = useState<'minimize' | 'quit'>('minimize');
     const [embedStats, setEmbedStats] = useState<IEmbedStatSettings>(DEFAULT_EMBED_STATS);
@@ -537,6 +538,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
     const applySettingsToState = (settings: any) => {
         setDpsReportToken(settings.dpsReportToken || '');
+        setDpsReportEnabled(settings.dpsReportEnabled !== false);
         setCloseBehavior(settings.closeBehavior || 'minimize');
         setEmbedStats({ ...DEFAULT_EMBED_STATS, ...(settings.embedStatSettings || {}) });
         const discordEnemySplitSettings = { ...DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, ...(settings.discordEnemySplitSettings || {}) };
@@ -817,6 +819,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
     const getCurrentSettingsSnapshot = () => ({
         dpsReportToken,
+        dpsReportEnabled,
         closeBehavior,
         embedStatSettings: embedStats,
         discordEnemySplitSettings: {
@@ -988,6 +991,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         setShowSaved(false);
         window.electronAPI?.saveSettings?.({
             dpsReportToken: dpsReportToken || null,
+            dpsReportEnabled,
             closeBehavior,
             embedStatSettings: embedStats,
             discordEnemySplitSettings: {
@@ -1044,6 +1048,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         return () => clearTimeout(timeout);
     }, [
         dpsReportToken,
+        dpsReportEnabled,
         closeBehavior,
         embedStats,
         splitEnemiesByTeam,
@@ -2887,6 +2892,14 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     </SettingsSection>
                     {/* DPS Report Token Section */}
                     <SettingsSection title="dps.report User Token" icon={Key} delay={0.05} sectionId="dps-token">
+                        <div className="mb-4">
+                            <Toggle
+                                enabled={dpsReportEnabled}
+                                onChange={setDpsReportEnabled}
+                                label="Also upload to dps.report"
+                                description="AxiBridge share links have replaced dps.report, and uploads stop automatically once sharing has somewhere to store reports. Leave this on to keep a dps.report permalink as a fallback for logs that cannot be shared; turn it off to stop sending logs to dps.report entirely."
+                            />
+                        </div>
                         <p className="text-sm text-gray-400 mb-4">
                             Optional: Add your dps.report user token to associate uploads with your account.
                             You can find your token at{' '}

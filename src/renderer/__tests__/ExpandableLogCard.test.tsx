@@ -53,3 +53,42 @@ describe('ExpandableLogCard headline player count', () => {
         expect(screen.getByText('12 Players')).toBeInTheDocument();
     });
 });
+
+describe('ExpandableLogCard report link', () => {
+    const renderCard = (log: any) => render(
+        <ExpandableLogCard
+            log={log}
+            isExpanded
+            onToggle={() => {}}
+            motionEnabled={false}
+            particlesEnabled={false}
+        />
+    );
+
+    const SHARE = 'https://bridge.axi.link/r/k3Xm9qR2';
+    const PERMALINK = 'https://dps.report/abc-123';
+
+    it('opens the share link, and names it as ours, when one exists', () => {
+        renderCard({ id: 'l', status: 'success', shareUrl: SHARE, permalink: PERMALINK });
+        const button = screen.getByRole('button', { name: /Open Fight Report/ });
+        expect(button).toBeEnabled();
+        expect(screen.queryByText(/dps\.report/)).not.toBeInTheDocument();
+    });
+
+    // Thousands of logs persisted before share links existed carry only a
+    // permalink. The change is additive: they must keep working untouched.
+    it('falls back to the permalink, still named dps.report', () => {
+        renderCard({ id: 'l', status: 'success', permalink: PERMALINK });
+        expect(screen.getByRole('button', { name: /Open dps\.report Report/ })).toBeEnabled();
+    });
+
+    it('disables the button when the log has neither link', () => {
+        renderCard({ id: 'l', status: 'success' });
+        expect(screen.getByRole('button', { name: /Link Pending/ })).toBeDisabled();
+    });
+
+    it('treats a blank share link as absent rather than opening an empty url', () => {
+        renderCard({ id: 'l', status: 'success', shareUrl: '   ', permalink: PERMALINK });
+        expect(screen.getByRole('button', { name: /Open dps\.report Report/ })).toBeEnabled();
+    });
+});
