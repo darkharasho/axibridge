@@ -192,7 +192,10 @@ export const shareLog = async (
                 Authorization: `Bearer ${deps.githubToken}`,
                 'content-type': 'application/json'
             },
-            body: JSON.stringify({ loc: put.url, sum: buildShareSummary(details) })
+            // `bytes` is what makes budget-driven retention possible later:
+            // without a size per pointer nothing can total a user's footprint
+            // against the Pages ceiling. Recorded now, acted on by nothing yet.
+            body: JSON.stringify({ loc: put.url, sum: buildShareSummary(details), bytes: body.length })
         });
     } catch (err: any) {
         return { success: false, error: err?.message || 'Failed to reach the share service.' };

@@ -207,6 +207,7 @@ const createPointer = async (request: Request, env: Env, fetchImpl: typeof fetch
         created: now,
         seen: now,
         owner,
+        ...(Number.isFinite(body.bytes) && body.bytes > 0 ? { bytes: Math.floor(body.bytes) } : {}),
         ...(typeof body.raw === 'string' && body.raw ? { raw: body.raw } : {})
     };
 
