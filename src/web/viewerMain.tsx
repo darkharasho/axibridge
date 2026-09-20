@@ -7,6 +7,7 @@ import ReactDOM from 'react-dom/client';
 // JS module and gets applied via a manually-appended `<style>` tag below.
 import indexCss from '../renderer/index.css?inline';
 import { ReportApp } from './reportApp';
+import { setPublicAssetBase } from '../renderer/ui/resolvePublicAssetPath';
 import { parseShareBootPayload, ShareBootPayloadError } from './share/shareBootPayload';
 import { loadShareReportJson, ShareLoadError } from './share/loadShareReport';
 import { buildShareReport } from './share/buildShareReport';
@@ -33,6 +34,12 @@ document.body.classList.add('web-report');
  * only produce guaranteed-404 requests — two of them against the Worker.
  */
 const VIEWER_ASSET_BASE = new URL('.', import.meta.url).href;
+
+// Deep renderer `ui/` components (the commander tag and the Gw2* icons) call
+// `resolvePublicAssetPath` directly instead of taking an `assetBase` prop, and
+// its pathname sniffing has no case for `/r/<code>`. Point them at the same
+// base as ReportApp, once, before anything renders.
+setPublicAssetBase(VIEWER_ASSET_BASE);
 
 type ViewerState =
     | { kind: 'loading' }
