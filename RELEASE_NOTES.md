@@ -1,27 +1,18 @@
 # Release Notes
 
-Version v3.14.0 — September 19, 2026
+Version v3.15.0 — September 20, 2026
 
-## Updating no longer dead-ends
+## Share link improvements
+- Share links are now minted automatically when you create a log, using a default managed GitHub repo.
+- A log card can mint its own share link.
+- You can view and share via bridge.axi.link/r/ for quick access.
 
-If the AppImage you launched from got replaced or deleted while AxiBridge was still
-running, every update attempt died with a raw `ENOENT ... unlink` and there was no way
-out of it — retrying just produced the same error forever. AxiBridge now puts that path
-back before handing off to the installer, so the update goes through. Same guard on the
-install-on-quit path, which used to fail silently on the way out.
-
-## AxiBridge shows its name on Discord posts
-
-Fight embeds now carry "AxiBridge" and the logo in the header, so it's obvious where a
-post came from in a busy channel.
-
-## File pickers remember where you were
-
-Picking a log folder, importing settings, saving an export — each dialog now reopens
-where you last left it instead of dumping you in Downloads. Electron 44 stopped letting
-the OS remember this on its own, so AxiBridge tracks it per dialog: choosing a settings
-file won't move where the log-folder picker opens next.
+## Retention enhancements
+- Budget-driven retention actually reclaims bytes, helping you save space.
 
 ## Fixes
+- Fixed retention projection to align with real results.
+- Worker is deployed on release to keep background tasks running smoothly.
 
-- Cleared the fixable dependency security advisories.
+## QoL Improvements
+- Small UI tweaks to make share links easier to spot and copy.
