@@ -5,10 +5,17 @@ import { formatDurationMs } from './utils/dashboardUtils';
 import { getWvwTeamColor, teamMapFromLog } from '../../shared/wvwTeams';
 import { partitionSquadPlayers } from '../../shared/playerIdentity';
 import { computeSquadBarrier } from '../../shared/combatMetrics';
+import { shareIdentity } from '../../shared/shareIdentity';
 import { getEncounterDurationMs, parseEncounterDurationMs } from '@axiapps/bridge-metrics';
 
+// Which link this fight row opens. `shareIdentity` prefers our own share link
+// and falls back to the dps.report permalink, the same order the log card and
+// the Discord embed use. It has to be asked FIRST: since share links shipped,
+// the dps.report upload is skipped whenever sharing has somewhere to write, so
+// a freshly-parsed log has a `shareUrl` and no `permalink` at all — and a row
+// that only looked at `permalink` rendered every fight as "Pending".
 const resolvePermalink = (details: any, log: any): string => {
-    const direct = log?.permalink || details?.permalink;
+    const direct = shareIdentity(log) || shareIdentity(details);
     if (typeof direct === 'string' && direct.trim().length > 0) return direct.trim();
     const uploadLinks = details?.uploadLinks;
     if (!Array.isArray(uploadLinks)) return '';

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { DetailsCache } from '../../cache/DetailsCache';
+import { shareIdentity } from '../../../shared/shareIdentity';
 
 /** Logs the hydration pass still needs to visit. 'available' always counts —
  *  cache misses need a fetch, and cache hits need their mark flipped to
@@ -16,7 +17,13 @@ export const hasPendingDetailsHydration = (
     if (detailsCache?.peek(log.id) || ds === 'loaded') return false;
     if (ds === 'exhausted' || ds === 'unavailable') return false;
     const status = log.status || 'queued';
-    return (status === 'success' || status === 'calculating' || status === 'discord') && Boolean(log.permalink);
+    // A report link stands in for "this log finished". It must be asked via
+    // `shareIdentity`, not `log.permalink`: since share links shipped, the
+    // dps.report upload is skipped whenever sharing has somewhere to write, so
+    // every new log has a `shareUrl` and an empty `permalink`. The link is not
+    // what hydration fetches -- `getLogDetails` reads main's local cache by
+    // filePath -- so a permalink-only test silently retires the whole branch.
+    return (status === 'success' || status === 'calculating' || status === 'discord') && Boolean(shareIdentity(log));
 });
 
 export function useDetailsHydration({
@@ -145,7 +152,7 @@ export function useDetailsHydration({
                         cachedDetails.targets.length > 1 &&
                         !cachedDetails.targets.some((t: any) => Array.isArray(t?.buffs) && t.buffs.length > 0);
                     const hasStaleDetails = cachedDetails && (!cachedDetails.damageModMap || !cachedDetails.conditionMetrics || targetsLackBuffs);
-                    if (hasStaleDetails) return Boolean(log.permalink);
+                    if (hasStaleDetails) return Boolean(shareIdentity(log));
                     // A cache hit whose durable write was rejected is readable
                     // right now and gone after the next eviction. Keeping it a
                     // candidate lets the write be retried, and lets the attempt
@@ -156,7 +163,7 @@ export function useDetailsHydration({
                     // The worker reads via getLocal (LRU + IDB), so no re-fetch needed.
                     if (log.detailsStatus === 'loaded') return false;
                     if (log.detailsStatus === 'available') return true;
-                    return (log.status === 'success' || log.status === 'calculating' || log.status === 'discord') && Boolean(log.permalink);
+                    return (log.status === 'success' || log.status === 'calculating' || log.status === 'discord') && Boolean(shareIdentity(log));
                 })
                 .sort((a, b) => {
                     const aTime = a.uploadTime || 0;

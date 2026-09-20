@@ -60,6 +60,21 @@ describe('hasPendingDetailsHydration', () => {
         expect(hasPendingDetailsHydration([makeLog({ detailsStatus: 'idle', permalink: undefined })], cache)).toBe(false);
     });
 
+    it('reports a share-linked log with no permalink as pending', () => {
+        // Since share links shipped, the dps.report upload is skipped whenever
+        // sharing has somewhere to write, so a completed log carries a shareUrl
+        // and an EMPTY permalink. A permalink-only gate retires this branch for
+        // every new log: its details are never re-fetched after an eviction and
+        // stale cached details are never refreshed.
+        const cache = cacheWith({});
+        const shared = makeLog({
+            detailsStatus: 'idle',
+            permalink: undefined,
+            shareUrl: 'https://bridge.axi.link/r/abc123',
+        } as Partial<ILogData>);
+        expect(hasPendingDetailsHydration([shared], cache)).toBe(true);
+    });
+
     it('does not report idle cache-resident logs as pending', () => {
         const cache = cacheWith({ 'ei-1': freshDetails });
         expect(hasPendingDetailsHydration([makeLog({ detailsStatus: 'idle' })], cache)).toBe(false);

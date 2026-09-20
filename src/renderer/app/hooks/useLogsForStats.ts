@@ -2,6 +2,7 @@ import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { DetailsCacheContext } from '../../cache/DetailsCacheContext';
 import { isLogPendingIngestion } from '../../stats/hooks/useStatsAggregationWorker';
 import { statsLogKey } from '../../stats/utils/statsLogKey';
+import { shareIdentity } from '../../../shared/shareIdentity';
 
 interface UseLogsForStatsOptions {
     logs: ILogData[];
@@ -34,7 +35,10 @@ export function useLogsForStats({ logs }: UseLogsForStatsOptions) {
             const detailsId = details ? getStatsObjectId(details) : 0;
             const logId = details ? 0 : getStatsObjectId(log);
             const identifier = statsLogKey(log, index);
-            const permalink = String(log?.permalink || (details as any)?.permalink || '');
+            // The report link arrives after the log is first published, so it has
+            // to be part of the key or the fight breakdown never rebuilds with it.
+            // `shareIdentity` first: a share-era log's link lands on `shareUrl`.
+            const permalink = String(shareIdentity(log) || shareIdentity(details as any) || '');
             const uploadTime = Number(log?.uploadTime || (details as any)?.uploadTime || 0);
             const successValue = (details as any)?.success;
             const successToken = successValue === true ? '1' : successValue === false ? '0' : 'u';

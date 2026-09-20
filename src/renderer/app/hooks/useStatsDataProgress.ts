@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { shareIdentity } from '../../../shared/shareIdentity';
 
 export interface StatsDataProgress {
     active: boolean;
@@ -49,7 +50,10 @@ export function useStatsDataProgress(
                 return;
             }
             const status = log.status || 'queued';
-            const canHydrateFromPermalink = (status === 'success' || status === 'calculating' || status === 'discord') && Boolean(log.permalink);
+            // Same link test as `useDetailsHydration` -- these two must agree on
+            // which logs are hydration candidates, or the progress bar counts a
+            // population the hydration pass will never visit.
+            const canHydrateFromPermalink = (status === 'success' || status === 'calculating' || status === 'discord') && Boolean(shareIdentity(log));
             if (canHydrateFromPermalink) {
                 pending += 1;
                 return;

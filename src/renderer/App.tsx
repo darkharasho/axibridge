@@ -25,6 +25,7 @@ import { hasPendingDetailsHydration, useDetailsHydration } from './app/hooks/use
 import { useUploadListeners } from './app/hooks/useUploadListeners';
 import { useSectorOwners } from './app/hooks/useSectorOwners';
 import { extractDroppedLogFiles } from './app/utils/droppedFiles';
+import { shareIdentity } from '../shared/shareIdentity';
 import { DetailsCache } from './cache/DetailsCache';
 import { DetailsCacheProvider } from './cache/DetailsCacheContext';
 import { resolveWebhookSaveIntent, reconcileEnabledWebhookIds, toggleEnabledWebhookId, summarizeEnabledDestinations, enabledDestinationsNeedingRelink, describeRelinkWarning } from './app/webhookSaveIntent';
@@ -188,7 +189,10 @@ function App() {
         logsCount: logs.length,
     });
 
-    // Persisted map of permalink → replayDataUrl, loaded from electron-store at startup.
+    // Persisted map of report link → replayDataUrl, loaded from electron-store at
+    // startup. Keyed by `shareIdentity`, because that is what `useStatsUploads`
+    // sends as `logIds` when the publish reports its replay url back -- reading
+    // it by `permalink` alone missed every share-era log, which has none.
     const r2ReplayUrlsRef = useRef<Record<string, string>>({});
     useEffect(() => {
         window.electronAPI?.getSettings?.().then((s) => {
@@ -200,9 +204,10 @@ function App() {
                 const r2Map = s.r2ReplayUrls!;
                 let changed = false;
                 const next = currentLogs.map((l) => {
-                    if (l.permalink && r2Map[l.permalink] && !l.replayDataUrl) {
+                    const link = shareIdentity(l);
+                    if (link && r2Map[link] && !l.replayDataUrl) {
                         changed = true;
-                        return { ...l, replayDataUrl: r2Map[l.permalink] };
+                        return { ...l, replayDataUrl: r2Map[link] };
                     }
                     return l;
                 });
@@ -225,7 +230,8 @@ function App() {
             setLogsDeferred((currentLogs) => {
                 let changed = false;
                 const next = currentLogs.map((l) => {
-                    if (l.permalink && pSet.has(l.permalink)) { changed = true; return { ...l, replayDataUrl }; }
+                    const link = shareIdentity(l);
+                    if (link && pSet.has(link)) { changed = true; return { ...l, replayDataUrl }; }
                     return l;
                 });
                 return changed ? next : currentLogs;
@@ -285,9 +291,10 @@ function App() {
         setLogsDeferred((currentLogs) => {
             let changed = false;
             const next = currentLogs.map((l) => {
-                if (l.permalink && r2Map[l.permalink] && !l.replayDataUrl) {
+                const link = shareIdentity(l);
+                if (link && r2Map[link] && !l.replayDataUrl) {
                     changed = true;
-                    return { ...l, replayDataUrl: r2Map[l.permalink] };
+                    return { ...l, replayDataUrl: r2Map[link] };
                 }
                 return l;
             });
