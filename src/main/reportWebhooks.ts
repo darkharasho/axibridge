@@ -67,9 +67,18 @@ export async function postReportToWebhooks(opts: {
 
         const style = coerceReportPostStyle(hook.style);
         const candidate = style === 'text' ? null : (opts.images?.[style] ?? null);
-        const image = candidate && candidate.byteLength > 0 && candidate.byteLength <= MAX_CARD_BYTES
-            ? candidate
-            : null;
+        // A candidate that fails this gate is dropped before we ever talk to
+        // Discord, and the post then succeeds on its own terms. Without a
+        // reason to report, the only symptom the user sees is a card that
+        // silently never appears — so record why and say so below.
+        let unusableCard: string | null = null;
+        if (candidate && candidate.byteLength === 0) {
+            unusableCard = 'the rendered card was empty';
+        } else if (candidate && candidate.byteLength > MAX_CARD_BYTES) {
+            const mb = (candidate.byteLength / 1024 / 1024).toFixed(1);
+            unusableCard = `the card is ${mb} MB, over the ${MAX_CARD_BYTES / 1024 / 1024} MB attachment ceiling`;
+        }
+        const image = candidate && !unusableCard ? candidate : null;
 
         const post = async (withThreadName: boolean, withTags: boolean, withImage: boolean) => {
             const attachment = withImage ? image : null;
@@ -182,6 +191,8 @@ export async function postReportToWebhooks(opts: {
                 results.push({ id: hook.id, name: hook.name, ok: true });
                 if (droppedImage) {
                     opts.onStatus?.(`Posted to ${label} without the card image — Discord rejected the attachment.`, true);
+                } else if (unusableCard) {
+                    opts.onStatus?.(`Posted to ${label} without the card image — ${unusableCard}.`, true);
                 } else if (droppedTags) {
                     opts.onStatus?.(`Posted to ${label} without tags — check its forum tag IDs.`, true);
                 } else {
