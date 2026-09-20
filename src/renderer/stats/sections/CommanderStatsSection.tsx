@@ -142,6 +142,16 @@ const formatNullablePct = (value: number | null | undefined, digits = 1) => (
 const formatNullableNumber = (value: number | null | undefined, digits = 1) => (
     typeof value === 'number' && Number.isFinite(value) ? formatRate(value, digits) : 'N/A'
 );
+/**
+ * Every `avg*` field on a commander row is a mean over that commander's FIGHTS
+ * (see computeCommanderStats.ts) — none of them average anything within a single
+ * fight. A one-fight report therefore averages one sample: the value is just
+ * that fight's, and the "Avg" prefix advertises a spread that cannot exist.
+ * These headers drop it, and the two columns that become verbatim duplicates of
+ * a neighbouring total are dropped outright.
+ */
+const avgLabel = (singleFight: boolean, averaged: string, plain: string) => (singleFight ? plain : averaged);
+
 const pushTimingStatus = (fight: CommanderFightRow) => {
     if (fight.hadEarlyDown === null) return 'N/A';
     if (fight.wasStalledPush === true) return 'Stalled';
@@ -152,7 +162,7 @@ const pushTimingStatus = (fight: CommanderFightRow) => {
 export const CommanderTargetConversionSection = ({
     commanderStats
 }: Omit<CommanderStatsSectionProps, 'getProfessionIconPath'>) => {
-    useStatsSharedContext();
+    const { singleFight } = useStatsSharedContext();
     const rows = useMemo(
         () => (Array.isArray(commanderStats?.rows) ? commanderStats?.rows || [] : []),
         [commanderStats]
@@ -194,8 +204,11 @@ export const CommanderTargetConversionSection = ({
                                 <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                     <th className="text-left py-2 px-3">Commander</th>
                                     <th className="text-right py-2 px-3">Down To Kill %</th>
-                                    <th className="text-right py-2 px-3">Avg Downs / Fight</th>
-                                    <th className="text-right py-2 px-3">Avg Kills / Fight</th>
+                                    {/* At one fight these are totalDowns/1 and
+                                        totalKills/1 — the same numbers as Enemy
+                                        Downs and Enemy Kills two columns over. */}
+                                    {!singleFight && <th className="text-right py-2 px-3">Avg Downs / Fight</th>}
+                                    {!singleFight && <th className="text-right py-2 px-3">Avg Kills / Fight</th>}
                                     <th className="text-right py-2 px-3">Failed Downs</th>
                                     <th className="text-right py-2 px-3">Enemy Downs</th>
                                     <th className="text-right py-2 px-3">Enemy Kills</th>
@@ -212,8 +225,8 @@ export const CommanderTargetConversionSection = ({
                                     >
                                         <td className="py-2 px-3 text-gray-100 font-semibold truncate">{row.account}</td>
                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(row.downToKillConversionPct)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgDownsPerFight, 1)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgKillsPerFight, 1)}</td>
+                                        {!singleFight && <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgDownsPerFight, 1)}</td>}
+                                        {!singleFight && <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgKillsPerFight, 1)}</td>}
                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.failedDownEstimate)}</td>
                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.downs)}</td>
                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.kills)}</td>
@@ -262,6 +275,7 @@ export const CommanderTargetConversionSection = ({
 export const CommanderTagMovementSection = ({
     commanderStats
 }: Omit<CommanderStatsSectionProps, 'getProfessionIconPath'>) => {
+    const { singleFight } = useStatsSharedContext();
 
     const rows = useMemo(
         () => (Array.isArray(commanderStats?.rows) ? commanderStats?.rows || [] : []),
@@ -316,7 +330,7 @@ export const CommanderTagMovementSection = ({
                             <thead>
                                 <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                     <th className="text-left py-2 px-3">Commander</th>
-                                    <th className="text-right py-2 px-3">Avg Distance</th>
+                                    <th className="text-right py-2 px-3">{avgLabel(singleFight, 'Avg Distance', 'Distance')}</th>
                                     <th className="text-right py-2 px-3">Move / Min</th>
                                     <th className="text-right py-2 px-3">Stationary %</th>
                                     <th className="text-right py-2 px-3">Move Bursts</th>
@@ -381,6 +395,7 @@ export const CommanderTagMovementSection = ({
 export const CommanderTagDeathResponseSection = ({
     commanderStats
 }: Omit<CommanderStatsSectionProps, 'getProfessionIconPath'>) => {
+    const { singleFight } = useStatsSharedContext();
 
     const rows = useMemo(
         () => (Array.isArray(commanderStats?.rows) ? commanderStats?.rows || [] : []),
@@ -437,8 +452,8 @@ export const CommanderTagDeathResponseSection = ({
                                     <th className="text-left py-2 px-3">Commander</th>
                                     <th className="text-right py-2 px-3">Fights With Tag Death</th>
                                     <th className="text-right py-2 px-3">Collapse Rate</th>
-                                    <th className="text-right py-2 px-3">Avg Squad Deaths After</th>
-                                    <th className="text-right py-2 px-3">Avg Enemy Kills After</th>
+                                    <th className="text-right py-2 px-3">{avgLabel(singleFight, 'Avg Squad Deaths After', 'Squad Deaths After')}</th>
+                                    <th className="text-right py-2 px-3">{avgLabel(singleFight, 'Avg Enemy Kills After', 'Enemy Kills After')}</th>
                                     <th className="text-right py-2 px-3">Recovery Rate</th>
                                 </tr>
                             </thead>
@@ -520,6 +535,7 @@ export const CommanderTagDeathResponseSection = ({
 export const CommanderPushTimingSection = ({
     commanderStats
 }: Omit<CommanderStatsSectionProps, 'getProfessionIconPath'>) => {
+    const { singleFight } = useStatsSharedContext();
 
     const rows = useMemo(
         () => (Array.isArray(commanderStats?.rows) ? commanderStats?.rows || [] : []),
@@ -574,9 +590,9 @@ export const CommanderPushTimingSection = ({
                             <thead>
                                 <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                     <th className="text-left py-2 px-3">Commander</th>
-                                    <th className="text-right py-2 px-3">Avg To First Down</th>
-                                    <th className="text-right py-2 px-3">Avg To First Kill</th>
-                                    <th className="text-right py-2 px-3">Avg Down To Kill</th>
+                                    <th className="text-right py-2 px-3">{avgLabel(singleFight, 'Avg To First Down', 'To First Down')}</th>
+                                    <th className="text-right py-2 px-3">{avgLabel(singleFight, 'Avg To First Kill', 'To First Kill')}</th>
+                                    <th className="text-right py-2 px-3">{avgLabel(singleFight, 'Avg Down To Kill', 'Down To Kill')}</th>
                                     <th className="text-right py-2 px-3">Early Push %</th>
                                     <th className="text-right py-2 px-3">Stalled %</th>
                                 </tr>
@@ -642,6 +658,7 @@ export const CommanderStatsSection = ({
     commanderStats,
     getProfessionIconPath
 }: CommanderStatsSectionProps) => {
+    const { singleFight } = useStatsSharedContext();
 
     const rows = useMemo(
         () => (Array.isArray(commanderStats?.rows) ? commanderStats?.rows || [] : []),
@@ -760,12 +777,15 @@ export const CommanderStatsSection = ({
                             <thead>
                                 <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                     <th className="text-left py-2 px-3">Commander</th>
-                                    <th className="text-right py-2 px-3">Fights</th>
-                                    <th className="text-right py-2 px-3">W/L</th>
-                                    <th className="text-right py-2 px-3">Win %</th>
+                                    {/* One fight, one result: these read 1, 1-0
+                                        and 100% — the outcome badge in the page
+                                        header, spread over three columns. */}
+                                    {!singleFight && <th className="text-right py-2 px-3">Fights</th>}
+                                    {!singleFight && <th className="text-right py-2 px-3">W/L</th>}
+                                    {!singleFight && <th className="text-right py-2 px-3">Win %</th>}
                                     <th className="text-right py-2 px-3">Squad KDR</th>
-                                    <th className="text-right py-2 px-3">Avg Squad</th>
-                                    <th className="text-right py-2 px-3">Avg Enemy</th>
+                                    <th className="text-right py-2 px-3">{avgLabel(singleFight, 'Avg Squad', 'Squad')}</th>
+                                    <th className="text-right py-2 px-3">{avgLabel(singleFight, 'Avg Enemy', 'Enemies')}</th>
                                     <th className="text-right py-2 px-3">Kills</th>
                                     <th className="text-right py-2 px-3">Downs</th>
                                     <th className="text-right py-2 px-3">Time Tagged</th>
@@ -797,9 +817,9 @@ export const CommanderStatsSection = ({
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.fights)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.wins)}-{formatInt(row.losses)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatRate(row.winRatePct, 1)}%</td>
+                                        {!singleFight && <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.fights)}</td>}
+                                        {!singleFight && <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.wins)}-{formatInt(row.losses)}</td>}
+                                        {!singleFight && <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatRate(row.winRatePct, 1)}%</td>}
                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatRate(row.kdr, 2)}</td>
                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatRate(row.avgSquadSize, 1)}</td>
                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatRate(row.avgEnemySize, 1)}</td>
@@ -865,7 +885,7 @@ export const CommanderStatsSection = ({
                                 </div>
 
                                 <div className="rounded-[var(--radius-md)] p-3 min-w-0 overflow-x-auto">
-                                    <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Incoming Boons (Average Uptime)</div>
+                                    <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Incoming Boons ({avgLabel(singleFight, 'Average Uptime', 'Uptime')})</div>
                                     <table className="w-full min-w-[440px] text-xs table-auto">
                                         <thead>
                                             <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">

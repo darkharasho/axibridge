@@ -38,8 +38,36 @@ import {
 } from 'lucide-react';
 
 
+import { planAssetBaseResolution, probeAssetBasePath } from './assetBasePath';
+import { FightHero } from './share/FightHero';
+
 const glassCard = 'border border-white/10 rounded-2xl shadow-xl backdrop-blur-md glass-card';
-const ASSET_BASE_PATH_PROBE_PATHS = ['reports/index.json', 'logo.json'] as const;
+
+// Sections that only mean something across several logs, each degenerate when
+// the report holds exactly one fight:
+//   data-map                  indexes a report that has one entry
+//   fight-breakdown           a sortable table of one row, every column of
+//                             which already appears in the header above it
+//   fight-diff-mode           would diff a fight against itself
+//   map-distribution          a pie chart of a single slice
+//   timeline                  a line chart of squad and enemy size over the
+//                             session — one point, and the header already
+//                             carries that matchup as a bar
+//   squad-damage-comparison   a bar per fight of damage out vs in; one pair,
+//                             and both totals are KPI tiles in the header
+//   squad-comp-fight          a fight-tab strip with one tab, whose panel is
+//                             the squad composition the Classes section
+//                             already shows in full
+const AGGREGATE_ONLY_SECTIONS = [
+    'data-map',
+    'fight-breakdown',
+    'fight-diff-mode',
+    'map-distribution',
+    'timeline',
+    'squad-damage-comparison',
+    'squad-comp-fight'
+];
+
 
 const buildReportHref = (baseHref: string, reportId: string): string => {
     const next = new URL(baseHref);
@@ -297,7 +325,24 @@ export function NoEgoRollup({ commanderRows, playerRows }: NoEgoRollupProps) {
     );
 }
 
-export function ReportApp() {
+/**
+ * Bypasses ReportApp's own fetch-driven loading (used by the standalone
+ * share-link viewer entry, which has already fetched and decoded a report
+ * payload from a share pointer's `loc` before ReportApp ever mounts).
+ */
+export interface ReportAppInjectedSource {
+    report: ReportPayload;
+}
+
+export function ReportApp({ injectedSource, assetBase }: {
+    injectedSource?: ReportAppInjectedSource;
+    /**
+     * Absolute (or root-relative) directory the static assets are served from.
+     * When set it is authoritative and the probe is skipped entirely — see
+     * `planAssetBaseResolution`.
+     */
+    assetBase?: string;
+} = {}) {
     const initialSearchParams = useMemo(() => new URLSearchParams(window.location.search), []);
     const [report, setReport] = useState<ReportPayload | null>(null);
     const [index, setIndex] = useState<ReportIndexEntry[] | null>(null);
@@ -384,6 +429,19 @@ export function ReportApp() {
     }, []);
     const baseHref = useMemo(() => new URL(basePath, window.location.origin).toString(), [basePath]);
     const themedIndexHref = baseHref;
+    // Under the share viewer the page is served at /r/<code>, so both of these
+    // resolve straight back to the page you are already on (the Worker's route
+    // regex tolerates the trailing slash, and `?view=rollup` just re-serves it
+    // in rollup mode with an empty index). There is no report index to go back
+    // to at all, so the chrome that links to one is suppressed.
+    const showIndexChrome = !injectedSource;
+    // An injected source is always exactly one fight — the share viewer is the
+    // only caller, and a share pointer addresses a single log. That makes the
+    // aggregate framing (averages over N logs, win/loss tallies, a per-fight
+    // breakdown table, fight-vs-fight comparison) either degenerate or
+    // meaningless here, so the header, the overview tiles and the nav all swap
+    // to fight-scoped equivalents.
+    const singleFight = !!injectedSource;
     const rollupHref = useMemo(
         () => buildRollupHref(baseHref),
         [baseHref]
@@ -394,21 +452,11 @@ export function ReportApp() {
     }, []);
     const isNarrowViewport = viewportWidth < 1024;
     const isCompactViewport = viewportWidth < 640;
-    const assetBasePathCandidates = useMemo(() => {
-        const primary = basePath;
-        const candidates = [primary, './', '/'];
-        const deduped: string[] = [];
-        candidates.forEach((value) => {
-            let normalized = value || '/';
-            if (normalized !== './' && !normalized.endsWith('/')) {
-                normalized = `${normalized}/`;
-            }
-            if (!deduped.includes(normalized)) {
-                deduped.push(normalized);
-            }
-        });
-        return deduped;
-    }, [basePath, isDevLocalWeb]);
+    const assetBasePlan = useMemo(
+        () => planAssetBaseResolution({ assetBase, basePath }),
+        [assetBase, basePath, isDevLocalWeb]
+    );
+    const assetBasePathCandidates = assetBasePlan.candidates;
     const [assetBasePath, setAssetBasePath] = useState<string>(assetBasePathCandidates[0] || '/');
     const extractHeadingText = (node: React.ReactNode): string => {
         if (typeof node === 'string' || typeof node === 'number') return String(node);
@@ -489,26 +537,16 @@ export function ReportApp() {
     useEffect(() => {
         setAssetBasePath(assetBasePathCandidates[0] || '/');
         let isMounted = true;
-        const resolve = async () => {
-            for (const candidate of assetBasePathCandidates) {
-                for (const probePath of ASSET_BASE_PATH_PROBE_PATHS) {
-                    try {
-                        const response = await fetch(joinAssetPath(candidate, probePath), { cache: 'no-store' });
-                        if (response.ok) {
-                            if (isMounted) setAssetBasePath(candidate);
-                            return;
-                        }
-                    } catch {
-                        // Try next probe path or candidate.
-                    }
-                }
-            }
-        };
-        void resolve();
+        // `probeAssetBasePath` performs NO fetches when the plan carries an
+        // explicit asset base — under /r/<code> every probe is a guaranteed
+        // 404, two of them against the Worker.
+        void probeAssetBasePath(assetBasePlan).then((resolved) => {
+            if (resolved && isMounted) setAssetBasePath(resolved);
+        });
         return () => {
             isMounted = false;
         };
-    }, [assetBasePathCandidates]);
+    }, [assetBasePathCandidates, assetBasePlan]);
     const renderHighlightedMatch = (text: string, query: string) => {
         const trimmed = query.trim();
         if (!trimmed) return text;
@@ -666,7 +704,19 @@ export function ReportApp() {
     // literal — the web report picks up the same 10 categories as the desktop
     // and History nav automatically. Historical web-only anchors ('kdr',
     // 'report-top', old group ids) are handled by resolveSectionTarget below.
-    const navGroups = useMemo(() => STATS_TOC_GROUPS.map((g) => ({ ...g, sectionIds: [...g.sectionIds], items: [...g.items] })), []);
+    const navGroups = useMemo(() => {
+        const groups = STATS_TOC_GROUPS.map((g) => ({ ...g, sectionIds: [...g.sectionIds], items: [...g.items] }));
+        if (!singleFight) return groups;
+        return groups
+            .map((g) => ({
+                ...g,
+                sectionIds: g.sectionIds.filter((id) => !AGGREGATE_ONLY_SECTIONS.includes(id)),
+                items: g.items.filter((item) => !AGGREGATE_ONLY_SECTIONS.includes(item.id))
+            }))
+            // The Data Map is a whole group of one item, so filtering its items
+            // leaves an empty, unclickable nav entry behind.
+            .filter((g) => g.items.length > 0);
+    }, [singleFight]);
     const activeGroupDef = useMemo(
         // Fallback targets Overview explicitly — navGroups[0] is now the Data Map
         // category, which must never become the accidental landing group.
@@ -685,8 +735,14 @@ export function ReportApp() {
         [activeSectionIdSet]
     );
     const dashboardTitleText = useMemo(
-        () => `Statistics Dashboard - ${activeGroupDef?.label || 'Overview'}`,
-        [activeGroupDef]
+        // "Statistics Dashboard" is the desktop app's name for the whole
+        // multi-log view. On a share link the fight header already names the
+        // subject, so the heading below it only needs to say which category the
+        // reader is currently in.
+        () => (singleFight
+            ? (activeGroupDef?.label || 'Overview')
+            : `Statistics Dashboard - ${activeGroupDef?.label || 'Overview'}`),
+        [activeGroupDef, singleFight]
     );
     const excludedFightKeys = useStatsStore((s) => s.excludedFightKeys);
     const mergeFightRoster = useStatsStore((s) => s.mergeFightRoster);
@@ -947,6 +1003,25 @@ export function ReportApp() {
 
     useEffect(() => {
         let isMounted = true;
+
+        if (injectedSource) {
+            setError(null);
+            setIndex([]);
+            setRollupData(null);
+            setRollupError(null);
+            setRollupLoading(false);
+            setRollupRequestedCount(0);
+            setReportPathHint(null);
+            const { palette, glass, glassmorphic: gm } = readPaletteFromReport(injectedSource.report.stats);
+            setColorPalette(palette);
+            setGlassSurfaces(glass);
+            setGlassmorphic(gm);
+            setReport(injectedSource.report);
+            return () => {
+                isMounted = false;
+            };
+        }
+
         const reportPath = reportId ? `${basePath}reports/${reportId}/report.json` : `${basePath}report.json`;
         setError(null);
         setReport(null);
@@ -1045,7 +1120,7 @@ export function ReportApp() {
         return () => {
             isMounted = false;
         };
-    }, [basePath, isRollupView, reportId]);
+    }, [basePath, isRollupView, reportId, injectedSource]);
 
     useEffect(() => {
         if (!isRollupView || !index) {
@@ -1133,6 +1208,18 @@ export function ReportApp() {
 
     useEffect(() => {
         if (report) {
+            // A share link's tab title is what lands in a bookmark and in a
+            // pasted Discord embed, so it names the fight, not the commander and
+            // the two-minute "date range" the aggregate title builds. The Worker
+            // already server-renders an equivalent <title> for crawlers that do
+            // not run JS (worker/src/og.ts); this keeps the two consistent once
+            // the bundle takes over.
+            if (singleFight) {
+                const fight = (report.stats as { fightBreakdown?: Array<Record<string, unknown>> } | null)?.fightBreakdown?.[0];
+                const label = (fight?.fullLabel || fight?.mapName || fight?.map || report.meta.title) as string;
+                document.title = `${label} — AxiBridge`;
+                return;
+            }
             const dateLabel = report.meta.dateLabel || formatLocalRange(report.meta.dateStart, report.meta.dateEnd);
             document.title = dateLabel
                 ? `AxiBridge — ${report.meta.title} — ${dateLabel}`
@@ -1144,7 +1231,7 @@ export function ReportApp() {
             return;
         }
         document.title = 'AxiBridge Reports';
-    }, [isRollupView, report]);
+    }, [isRollupView, report, singleFight]);
 
     useEffect(() => {
         let isMounted = true;
@@ -1610,7 +1697,7 @@ export function ReportApp() {
                                 ×
                             </button>
                         </div>
-                        <div className="px-5 pb-4">
+                        {showIndexChrome && <div className="px-5 pb-4">
                             <a
                                 href={themedIndexHref}
                                 className="report-back-link w-full inline-flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[color:var(--accent-bg)] text-[10px] uppercase tracking-[0.35em] text-gray-100 transition-colors hover:bg-[color:var(--accent-border)]"
@@ -1623,7 +1710,7 @@ export function ReportApp() {
                                 </span>
                                 Back to Reports
                             </a>
-                        </div>
+                        </div>}
                         <nav className="flex-1 min-h-0 px-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] space-y-2 text-sm overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
                             {navGroups.map((group) => {
                                 const GroupIcon = group.icon;
@@ -1785,7 +1872,7 @@ export function ReportApp() {
                                 );
                             })}
                         </nav>
-                        <div className="border-t border-white/10">
+                        {showIndexChrome && <div className="border-t border-white/10">
                             <a
                                 href={themedIndexHref}
                                 className="report-back-link w-full inline-flex items-center gap-3 px-6 py-4 bg-[color:var(--accent-bg)] text-[10px] uppercase tracking-[0.35em] text-gray-100 transition-colors hover:bg-[color:var(--accent-border)]"
@@ -1798,81 +1885,85 @@ export function ReportApp() {
                                 </span>
                                 Back to Reports
                             </a>
-                        </div>
+                        </div>}
                     </div>
                 </aside>
                 <div className={`max-w-[2150px] mx-1 sm:mx-2 px-4 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 mobile-bottom-pad ${isNarrowViewport ? '' : 'lg:mx-auto lg:pl-[17rem] lg:pr-10'}`}>
-                    <div className={`${glassCard} p-5 sm:p-6 mb-6 mx-1 sm:mx-1 lg:mx-0`} style={glassCardStyle}>
-                        <div className="flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-center lg:justify-between">
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 text-center sm:text-left">
-                                {logoUrl && (
-                                    logoIsDefault ? (
-                                        <div
-                                            className="w-16 h-16 sm:w-24 sm:h-24 mx-auto sm:mx-0"
-                                            style={{
-                                                backgroundColor: defaultLogoColor,
-                                                maskImage: `url("${logoUrl}")`,
-                                                WebkitMaskImage: `url("${logoUrl}")`,
-                                                maskRepeat: 'no-repeat',
-                                                WebkitMaskRepeat: 'no-repeat',
-                                                maskPosition: 'center',
-                                                WebkitMaskPosition: 'center',
-                                                maskSize: 'contain',
-                                                WebkitMaskSize: 'contain',
-                                                maskMode: 'alpha'
-                                            }}
-                                            aria-label="AxiBridge logo"
-                                        />
-                                    ) : (
-                                        <img
-                                            src={logoUrl}
-                                            alt="Squad logo"
-                                            className="w-16 h-16 sm:w-24 sm:h-24 rounded-lg object-cover mx-auto sm:mx-0"
-                                        />
-                                    )
-                                )}
-                                <div className="min-w-0">
-                                    <div className="report-brand-label"><div className="text-xs tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="text-white">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div><div className="text-[10px] uppercase tracking-[0.3em] text-gray-400">Log Report</div></div>
-                                    <h1 className="text-2xl sm:text-3xl font-bold mt-1 flex items-center gap-2 flex-wrap">
-                                        <span>{report.meta.title}</span>
-                                        {(report.meta as any).guild?.tag && (
-                                            <span
-                                                className="inline-flex items-center rounded-[4px] border px-2 py-0.5 text-sm font-semibold tracking-wide"
-                                                style={{ borderColor: 'var(--border-hover)', color: 'var(--text-secondary)' }}
-                                                title={(report.meta as any).guild.name || undefined}
-                                            >
-                                                [{(report.meta as any).guild.tag}]{(report.meta as any).guild.name ? ` ${(report.meta as any).guild.name}` : ''}
-                                            </span>
-                                        )}
-                                    </h1>
-                                    <div className="text-xs sm:text-sm text-gray-400 mt-2">{report.meta.dateLabel || formatLocalRange(report.meta.dateStart, report.meta.dateEnd)}</div>
+                    {singleFight ? (
+                        <FightHero meta={report.meta} stats={report.stats} className={glassCard} style={glassCardStyle} />
+                    ) : (
+                        <div className={`${glassCard} p-5 sm:p-6 mb-6 mx-1 sm:mx-1 lg:mx-0`} style={glassCardStyle}>
+                            <div className="flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-center lg:justify-between">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 text-center sm:text-left">
+                                    {logoUrl && (
+                                        logoIsDefault ? (
+                                            <div
+                                                className="w-16 h-16 sm:w-24 sm:h-24 mx-auto sm:mx-0"
+                                                style={{
+                                                    backgroundColor: defaultLogoColor,
+                                                    maskImage: `url("${logoUrl}")`,
+                                                    WebkitMaskImage: `url("${logoUrl}")`,
+                                                    maskRepeat: 'no-repeat',
+                                                    WebkitMaskRepeat: 'no-repeat',
+                                                    maskPosition: 'center',
+                                                    WebkitMaskPosition: 'center',
+                                                    maskSize: 'contain',
+                                                    WebkitMaskSize: 'contain',
+                                                    maskMode: 'alpha'
+                                                }}
+                                                aria-label="AxiBridge logo"
+                                            />
+                                        ) : (
+                                            <img
+                                                src={logoUrl}
+                                                alt="Squad logo"
+                                                className="w-16 h-16 sm:w-24 sm:h-24 rounded-lg object-cover mx-auto sm:mx-0"
+                                            />
+                                        )
+                                    )}
+                                    <div className="min-w-0">
+                                        <div className="report-brand-label"><div className="text-xs tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="text-white">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div><div className="text-[10px] uppercase tracking-[0.3em] text-gray-400">Log Report</div></div>
+                                        <h1 className="text-2xl sm:text-3xl font-bold mt-1 flex items-center gap-2 flex-wrap">
+                                            <span>{report.meta.title}</span>
+                                            {(report.meta as any).guild?.tag && (
+                                                <span
+                                                    className="inline-flex items-center rounded-[4px] border px-2 py-0.5 text-sm font-semibold tracking-wide"
+                                                    style={{ borderColor: 'var(--border-hover)', color: 'var(--text-secondary)' }}
+                                                    title={(report.meta as any).guild.name || undefined}
+                                                >
+                                                    [{(report.meta as any).guild.tag}]{(report.meta as any).guild.name ? ` ${(report.meta as any).guild.name}` : ''}
+                                                </span>
+                                            )}
+                                        </h1>
+                                        <div className="text-xs sm:text-sm text-gray-400 mt-2">{report.meta.dateLabel || formatLocalRange(report.meta.dateStart, report.meta.dateEnd)}</div>
+                                    </div>
                                 </div>
-                            </div>
-                            <button
-                                onClick={() => setTocOpen(true)}
-                                className={`${isNarrowViewport && !isCompactViewport ? 'flex' : 'hidden'} px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs uppercase tracking-widest text-gray-300 hover:border-white/30 transition-colors items-center gap-2`}
-                            >
-                                <PanelLeft className="w-4 h-4" />
-                                Contents
-                            </button>
-                            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:overflow-visible pr-1 sm:pr-2">
-                                <div className="col-span-2 sm:col-span-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 inline-flex items-center gap-2 min-w-0 justify-start">
-                                    <CalendarDays className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                                    {report.meta.dateLabel || 'Log Range'}
-                                </div>
-                                <div className="col-span-2 sm:col-span-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 flex items-center gap-2 min-w-0">
-                                    <CommanderTagIcon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                                    <span className="truncate">
-                                        {report.meta.commanders.length ? report.meta.commanders.join(', ') : 'No Commanders'}
-                                    </span>
-                                </div>
-                                <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 flex items-center gap-2 min-w-0">
-                                    <ShieldCheck className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                                    Report {report.meta.appVersion ? `v${report.meta.appVersion}` : 'build'}
+                                <button
+                                    onClick={() => setTocOpen(true)}
+                                    className={`${isNarrowViewport && !isCompactViewport ? 'flex' : 'hidden'} px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs uppercase tracking-widest text-gray-300 hover:border-white/30 transition-colors items-center gap-2`}
+                                >
+                                    <PanelLeft className="w-4 h-4" />
+                                    Contents
+                                </button>
+                                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:overflow-visible pr-1 sm:pr-2">
+                                    <div className="col-span-2 sm:col-span-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 inline-flex items-center gap-2 min-w-0 justify-start">
+                                        <CalendarDays className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                                        {report.meta.dateLabel || 'Log Range'}
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 flex items-center gap-2 min-w-0">
+                                        <CommanderTagIcon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                                        <span className="truncate">
+                                            {report.meta.commanders.length ? report.meta.commanders.join(', ') : 'No Commanders'}
+                                        </span>
+                                    </div>
+                                    <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 flex items-center gap-2 min-w-0">
+                                        <ShieldCheck className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                                        Report {report.meta.appVersion ? `v${report.meta.appVersion}` : 'build'}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                     <div className={`${isNarrowViewport && isCompactViewport ? '' : 'hidden'} mb-4`}>
                         <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-2">Jump to</div>
                         <div className="flex gap-2 overflow-x-auto pr-2 pb-1 snap-x snap-mandatory">
@@ -1915,6 +2006,7 @@ export function ReportApp() {
                                 onOpenSliceTray={loadSliceSidecar}
                                 onCopySliceLink={handleCopySliceLink}
                                 sectionVisibility={sectionVisibilityFn}
+                                singleFight={singleFight}
                                 dashboardTitle={dashboardTitleText}
                                 onRequestCategory={(categoryId) => startTransition(() => setActiveGroup(categoryId))}
                                 onSearchAvailable={(open) => { searchOpenRef.current = open; }}
@@ -1934,13 +2026,13 @@ export function ReportApp() {
                         off-screen. Stacking drops the row to ~291px and the
                         flex-1/truncate pair keeps it bounded on narrower phones. */}
                     <div className="flex items-stretch gap-1.5 rounded-2xl bg-slate-950/70 border border-white/15 backdrop-blur-xl px-3 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.45)]">
-                        <a
+                        {showIndexChrome && <a
                             href={themedIndexHref}
                             className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
                         >
                             <ArrowLeft className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                             <span className="max-w-full truncate">Back</span>
-                        </a>
+                        </a>}
                         <button
                             onClick={() => setTocOpen(true)}
                             className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
@@ -2032,13 +2124,13 @@ export function ReportApp() {
                                     <BarChart3 className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                                     {rollupData?.uniqueRaids || 0} Raids
                                 </div>
-                                <a
+                                {showIndexChrome && <a
                                     href={themedIndexHref}
                                     className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 inline-flex items-center justify-center gap-2 hover:border-[color:var(--accent-border)] transition-colors"
                                 >
                                     <ArrowLeft className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                                     Back To Reports
-                                </a>
+                                </a>}
                             </div>
                         </div>
 
@@ -2400,7 +2492,7 @@ export function ReportApp() {
                         <div className={`${glassCard} p-6 text-gray-300`} style={glassCardStyle}>Loading reports...</div>
                     )}
 
-                    {!error && index && sortedIndex.length > 0 && (
+                    {showIndexChrome && !error && index && sortedIndex.length > 0 && (
                         <a
                             href={rollupHref}
                             className={`${glassCard} mb-4 px-5 py-4 transition-all duration-200 group block overflow-hidden relative hover:-translate-y-0.5`}

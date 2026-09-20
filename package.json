@@ -19,9 +19,10 @@
         "dev:electron": "cross-env NODE_OPTIONS=--max-old-space-size=6144 wait-on tcp:5177 && tsc -p electron/tsconfig.json && electron .",
         "clean": "rm -rf dist-electron dist-react dist-web dist_out",
         "build": "npm run clean && npm run sync:metrics-spec && cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc && cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build && cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build --config vite.web.config.ts && cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc -p electron/tsconfig.json",
-        "typecheck": "cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc --noEmit && cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc -p electron/tsconfig.json --noEmit --tsBuildInfoFile node_modules/.cache/axibridge/electron.typecheck.tsbuildinfo",
+        "typecheck": "cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc --noEmit && cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc -p electron/tsconfig.json --noEmit --tsBuildInfoFile node_modules/.cache/axibridge/electron.typecheck.tsbuildinfo && tsc -p worker/tsconfig.json --noEmit",
         "validate": "npm run typecheck && npm run lint",
         "build:web": "npm run sync:metrics-spec && cross-env NODE_OPTIONS=--max-old-space-size=6144 vite build --config vite.web.config.ts",
+        "build:viewer": "cross-env NODE_OPTIONS=--max-old-space-size=6144 vite build --config vite.viewer.config.ts && node scripts/copy-viewer-assets.mjs",
         "build:linux": "npm run build && electron-builder --linux",
         "build:win": "npm run build && electron-builder --win",
         "build:all": "npm run build && electron-builder --linux --win",
@@ -57,7 +58,9 @@
         "test:e2e:app": "playwright test --config playwright.app.config.ts",
         "test:e2e:electron": "playwright test --config playwright.electron.config.ts",
         "test:all": "npm run test:unit && npm run test:e2e:web && npm run test:e2e:app && npm run test:e2e:electron",
-        "ci:local": "npm run validate && npm run audit:boons && npm run audit:metrics && npm run audit:conditions && npm run audit:conditions:consistency && npm run test:unit && npm run test:e2e:web && npm run test:e2e:app && npm run test:e2e:electron"
+        "ci:local": "npm run validate && npm run audit:boons && npm run audit:metrics && npm run audit:conditions && npm run audit:conditions:consistency && npm run test:unit && npm run test:e2e:web && npm run test:e2e:app && npm run test:e2e:electron",
+        "worker:dev": "wrangler dev --config worker/wrangler.toml",
+        "worker:deploy": "wrangler deploy --config worker/wrangler.toml"
     },
     "dependencies": {
         "@axiapps/axilog": "1.14.0",
@@ -113,7 +116,8 @@
         "typescript": "^5.2.2",
         "vite": "^6.2.0",
         "vitest": "^4.0.17",
-        "wait-on": "^7.2.0"
+        "wait-on": "^7.2.0",
+        "wrangler": "^4.0.0"
     },
     "build": {
         "appId": "com.axibridge.app",

@@ -13,6 +13,10 @@ export interface StatsSharedContextValue {
     formatWithCommas: (value: number, decimals: number) => string;
     renderProfessionIcon: (profession: string | undefined, professionList?: string[], className?: string) => JSX.Element | null;
     roundCountStats: boolean;
+    /** True when the whole view describes exactly one fight (the share viewer).
+     *  Sections that phrase results as averages or tallies across logs read this
+     *  and switch to fight-scoped wording. */
+    singleFight: boolean;
     /** How boon leaderboard values are scored/displayed: 'uptime' (%/avg stacks),
      *  'average' (gen/sec), or 'total' (total generation, "count"). */
     mvpBoonMetric: 'total' | 'average' | 'uptime';

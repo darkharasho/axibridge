@@ -8,6 +8,7 @@ import { resolveFightTimestamp } from './utils/timestampUtils';
 import { resolveMapName } from './utils/labelUtils';
 import { buildBoonTables, buildBoonLeaderboards } from '../../shared/boonGeneration';
 import { partitionSquadPlayers } from '../../shared/playerIdentity';
+import { shareIdentity } from '../../shared/shareIdentity';
 
 import {
     createPlayerAggregationAccumulators,
@@ -559,7 +560,7 @@ const enrichPrecomputedStats = (input: any, logs: any[]) => {
         logs.forEach((log: any) => {
             const id = log?.filePath || log?.id;
             if (id) byId.set(String(id), log);
-            const link = log?.permalink || log?.details?.permalink;
+            const link = shareIdentity(log) || log?.details?.permalink;
             if (typeof link === 'string' && link.trim()) {
                 byPermalink.set(link.trim(), log);
             }

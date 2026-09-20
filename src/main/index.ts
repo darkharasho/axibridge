@@ -88,10 +88,11 @@ import {
     normalizeMvpWeights,
 } from './handlers/settingsHandlers';
 import { registerUploadHandlers } from './handlers/uploadHandlers';
-import { registerGithubHandlers } from './handlers/githubHandlers';
+import { registerGithubHandlers, resolveR2Uploader } from './handlers/githubHandlers';
 import { registerCloudflareHandlers } from './handlers/cloudflareHandlers';
 import { registerParserHandlers } from './handlers/parserHandlers';
 import { registerReparseHandlers } from './handlers/reparseHandlers';
+import { registerShareHandlers } from './handlers/shareHandlers';
 import { AxilogManager } from './axilogParser';
 import { getSkillNameCache, initSkillNameCache } from './skillNameCache';
 import { removeEliteInsights } from './eliteInsightsRemoval';
@@ -1881,6 +1882,17 @@ if (!gotTheLock) {
             getAxilogManager: () => axilogManager,
             getPruneOptions: statsPruneOptions,
             setBulkLogDetails,
+        });
+        registerShareHandlers({
+            store,
+            // LRU residency is not the source of truth (see the comment on
+            // loadPersistedLogDetails). Gating on `getBulkLogDetails` alone told
+            // a user to "parse it before sharing" for a log whose details were
+            // sitting on disk, purely because the memory budget had evicted it.
+            // Same fallback order as the get-log-details path in uploadHandlers.
+            getDetails: async (logId: string) =>
+                getBulkLogDetails(logId) ?? (await loadPersistedLogDetails(logId)),
+            resolveTarget: (s: any) => resolveR2Uploader(s).uploader ?? null
         });
     })
 }

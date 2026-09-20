@@ -1,0 +1,14 @@
+{
+  "comment": "Static assets the share viewer fetches at runtime, copied into docs/view/ by scripts/copy-viewer-assets.mjs. Derived by grepping the built bundle for literal asset paths. JSON rather than a JS export so the list has one home that both the build script and its guard test can read without importing across the .mjs/.ts boundary (that import breaks on Windows). logo.json is deliberately absent: it is a per-user guild-logo manifest generated at publish time, not a public/ asset.",
+  "assets": [
+    "img/AxiBridge-white.png",
+    "svg/AxiBridge.svg",
+    "svg/commander_tag_outline.svg",
+    "svg/custom-icons/dam_mit.svg",
+    "svg/custom-icons/gw2_aegis.svg",
+    "svg/custom-icons/gw2_boon.svg",
+    "svg/custom-icons/gw2_fury.svg",
+    "svg/custom-icons/gw2_sigil.svg",
+    "svg/custom-icons/mouse.svg"
+  ]
+}
