@@ -1,4 +1,7 @@
 import { BrowserWindow } from 'electron';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import {
     REPORT_CARD_SIZES,
     collectCardProfessions,
@@ -32,14 +35,26 @@ export async function renderReportCard(
 ): Promise<Buffer | null> {
     const size = REPORT_CARD_SIZES[variant];
     let win: BrowserWindow | null = null;
+    let htmlFile: string | null = null;
     try {
         const publicDir = process.env.VITE_PUBLIC || '';
         if (!publicDir) return null;
-        // Assets are inlined as `data:` URIs: this document is loaded from a
-        // `data:` URL, whose opaque origin makes Chromium refuse every
-        // `file://` subresource.
+        // Assets stay inlined as `data:` URIs. The document now loads from a
+        // temp file, but a relative or absolute `file://` subresource would
+        // still break the moment the card is rendered from a packaged app,
+        // where the asset layout differs.
         const assets = resolveReportCardAssets(publicDir, collectCardProfessions(model, variant));
         const html = renderReportCardHtml(model, variant, assets);
+
+        // Written to a temp file rather than navigated to as a `data:` URL:
+        // the graphic card inlines the font, the glyph and up to six class
+        // icons, which measured 1.65 MiB against Chromium's 2 MiB URL cap.
+        // A heavy roster would cross it and the card would simply not render.
+        htmlFile = path.join(
+            os.tmpdir(),
+            `axibridge-card-${variant}-${process.pid}-${Date.now()}.html`
+        );
+        fs.writeFileSync(htmlFile, html, 'utf8');
 
         win = new BrowserWindow({
             width: size.width,
@@ -55,7 +70,7 @@ export async function renderReportCard(
         const buffer = await withTimeout(
             (async (): Promise<Buffer | null> => {
                 const target = win!;
-                await target.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+                await target.loadFile(htmlFile!);
                 // One round-trip that waits for fonts and a painted frame, then
                 // reports the real content height. Capturing before this
                 // resolves yields unstyled or half-laid-out pixels.
@@ -88,5 +103,8 @@ export async function renderReportCard(
     } finally {
         // destroy(), not close(): a headless window has no reliable close path.
         try { win?.destroy(); } catch { /* already gone */ }
+        if (htmlFile) {
+            try { fs.unlinkSync(htmlFile); } catch { /* best effort */ }
+        }
     }
 }

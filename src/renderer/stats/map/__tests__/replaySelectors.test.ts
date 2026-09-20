@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickDefaultFightId, findClosestMember } from '../replaySelectors';
+import { pickDefaultFightId, findClosestMember, firstPopulatedTimeMs } from '../replaySelectors';
 import type { ReplayFightPayload } from '../replayTypes';
 import type { SquadMemberMovement } from '../../../../shared/movementData';
 
@@ -66,5 +66,29 @@ describe('findClosestMember', () => {
         };
         const hit = findClosestMember([ghost, m('Alice', 100, 100)], 0, 101, 101, 5);
         expect(hit?.name).toBe('Alice');
+    });
+});
+
+describe('firstPopulatedTimeMs', () => {
+    const track = (firstPoll: number, positions: [number, number][] = [[0, 0]]) =>
+        ({ firstPoll, positions });
+
+    // The measured shape of every native fixture: a handful of tracks start at
+    // poll 0, the overwhelming majority at poll 1, a few stragglers later.
+    it('returns the earliest first poll in ms', () => {
+        expect(firstPopulatedTimeMs([track(1), track(1), track(7)], 300)).toBe(300);
+    });
+
+    it('stays at 0 when any track really does start at poll 0', () => {
+        expect(firstPopulatedTimeMs([track(0), track(1)], 300)).toBe(0);
+    });
+
+    it('ignores tracks with no samples', () => {
+        expect(firstPopulatedTimeMs([track(0, []), track(2)], 300)).toBe(600);
+    });
+
+    it('returns 0 when nothing is positioned at all', () => {
+        expect(firstPopulatedTimeMs([], 300)).toBe(0);
+        expect(firstPopulatedTimeMs([track(4)], 0)).toBe(0);
     });
 });

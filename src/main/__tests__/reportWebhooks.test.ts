@@ -392,6 +392,47 @@ describe('postReportToWebhooks with an image', () => {
         expect((call[1] as RequestInit).headers).toEqual({ 'Content-Type': 'application/json' });
     });
 
+    // Every other way the card can go missing warns. These two dropped it
+    // before the request and then reported plain success, which is what made
+    // "I picked full graphic and no graphic posts" so hard to diagnose.
+    it('warns with the real size when the card is over the ceiling', async () => {
+        const onStatus = vi.fn();
+        await postReportToWebhooks({
+            webhooks: [hook({ style: 'graphic' })],
+            meta, stats, url: 'u', fetchImpl: vi.fn(async () => okResponse), onStatus,
+            images: { graphic: Buffer.alloc(9 * 1024 * 1024) },
+        });
+        expect(onStatus).toHaveBeenCalledWith(
+            expect.stringContaining('9.0 MB, over the 7 MB attachment ceiling'),
+            true
+        );
+        expect(onStatus).not.toHaveBeenCalledWith(expect.stringContaining('Posted report to'), undefined);
+    });
+
+    it('warns when the rendered card came back empty', async () => {
+        const onStatus = vi.fn();
+        await postReportToWebhooks({
+            webhooks: [hook({ style: 'graphic' })],
+            meta, stats, url: 'u', fetchImpl: vi.fn(async () => okResponse), onStatus,
+            images: { graphic: Buffer.alloc(0) },
+        });
+        expect(onStatus).toHaveBeenCalledWith(
+            expect.stringContaining('the rendered card was empty'),
+            true
+        );
+    });
+
+    // A text-style hook has no card by definition — warning there would be noise.
+    it('stays quiet for a text hook that was never given a card', async () => {
+        const onStatus = vi.fn();
+        await postReportToWebhooks({
+            webhooks: [hook({ style: 'text' })],
+            meta, stats, url: 'u', fetchImpl: vi.fn(async () => okResponse), onStatus,
+            images: { graphic: Buffer.alloc(0) },
+        });
+        expect(onStatus).not.toHaveBeenCalledWith(expect.anything(), true);
+    });
+
     it('retries without the image when Discord rejects the attachment as too large', async () => {
         const fetchImpl = vi.fn()
             .mockResolvedValueOnce(errorResponse(413, '{"message": "Request entity too large", "code": 40005}'))

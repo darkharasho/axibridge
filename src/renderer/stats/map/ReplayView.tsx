@@ -17,7 +17,7 @@ import { FullscreenPortal } from './FullscreenPortal';
 import { useReplayPlayback } from './hooks/useReplayPlayback';
 import { useReplayViewport } from './hooks/useReplayViewport';
 import { useMovementData } from './hooks/useMovementData';
-import { pickDefaultFightId, findClosestMember, sortFightsNewestFirst } from './replaySelectors';
+import { pickDefaultFightId, findClosestMember, firstPopulatedTimeMs, sortFightsNewestFirst } from './replaySelectors';
 import { sampleAt } from './layers/MemberLayer';
 import { ReplayMapContent } from './ReplayMapContent';
 import type { MemberHoverInfo } from './layers/MemberLayer';
@@ -112,6 +112,21 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
     const heatmap = useHeatmapData(selectedFight, layers.heatmap);
     const durationMs = selectedFight?.durationMs ?? 0;
     useReplayPlayback({ durationMs });
+
+    // Selecting a fight parks the playhead at 0, but the position grid does
+    // not start there: nearly every track's first sample is one poll in. Seed
+    // forward to the first populated instant so the opening frame shows the
+    // real roster instead of filling in a poll later. Only ever moves the
+    // playhead forward from a reset, so a deliberate scrub back to 0 sticks.
+    const startMs = selectedFight
+        ? firstPopulatedTimeMs(selectedFight.movementData.members, selectedFight.movementData.pollingRate)
+        : 0;
+    const seededFightRef = useRef<string | null>(null);
+    useEffect(() => {
+        if (!selectedFight || seededFightRef.current === selectedFight.fightId) return;
+        seededFightRef.current = selectedFight.fightId;
+        if (startMs > 0) setReplayPlayhead({ timeMs: startMs });
+    }, [selectedFight, startMs, setReplayPlayhead]);
 
     const mapSize = selectedFight?.mapSize ?? [600, 600];
     const [mapWidth, mapHeight] = mapSize;
@@ -233,7 +248,11 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
         if (!selectedFight) return;
         const commander = selectedFight.movementData.members.find(m => m.isCommander && m.inSquad);
         if (!commander) return;
-        const pos = sampleAt(commander, 0);
+        // Their own first poll, not 0: `sampleAt` returns null before a
+        // member's track starts, and a commander whose first sample is one
+        // poll in (the common case) would silently skip the centering
+        // entirely — the map opened unzoomed and uncentered.
+        const pos = sampleAt(commander, commander.firstPoll || 0);
         if (pos) {
             setReplayViewport({ scale: 3 });
             centerOn(pos[0], pos[1]);

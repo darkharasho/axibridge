@@ -58,3 +58,28 @@ export function findClosestMember(
 export function orderMembersForRender<T extends { isCommander?: boolean }>(members: T[]): T[] {
     return [...members].sort((a, b) => Number(!!a.isCommander) - Number(!!b.isCommander));
 }
+
+/**
+ * The fight-relative time of the earliest position sample any actor has.
+ *
+ * Measured across every native fixture, 1–6 tracks out of 60–134 carry a
+ * sample at t=0 and essentially all the rest start at exactly one poll in;
+ * no enemy anywhere had a t=0 sample. Opening the playhead at 0 therefore
+ * draws a near-empty map that "fills in" 300ms later. Seeding it here shows
+ * the real opening roster without inventing a single position.
+ *
+ * Returns 0 when nothing has a track, which leaves the old behaviour intact.
+ */
+export function firstPopulatedTimeMs(
+    members: Pick<SquadMemberMovement, 'positions' | 'firstPoll'>[],
+    pollingRate: number,
+): number {
+    if (!(pollingRate > 0)) return 0;
+    let earliest = Infinity;
+    for (const m of members) {
+        if (!m.positions.length) continue;
+        const poll = m.firstPoll || 0;
+        if (poll < earliest) earliest = poll;
+    }
+    return Number.isFinite(earliest) ? Math.max(0, earliest) * pollingRate : 0;
+}
