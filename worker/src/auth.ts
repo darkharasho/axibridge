@@ -46,16 +46,27 @@ export const resolveOwner = async (
     }
 };
 
+/**
+ * The rate-limiter seam. Tests hand in a plain fake; production hands in an
+ * adapter over the real `DurableObjectNamespace`. Nothing above this interface
+ * knows which it got.
+ *
+ * `owner` is the GitHub login and nothing more — see the SECURITY note above.
+ * It keys the Durable Object (`idFromName(owner)`), which is intended, but it
+ * is no more loggable than the token it came from: do not log it either.
+ */
+export interface RateLimiterLike {
+    consume(owner: string, opts: { limit: number; windowSeconds: number }): Promise<boolean>;
+}
+
+// The old `rl:${owner}` KV prefix is retired; any leftover keys expire on their
+// own TTL and nothing reads or writes them any more.
+
 export const checkRateLimit = async (
-    kv: KVLike,
+    limiter: RateLimiterLike,
     owner: string,
     opts: { limit?: number; windowSeconds?: number } = {}
-): Promise<boolean> => {
-    const limit = opts.limit ?? RATE_LIMIT_PER_HOUR;
-    const windowSeconds = opts.windowSeconds ?? RATE_LIMIT_WINDOW_SECONDS;
-    const key = `rl:${owner}`;
-    const current = Number.parseInt((await kv.get(key)) ?? '0', 10) || 0;
-    if (current >= limit) return false;
-    await kv.put(key, String(current + 1), { expirationTtl: windowSeconds });
-    return true;
-};
+): Promise<boolean> => limiter.consume(owner, {
+    limit: opts.limit ?? RATE_LIMIT_PER_HOUR,
+    windowSeconds: opts.windowSeconds ?? RATE_LIMIT_WINDOW_SECONDS
+});

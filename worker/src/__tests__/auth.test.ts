@@ -1,15 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { checkRateLimit, RATE_LIMIT_PER_HOUR, resolveOwner, type KVLike } from '../auth';
-
-const fakeKv = (): KVLike & { store: Map<string, string> } => {
-    const store = new Map<string, string>();
-    return {
-        store,
-        get: async (key) => store.get(key) ?? null,
-        put: async (key, value) => { store.set(key, value); },
-        delete: async (key) => { store.delete(key); }
-    };
-};
+import { checkRateLimit, RATE_LIMIT_PER_HOUR, resolveOwner, type RateLimiterLike } from '../auth';
+import { ShareRateLimiter, type DurableStorageLike } from '../rateLimiter';
 
 const jsonResponse = (status: number, body: unknown) =>
     new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
@@ -44,29 +35,88 @@ describe('resolveOwner', () => {
     });
 });
 
+/**
+ * Storage that genuinely defers past the current microtask turn, so a
+ * read-modify-write implementation cannot look atomic by accident.
+ */
+const deferredStorage = (): DurableStorageLike => {
+    const map = new Map<string, unknown>();
+    const tick = () => new Promise<void>((resolve) => { setTimeout(resolve, 0); });
+    return {
+        get: async <T,>(key: string) => { await tick(); return map.get(key) as T | undefined; },
+        put: async <T,>(key: string, value: T) => { await tick(); map.set(key, value); }
+    };
+};
+
+/** The production seam, stood up in-process: one Durable Object per owner. */
+const fakeLimiter = (): RateLimiterLike => {
+    const objects = new Map<string, ShareRateLimiter>();
+    return {
+        consume: (owner, opts) => {
+            let object = objects.get(owner);
+            if (!object) {
+                object = new ShareRateLimiter({ storage: deferredStorage() });
+                objects.set(owner, object);
+            }
+            return object.consume(opts.limit, opts.windowSeconds);
+        }
+    };
+};
+
 describe('checkRateLimit', () => {
     it('allows the first request', async () => {
-        await expect(checkRateLimit(fakeKv(), 'darkharasho')).resolves.toBe(true);
+        await expect(checkRateLimit(fakeLimiter(), 'darkharasho')).resolves.toBe(true);
     });
 
     it('allows requests up to the limit and denies the next', async () => {
-        const kv = fakeKv();
+        const limiter = fakeLimiter();
         for (let i = 0; i < RATE_LIMIT_PER_HOUR; i += 1) {
-            await expect(checkRateLimit(kv, 'darkharasho')).resolves.toBe(true);
+            await expect(checkRateLimit(limiter, 'darkharasho')).resolves.toBe(true);
         }
-        await expect(checkRateLimit(kv, 'darkharasho')).resolves.toBe(false);
+        await expect(checkRateLimit(limiter, 'darkharasho')).resolves.toBe(false);
     });
 
     it('counts each owner separately', async () => {
-        const kv = fakeKv();
-        for (let i = 0; i < RATE_LIMIT_PER_HOUR; i += 1) await checkRateLimit(kv, 'a');
-        await expect(checkRateLimit(kv, 'a')).resolves.toBe(false);
-        await expect(checkRateLimit(kv, 'b')).resolves.toBe(true);
+        const limiter = fakeLimiter();
+        for (let i = 0; i < RATE_LIMIT_PER_HOUR; i += 1) await checkRateLimit(limiter, 'a');
+        await expect(checkRateLimit(limiter, 'a')).resolves.toBe(false);
+        await expect(checkRateLimit(limiter, 'b')).resolves.toBe(true);
     });
 
     it('honours an explicit lower limit', async () => {
-        const kv = fakeKv();
-        await expect(checkRateLimit(kv, 'a', { limit: 1 })).resolves.toBe(true);
-        await expect(checkRateLimit(kv, 'a', { limit: 1 })).resolves.toBe(false);
+        const limiter = fakeLimiter();
+        await expect(checkRateLimit(limiter, 'a', { limit: 1 })).resolves.toBe(true);
+        await expect(checkRateLimit(limiter, 'a', { limit: 1 })).resolves.toBe(false);
+    });
+
+    /**
+     * The serial cases above pass against any implementation, including the KV
+     * read-modify-write this replaced — which is why they asserted a guarantee
+     * the code did not have. This is the case that actually holds the limit up.
+     */
+    it('allows exactly the limit when limit+20 calls are all in flight at once', async () => {
+        const limiter = fakeLimiter();
+        const total = RATE_LIMIT_PER_HOUR + 20;
+
+        let entered = 0;
+        let settled = 0;
+        let enteredBeforeFirstSettle = 0;
+
+        // No `await` in this loop: every call begins before any can finish.
+        const inFlight = Array.from({ length: total }, () => {
+            entered += 1;
+            return checkRateLimit(limiter, 'darkharasho').then((ok) => {
+                if (settled === 0) enteredBeforeFirstSettle = entered;
+                settled += 1;
+                return ok;
+            });
+        });
+
+        const results = await Promise.all(inFlight);
+
+        // Guards the test itself: a rewrite that serializes the calls proves
+        // nothing, and this assertion is how you find out.
+        expect(enteredBeforeFirstSettle).toBe(total);
+        expect(results.filter(Boolean)).toHaveLength(RATE_LIMIT_PER_HOUR);
     });
 });

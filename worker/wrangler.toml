@@ -14,3 +14,14 @@ VIEWER_URL = "https://bridge.axi.link/view"
 binding = "SHARE"
 id = "2dcca71363364581b235031eaed07a0e"
 preview_id = "1288b8d418e34894867179a5101ca584"
+
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "ShareRateLimiter"
+
+# SQLite-backed storage (`new_sqlite_classes`, not `new_classes`) — the current
+# default backend for new Durable Object classes. This migration runs at deploy
+# time and resolves `ShareRateLimiter` against the entrypoint's exports.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ShareRateLimiter"]

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { contentSecurityPolicy, handleRequest, type Env } from '../index';
 import type { KVLike } from '../auth';
+import { ShareRateLimiter, type DurableObjectNamespaceLike, type DurableObjectStubLike } from '../rateLimiter';
 import type { PointerRecord } from '../pointer';
 
 const fakeKv = (): KVLike & { store: Map<string, string> } => {
@@ -76,7 +77,42 @@ const gatedKv = (): KVLike & { store: Map<string, string>; gate: Promise<void> |
     return kv;
 };
 
-const env = (kv: KVLike): Env => ({ SHARE: kv, VIEWER_URL: 'https://bridge.axi.link/view' });
+/**
+ * A real `ShareRateLimiter` per owner behind the namespace seam, so these
+ * handler tests exercise the production path rather than a stand-in. Pass
+ * `limit: 0` to stand up a namespace whose owners are already over budget.
+ */
+const fakeRateLimiter = (opts: { exhausted?: boolean } = {}): DurableObjectNamespaceLike => {
+    const objects = new Map<string, DurableObjectStubLike>();
+    return {
+        idFromName: (name: string) => ({ toString: () => name }),
+        get: (id) => {
+            const name = id.toString();
+            let object = objects.get(name);
+            if (!object) {
+                object = opts.exhausted
+                    ? { fetch: async () => new Response(JSON.stringify({ ok: false }), { status: 200 }) }
+                    : new ShareRateLimiter({ storage: memoryStorage() });
+                objects.set(name, object);
+            }
+            return object;
+        }
+    };
+};
+
+const memoryStorage = () => {
+    const map = new Map<string, unknown>();
+    return {
+        get: async <T,>(key: string) => map.get(key) as T | undefined,
+        put: async <T,>(key: string, value: T) => { map.set(key, value); }
+    };
+};
+
+const env = (kv: KVLike, rateLimiter = fakeRateLimiter()): Env => ({
+    SHARE: kv,
+    RATE_LIMITER: rateLimiter,
+    VIEWER_URL: 'https://bridge.axi.link/view'
+});
 
 const okUser = () => vi.fn().mockResolvedValue(
     new Response(JSON.stringify({ login: 'darkharasho' }), { status: 200 })
@@ -135,7 +171,8 @@ describe('POST /r', () => {
         const body = await res.json() as { code: string; url: string };
         expect(body.code).toMatch(/^[0-9A-Za-z]{8}$/);
         expect(body.url).toBe(`https://bridge.axi.link/r/${body.code}`);
-        expect(kv.store.size).toBe(2); // pointer + rate-limit counter
+        // Just the pointer now: the rate-limit counter moved to the Durable Object.
+        expect(kv.store.size).toBe(1);
     });
 
     it('stores the owner resolved from the token', async () => {
@@ -166,9 +203,11 @@ describe('POST /r', () => {
     });
 
     it('rejects once the owner is over the rate limit', async () => {
-        const kv = fakeKv();
-        await kv.put('rl:darkharasho', '120');
-        const res = await handleRequest(post({ loc: 'x', sum: summary }), env(kv), okUser() as any);
+        const res = await handleRequest(
+            post({ loc: 'x', sum: summary }),
+            env(fakeKv(), fakeRateLimiter({ exhausted: true })),
+            okUser() as any
+        );
         expect(res.status).toBe(429);
     });
 
@@ -586,7 +625,7 @@ describe('GET /r/:code', () => {
         await kv.put('p:k3Xm9qR2', JSON.stringify(record()));
         const res = await handleRequest(
             new Request('https://bridge.axi.link/r/k3Xm9qR2'),
-            { SHARE: kv, VIEWER_URL: 'https://staging.example.test/view' },
+            { SHARE: kv, RATE_LIMITER: fakeRateLimiter(), VIEWER_URL: 'https://staging.example.test/view' },
             okUser() as any
         );
         expect(res.headers.get('content-security-policy')).toContain('https://staging.example.test');
@@ -669,8 +708,11 @@ describe('PATCH /r/:code', () => {
         // shares POST's per-owner ceiling instead of being unlimited.
         const kv = fakeKv();
         await kv.put('p:k3Xm9qR2', JSON.stringify(record()));
-        await kv.put('rl:darkharasho', '120');
-        const res = await handleRequest(patch('k3Xm9qR2', 'demoted'), env(kv), okUser() as any);
+        const res = await handleRequest(
+            patch('k3Xm9qR2', 'demoted'),
+            env(kv, fakeRateLimiter({ exhausted: true })),
+            okUser() as any
+        );
         expect(res.status).toBe(429);
         expect(JSON.parse(kv.store.get('p:k3Xm9qR2')!).stage).toBe('full');
     });

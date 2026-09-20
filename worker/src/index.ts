@@ -1,4 +1,5 @@
 import { checkRateLimit, resolveOwner, type KVLike } from './auth';
+import { durableRateLimiter, type DurableObjectNamespaceLike } from './rateLimiter';
 import { renderPointerHtml } from './og';
 import {
     generateCode,
@@ -11,8 +12,16 @@ import {
 
 export interface Env {
     SHARE: KVLike;
+    RATE_LIMITER: DurableObjectNamespaceLike;
     VIEWER_URL: string;
 }
+
+/**
+ * Re-exported so the Durable Object migration in `wrangler.toml` can find the
+ * class: `new_sqlite_classes` resolves names against the Worker entrypoint's
+ * exports, and a missing export fails the migration at deploy time.
+ */
+export { ShareRateLimiter } from './rateLimiter';
 
 /** Passed by the Workers runtime; tests calling `handleRequest` directly omit it. */
 export interface ExecutionContextLike {
@@ -154,7 +163,7 @@ const allocateCode = async (env: Env): Promise<string | null> => {
 const createPointer = async (request: Request, env: Env, fetchImpl: typeof fetch): Promise<Response> => {
     const owner = await resolveOwner(bearer(request), fetchImpl);
     if (!owner) return json(401, { error: 'GitHub authentication required.' });
-    if (!(await checkRateLimit(env.SHARE, owner))) {
+    if (!(await checkRateLimit(durableRateLimiter(env.RATE_LIMITER), owner))) {
         return json(429, { error: 'Share rate limit reached. Try again later.' });
     }
 
@@ -310,8 +319,9 @@ const patchPointer = async (
     const owner = await resolveOwner(bearer(request), fetchImpl);
     if (!owner) return json(401, { error: 'GitHub authentication required.' });
     // PATCH costs the same as POST: an uncached api.github.com/user round-trip
-    // plus a KV write, so it shares the same per-owner ceiling.
-    if (!(await checkRateLimit(env.SHARE, owner))) {
+    // plus a KV write, so it shares the same per-owner ceiling — same limiter,
+    // same limit, same owner key. It gets no budget of its own.
+    if (!(await checkRateLimit(durableRateLimiter(env.RATE_LIMITER), owner))) {
         return json(429, { error: 'Share rate limit reached. Try again later.' });
     }
 
