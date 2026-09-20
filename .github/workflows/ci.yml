@@ -74,6 +74,9 @@ jobs:
 
           exit "$status"
 
+      - name: Fail if the bundle reaches for Node globals
+        run: node scripts/check-viewer-globals.mjs
+
   audit-boons:
     runs-on: ubuntu-latest
     steps:

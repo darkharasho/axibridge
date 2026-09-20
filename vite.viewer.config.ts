@@ -25,6 +25,14 @@ export default defineConfig({
     // worker failed to construct and aggregation silently fell back to the
     // inline `computeStatsSync` path.
     base: './',
+    // Library mode leaves `process.env.NODE_ENV` in place for the consuming
+    // bundler to replace — but this bundle has no consumer. The browser loads
+    // it straight from `<script type="module">` on the Worker's boot page,
+    // where `process` does not exist, and React's jsx-runtime reads it while
+    // initialising. Without this the viewer dies at load with
+    // `ReferenceError: process is not defined` before rendering anything.
+    // App builds (vite.web.config.ts) get this define for free; `lib` ones do not.
+    define: { 'process.env.NODE_ENV': JSON.stringify('production') },
     build: {
         outDir: 'docs/view',
         emptyOutDir: false,
