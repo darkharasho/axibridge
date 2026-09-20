@@ -43,12 +43,30 @@ import { FightHero } from './share/FightHero';
 
 const glassCard = 'border border-white/10 rounded-2xl shadow-xl backdrop-blur-md glass-card';
 
-// Sections that only mean something across several logs. Dropped for a single
-// fight: the Data Map indexes a report that has one entry, Fight Comparison
-// would diff a fight against itself, and Fight Breakdown is a sortable table of
-// exactly one row whose every column already appears in the header above it,
-// and Map Distribution is a pie chart of a single slice.
-const AGGREGATE_ONLY_SECTIONS = ['data-map', 'fight-breakdown', 'fight-diff-mode', 'map-distribution'];
+// Sections that only mean something across several logs, each degenerate when
+// the report holds exactly one fight:
+//   data-map                  indexes a report that has one entry
+//   fight-breakdown           a sortable table of one row, every column of
+//                             which already appears in the header above it
+//   fight-diff-mode           would diff a fight against itself
+//   map-distribution          a pie chart of a single slice
+//   timeline                  a line chart of squad and enemy size over the
+//                             session — one point, and the header already
+//                             carries that matchup as a bar
+//   squad-damage-comparison   a bar per fight of damage out vs in; one pair,
+//                             and both totals are KPI tiles in the header
+//   squad-comp-fight          a fight-tab strip with one tab, whose panel is
+//                             the squad composition the Classes section
+//                             already shows in full
+const AGGREGATE_ONLY_SECTIONS = [
+    'data-map',
+    'fight-breakdown',
+    'fight-diff-mode',
+    'map-distribution',
+    'timeline',
+    'squad-damage-comparison',
+    'squad-comp-fight'
+];
 
 
 const buildReportHref = (baseHref: string, reportId: string): string => {

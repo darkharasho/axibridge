@@ -53,19 +53,28 @@ const LeaderCard = ({ icon: Icon, title, data, isBoon = false, accentColor, unit
                     </div>
                 </div>
             </div>
-            <div className="flex flex-col border-t border-[color:var(--border-subtle)] pt-2">
-                <div className="flex items-center gap-2 min-w-0">
-                    {renderProfessionIcon(data?.profession || 'Unknown', data?.professionList, 'w-4 h-4')}
-                    <div className="text-sm font-medium text-[color:var(--brand-primary)] truncate">{data?.player || '-'}</div>
+            {/* A single-fight report opens every card on the full standings, and
+                row 1 of those standings is this leader — so the summary line
+                below the rule would restate the name directly above the table
+                that already holds it. */}
+            {!(singleFight && active) && (
+                <div className="flex flex-col border-t border-[color:var(--border-subtle)] pt-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                        {renderProfessionIcon(data?.profession || 'Unknown', data?.professionList, 'w-4 h-4')}
+                        <div className="text-sm font-medium text-[color:var(--brand-primary)] truncate">{data?.player || '-'}</div>
+                    </div>
+                    {/* The log count is what distinguishes a leader who topped one
+                        fight from one who topped twenty. In a single-fight report it
+                        is always "1 logs" — noise, and ungrammatical noise. */}
+                    <div className="text-xs text-[color:var(--text-secondary)] truncate">{singleFight ? '' : (data?.count ? `${data.count} logs` : '-')}</div>
                 </div>
-                {/* The log count is what distinguishes a leader who topped one
-                    fight from one who topped twenty. In a single-fight report it
-                    is always "1 logs" — noise, and ungrammatical noise. */}
-                <div className="text-xs text-[color:var(--text-secondary)] truncate">{singleFight ? '' : (data?.count ? `${data.count} logs` : '-')}</div>
-            </div>
+            )}
             {active && (
-                <div className="mt-3">
-                    <div className="text-xs font-semibold text-[color:var(--text-primary)] mb-2">{title}</div>
+                <div className={singleFight ? 'border-t border-[color:var(--border-subtle)] pt-2' : 'mt-3'}>
+                    {/* Restating the card title inside the card is only worth it
+                        when the panel was opened by a click and could be scrolled
+                        away from its heading. */}
+                    {!singleFight && <div className="text-xs font-semibold text-[color:var(--text-primary)] mb-2">{title}</div>}
                     {rows?.length ? (
                         <div className="max-h-56 overflow-y-auto pr-1 space-y-1">
                             {rows.map((row: any) => (
@@ -164,7 +173,7 @@ export const TopPlayersSection = ({
     enabledTopStats = DEFAULT_ENABLED_TOP_STATS,
     noEgoMode = false,
 }: TopPlayersSectionProps) => {
-    const { stats, formatWithCommas, renderProfessionIcon, mvpBoonMetric } = useStatsSharedContext();
+    const { stats, formatWithCommas, renderProfessionIcon, mvpBoonMetric, singleFight } = useStatsSharedContext();
     if (!showTopStats) return null;
     const offenseMvp = stats.offensiveMvp || stats.mvp;
     const offenseSilver = stats.offensiveSilver || stats.silver;
@@ -192,9 +201,15 @@ export const TopPlayersSection = ({
     const leaderboardsForDef = (def: TopStatDef) =>
         isRateMode && !def.supportsRate ? stats.leaderboards : topStatsLeaderboards;
 
+    // Participation counts the fights a player was present for. In a single-fight
+    // report that is 1 for every name on the roster, so it ranks nobody and
+    // crowds out a real stat in both the MVP pills and the leaderboard grid.
+    const isAggregateOnlyStat = (idOrLabel: string) => singleFight && (idOrLabel === 'participation' || idOrLabel === 'Participation');
+    const statEnabled = (name: string) => isMvpStatEnabled(name) && !isAggregateOnlyStat(name);
+
     const enabledSet = new Set(enabledTopStats);
     // Filter catalog to enabled defs in catalog order
-    const enabledDefs = TOP_STATS_CATALOG.filter((d) => enabledSet.has(d.id));
+    const enabledDefs = TOP_STATS_CATALOG.filter((d) => enabledSet.has(d.id) && !isAggregateOnlyStat(d.id));
 
     const formatValue = (def: TopStatDef, value: number): string => {
         if (def.source.kind === 'boon') {
@@ -358,7 +373,7 @@ export const TopPlayersSection = ({
                                         </div>
                                         <div className="mt-auto min-h-[58px] sm:min-h-[54px]">
                                             <div className="space-y-1 sm:space-y-0.5 max-w-[12rem]">
-                                                {(group.gold?.topStats || []).filter((stat: any) => isMvpStatEnabled(stat.name)).slice(0, 3).map((stat: any, i: number) => (
+                                                {(group.gold?.topStats || []).filter((stat: any) => statEnabled(stat.name)).slice(0, 3).map((stat: any, i: number) => (
                                                     <div key={i} className={`mvp-stat-pill mvp-stat-pill--gold flex items-center justify-between gap-2 px-2 py-1 text-[11px] sm:gap-1.5 sm:px-1.5 sm:py-0.5 sm:text-[10px] rounded-md border leading-normal ${group.goldStatRow}`}>
                                                         <span className="text-yellow-200/90 font-semibold truncate leading-normal">{stat.name}</span>
                                                         <span className="text-yellow-100 font-mono tabular-nums shrink-0 leading-normal">{formatMvpPillValue(stat.val, formatTopStatValue)}</span>
@@ -406,10 +421,10 @@ export const TopPlayersSection = ({
                                                 </div>
                                             </div>
                                         </div>
-                                        {entry.data?.topStats?.some((stat: any) => isMvpStatEnabled(stat.name)) ? (
+                                        {entry.data?.topStats?.some((stat: any) => statEnabled(stat.name)) ? (
                                             <div className={`mt-auto min-h-[40px] sm:min-h-[36px] text-[11px] sm:text-[10px] ${entry.label === 'Silver' ? 'text-slate-200' : 'text-orange-200'}`}>
                                                 <div className="space-y-1 sm:space-y-0.5 sm:max-w-[12rem]">
-                                                    {entry.data.topStats.filter((stat: any) => isMvpStatEnabled(stat.name)).slice(0, 2).map((stat: any, idx: number) => (
+                                                    {entry.data.topStats.filter((stat: any) => statEnabled(stat.name)).slice(0, 2).map((stat: any, idx: number) => (
                                                         <div
                                                             key={idx}
                                                             className={`mvp-stat-pill mvp-stat-pill--minor flex items-center justify-between gap-2 sm:gap-1.5 px-2 py-1 sm:px-1.5 sm:py-0.5 rounded-md border leading-normal ${entry.label === 'Silver'

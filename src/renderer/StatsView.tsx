@@ -948,7 +948,12 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     // MVP pills are built only from weighted stats (the scoring `contribs`), so all are shown.
     const isMvpStatEnabled = (_name: string) => true;
 
-    const [expandedLeader, setExpandedLeader] = useState<string | null>(null);
+    // A leader card collapsed to its winner answers "who topped this stat across
+    // the raid" — the aggregate question. For a single fight the ranking IS the
+    // content: there is no "topped it twenty times" signal to summarise, and the
+    // full standings fit on one screen. Open them on arrival rather than making
+    // a share-link reader discover that the tiles are clickable.
+    const [expandedLeader, setExpandedLeader] = useState<string | null>(singleFight ? 'all' : null);
     const [activeBoonTab, setActiveBoonTab] = useState<string | null>(null);
     const [activeBoonCategory, setActiveBoonCategory] = useState<BoonCategory>('totalBuffs');
     const [activeBoonMetric, setActiveBoonMetric] = useState<BoonMetric>('total');
