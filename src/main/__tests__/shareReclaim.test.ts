@@ -106,10 +106,16 @@ describe('reclaimShareSpace', () => {
         const target = fakeTarget();
         const fetchImpl = fakeFetch({ 'https://u.github.io/f/shares/a.json.gz': full });
 
+        // The budget is expressed RELATIVE to the report so this case stays a
+        // single demote as REPLAY_SHARE_OF_REPORT moves: over the mark before,
+        // under it after one demote, for any reclaim rate above 20%. A fixed
+        // budget of 100 happened to stop at demote when the projection was
+        // 0.66 and ran on into a tombstone at 0.25, which is a different test.
         const result = await reclaimShareSpace(deps({
-            store, target, fetchImpl, budgetBytes: 100, highWaterPct: 0.8
+            store, target, fetchImpl, budgetBytes: full.length, highWaterPct: 0.8
         }));
 
+        expect(result.steps).toHaveLength(1);
         expect(result.steps[0]).toMatchObject({ code: 'AAAAAAAA', from: 'full', to: 'demoted' });
         expect(result.steps[0].error).toBeUndefined();
         expect(result.steps[0].reclaimed).toBeGreaterThan(0);

@@ -1,5 +1,9 @@
+import fs from 'fs';
+import path from 'path';
 import { describe, expect, it } from 'vitest';
 import { stripShareReplay } from '../shareReplayStrip';
+import { compressReport } from '../shareService';
+import { REPLAY_SHARE_OF_REPORT } from '../shareRetention';
 
 const details = () => ({
     native: {
@@ -70,5 +74,70 @@ describe('stripShareReplay', () => {
         const before = JSON.stringify(details()).length;
         const after = JSON.stringify(stripShareReplay(details())).length;
         expect(after).toBeLessThan(before);
+    });
+});
+
+/**
+ * The hand-built fixtures above prove the strip removes what it should. They
+ * cannot prove it KEEPS what it should, because they only contain keys someone
+ * already thought to put in them — and a demote overwrites a report a user has
+ * already published a link to, one way, with no path back to the full bytes.
+ *
+ * So this block runs the same strip over a real 42-player WvW report and
+ * asserts on the shape as a whole: every top-level key, every native block, and
+ * every player survives. A future strip that reached one key too far would show
+ * up here as a missing key rather than as a blanked section in someone's
+ * already-shared report.
+ *
+ * `readFileSync` rather than a static import: these fixtures are megabytes of
+ * JSON and a static import of one OOMs `tsc --noEmit` at 8 GB.
+ */
+describe('stripShareReplay over a real report', () => {
+    const FIXTURE = path.resolve(process.cwd(), 'test-fixtures/native/20260117-181030.json');
+    const full = JSON.parse(fs.readFileSync(FIXTURE, 'utf8'));
+    const stripped = stripShareReplay(full);
+
+    it('keeps every top-level key and every native block', () => {
+        expect(Object.keys(stripped).sort()).toEqual(Object.keys(full).sort());
+        expect(Object.keys(stripped.native).sort()).toEqual(Object.keys(full.native).sort());
+        expect(Object.keys(stripped.native.blocks).sort())
+            .toEqual(Object.keys(full.native.blocks).sort());
+    });
+
+    it('drops the replay tracks and nothing else in that block', () => {
+        expect(stripped.native.blocks.replay.tracks).toBeUndefined();
+        expect(Object.keys(stripped.native.blocks.replay).sort())
+            .toEqual(Object.keys(full.native.blocks.replay).filter((k) => k !== 'tracks').sort());
+    });
+
+    it('keeps every actor, without positions but with down/dead intervals', () => {
+        expect(stripped.players).toHaveLength(full.players.length);
+        expect(stripped.targets).toHaveLength(full.targets.length);
+        for (const actor of [...stripped.players, ...stripped.targets]) {
+            if (!actor.combatReplayData) continue;
+            expect(actor.combatReplayData.positions).toBeUndefined();
+            expect(actor.combatReplayData.start).toBeDefined();
+            expect(actor.combatReplayData.down).toBeDefined();
+            expect(actor.combatReplayData.dead).toBeDefined();
+        }
+    });
+
+    it('does not mutate the live in-app object', () => {
+        expect(full.native.blocks.replay.tracks).toBeDefined();
+        expect(full.players[0].combatReplayData.positions).toBeDefined();
+    });
+
+    /**
+     * The planner projects reclaim from REPLAY_SHARE_OF_REPORT and stops once
+     * the PROJECTED total is under the mark, so a constant that runs ahead of
+     * reality leaves the user over budget believing the work is done. This is
+     * the measurement the constant is supposed to model; it is asserted as a
+     * loose band because the real spread across fixtures is 20%-63%.
+     */
+    it('reclaims bytes in the band the planner projects', () => {
+        const measured = 1 - compressReport(stripped).length / compressReport(full).length;
+        expect(measured).toBeGreaterThan(0.15);
+        expect(REPLAY_SHARE_OF_REPORT).toBeGreaterThan(0.15);
+        expect(REPLAY_SHARE_OF_REPORT).toBeLessThan(0.45);
     });
 });
