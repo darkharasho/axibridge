@@ -122,6 +122,9 @@ interface StatsViewProps {
     precomputedStats?: any;
     embedded?: boolean;
     sectionVisibility?: (id: string) => boolean;
+    /** Set by the share viewer, where the report is a single fight. Switches
+     *  aggregate phrasing (averages, win tallies) to fight-scoped equivalents. */
+    singleFight?: boolean;
     /** Host override for where a search-palette selection's category activation goes.
      *  Desktop default (StatsView itself) writes directly to the shared stats store. */
     onRequestCategory?: (categoryId: string) => void;
@@ -292,7 +295,7 @@ function resolveReplayFights(stats: any): any[] {
 export const deriveStatsViewLogs = (logs: any[], excluded: Set<string>, embedded: boolean): any[] =>
     embedded ? logs : selectSlicedLogs(logs, excluded);
 
-export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, onRequestCategory, onSearchAvailable, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult, onLogsHealed, sliceEnabled = false, onOpenSliceTray, onCopySliceLink, sliceUnavailable = false, replayPublishing }: StatsViewProps) {
+export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, singleFight = false, onRequestCategory, onSearchAvailable, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult, onLogsHealed, sliceEnabled = false, onOpenSliceTray, onCopySliceLink, sliceUnavailable = false, replayPublishing }: StatsViewProps) {
     // Defer heavy section rendering by one frame so the header + progress bar can paint first.
     const [sectionsDeferred, setSectionsDeferred] = useState(!embedded);
     useEffect(() => {
@@ -599,8 +602,14 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
         // For embedded mode (web report), only render the visible group's sections.
         // Non-visible groups get a lightweight placeholder to preserve scroll targets.
         if (embedded) {
-            const anyVisible = group.sectionIds.some(id => isSectionVisible(id));
-            if (!anyVisible) {
+            // Per-section, not just per-group. The host's visibility predicate is
+            // normally scoped to the whole active group, which makes this filter a
+            // no-op for the aggregate web report — every section of a visible group
+            // passes. It is load-bearing for the share viewer, which drops
+            // aggregate-only sections from the group it still shows; without it
+            // they render in the body despite being absent from the nav.
+            const visibleSections = sections.filter((s) => isSectionVisible(s.id));
+            if (visibleSections.length === 0) {
                 return (
                     <div key={groupId} id={`group-${groupId}`} style={{ height: 0 }} />
                 );
@@ -614,10 +623,10 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
                         label={group.label}
                         icon={group.icon as React.ComponentType<{ className?: string }>}
                         accentColor={GROUP_ACCENT_COLORS[groupId] || 'var(--brand-primary)'}
-                        sectionCount={sections.length}
+                        sectionCount={visibleSections.length}
                     >
-                        {sections.map((s, i) => (
-                            <SectionPanel key={s.id} sectionId={s.id} isLast={i === sections.length - 1} index={i}>
+                        {visibleSections.map((s, i) => (
+                            <SectionPanel key={s.id} sectionId={s.id} isLast={i === visibleSections.length - 1} index={i}>
                                 {renderSectionWrap(s.element)}
                             </SectionPanel>
                         ))}
@@ -4390,11 +4399,12 @@ type SpikeFight = {
         formatWithCommas,
         renderProfessionIcon,
         roundCountStats,
+        singleFight,
         mvpBoonMetric: activeStatsViewSettings.mvpBoonMetric || 'uptime',
         expandedPortalRef,
     }), [safeStats, expandedSection, expandedSectionClosing, openExpandedSection,
         closeExpandedSection, isSectionVisible, isFirstVisibleSection, sectionClass,
-        formatWithCommas, renderProfessionIcon, roundCountStats,
+        formatWithCommas, renderProfessionIcon, roundCountStats, singleFight,
         activeStatsViewSettings.mvpBoonMetric]);
     const canUploadWeb = useMemo(() => {
         const total = Number((safeStats as any).total || 0);
@@ -4442,6 +4452,7 @@ type SpikeFight = {
                 embedded={embedded}
                 dashboardTitle={dashboardTitle}
                 totalLogs={headerTotalLogs}
+                singleFight={singleFight}
                 devMockAvailable={devMockAvailable}
                 devMockUploadState={devMockUploadState}
                 onDevMockUpload={handleDevMockUpload}

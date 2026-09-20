@@ -19,6 +19,7 @@ type TopPlayersSectionProps = {
 };
 
 const LeaderCard = ({ icon: Icon, title, data, isBoon = false, accentColor, unit = '', onClick, active, rows, formatValue, renderProfessionIcon }: any) => {
+    const { singleFight } = useStatsSharedContext();
     const value = data?.value ?? 0;
     const displayValue = formatValue ? formatValue(value) : Math.round(value).toLocaleString();
     const tint = accentColor || '#818cf8';
@@ -57,7 +58,10 @@ const LeaderCard = ({ icon: Icon, title, data, isBoon = false, accentColor, unit
                     {renderProfessionIcon(data?.profession || 'Unknown', data?.professionList, 'w-4 h-4')}
                     <div className="text-sm font-medium text-[color:var(--brand-primary)] truncate">{data?.player || '-'}</div>
                 </div>
-                <div className="text-xs text-[color:var(--text-secondary)] truncate">{data?.count ? `${data.count} logs` : '-'}</div>
+                {/* The log count is what distinguishes a leader who topped one
+                    fight from one who topped twenty. In a single-fight report it
+                    is always "1 logs" — noise, and ungrammatical noise. */}
+                <div className="text-xs text-[color:var(--text-secondary)] truncate">{singleFight ? '' : (data?.count ? `${data.count} logs` : '-')}</div>
             </div>
             {active && (
                 <div className="mt-3">

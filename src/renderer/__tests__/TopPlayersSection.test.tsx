@@ -22,6 +22,7 @@ const makeContextValue = (
     formatWithCommas,
     renderProfessionIcon,
     roundCountStats: false,
+    singleFight: false,
     mvpBoonMetric,
     expandedPortalRef: { current: null },
 });

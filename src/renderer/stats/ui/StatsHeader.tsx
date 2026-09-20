@@ -9,6 +9,9 @@ type StatsHeaderProps = {
     embedded: boolean;
     dashboardTitle?: string;
     totalLogs: number;
+    /** The share viewer renders one fight, where "across N uploaded logs" is
+     *  both wrong and redundant with the fight header directly above. */
+    singleFight?: boolean;
     devMockAvailable: boolean;
     devMockUploadState: { uploading: boolean };
     onDevMockUpload: () => void;
@@ -32,6 +35,7 @@ export const StatsHeader = ({
     embedded,
     dashboardTitle,
     totalLogs,
+    singleFight = false,
     devMockAvailable,
     devMockUploadState,
     onDevMockUpload,
@@ -109,11 +113,13 @@ export const StatsHeader = ({
             <div className="space-y-0">
                 <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
                     <Trophy className="w-6 h-6 text-yellow-500" />
-                    {dashboardTitle || 'Statistics Dashboard'}
+                    {dashboardTitle || (singleFight ? 'Fight Statistics' : 'Statistics Dashboard')}
                 </h1>
-                <p className="text-gray-400 text-[11px] sm:text-xs">
-                    Performance across {totalLogs} uploaded logs
-                </p>
+                {!singleFight && (
+                    <p className="text-gray-400 text-[11px] sm:text-xs">
+                        Performance across {totalLogs} uploaded logs
+                    </p>
+                )}
             </div>
         </div>
         {/* A published report renders embedded, and the slice banner stays

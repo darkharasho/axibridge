@@ -39,8 +39,16 @@ import {
 
 
 import { planAssetBaseResolution, probeAssetBasePath } from './assetBasePath';
+import { FightHero } from './share/FightHero';
 
 const glassCard = 'border border-white/10 rounded-2xl shadow-xl backdrop-blur-md glass-card';
+
+// Sections that only mean something across several logs. Dropped for a single
+// fight: the Data Map indexes a report that has one entry, Fight Comparison
+// would diff a fight against itself, and Fight Breakdown is a sortable table of
+// exactly one row whose every column already appears in the header above it,
+// and Map Distribution is a pie chart of a single slice.
+const AGGREGATE_ONLY_SECTIONS = ['data-map', 'fight-breakdown', 'fight-diff-mode', 'map-distribution'];
 
 
 const buildReportHref = (baseHref: string, reportId: string): string => {
@@ -409,6 +417,13 @@ export function ReportApp({ injectedSource, assetBase }: {
     // in rollup mode with an empty index). There is no report index to go back
     // to at all, so the chrome that links to one is suppressed.
     const showIndexChrome = !injectedSource;
+    // An injected source is always exactly one fight — the share viewer is the
+    // only caller, and a share pointer addresses a single log. That makes the
+    // aggregate framing (averages over N logs, win/loss tallies, a per-fight
+    // breakdown table, fight-vs-fight comparison) either degenerate or
+    // meaningless here, so the header, the overview tiles and the nav all swap
+    // to fight-scoped equivalents.
+    const singleFight = !!injectedSource;
     const rollupHref = useMemo(
         () => buildRollupHref(baseHref),
         [baseHref]
@@ -671,7 +686,19 @@ export function ReportApp({ injectedSource, assetBase }: {
     // literal — the web report picks up the same 10 categories as the desktop
     // and History nav automatically. Historical web-only anchors ('kdr',
     // 'report-top', old group ids) are handled by resolveSectionTarget below.
-    const navGroups = useMemo(() => STATS_TOC_GROUPS.map((g) => ({ ...g, sectionIds: [...g.sectionIds], items: [...g.items] })), []);
+    const navGroups = useMemo(() => {
+        const groups = STATS_TOC_GROUPS.map((g) => ({ ...g, sectionIds: [...g.sectionIds], items: [...g.items] }));
+        if (!singleFight) return groups;
+        return groups
+            .map((g) => ({
+                ...g,
+                sectionIds: g.sectionIds.filter((id) => !AGGREGATE_ONLY_SECTIONS.includes(id)),
+                items: g.items.filter((item) => !AGGREGATE_ONLY_SECTIONS.includes(item.id))
+            }))
+            // The Data Map is a whole group of one item, so filtering its items
+            // leaves an empty, unclickable nav entry behind.
+            .filter((g) => g.items.length > 0);
+    }, [singleFight]);
     const activeGroupDef = useMemo(
         // Fallback targets Overview explicitly — navGroups[0] is now the Data Map
         // category, which must never become the accidental landing group.
@@ -690,8 +717,14 @@ export function ReportApp({ injectedSource, assetBase }: {
         [activeSectionIdSet]
     );
     const dashboardTitleText = useMemo(
-        () => `Statistics Dashboard - ${activeGroupDef?.label || 'Overview'}`,
-        [activeGroupDef]
+        // "Statistics Dashboard" is the desktop app's name for the whole
+        // multi-log view. On a share link the fight header already names the
+        // subject, so the heading below it only needs to say which category the
+        // reader is currently in.
+        () => (singleFight
+            ? (activeGroupDef?.label || 'Overview')
+            : `Statistics Dashboard - ${activeGroupDef?.label || 'Overview'}`),
+        [activeGroupDef, singleFight]
     );
     const excludedFightKeys = useStatsStore((s) => s.excludedFightKeys);
     const mergeFightRoster = useStatsStore((s) => s.mergeFightRoster);
@@ -1157,6 +1190,18 @@ export function ReportApp({ injectedSource, assetBase }: {
 
     useEffect(() => {
         if (report) {
+            // A share link's tab title is what lands in a bookmark and in a
+            // pasted Discord embed, so it names the fight, not the commander and
+            // the two-minute "date range" the aggregate title builds. The Worker
+            // already server-renders an equivalent <title> for crawlers that do
+            // not run JS (worker/src/og.ts); this keeps the two consistent once
+            // the bundle takes over.
+            if (singleFight) {
+                const fight = (report.stats as { fightBreakdown?: Array<Record<string, unknown>> } | null)?.fightBreakdown?.[0];
+                const label = (fight?.fullLabel || fight?.mapName || fight?.map || report.meta.title) as string;
+                document.title = `${label} — AxiBridge`;
+                return;
+            }
             const dateLabel = report.meta.dateLabel || formatLocalRange(report.meta.dateStart, report.meta.dateEnd);
             document.title = dateLabel
                 ? `AxiBridge — ${report.meta.title} — ${dateLabel}`
@@ -1168,7 +1213,7 @@ export function ReportApp({ injectedSource, assetBase }: {
             return;
         }
         document.title = 'AxiBridge Reports';
-    }, [isRollupView, report]);
+    }, [isRollupView, report, singleFight]);
 
     useEffect(() => {
         let isMounted = true;
@@ -1826,77 +1871,81 @@ export function ReportApp({ injectedSource, assetBase }: {
                     </div>
                 </aside>
                 <div className={`max-w-[2150px] mx-1 sm:mx-2 px-4 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 mobile-bottom-pad ${isNarrowViewport ? '' : 'lg:mx-auto lg:pl-[17rem] lg:pr-10'}`}>
-                    <div className={`${glassCard} p-5 sm:p-6 mb-6 mx-1 sm:mx-1 lg:mx-0`} style={glassCardStyle}>
-                        <div className="flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-center lg:justify-between">
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 text-center sm:text-left">
-                                {logoUrl && (
-                                    logoIsDefault ? (
-                                        <div
-                                            className="w-16 h-16 sm:w-24 sm:h-24 mx-auto sm:mx-0"
-                                            style={{
-                                                backgroundColor: defaultLogoColor,
-                                                maskImage: `url("${logoUrl}")`,
-                                                WebkitMaskImage: `url("${logoUrl}")`,
-                                                maskRepeat: 'no-repeat',
-                                                WebkitMaskRepeat: 'no-repeat',
-                                                maskPosition: 'center',
-                                                WebkitMaskPosition: 'center',
-                                                maskSize: 'contain',
-                                                WebkitMaskSize: 'contain',
-                                                maskMode: 'alpha'
-                                            }}
-                                            aria-label="AxiBridge logo"
-                                        />
-                                    ) : (
-                                        <img
-                                            src={logoUrl}
-                                            alt="Squad logo"
-                                            className="w-16 h-16 sm:w-24 sm:h-24 rounded-lg object-cover mx-auto sm:mx-0"
-                                        />
-                                    )
-                                )}
-                                <div className="min-w-0">
-                                    <div className="report-brand-label"><div className="text-xs tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="text-white">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div><div className="text-[10px] uppercase tracking-[0.3em] text-gray-400">Log Report</div></div>
-                                    <h1 className="text-2xl sm:text-3xl font-bold mt-1 flex items-center gap-2 flex-wrap">
-                                        <span>{report.meta.title}</span>
-                                        {(report.meta as any).guild?.tag && (
-                                            <span
-                                                className="inline-flex items-center rounded-[4px] border px-2 py-0.5 text-sm font-semibold tracking-wide"
-                                                style={{ borderColor: 'var(--border-hover)', color: 'var(--text-secondary)' }}
-                                                title={(report.meta as any).guild.name || undefined}
-                                            >
-                                                [{(report.meta as any).guild.tag}]{(report.meta as any).guild.name ? ` ${(report.meta as any).guild.name}` : ''}
-                                            </span>
-                                        )}
-                                    </h1>
-                                    <div className="text-xs sm:text-sm text-gray-400 mt-2">{report.meta.dateLabel || formatLocalRange(report.meta.dateStart, report.meta.dateEnd)}</div>
+                    {singleFight ? (
+                        <FightHero meta={report.meta} stats={report.stats} className={glassCard} style={glassCardStyle} />
+                    ) : (
+                        <div className={`${glassCard} p-5 sm:p-6 mb-6 mx-1 sm:mx-1 lg:mx-0`} style={glassCardStyle}>
+                            <div className="flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-center lg:justify-between">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 text-center sm:text-left">
+                                    {logoUrl && (
+                                        logoIsDefault ? (
+                                            <div
+                                                className="w-16 h-16 sm:w-24 sm:h-24 mx-auto sm:mx-0"
+                                                style={{
+                                                    backgroundColor: defaultLogoColor,
+                                                    maskImage: `url("${logoUrl}")`,
+                                                    WebkitMaskImage: `url("${logoUrl}")`,
+                                                    maskRepeat: 'no-repeat',
+                                                    WebkitMaskRepeat: 'no-repeat',
+                                                    maskPosition: 'center',
+                                                    WebkitMaskPosition: 'center',
+                                                    maskSize: 'contain',
+                                                    WebkitMaskSize: 'contain',
+                                                    maskMode: 'alpha'
+                                                }}
+                                                aria-label="AxiBridge logo"
+                                            />
+                                        ) : (
+                                            <img
+                                                src={logoUrl}
+                                                alt="Squad logo"
+                                                className="w-16 h-16 sm:w-24 sm:h-24 rounded-lg object-cover mx-auto sm:mx-0"
+                                            />
+                                        )
+                                    )}
+                                    <div className="min-w-0">
+                                        <div className="report-brand-label"><div className="text-xs tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="text-white">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div><div className="text-[10px] uppercase tracking-[0.3em] text-gray-400">Log Report</div></div>
+                                        <h1 className="text-2xl sm:text-3xl font-bold mt-1 flex items-center gap-2 flex-wrap">
+                                            <span>{report.meta.title}</span>
+                                            {(report.meta as any).guild?.tag && (
+                                                <span
+                                                    className="inline-flex items-center rounded-[4px] border px-2 py-0.5 text-sm font-semibold tracking-wide"
+                                                    style={{ borderColor: 'var(--border-hover)', color: 'var(--text-secondary)' }}
+                                                    title={(report.meta as any).guild.name || undefined}
+                                                >
+                                                    [{(report.meta as any).guild.tag}]{(report.meta as any).guild.name ? ` ${(report.meta as any).guild.name}` : ''}
+                                                </span>
+                                            )}
+                                        </h1>
+                                        <div className="text-xs sm:text-sm text-gray-400 mt-2">{report.meta.dateLabel || formatLocalRange(report.meta.dateStart, report.meta.dateEnd)}</div>
+                                    </div>
                                 </div>
-                            </div>
-                            <button
-                                onClick={() => setTocOpen(true)}
-                                className={`${isNarrowViewport && !isCompactViewport ? 'flex' : 'hidden'} px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs uppercase tracking-widest text-gray-300 hover:border-white/30 transition-colors items-center gap-2`}
-                            >
-                                <PanelLeft className="w-4 h-4" />
-                                Contents
-                            </button>
-                            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:overflow-visible pr-1 sm:pr-2">
-                                <div className="col-span-2 sm:col-span-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 inline-flex items-center gap-2 min-w-0 justify-start">
-                                    <CalendarDays className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                                    {report.meta.dateLabel || 'Log Range'}
-                                </div>
-                                <div className="col-span-2 sm:col-span-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 flex items-center gap-2 min-w-0">
-                                    <CommanderTagIcon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                                    <span className="truncate">
-                                        {report.meta.commanders.length ? report.meta.commanders.join(', ') : 'No Commanders'}
-                                    </span>
-                                </div>
-                                <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 flex items-center gap-2 min-w-0">
-                                    <ShieldCheck className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                                    Report {report.meta.appVersion ? `v${report.meta.appVersion}` : 'build'}
+                                <button
+                                    onClick={() => setTocOpen(true)}
+                                    className={`${isNarrowViewport && !isCompactViewport ? 'flex' : 'hidden'} px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs uppercase tracking-widest text-gray-300 hover:border-white/30 transition-colors items-center gap-2`}
+                                >
+                                    <PanelLeft className="w-4 h-4" />
+                                    Contents
+                                </button>
+                                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:overflow-visible pr-1 sm:pr-2">
+                                    <div className="col-span-2 sm:col-span-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 inline-flex items-center gap-2 min-w-0 justify-start">
+                                        <CalendarDays className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                                        {report.meta.dateLabel || 'Log Range'}
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 flex items-center gap-2 min-w-0">
+                                        <CommanderTagIcon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                                        <span className="truncate">
+                                            {report.meta.commanders.length ? report.meta.commanders.join(', ') : 'No Commanders'}
+                                        </span>
+                                    </div>
+                                    <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 flex items-center gap-2 min-w-0">
+                                        <ShieldCheck className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                                        Report {report.meta.appVersion ? `v${report.meta.appVersion}` : 'build'}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                     <div className={`${isNarrowViewport && isCompactViewport ? '' : 'hidden'} mb-4`}>
                         <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-2">Jump to</div>
                         <div className="flex gap-2 overflow-x-auto pr-2 pb-1 snap-x snap-mandatory">
@@ -1939,6 +1988,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                 onOpenSliceTray={loadSliceSidecar}
                                 onCopySliceLink={handleCopySliceLink}
                                 sectionVisibility={sectionVisibilityFn}
+                                singleFight={singleFight}
                                 dashboardTitle={dashboardTitleText}
                                 onRequestCategory={(categoryId) => startTransition(() => setActiveGroup(categoryId))}
                                 onSearchAvailable={(open) => { searchOpenRef.current = open; }}
