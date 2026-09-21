@@ -143,7 +143,6 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
         setFilePickerMonthWindow,
         ensureMonthWindowForSince,
         handleAddSelectedFiles,
-        commitPendingAdd,
         filePickerSubmitting,
         focusedIndex,
         setFocusedIndex,
@@ -376,10 +375,8 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
         return '';
     };
 
-    // The insert freezes the main thread long enough to stall this exit half way
-    // through, so it waits until the modal has actually left.
     return (
-        <AnimatePresence initial={false} onExitComplete={commitPendingAdd}>
+        <AnimatePresence initial={false}>
             {filePickerOpen && (
                 <motion.div
                     className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 file-picker-modal focus:outline-none"

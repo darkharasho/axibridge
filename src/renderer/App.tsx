@@ -649,7 +649,7 @@ function App() {
         const rowHeight = 132;
         const overscan = 6;
         const canVirtualize = logs.length > 30 && !expandedLogId;
-        if (!canVirtualize || logsViewportHeight <= 0) {
+        if (!canVirtualize) {
             return {
                 enabled: false,
                 startIndex: 0,
@@ -658,7 +658,16 @@ function App() {
                 visibleLogs: logs
             };
         }
-        const viewportRows = Math.max(1, Math.ceil(logsViewportHeight / rowHeight));
+        // The height is measured in an effect, which is to say after the render
+        // that needed it. Until the first measurement lands this was falling
+        // back to "render every row" - so the first Add Logs after launch, when
+        // the list has never been measured, mounted a card per file. That pass
+        // is the freeze. A window-sized guess is wrong by a few rows at worst,
+        // and the effect corrects it on the very next commit.
+        const viewportHeight = logsViewportHeight > 0
+            ? logsViewportHeight
+            : (window.innerHeight || 900);
+        const viewportRows = Math.max(1, Math.ceil(viewportHeight / rowHeight));
         const startIndex = Math.max(0, Math.floor(Math.max(0, logsScrollTop) / rowHeight) - overscan);
         const endIndex = Math.min(logs.length, startIndex + viewportRows + overscan * 2);
         return {
