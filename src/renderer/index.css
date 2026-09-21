@@ -1553,6 +1553,9 @@ body.web-report #top-players .mvp-gold-icon-badge {
 
 .axi-step-spinner {
   --step-off: var(--border-default);
+  /* One cell of travel: the cell itself plus the gap. */
+  --step-pitch: 5px;
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -1569,16 +1572,31 @@ body.web-report #top-players .mvp-gold-icon-badge {
   height: 10px;
   border-radius: 1px;
   background: var(--step-off);
-  animation: axi-step-cell 0.96s steps(1, end) infinite;
 }
 
-.axi-step-spinner > i:nth-child(2) { animation-delay: 0.24s; }
-.axi-step-spinner > i:nth-child(3) { animation-delay: 0.48s; }
-.axi-step-spinner > i:nth-child(4) { animation-delay: 0.72s; }
+/* The lit cell is one block moving across the four, not four cells taking
+   turns changing colour. That is the whole point: a background-color
+   animation runs on the main thread, and the main thread is exactly what is
+   busy while this is on screen - it would freeze on its first frame and sit
+   there looking broken. transform is composited, so it keeps marching
+   through a blocked render. */
+.axi-step-spinner::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 3px;
+  height: 10px;
+  border-radius: 1px;
+  background: var(--brand-primary);
+  /* steps(4, end) over four pitches lands the block on 0, 1, 2, 3 and wraps -
+     jump-none would spread four stops over three pitches and miss the cells. */
+  animation: axi-step-march 0.96s steps(4, end) infinite;
+}
 
-@keyframes axi-step-cell {
-  0%, 24.9% { background: var(--brand-primary); }
-  25%, 100% { background: var(--step-off); }
+@keyframes axi-step-march {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(var(--step-pitch) * 4)); }
 }
 
 /* The other half of the pair: one mark turning a quarter at a time. The
@@ -1774,11 +1792,9 @@ body.glass-surfaces .stats-dashboard-nav-panel {
     animation: none !important;
   }
 
-  /* Stopped mid-cycle these would freeze on an off-beat and read as broken,
-     so they rest in their lit state instead. */
-  .axi-step-spinner > i {
+  /* The march rests in the first cell rather than stopping wherever it was. */
+  .axi-step-spinner::after {
     animation: none !important;
-    background: var(--brand-primary) !important;
   }
 
   .axi-snap-spinner {
