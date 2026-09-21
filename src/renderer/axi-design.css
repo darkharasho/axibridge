@@ -740,6 +740,11 @@ body.axi-design .menu-checkbox[data-on] { background-color: var(--axi-accent); }
 body.axi-design .stats-sections {
   background-image: none !important;
   background-color: var(--axi-ground) !important;
+  /* The sections field is a well sunk one step below the panel around it, and
+     that step is the edge. Its own border was a third vertical rule inside the
+     35px between the report nav's ink edge and the first section's accent
+     stripe. Transparent rather than 0 so nothing shifts. */
+  border-color: transparent;
 }
 body.axi-design .squad-comp-board {
   background-image: none;
@@ -1011,16 +1016,27 @@ body.axi-design .insight-card {
 body.axi-design .commander-panel {
   box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
 }
-/* The severity stripe and the good/bad edge are measurements of the row they
-   sit on, so they stay - at the panel weight, which is the only other weight
-   the language has. */
+/* The severity verdict is a judgement about the number on the card, so it is
+   drawn where Overview draws it: as a cap across the top edge, directly over
+   the value it judges. Down the left at full height it was the card's frame
+   instead - five cards in a row read as five coloured bars - and the edge it
+   ran along was the same edge that separates the card from the one beside it.
+   The cap names the card once, at the head, then gets out of the way; the left
+   edge drops back to the ink every other outline in the language uses. */
 body.axi-design .commander-metric,
-body.axi-design .insight-card { border-left-width: var(--axi-border-panel); }
-body.axi-design .commander-metric[data-severity='green'] { border-left-color: var(--axi-ok); }
-body.axi-design .commander-metric[data-severity='yellow'] { border-left-color: var(--axi-warn); }
-body.axi-design .commander-metric[data-severity='red'] { border-left-color: var(--axi-danger); }
-body.axi-design .insight-card[data-side='good'] { border-left-color: var(--axi-ok); }
-body.axi-design .insight-card[data-side='bad'] { border-left-color: var(--axi-danger); }
+body.axi-design .insight-card {
+  border-left-width: var(--axi-border-control);
+  border-left-color: var(--axi-ink-line);
+  border-top-width: var(--axi-border-panel);
+}
+/* !important because a metric card writes its top, right and bottom edge
+   colours as inline styles - the one place a stylesheet cannot outrank - and
+   the top edge is exactly the one the cap needs. */
+body.axi-design .commander-metric[data-severity='green'] { border-top-color: var(--axi-ok) !important; }
+body.axi-design .commander-metric[data-severity='yellow'] { border-top-color: var(--axi-warn) !important; }
+body.axi-design .commander-metric[data-severity='red'] { border-top-color: var(--axi-danger) !important; }
+body.axi-design .insight-card[data-side='good'] { border-top-color: var(--axi-ok); }
+body.axi-design .insight-card[data-side='bad'] { border-top-color: var(--axi-danger); }
 
 /* A verdict chip is a status, and rule 5 says a status is filled. Filled means
    ink text on the status colour, which is also what makes eight chips in a row
@@ -1112,7 +1128,11 @@ body.axi-design { --section-neutral: var(--axi-text-faint); }
    stops scrolling entirely. */
 body.axi-design .dashboard-rail {
   overflow: hidden;
-  border-right-color: var(--axi-ink-line);
+  /* The rail and the activity column are the same ground, and the cards in
+     one and the panel in the other are already objects standing on it. A rule
+     between two identical fields separates nothing - it just ran a second
+     vertical line beside the activity panel's own edge. */
+  border-right: none;
   /* The rail was the same surface as the cards standing on it, so five panels
      and the strip behind them were all one colour and the only thing telling
      them apart was a near-black line. A panel sits on the ground, not on
@@ -1236,15 +1256,24 @@ body.axi-design .quantity-bar {
 }
 body.axi-design .quantity-bar > * { border-radius: 0; }
 
-/* The win/loss pair at the top of Overview. Its box was an inline 1px outline
-   with a 2px status edge, both literals, so it kept the old weights whatever
-   the tokens said - and its labels were mint at 60% over the ground. The edge
-   is a measurement, so it goes to the panel step; the box goes to the control
-   step; the labels stop being tinted and become text. */
+/* Overview's scoreboard. It used to be two mirrored boxes, each a 3-up of
+   unrelated numbers with one blown up in the middle, and each outlined in its
+   own status colour for the whole height of the box - so the colour read as
+   the card's frame rather than as a name for the side. Now it is one panel:
+   the sides sit either side of the tally, split by a rule, and each is named
+   once by a cap of status colour over its label. The wells inside it are the
+   ground, so their line is the well line and not the ink. */
 body.axi-design .overview-card {
-  --panel-border-w: var(--axi-border-control);
+  /* The card carried no fill of its own, which was survivable when it was an
+     outlined box but not now that it holds wells: ground inside ground is not
+     a well, it is nothing. It sits on the ground like every other panel. */
+  background: var(--axi-surface);
+  --panel-border-w: var(--axi-border-panel);
   --overview-edge-w: var(--axi-border-panel);
   --overview-label: var(--axi-text-dim);
+  --overview-well-w: var(--axi-border-control);
+  --overview-well-line: var(--axi-well-line);
+  --overview-cap-h: var(--axi-border-panel);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1265,6 +1294,12 @@ body.axi-design .report-nav-sidebar {
   backdrop-filter: none;
   box-shadow: none;
 }
+/* The nav list scrolls; it just stops carving a channel down the strip to say
+   so, the same way the table-picker wells do. The groove was reading as one
+   more vertical line next to the strip's own edge, and it was eating the width
+   the category labels needed. */
+body.axi-design .report-nav-sidebar nav { scrollbar-width: none; }
+body.axi-design .report-nav-sidebar nav::-webkit-scrollbar { width: 0; height: 0; }
 body.axi-design .report-nav-sidebar .report-nav-group-btn,
 body.axi-design .report-nav-sidebar .report-nav-item-btn {
   border: var(--axi-border-control) solid transparent;
@@ -1325,6 +1360,15 @@ body.axi-design .stats-table-layout__sidebar::-webkit-scrollbar { width: 0; heig
    itself, which put the channel back one level in. */
 body.axi-design .stats-table-layout__sidebar * { scrollbar-width: none; }
 body.axi-design .stats-table-layout__sidebar *::-webkit-scrollbar { width: 0; height: 0; }
+
+/* The category rail is the same kind of well, and it scrolls on an inner
+   container rather than on the panel, so the channel landed inside the
+   panel's own edge - two vertical lines a few pixels apart down a strip
+   only wide enough for an icon. */
+body.axi-design .stats-dashboard-nav-panel,
+body.axi-design .stats-dashboard-nav-panel * { scrollbar-width: none; }
+body.axi-design .stats-dashboard-nav-panel::-webkit-scrollbar,
+body.axi-design .stats-dashboard-nav-panel *::-webkit-scrollbar { width: 0; height: 0; }
 
 /* The search box is a control sitting in the well, not an underline. */
 body.axi-design .stats-table-layout__sidebar input {
@@ -2366,3 +2410,161 @@ body.axi-design .axi-snap-spinner {
 /* The notch is cut in ink rather than in the surface behind it, so the mark
    keeps its shape wherever it is placed. */
 body.axi-design .axi-snap-spinner::after { background: var(--axi-ink-line); }
+
+/* ---------------------------------------------------------------------------
+   CHARTS
+   The one region the language never reached. Every recharts call site draws
+   its own furniture from literals - the grid at white 8% dashed, the axis at
+   white 10%, ticks in #94a3b8, and a tooltip filled #1e293b with a 0.5rem
+   radius. That tooltip is slate-800: a colour from a different palette
+   entirely, which is most of why a chart reads as a window onto another app.
+
+   None of it needs a component edit. recharts spreads stroke and fill onto its
+   SVG elements as presentation attributes, and a stylesheet outranks those;
+   the tooltip is the one exception, an inline style, so it takes !important.
+   That keeps all fifteen chart sections untouched and every other theme
+   exactly as it was.
+
+   The grammar is the one the rest of the app already follows. Furniture is
+   drawn in the neutral ramp and recedes; the series keep their own colours,
+   because those are meaning - green is the squad, red is the enemy - and the
+   language never had an opinion about those. What it has an opinion about is
+   everything drawn around them. */
+
+body.axi-design {
+  /* A grid line is quieter than a rule: a rule divides two things, a grid is
+     scaffolding you read values against and should sit barely above the
+     ground it is drawn on. */
+  --axi-grid: #262c36;
+}
+
+/* Solid, not dashed. A dash is decoration, and fifteen charts of dashes is a
+   texture rather than a scale. */
+body.axi-design .recharts-cartesian-grid line {
+  stroke: var(--axi-grid);
+  stroke-dasharray: none;
+  stroke-width: 1;
+}
+/* Stripes are a second background inside a chart that already has one. */
+body.axi-design .recharts-cartesian-grid-bg,
+body.axi-design .recharts-cartesian-gridstripes-horizontal,
+body.axi-design .recharts-cartesian-gridstripes-vertical { display: none; }
+
+/* The axis is the chart's own edge, so it is a rule at the hairline weight -
+   the same line the app draws inside a panel. */
+body.axi-design .recharts-cartesian-axis-line {
+  stroke: var(--axi-rule);
+  stroke-width: var(--axi-border-hairline);
+}
+body.axi-design .recharts-cartesian-axis-tick-line { stroke: var(--axi-rule); }
+
+/* Ticks are labels, so they take label colour and tabular figures - a y-axis
+   whose digits change width is a column that will not hold still. */
+body.axi-design .recharts-cartesian-axis-tick-value {
+  fill: var(--axi-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+body.axi-design .recharts-label,
+body.axi-design .recharts-legend-item-text { fill: var(--axi-text-dim); color: var(--axi-text-dim); }
+
+/* The tooltip is a panel that happens to follow the cursor, so it is drawn
+   like every other panel: surface, ink edge at the control weight, the small
+   radius, and no shadow - this language does not float things. */
+body.axi-design .recharts-default-tooltip,
+body.axi-design .recharts-tooltip-wrapper > div {
+  background: var(--axi-surface) !important;
+  border: var(--axi-border-control) solid var(--axi-ink-line) !important;
+  border-radius: var(--axi-radius-sm) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  color: var(--axi-text) !important;
+  padding: 8px 10px !important;
+}
+body.axi-design .recharts-tooltip-label {
+  color: var(--axi-text-dim) !important;
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+body.axi-design .recharts-tooltip-item { color: var(--axi-text) !important; }
+body.axi-design .recharts-tooltip-item-value { font-variant-numeric: tabular-nums; }
+
+/* Rule 2 again: the hover band was white at a few percent over the ground.
+   Here it is the next surface up, which is a fill change rather than a wash. */
+body.axi-design .recharts-tooltip-cursor {
+  fill: var(--axi-surface-raised);
+  fill-opacity: 1;
+  stroke: var(--axi-rule);
+}
+/* A line chart's cursor is a crosshair, not a band, so it stays a line. */
+body.axi-design .recharts-curve.recharts-tooltip-cursor {
+  fill: none;
+  stroke: var(--axi-rule);
+  stroke-dasharray: none;
+}
+
+/* A point on a line is a small object standing on the series, so it gets the
+   ink edge that every other object in this language gets. It keeps its own
+   fill, because the fill is which series it belongs to. */
+body.axi-design .recharts-line-dot,
+body.axi-design .recharts-scatter-symbol > path {
+  stroke: var(--axi-ink-line);
+  stroke-width: var(--axi-border-hairline);
+}
+body.axi-design .recharts-active-dot > * {
+  stroke: var(--axi-ink-line);
+  stroke-width: var(--axi-border-control);
+}
+
+/* Slices are objects on the ground, so an ink edge separates them; without it
+   two adjacent slices of similar colour merge into one shape. */
+body.axi-design .recharts-pie-sector > path {
+  stroke: var(--axi-ink-line);
+  stroke-width: var(--axi-border-hairline);
+}
+
+/* A threshold is a claim, so it is drawn at the hairline weight and solid -
+   it is one of the few lines in a chart that is supposed to be read. */
+body.axi-design .recharts-reference-line-line {
+  stroke-width: var(--axi-border-hairline);
+  stroke-dasharray: none;
+}
+
+/* The brush is a range control sitting under the chart, so it is a well with
+   travellers standing in it, not a pale slab. */
+body.axi-design .recharts-brush > rect:first-of-type {
+  fill: var(--axi-ground);
+  stroke: var(--axi-well-line);
+  stroke-width: var(--axi-border-control);
+}
+body.axi-design .recharts-brush-slide {
+  fill: var(--axi-surface);
+  fill-opacity: 1;
+}
+body.axi-design .recharts-brush-traveller > rect {
+  fill: var(--axi-surface-raised);
+  stroke: var(--axi-ink-line);
+  stroke-width: var(--axi-border-hairline);
+}
+body.axi-design .recharts-brush-traveller > line { stroke: var(--axi-text-faint); }
+body.axi-design .recharts-brush-texts { fill: var(--axi-text-faint); }
+
+/* The preview curve inside the brush is context, not data you read off, so it
+   drops to furniture weight. */
+body.axi-design .recharts-brush .recharts-curve {
+  stroke: var(--axi-text-faint);
+  fill: none;
+}
+
+/* A bar is an object on the ground and takes the same ink edge as the rest.
+   Its corner radius is a path recharts computes in JS, so the one thing this
+   block cannot flatten from CSS is a rounded bar - the call sites that want
+   square corners have to drop their own radius prop. */
+body.axi-design .recharts-bar-rectangle > path {
+  stroke: var(--axi-ink-line);
+  stroke-width: var(--axi-border-hairline);
+}
+body.axi-design .recharts-bar-background-rectangle { fill: var(--axi-ground); }
+
+/* The legend is a key, so it reads as labels rather than as chips. */
+body.axi-design .recharts-legend-wrapper { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
