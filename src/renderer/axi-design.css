@@ -168,30 +168,70 @@ body.axi-design :focus-visible {
 }
 
 /* ---------------------------------------------------------------------------
+   THE TAB STRIP
+   Four of the five views are a handful of things each, so the strip stays and
+   carries them. Its underline is gone: an underline is a third way of saying
+   "this one is on" next to the fill and the block, and the language only has
+   one. */
+body.axi-design [data-nav-strip] {
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: var(--axi-border-panel) solid var(--axi-ink-line) !important;
+  border-color: var(--axi-ink-line) !important;
+  background: var(--axi-surface) !important;
+}
+body.axi-design [data-nav-tab] {
+  padding: 7px 12px;
+  font: 800 12.5px/1 var(--axi-sans);
+  color: var(--axi-text-dim);
+  border: var(--axi-border-control) solid transparent;
+  border-radius: 8px;
+}
+body.axi-design [data-nav-tab]:hover { color: var(--axi-text); background: var(--axi-surface-raised); }
+/* The same treatment the rail's current category gets, and a pressed pill, and
+   a current tab anywhere else: fill, ink text, ink outline, offset block. */
+/* Stats while its rail is open. Brightened text and a raised ground, no fill:
+   an ancestor is context, not a selection. It needs the ground the rail's
+   items get from their well, or among four peers it reads as nothing at all. */
+body.axi-design [data-nav-tab][data-open] { color: var(--axi-text); background: var(--axi-surface-raised); }
+body.axi-design [data-nav-tab][data-on],
+body.axi-design [data-nav-tab][data-on]:hover {
+  background: var(--axi-accent);
+  color: var(--axi-accent-ink);
+  border-color: var(--axi-ink-line);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+
+/* ---------------------------------------------------------------------------
    THE RAIL
-   Eleven stats categories on top of five app views is more than a horizontal
-   strip holds. The rail is the one structural division on the screen, so it
-   gets the panel weight, and nothing inside it is outlined except the item
-   that is on. */
+   Stats only. Eleven categories and their sections are more than the top tab
+   strip holds, so this replaces the hover-expand CategoryBar on that one view
+   and the strip keeps carrying the other four. It is a panel like any other
+   panel on the page - the same border weight and the same offset block - and
+   nothing inside it is outlined except the item that is on. */
 body.axi-design .axi-rail {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  width: var(--axi-rail-w, 232px);
+  width: var(--axi-rail-w, 208px);
   flex: none;
-  padding: 14px 12px;
+  padding: 10px;
+  /* The offset block falls below the rail, so end short of the row's floor to
+     keep it from being clipped by the scroll container. */
+  margin-bottom: var(--axi-offset-panel);
   overflow-y: auto;
   background: var(--axi-surface);
-  border-right: var(--axi-border-panel) solid var(--axi-ink-line);
+  border: var(--axi-border-panel) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius);
+  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
 }
-body.axi-design .axi-rail__nav { display: flex; flex-direction: column; gap: 3px; }
+body.axi-design .axi-rail__nav { display: flex; flex-direction: column; gap: 2px; }
 body.axi-design .axi-rail__item {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 9px 12px;
-  font: 800 13.5px/1 var(--axi-sans);
+  padding: 8px 10px;
+  font: 800 12.5px/1 var(--axi-sans);
   color: var(--axi-text-dim);
   text-align: left;
   background: transparent;
@@ -209,35 +249,14 @@ body.axi-design .axi-rail__item[aria-current='page']:hover {
   border-color: var(--axi-ink-line);
   box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
 }
-/* The view you are inside, when the thing that is on is one of its children.
-   Brightened text and nothing else: an ancestor is context, not a selection,
-   and a second gold item would be a second answer to "where am I". */
-body.axi-design .axi-rail__item[data-open] { color: var(--axi-text); }
-/* The open view's children, drawn as a well rather than an indent: the ground
-   colour with the control outline, which is the same treatment a stat tile
-   gets - flat content sunk into the surface around it. An indent alone was not
-   legible at this type size, and a spine was a new kind of line the language
-   does not otherwise draw. */
-body.axi-design .axi-rail__sub {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 4px 0 4px 10px;
-  padding: 6px;
-  background: var(--axi-ground);
-  border: var(--axi-border-control) solid var(--axi-ink-line);
-  border-radius: 8px;
-}
-body.axi-design .axi-rail__sub .axi-rail__item { padding: 7px 10px; font-size: 12.5px; font-weight: 700; }
-body.axi-design .axi-rail__sub .axi-rail__item:hover { background: var(--axi-surface); }
-/* The third level: the sections inside the open category. It gets no well and
-   no fill. The gold category answers "where am I"; a section is where the page
-   happens to be scrolled to, which is a smaller claim and is drawn as one -
-   brightened text against the dim list around it. */
+/* The sections inside the open category. No well and no fill: the gold
+   category answers "where am I"; a section is where the page happens to be
+   scrolled to, which is a smaller claim and is drawn as one - brightened text
+   against the dim list around it. */
 body.axi-design .axi-rail__sections {
   display: flex;
   flex-direction: column;
-  margin: 2px 0 4px 10px;
+  margin: 3px 0 5px 10px;
 }
 body.axi-design .axi-rail__section {
   padding: 5px 8px;
@@ -249,7 +268,7 @@ body.axi-design .axi-rail__section {
   border-radius: var(--axi-radius-sm);
   cursor: pointer;
 }
-body.axi-design .axi-rail__section:hover { color: var(--axi-text-dim); background: var(--axi-surface); }
+body.axi-design .axi-rail__section:hover { color: var(--axi-text-dim); background: var(--axi-surface-raised); }
 body.axi-design .axi-rail__section[data-on] { color: var(--axi-text); }
 
 /* An annotation, not a status: rule 5 says an outline is what marks something
@@ -264,10 +283,6 @@ body.axi-design .axi-rail__mark {
   border: var(--axi-border-hairline) solid var(--axi-meta);
   border-radius: 4px;
 }
-
-body.axi-design .axi-rail__foot { margin-top: auto; }
-body.axi-design .axi-rail__shell { flex: 1; display: flex; min-height: 0; }
-body.axi-design .axi-rail__main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 
 /* ---------------------------------------------------------------------------
    THE CUT
