@@ -2356,7 +2356,8 @@ body.axi-design .axi-step-spinner {
   border: var(--axi-border-hairline) solid var(--axi-ink-line);
   border-radius: 2px;
 }
-body.axi-design .axi-step-spinner > i { border-radius: 0; }
+body.axi-design .axi-step-spinner > i,
+body.axi-design .axi-step-spinner::after { border-radius: 0; }
 
 body.axi-design .axi-snap-spinner {
   border: var(--axi-border-hairline) solid var(--axi-ink-line);
