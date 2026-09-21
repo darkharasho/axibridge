@@ -376,6 +376,32 @@ describe('SettingsView', () => {
                 expect(callbacks.onGlassSurfacesSaved).toHaveBeenCalledWith(true);
             }, { timeout: 1000 });
         });
+
+        it('locks the glass toggles while Axi Design is on', async () => {
+            const { mock, callbacks } = renderSettings({}, { axiDesign: true });
+            await waitForLoad(mock);
+            callbacks.onGlassSurfacesSaved.mockClear();
+            selectSettingsCategory('Application');
+            await screen.findByRole('heading', { name: 'Appearance' });
+
+            expect(screen.getAllByText('(disabled in Axi Design)')).toHaveLength(2);
+
+            fireEvent.click(screen.getByText('Glass Surfaces'));
+
+            await new Promise((resolve) => setTimeout(resolve, 400));
+            expect(callbacks.onGlassSurfacesSaved).not.toHaveBeenCalledWith(true);
+        });
+
+        it('leaves the palette grid live when Axi Design overrides Lillifox', async () => {
+            const { mock } = renderSettings({}, { glassmorphic: true, axiDesign: true });
+            await waitForLoad(mock);
+            selectSettingsCategory('Application');
+            await screen.findByRole('heading', { name: 'Appearance' });
+
+            const amberBtn = await screen.findByRole('button', { name: 'Amber Warm' });
+            expect(amberBtn).not.toBeDisabled();
+            expect(screen.queryByText('(disabled in Lillifox Mode)')).toBeNull();
+        });
     });
 
     // -----------------------------------------------------------------------

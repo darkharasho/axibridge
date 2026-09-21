@@ -147,20 +147,28 @@ interface SettingsViewProps {
 // Toggle switch component — memoized with a custom comparator that ignores onChange reference
 // changes. All onChange handlers use functional state updaters (setX(prev => ...)) so calling
 // a slightly older reference is always safe, and this prevents ~20 re-renders per state change.
-const Toggle = memo(function Toggle({ enabled, onChange, label, description }: {
+const Toggle = memo(function Toggle({ enabled, onChange, label, description, disabled, disabledNote }: {
     enabled: boolean;
     onChange: (value: boolean) => void;
     label: string;
     description?: string;
+    // A toggle whose class the body refuses to apply must not read as live.
+    // disabledNote says which mode is holding it, so the way out is visible.
+    disabled?: boolean;
+    disabledNote?: string;
 }) {
     return (
         <div
-            className="flex items-center justify-between py-3 cursor-pointer group"
-            onClick={() => onChange(!enabled)}
+            className={`flex items-center justify-between py-3 group ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+            aria-disabled={disabled}
+            onClick={() => { if (!disabled) onChange(!enabled); }}
         >
             <div className="flex-1">
-                <div className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors">
+                <div className={`text-sm font-medium text-gray-200 transition-colors ${disabled ? '' : 'group-hover:text-white'}`}>
                     {label}
+                    {disabled && disabledNote ? (
+                        <span className="ml-2 text-xs font-normal text-gray-500">{disabledNote}</span>
+                    ) : null}
                 </div>
                 {description && (
                     <div className="text-xs text-gray-500 mt-0.5">{description}</div>
@@ -181,7 +189,9 @@ const Toggle = memo(function Toggle({ enabled, onChange, label, description }: {
 }, (prev, next) =>
     prev.enabled === next.enabled &&
     prev.label === next.label &&
-    prev.description === next.description
+    prev.description === next.description &&
+    prev.disabled === next.disabled &&
+    prev.disabledNote === next.disabledNote
 );
 
 // Section component for grouping settings
@@ -236,6 +246,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [glassSurfaces, setGlassSurfaces] = useState(glassSurfacesProp ?? false);
     const [glassmorphic, setGlassmorphic] = useState(glassmorphicProp ?? false);
     const [axiDesign, setAxiDesign] = useState(axiDesignProp ?? false);
+    // Mirrors useSettings: axi and glass are mutually exclusive on the body, and axi wins.
+    const paletteLocked = glassmorphic && !axiDesign;
     const [particlesEnabled, setParticlesEnabled] = useState(particlesEnabledProp ?? true);
     const [allowLocalJson, setAllowLocalJson] = useState(false);
     const [parserSettings, setParserSettings] = useState<IParserSettings | null>(null);
@@ -2969,17 +2981,21 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         <p className="text-sm text-gray-400 mb-4">
                             Choose a color palette for the interface accent colors.
                         </p>
+                        {/* Lillifox paints its own accents, so the picker is dead under it — but
+                            axi suppresses Lillifox (useSettings refuses both classes at once), and
+                            the picker drives axi. So the grid is only dead when Lillifox is the one
+                            actually applied. */}
                         <div className="text-[11px] uppercase tracking-[0.2em] text-gray-500 mb-2">
-                            Color Palette {glassmorphic ? <span className="ml-2 normal-case tracking-normal text-gray-500">(disabled in Lillifox Mode)</span> : null}
+                            Color Palette {paletteLocked ? <span className="ml-2 normal-case tracking-normal text-gray-500">(disabled in Lillifox Mode)</span> : null}
                         </div>
-                        <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 ${glassmorphic ? 'opacity-40 pointer-events-none' : ''}`} aria-disabled={glassmorphic}>
+                        <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 ${paletteLocked ? 'opacity-40 pointer-events-none' : ''}`} aria-disabled={paletteLocked}>
                             {(Object.values(PALETTES) as import('../shared/webThemes').PaletteDefinition[]).map((palette) => {
                                 const isActive = colorPalette === palette.id;
                                 return (
                                     <button
                                         key={palette.id}
                                         type="button"
-                                        disabled={glassmorphic}
+                                        disabled={paletteLocked}
                                         onClick={() => { setColorPalette(palette.id); onColorPaletteSaved?.(palette.id); }}
                                         className={`rounded-[4px] border px-3 py-3 text-left transition-colors ${isActive
                                             ? 'border-white/40 bg-white/10'
@@ -3001,12 +3017,16 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 onChange={(v) => { setGlassSurfaces(v); onGlassSurfacesSaved?.(v); }}
                                 label="Glass Surfaces"
                                 description="Enable frosted-glass card backgrounds with backdrop blur"
+                                disabled={axiDesign}
+                                disabledNote="(disabled in Axi Design)"
                             />
                             <Toggle
                                 enabled={glassmorphic}
                                 onChange={(v) => { setGlassmorphic(v); onGlassmorphicSaved?.(v); }}
                                 label="Lillifox Mode"
                                 description="Aurora background, rounded translucent cards — the original AxiBridge look"
+                                disabled={axiDesign}
+                                disabledNote="(disabled in Axi Design)"
                             />
                             <Toggle
                                 enabled={axiDesign}
