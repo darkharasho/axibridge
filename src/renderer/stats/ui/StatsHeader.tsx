@@ -135,90 +135,101 @@ export const StatsHeader = ({
             </div>
         )}
         {!embedded && (
-            <div className="flex items-center gap-3">
+            /* Five controls on one line left the search a 186px sliver and wrapped
+               the labels beside it onto two lines. Stacked, the field gets the whole
+               width of this column and the actions keep their natural size. */
+            <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-1 sm:max-w-[560px]">
                 {onSearchClick && (
                     <button
                         type="button"
                         onClick={onSearchClick}
                         title="Search (Ctrl+K)"
                         aria-label="Search"
-                        className="axi-search-trigger inline-flex h-[26px] w-[186px] items-center gap-2 rounded-[4px] px-2 text-[12px] transition-colors"
+                        className="axi-search-trigger flex h-[30px] w-full items-center gap-2.5 rounded-[4px] px-2.5 text-[12px] transition-colors"
                     >
-                        <Search className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                        Search
+                        {/* Its own element so the axi language can cap the well with
+                            an accent block instead of floating a glyph in the fill. */}
+                        <span className="axi-search-trigger__mark flex shrink-0 items-center self-stretch">
+                            <Search className="w-3.5 h-3.5" style={{ color: 'var(--brand-primary)' }} />
+                        </span>
+                        {/* Now that there is room, the trigger says what the panel's
+                            own placeholder says, so the two read as one field. */}
+                        <span className="truncate">Search sections, metrics, players</span>
                         {/* The shortcut was title-attribute-only, which is to say
                             invisible on the one platform where it matters most. */}
                         <kbd className="ml-auto shrink-0 rounded-[3px] px-1.5 py-px text-[10px] font-sans tracking-[0.04em]">Ctrl K</kbd>
                     </button>
                 )}
-                {onToggleSliceTray && <FightSlicePill onClick={onToggleSliceTray} />}
-                {devMockAvailable && (
-                    <button
-                        onClick={onDevMockUpload}
-                        disabled={devMockUploadState.uploading || actionsDisabled}
-                        className="flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-colors disabled:opacity-50 bg-amber-500/15 text-amber-200 border border-amber-500/30 enabled:hover:bg-amber-500/25"
-                    >
-                        <Sparkles className="w-4 h-4 text-amber-400" />
-                        {devMockUploadState.uploading ? 'Building...' : 'Dev Mock Upload'}
-                    </button>
-                )}
-                <div className="relative group" title={uploadDisabledReason} ref={uploadMenuRef}>
-                    <div className="flex items-stretch">
+                <div className="flex items-center justify-end gap-3">
+                    {onToggleSliceTray && <FightSlicePill onClick={onToggleSliceTray} />}
+                    {devMockAvailable && (
                         <button
-                            onClick={() => startPublish(null)}
-                            disabled={uploadDisabled}
-                            aria-disabled={uploadDisabled}
-                            className={`stats-action-upload flex items-center gap-2 px-4 py-2 font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${alternateUploadTargets.length > 0 ? 'rounded-l-md rounded-r-none' : 'rounded-md'}`}
-                            style={{ background: 'var(--accent-bg-strong)', color: 'var(--text-primary)', border: 'var(--panel-border-w, 1px) solid var(--accent-border)' }}
+                            onClick={onDevMockUpload}
+                            disabled={devMockUploadState.uploading || actionsDisabled}
+                            className="flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-colors disabled:opacity-50 bg-amber-500/15 text-amber-200 border border-amber-500/30 enabled:hover:bg-amber-500/25"
                         >
-                            <UploadCloud className="w-4 h-4" style={{ color: 'var(--brand-primary)' }} />
-                            {uploadingWeb ? 'Uploading...' : 'Upload to Web'}
+                            <Sparkles className="w-4 h-4 text-amber-400" />
+                            {devMockUploadState.uploading ? 'Building...' : 'Dev Mock Upload'}
                         </button>
-                        {alternateUploadTargets.length > 0 && (
+                    )}
+                    <div className="relative group" title={uploadDisabledReason} ref={uploadMenuRef}>
+                        <div className="flex items-stretch">
                             <button
-                                type="button"
-                                onClick={() => setUploadMenuOpen((value) => !value)}
+                                onClick={() => startPublish(null)}
                                 disabled={uploadDisabled}
-                                aria-haspopup="menu"
-                                aria-expanded={uploadMenuOpen}
-                                className="stats-action-upload flex items-center justify-center px-2 rounded-r-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                style={{ background: 'var(--accent-bg)', color: 'var(--text-primary)', border: 'var(--panel-border-w, 1px) solid var(--accent-border)', borderLeft: 'none' }}
-                                title="Choose upload repository"
+                                aria-disabled={uploadDisabled}
+                                className={`stats-action-upload flex items-center gap-2 px-4 py-2 font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${alternateUploadTargets.length > 0 ? 'rounded-l-md rounded-r-none' : 'rounded-md'}`}
+                                style={{ background: 'var(--accent-bg-strong)', color: 'var(--text-primary)', border: 'var(--panel-border-w, 1px) solid var(--accent-border)' }}
                             >
-                                <ChevronDown className={`w-4 h-4 transition-transform ${uploadMenuOpen ? 'rotate-180' : ''}`} />
+                                <UploadCloud className="w-4 h-4" style={{ color: 'var(--brand-primary)' }} />
+                                {uploadingWeb ? 'Uploading...' : 'Upload to Web'}
                             </button>
+                            {alternateUploadTargets.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setUploadMenuOpen((value) => !value)}
+                                    disabled={uploadDisabled}
+                                    aria-haspopup="menu"
+                                    aria-expanded={uploadMenuOpen}
+                                    className="stats-action-upload flex items-center justify-center px-2 rounded-r-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ background: 'var(--accent-bg)', color: 'var(--text-primary)', border: 'var(--panel-border-w, 1px) solid var(--accent-border)', borderLeft: 'none' }}
+                                    title="Choose upload repository"
+                                >
+                                    <ChevronDown className={`w-4 h-4 transition-transform ${uploadMenuOpen ? 'rotate-180' : ''}`} />
+                                </button>
+                            )}
+                        </div>
+                        {uploadMenuOpen && alternateUploadTargets.length > 0 && !uploadDisabled && (
+                            <div className="app-dropdown absolute right-0 top-full mt-2 z-50 min-w-[240px] rounded-md p-1" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-hover)', boxShadow: 'var(--shadow-dropdown)' }}>
+                                {alternateUploadTargets.map((target) => (
+                                    <button
+                                        key={target.fullName}
+                                        type="button"
+                                        onClick={() => startPublish(target.fullName)}
+                                        className="block w-full rounded-sm px-3 py-2 text-left text-xs transition-colors"
+                                        style={{ color: 'var(--text-primary)' }}
+                                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                                    >
+                                        {target.label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        {publishOpen && !uploadDisabled && (
+                            <PublishWebhookPopover
+                                webhooks={reportWebhooks}
+                                initialSelection={initialWebhookSelection}
+                                onConfirm={confirmPublish}
+                                onCancel={() => setPublishOpen(false)}
+                            />
+                        )}
+                        {!actionsDisabled && (publishBlockedReason || !canUploadWeb) && (
+                            <div className="pointer-events-none absolute right-0 top-full mt-2 w-56 rounded-md px-2 py-1 text-[11px] opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-hover)', color: 'var(--text-secondary)' }}>
+                                {publishBlockedReason || 'Add at least one fight before uploading a web report.'}
+                            </div>
                         )}
                     </div>
-                    {uploadMenuOpen && alternateUploadTargets.length > 0 && !uploadDisabled && (
-                        <div className="app-dropdown absolute right-0 top-full mt-2 z-50 min-w-[240px] rounded-md p-1" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-hover)', boxShadow: 'var(--shadow-dropdown)' }}>
-                            {alternateUploadTargets.map((target) => (
-                                <button
-                                    key={target.fullName}
-                                    type="button"
-                                    onClick={() => startPublish(target.fullName)}
-                                    className="block w-full rounded-sm px-3 py-2 text-left text-xs transition-colors"
-                                    style={{ color: 'var(--text-primary)' }}
-                                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                                >
-                                    {target.label}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                    {publishOpen && !uploadDisabled && (
-                        <PublishWebhookPopover
-                            webhooks={reportWebhooks}
-                            initialSelection={initialWebhookSelection}
-                            onConfirm={confirmPublish}
-                            onCancel={() => setPublishOpen(false)}
-                        />
-                    )}
-                    {!actionsDisabled && (publishBlockedReason || !canUploadWeb) && (
-                        <div className="pointer-events-none absolute right-0 top-full mt-2 w-56 rounded-md px-2 py-1 text-[11px] opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-hover)', color: 'var(--text-secondary)' }}>
-                            {publishBlockedReason || 'Add at least one fight before uploading a web report.'}
-                        </div>
-                    )}
                 </div>
             </div>
         )}
