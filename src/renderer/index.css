@@ -1544,6 +1544,73 @@ body.web-report #top-players .mvp-gold-icon-badge {
   50% { opacity: 1; transform: scale(1.3); }
 }
 
+/* ── Step spinners ─────────────────────────────────────────────────────────
+   For a click whose work outlives the click - the log picker's confirm, which
+   inserts one row per selected file before the modal can close. Both forms
+   count in discrete beats instead of sweeping: a sweep promises smooth
+   progress, and what is actually happening is N files going past one at a
+   time. The axi language redraws both; see axi-design.css. */
+
+.axi-step-spinner {
+  --step-off: var(--border-default);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  padding: 2px;
+  border-radius: 3px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+}
+
+.axi-step-spinner > i {
+  display: block;
+  width: 3px;
+  height: 10px;
+  border-radius: 1px;
+  background: var(--step-off);
+  animation: axi-step-cell 0.96s steps(1, end) infinite;
+}
+
+.axi-step-spinner > i:nth-child(2) { animation-delay: 0.24s; }
+.axi-step-spinner > i:nth-child(3) { animation-delay: 0.48s; }
+.axi-step-spinner > i:nth-child(4) { animation-delay: 0.72s; }
+
+@keyframes axi-step-cell {
+  0%, 24.9% { background: var(--brand-primary); }
+  25%, 100% { background: var(--step-off); }
+}
+
+/* The other half of the pair: one mark turning a quarter at a time. The
+   notch is what makes the turn readable - a plain square rotating 90 degrees
+   is indistinguishable from a square standing still. */
+.axi-snap-spinner {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  background: var(--brand-primary);
+  border: 1px solid var(--border-default);
+  animation: axi-snap-quarter 1.2s steps(1, end) infinite;
+}
+
+.axi-snap-spinner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--bg-card);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+@keyframes axi-snap-quarter {
+  0%   { transform: rotate(0deg); }
+  25%  { transform: rotate(90deg); }
+  50%  { transform: rotate(180deg); }
+  75%  { transform: rotate(270deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .stats-section-wrap {
   position: relative;
 }
@@ -1704,6 +1771,17 @@ body.glass-surfaces .stats-dashboard-nav-panel {
   .stats-particle-spinner__ring,
   .stats-particle-spinner__orbit,
   .stats-particle-spinner__particle {
+    animation: none !important;
+  }
+
+  /* Stopped mid-cycle these would freeze on an off-beat and read as broken,
+     so they rest in their lit state instead. */
+  .axi-step-spinner > i {
+    animation: none !important;
+    background: var(--brand-primary) !important;
+  }
+
+  .axi-snap-spinner {
     animation: none !important;
   }
 }

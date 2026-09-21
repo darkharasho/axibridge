@@ -143,6 +143,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
         setFilePickerMonthWindow,
         ensureMonthWindowForSince,
         handleAddSelectedFiles,
+        filePickerSubmitting,
         focusedIndex,
         setFocusedIndex,
         activePreset,
@@ -902,9 +903,20 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button onClick={handleClose} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white transition-colors">Cancel</button>
-                                        <button onClick={() => { if (filePickerSelected.size > 0) handleAddSelectedFiles(); }} disabled={filePickerSelected.size === 0} className="file-picker-confirm px-4 py-2 rounded-[4px] text-xs font-semibold border bg-emerald-500/20 text-emerald-200 border-emerald-400/40 hover:bg-emerald-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5">
-                                            Add to Recent Activity
-                                            {filePickerSelected.size > 0 && (<span className="file-picker-confirm__count bg-emerald-500/30 text-emerald-100 px-1.5 py-0.5 rounded-lg text-[10px]">{filePickerSelected.size}</span>)}
+                                        <button onClick={() => { if (filePickerSelected.size > 0) handleAddSelectedFiles(); }} disabled={filePickerSelected.size === 0 || filePickerSubmitting} aria-busy={filePickerSubmitting} className="file-picker-confirm px-4 py-2 rounded-[4px] text-xs font-semibold border bg-emerald-500/20 text-emerald-200 border-emerald-400/40 hover:bg-emerald-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5">
+                                            {filePickerSubmitting ? (
+                                                <>
+                                                    {/* Adding a few hundred logs takes long enough that the
+                                                        click looked ignored. The cells count the queue down. */}
+                                                    <span className="axi-step-spinner" aria-hidden="true"><i /><i /><i /><i /></span>
+                                                    Adding {filePickerSelected.size} log{filePickerSelected.size === 1 ? '' : 's'}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    Add to Recent Activity
+                                                    {filePickerSelected.size > 0 && (<span className="file-picker-confirm__count bg-emerald-500/30 text-emerald-100 px-1.5 py-0.5 rounded-lg text-[10px]">{filePickerSelected.size}</span>)}
+                                                </>
+                                            )}
                                         </button>
                                     </div>
                                 </div>
