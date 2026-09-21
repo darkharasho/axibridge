@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import React, { useEffect, useRef, useMemo, memo } from 'react';
+import React, { useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { ChevronLeft, ChevronRight, FileText, RefreshCw, Search, X } from 'lucide-react';
 
 // Helper to format file sizes
@@ -32,11 +32,11 @@ interface FilePickerItemProps {
 }
 
 const FilePickerItem = memo(({ entry, index, isSelected, isFocused, toggleSelection, setFocusedIndex }: FilePickerItemProps) => {
-    const timestamp = Number.isFinite(entry.mtimeMs)
+    const timestamp = useMemo(() => (Number.isFinite(entry.mtimeMs)
         ? new Date(entry.mtimeMs).toLocaleString(undefined, {
             year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit'
         })
-        : '-';
+        : '-'), [entry.mtimeMs]);
 
     const encounterName = useMemo(() => parseLogName(entry.name), [entry.name]);
 
@@ -238,7 +238,11 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
         }
     };
 
-    const toggleSelection = (path: string, index: number, isShiftKey: boolean) => {
+    /* Every row takes this as a prop and every row is memo()'d, so it has to
+       keep its identity between renders or the memo does nothing: a fresh
+       function is a changed prop on all of them, and one click re-rendered the
+       entire list - each row re-running toLocaleString on the way past. */
+    const toggleSelection = useCallback((path: string, index: number, isShiftKey: boolean) => {
         if (isShiftKey && lastPickedIndexRef.current !== null) {
             const start = Math.min(lastPickedIndexRef.current, index);
             const end = Math.max(lastPickedIndexRef.current, index);
@@ -265,7 +269,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
             });
         }
         lastPickedIndexRef.current = index;
-    };
+    }, [filteredAvailable, setFilePickerSelected, lastPickedIndexRef]);
 
     const handleApplyDateFilters = () => {
         if (selectDayOpen && selectDayDate) {
@@ -898,9 +902,9 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button onClick={handleClose} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white transition-colors">Cancel</button>
-                                        <button onClick={() => { if (filePickerSelected.size > 0) handleAddSelectedFiles(); }} disabled={filePickerSelected.size === 0} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-emerald-500/20 text-emerald-200 border-emerald-400/40 hover:bg-emerald-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5">
+                                        <button onClick={() => { if (filePickerSelected.size > 0) handleAddSelectedFiles(); }} disabled={filePickerSelected.size === 0} className="file-picker-confirm px-4 py-2 rounded-[4px] text-xs font-semibold border bg-emerald-500/20 text-emerald-200 border-emerald-400/40 hover:bg-emerald-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5">
                                             Add to Recent Activity
-                                            {filePickerSelected.size > 0 && (<span className="bg-emerald-500/30 text-emerald-100 px-1.5 py-0.5 rounded-lg text-[10px]">{filePickerSelected.size}</span>)}
+                                            {filePickerSelected.size > 0 && (<span className="file-picker-confirm__count bg-emerald-500/30 text-emerald-100 px-1.5 py-0.5 rounded-lg text-[10px]">{filePickerSelected.size}</span>)}
                                         </button>
                                     </div>
                                 </div>

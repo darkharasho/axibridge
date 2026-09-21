@@ -248,12 +248,14 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                                                 aria-checked={isEnabled}
                                                 aria-label={webhook.name}
                                                 onClick={() => onSetEnabled(webhook.id, !isEnabled)}
-                                                className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0"
+                                                /* Same switch as the one in SettingsView, so it wears the same
+                                                   hooks: drawn inline it had none, and a language that redraws
+                                                   switches could not see it. */
+                                                className={`toggle-track relative inline-flex h-5 w-9 items-center rounded-full border border-transparent transition-colors shrink-0 ${isEnabled ? 'toggle-track--on' : 'toggle-track--off'}`}
                                                 style={{ background: isEnabled ? 'var(--brand-primary)' : 'var(--bg-input)' }}
                                             >
                                                 <span
-                                                    className="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform"
-                                                    style={{ transform: isEnabled ? 'translateX(1.25rem)' : 'translateX(0.25rem)' }}
+                                                    className={`toggle-knob absolute top-[3px] left-0 h-3.5 w-3.5 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-5' : 'translate-x-1'}`}
                                                 />
                                             </button>
                                             {!isBridge && (

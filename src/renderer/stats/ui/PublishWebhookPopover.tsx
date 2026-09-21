@@ -74,9 +74,14 @@ export const PublishWebhookPopover = ({ webhooks, initialSelection, onConfirm, o
                             onMouseEnter={(event) => (event.currentTarget.style.background = 'var(--bg-hover)')}
                             onMouseLeave={(event) => (event.currentTarget.style.background = 'transparent')}
                         >
+                            {/* A checkbox drawn by hand rather than an <input>, so the rules that
+                                redraw checkboxes cannot see it. Colours move to classes and the
+                                state moves to data-on, which is how the rest of the app says it. */}
                             <span
-                                className="flex h-[18px] w-[18px] flex-none items-center justify-center rounded-[5px]"
-                                style={{ background: on ? 'var(--brand-primary)' : 'var(--bg-input)', border: `1.5px solid ${on ? 'var(--brand-primary)' : 'var(--border-hover)'}` }}
+                                data-on={on ? '' : undefined}
+                                className={`menu-checkbox flex h-[18px] w-[18px] flex-none items-center justify-center rounded-[5px] border-[1.5px] ${on
+                                    ? 'bg-[color:var(--brand-primary)] border-[color:var(--brand-primary)]'
+                                    : 'bg-[color:var(--bg-input)] border-[color:var(--border-hover)]'}`}
                             >
                                 {on && <Check className="w-3 h-3" style={{ color: 'var(--on-brand, #0b1220)' }} strokeWidth={3.2} />}
                             </span>
