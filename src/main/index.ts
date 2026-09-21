@@ -555,6 +555,51 @@ const markUploadRetryResolved = (filePath: string) => {
     sendUploadRetryQueueUpdate();
 };
 
+// ─── Share link (Tier 1) ────────────────────────────────────────────────────
+// Publish a parsed report and return the link that addresses it.
+//
+// Unlike the dps.report upload this CANNOT run in parallel with the parse: it
+// publishes the parsed report, so it has nothing to send until the details
+// exist. It therefore sits on the critical path ahead of the Discord post,
+// which is deliberate — the embed links to this URL, so posting first would
+// post the wrong link.
+//
+// Every failure here is non-fatal by design: `shareLog` resolves
+// `{ success: false }` rather than throwing, and a log with no share link still
+// has its permalink (when dps.report ran) and its stats.
+//
+// Shared by BOTH ingest paths. It used to live inline in the local-parse
+// branch, which meant a log that took the upload-only path — a full cache hit,
+// no local parser, or a parse that threw — never got a link at all, fell back
+// to labelling itself "Open dps.report Report", and had to be minted by hand
+// from the log card.
+const mintShareLink = async (
+    details: any,
+    filePath: string
+): Promise<{ shareUrl?: string; shareId?: string }> => {
+    const shareLink: { shareUrl?: string; shareId?: string } = {};
+    if (!details) return shareLink;
+    try {
+        const target = await resolveShareTarget(store);
+        if (!target) return shareLink;
+        const githubToken = (store.get('githubToken') as string | undefined) ?? null;
+        const shared = await shareLog(details, filePath, { target, githubToken });
+        if (shared.success && shared.url) {
+            shareLink.shareUrl = shared.url;
+            shareLink.shareId = shared.code;
+            log.info(`[Main] Share link minted for ${filePath}: ${shared.url}`);
+        } else {
+            // electron-log, not console: a share that silently falls back to no
+            // link is the single most likely thing to need diagnosing from a
+            // user's main.log, and console.* never reaches that file.
+            log.error(`[Main] Share link failed for ${filePath}: ${shared.error || 'unknown error'}`);
+        }
+    } catch (shareError: any) {
+        log.error(`[Main] Share link threw for ${filePath}:`, shareError?.message || shareError);
+    }
+    return shareLink;
+};
+
 // The body of `processLogFile`. Split out so the `activeUploads` entry can be
 // released in a single `finally` below, no matter which of the many paths
 // through here returns or throws.
@@ -766,39 +811,7 @@ const runLogFile = async (filePath: string, fileId: string, options?: { retry?: 
                 });
             }
 
-            // ─── Share link (Tier 1) ─────────────────────────────────────────
-            // Unlike the dps.report upload this CANNOT run in parallel with the
-            // parse: it publishes the parsed report, so it has nothing to send
-            // until `prunedDetails` exists. It therefore sits on the critical
-            // path ahead of the Discord post, which is deliberate — the embed
-            // links to this URL, so posting first would post the wrong link.
-            //
-            // Every failure here is non-fatal by design: `shareLog` resolves
-            // `{ success: false }` rather than throwing, and a log with no share
-            // link still has its permalink (when dps.report ran) and its stats.
-            const shareLink: { shareUrl?: string; shareId?: string } = {};
-            if (prunedDetails) {
-                try {
-                    const target = await resolveShareTarget(store);
-                    if (target) {
-                        const githubToken = (store.get('githubToken') as string | undefined) ?? null;
-                        const shared = await shareLog(prunedDetails, filePath, { target, githubToken });
-                        if (shared.success && shared.url) {
-                            shareLink.shareUrl = shared.url;
-                            shareLink.shareId = shared.code;
-                            log.info(`[Main] Share link minted for ${filePath}: ${shared.url}`);
-                        } else {
-                            // electron-log, not console: a share that silently
-                            // falls back to no link is the single most likely
-                            // thing to need diagnosing from a user's main.log,
-                            // and console.* never reaches that file.
-                            log.error(`[Main] Share link failed for ${filePath}: ${shared.error || 'unknown error'}`);
-                        }
-                    }
-                } catch (shareError: any) {
-                    log.error(`[Main] Share link threw for ${filePath}:`, shareError?.message || shareError);
-                }
-            }
+            const shareLink = await mintShareLink(prunedDetails, filePath);
 
             // Discord notifications — must happen before upload-complete to match
             // the dps.report ordering (discord → upload-complete), otherwise the
@@ -927,14 +940,49 @@ const runLogFile = async (filePath: string, fileId: string, options?: { retry?: 
     // carries no Axilog data, so every migrated reader renders a log sourced
     // from it empty while the dashboard still shows a confident-looking total.
     // A log we cannot parse locally is reported as such instead.
-    win?.webContents.send('upload-status', { id: fileId, filePath, status: 'uploading' });
-
     try {
-        if (!uploader) {
-            throw new Error('Uploader not initialized.');
+        // Details come from the local cache or not at all. An entry written
+        // before the Axilog cutover has no carry-set; the coverage banner
+        // surfaces that and offers the re-parse that repairs it.
+        //
+        // Computed BEFORE the upload decision because a skipped dps.report
+        // upload has to synthesise a result, and the details are what name the
+        // fight in it.
+        let cachedDetails = cached?.jsonDetails && !cached.jsonDetails.error ? cached.jsonDetails : null;
+        if (cachedDetails) {
+            cachedDetails = attachConditionMetrics(cachedDetails);
         }
+        const hasUsableDetails = Boolean(cachedDetails && hasUsableFightDetails(cachedDetails));
+        const prunedDetails = hasUsableDetails ? pruneDetailsForStats(cachedDetails, statsPruneOptions()) : null;
+        cachedDetails = null;
 
-        const result = cached?.entry?.result || await uploader.upload(filePath);
+        let result = cached?.entry?.result || null;
+        if (!result) {
+            if (shouldUploadToDpsReport(store)) {
+                if (!uploader) {
+                    throw new Error('Uploader not initialized.');
+                }
+                win?.webContents.send('upload-status', { id: fileId, filePath, status: 'uploading' });
+                result = await uploader.upload(filePath);
+            } else {
+                // Share links have somewhere to write, so dps.report is skipped
+                // outright — the same rule the local-parse path applies to its
+                // parallel upload. This branch used to call `uploader.upload`
+                // unconditionally, which is why `dpsReportEnabled: false` and a
+                // fully configured R2 bucket still produced dps.report traffic.
+                //
+                // Nothing downstream tolerates a null result, so synthesise the
+                // record it reads; the share link below supplies the log's URL.
+                result = {
+                    id: fileId,
+                    permalink: '',
+                    userToken: '',
+                    fightName: prunedDetails?.fightName || fileId,
+                    encounterDuration: prunedDetails?.encounterDuration,
+                    uploadTime: prunedDetails?.uploadTime || Date.now() / 1000,
+                };
+            }
+        }
 
         if (!result || result.error) {
             markUploadRetryFailure(filePath, result?.error || 'Unknown upload error', result?.statusCode);
@@ -949,22 +997,16 @@ const runLogFile = async (filePath: string, fileId: string, options?: { retry?: 
             console.log(`[Main] Upload successful: ${result.permalink}.`);
         }
 
-        // Details come from the local cache or not at all. An entry written
-        // before the Axilog cutover has no carry-set; the coverage banner
-        // surfaces that and offers the re-parse that repairs it.
-        let cachedDetails = cached?.jsonDetails && !cached.jsonDetails.error ? cached.jsonDetails : null;
-        if (cachedDetails) {
-            cachedDetails = attachConditionMetrics(cachedDetails);
-        }
-        const hasUsableDetails = Boolean(cachedDetails && hasUsableFightDetails(cachedDetails));
-        const prunedDetails = hasUsableDetails ? pruneDetailsForStats(cachedDetails, statsPruneOptions()) : null;
-        cachedDetails = null;
-
         if (cacheKey && !cached?.entry?.result) {
             await saveDpsReportCacheEntry(cacheKey, result, prunedDetails);
         }
 
         markUploadRetryResolved(filePath);
+
+        // A cache hit reaches here with perfectly good details and no link of
+        // its own, so it mints one too — that is what heals a re-added log
+        // instead of leaving it stuck on a dps.report permalink.
+        const shareLink = await mintShareLink(prunedDetails, filePath);
 
         const shouldSendDiscord = resolveShouldSendDiscord();
 
@@ -983,6 +1025,7 @@ const runLogFile = async (filePath: string, fileId: string, options?: { retry?: 
                 filePath,
                 status: 'discord',
                 permalink: result.permalink,
+                ...shareLink,
                 uploadTime: result.uploadTime,
                 encounterDuration: result.encounterDuration,
                 fightName: result.fightName
@@ -1006,7 +1049,7 @@ const runLogFile = async (filePath: string, fileId: string, options?: { retry?: 
                     // `prunedDetails` is null when the local parse failed, which
                     // posts the link-only embed rather than nothing at all.
                     const mapSlicePng = await mapSliceFor(prunedDetails, prunedDetails?.fightName ?? '');
-                    const sendResults = await discord?.sendLog({ ...result, filePath, mode: 'embed', splitEnemiesByTeam, mapSlicePng }, prunedDetails);
+                    const sendResults = await discord?.sendLog({ ...result, ...shareLink, filePath, mode: 'embed', splitEnemiesByTeam, mapSlicePng }, prunedDetails);
                     handleDiscordSendResults(sendResults);
                 }
             } catch (discordError: any) {
@@ -1061,6 +1104,7 @@ const runLogFile = async (filePath: string, fileId: string, options?: { retry?: 
         win?.webContents.send('upload-complete', {
             ...result,
             ...detailsSummary,
+            ...shareLink,
             filePath,
             status: hasUsableDetails ? 'calculating' : 'success',
             detailsStatus: hasUsableDetails ? 'available' as const : 'idle' as const,
