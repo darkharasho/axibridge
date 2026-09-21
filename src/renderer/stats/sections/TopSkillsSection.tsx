@@ -119,7 +119,7 @@ export const TopSkillsSection = ({
                                     </div>
                                 </div>
                             </div>
-                            <div className="h-1.5 w-full bg-[var(--bg-hover)] rounded-sm overflow-hidden">
+                            <div className="quantity-bar h-1.5 w-full bg-[var(--bg-hover)] rounded-sm overflow-hidden">
                                 <div
                                     className="top-skills-outgoing-bar h-full bg-orange-500 rounded-sm"
                                     style={{ width: `${(Number((skill as any)[metricKey] || 0) / topSkillsPeak) * 100}%` }}
@@ -184,7 +184,7 @@ export const TopSkillsSection = ({
                                     </div>
                                 </div>
                             </div>
-                            <div className="h-1.5 w-full bg-[var(--bg-hover)] rounded-sm overflow-hidden">
+                            <div className="quantity-bar h-1.5 w-full bg-[var(--bg-hover)] rounded-sm overflow-hidden">
                                 <div
                                     className="h-full bg-red-500 rounded-sm"
                                     style={{ width: `${(incomingValue(skill) / incomingPeak) * 100}%` }}

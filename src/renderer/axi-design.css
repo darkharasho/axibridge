@@ -20,6 +20,15 @@ body.axi-design {
   --axi-surface-raised: #2b313d;
   --axi-ink-line: #0c0e12;
   --axi-rule: #3a4250;
+  /* The line around a well. axi draws its outlines in near-black, which works
+     because the language assumes a ground the lines can be darker than.
+     AxiBridge's ground IS near-black, so an ink outline round a ground-filled
+     element - a toggle track, a bar's trough, a stat row - is a black line on
+     a black field, and those elements came out looking like the untouched old
+     ones. The rule holds: ink outlines something raised above the ground (it
+     reads, because the fill is lighter than the line), and a well that sits at
+     ground level is outlined by the rule instead. */
+  --axi-well-line: var(--axi-rule);
   --axi-text: #f4f6f9;
   --axi-text-dim: #a7b0be;
   --axi-text-faint: #7c8695;
@@ -608,7 +617,7 @@ body.axi-design .toggle-track {
 }
 body.axi-design .toggle-track--off {
   background: var(--axi-ground);
-  border-color: var(--axi-ink-line);
+  border-color: var(--axi-well-line);
 }
 body.axi-design .toggle-track--on {
   background: var(--axi-accent);
@@ -808,7 +817,7 @@ body.axi-design .stats-group-container { border-radius: var(--axi-radius); }
    fill, so the option riding on top of it has to be ink, not accent. */
 body.axi-design {
   --pill-group-bg: var(--axi-ground);
-  --pill-group-border: var(--axi-ink-line);
+  --pill-group-border: var(--axi-well-line);
   --pill-group-border-w: var(--axi-border-control);
   --pill-group-radius: 8px;
   --pill-indicator-bg: var(--axi-accent);
@@ -828,6 +837,7 @@ body.axi-design .mvp-card__glow { display: none; }
 body.axi-design .mvp-group {
   background: var(--axi-ground);
   border-width: var(--axi-border-control);
+  border-color: var(--axi-well-line);
   border-radius: var(--axi-radius);
   /* The label straddles this edge, and at the control weight it is 12px
      taller than the hairline version the classic pt-4 was measured against.
@@ -942,7 +952,7 @@ body.axi-design .leader-card--active {
 body.axi-design .mvp-stat-pill {
   background: var(--axi-ground);
   border-width: var(--axi-border-control);
-  border-color: var(--axi-ink-line);
+  border-color: var(--axi-well-line);
   border-radius: var(--axi-radius-sm);
 }
 
@@ -988,6 +998,11 @@ body.axi-design { --section-neutral: var(--axi-text-faint); }
 body.axi-design .dashboard-rail {
   scrollbar-width: none;
   border-right-color: var(--axi-ink-line);
+  /* The rail was the same surface as the cards standing on it, so five panels
+     and the strip behind them were all one colour and the only thing telling
+     them apart was a near-black line. A panel sits on the ground, not on
+     another panel. */
+  background: var(--axi-ground);
 }
 body.axi-design .dashboard-rail::-webkit-scrollbar { width: 0; height: 0; }
 
@@ -1007,4 +1022,144 @@ body.axi-design .app-modal-card {
   --panel-border-w: var(--axi-border-panel);
   border-radius: var(--axi-radius);
   box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+}
+
+/* ---------------------------------------------------------------------------
+   THE DENSE TABLES
+   These are the biggest surface in the app and none of the remap reached them:
+   every fill and every line in .dense-table is a literal rgba white or black
+   at two to twelve percent, which is precisely what rule 2 rules out. At those
+   alphas over the axi ground they are also nearly invisible, so the tables had
+   neither the old look nor the new one - they had almost no look at all.
+
+   Redrawn on the neutral ramp. The zebra is two opaque surfaces rather than a
+   1.5% wash, the dividers are the rule, and the two soft shadows that held the
+   sticky header and the pinned column off the rest of the table become hard
+   ink lines - a shadow in this language is an offset block, and a blurred one
+   pretending to be depth is the thing it replaced. */
+body.axi-design .dense-table__header {
+  background: var(--axi-surface-raised);
+  border-bottom: var(--axi-border-control) solid var(--axi-ink-line);
+}
+body.axi-design .dense-table__head,
+body.axi-design .dense-table__cell {
+  border-bottom: 1px solid var(--axi-rule);
+  background: var(--axi-surface);
+}
+body.axi-design .dense-table__row:nth-of-type(odd) > .dense-table__cell {
+  background: var(--axi-ground);
+}
+body.axi-design .dense-table__row:hover > .dense-table__cell {
+  background: var(--axi-surface-raised);
+}
+body.axi-design .dense-table__head {
+  color: var(--axi-text);
+  background: var(--axi-surface-raised);
+  border-bottom: var(--axi-border-control) solid var(--axi-ink-line);
+  box-shadow: none;
+}
+/* Scrolled-under is a real state and still worth saying; it is said with the
+   ink line the header already sits on, thickened, not with a blur. */
+body.axi-design .dense-table__scroll--scrolled .dense-table__head {
+  box-shadow: 0 var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+body.axi-design .dense-table__head:not(:last-child)::after {
+  background: var(--axi-rule);
+}
+/* The pinned first column is a panel edge, not a gradient falling away from
+   one. Hard line, ink, control weight. */
+body.axi-design .dense-table__head--pinned,
+body.axi-design .dense-table__cell--pinned {
+  background: var(--axi-surface);
+  box-shadow: var(--axi-border-control) 0 0 var(--axi-ink-line);
+}
+body.axi-design .dense-table__row:nth-of-type(odd) > .dense-table__cell--pinned {
+  background: var(--axi-ground);
+}
+body.axi-design .dense-table__row:hover > .dense-table__cell--pinned {
+  background: var(--axi-surface-raised);
+  box-shadow: inset var(--axi-border-control) 0 0 var(--axi-accent),
+              var(--axi-border-control) 0 0 var(--axi-ink-line);
+}
+body.axi-design .dense-table__cell--label { background: inherit; }
+
+/* A quantity bar. At 6px tall with a soft rounded cap it was a progress
+   indicator borrowed from somewhere else; here a measured length gets an
+   outlined well and a flat fill sitting in it, which is the same shape the
+   language uses everywhere else and is readable at a glance from across the
+   row. Rule 9 is already satisfied by the width - this just stops the bar
+   being the one element on the screen with nothing drawn around it. */
+body.axi-design .quantity-bar {
+  height: 10px;
+  background: var(--axi-ground);
+  border: var(--axi-border-control) solid var(--axi-well-line);
+  border-radius: var(--axi-radius-sm);
+  overflow: hidden;
+}
+body.axi-design .quantity-bar > * { border-radius: 0; }
+
+/* The win/loss pair at the top of Overview. Its box was an inline 1px outline
+   with a 2px status edge, both literals, so it kept the old weights whatever
+   the tokens said - and its labels were mint at 60% over the ground. The edge
+   is a measurement, so it goes to the panel step; the box goes to the control
+   step; the labels stop being tinted and become text. */
+body.axi-design .overview-card {
+  --panel-border-w: var(--axi-border-control);
+  --overview-edge-w: var(--axi-border-panel);
+  --overview-label: var(--axi-text-dim);
+}
+
+/* ---------------------------------------------------------------------------
+   THE WEB REPORT'S LEFT NAV
+   A published report ships its own sidebar - the desktop app's rail and
+   CategoryBar are not used there - and it had none of this language: black at
+   20% behind frosted glass, a 60px soft drop shadow down its edge, and its
+   items drawn as rounded capsules outlined in white at 10-20%. Every one of
+   those is a thing the language does not do, which is why it kept reading as
+   the old app next to the sections it was scrolling.
+
+   Same grammar as the desktop rail: the strip is a surface with an ink edge,
+   a category you are reading is filled with the accent and takes the control
+   block, and a section is brightened text because it is a smaller claim. */
+body.axi-design .report-nav-sidebar {
+  background: var(--axi-surface);
+  border-right: var(--axi-border-panel) solid var(--axi-ink-line);
+  backdrop-filter: none;
+  box-shadow: none;
+}
+body.axi-design .report-nav-sidebar .report-nav-search {
+  background: var(--axi-ground);
+  border: var(--axi-border-control) solid var(--axi-well-line);
+  border-radius: var(--axi-radius-sm);
+  color: var(--axi-text-dim);
+}
+body.axi-design .report-nav-sidebar .report-nav-group-btn,
+body.axi-design .report-nav-sidebar .report-nav-item-btn {
+  border: var(--axi-border-control) solid transparent;
+  border-radius: var(--axi-radius-sm);
+  color: var(--axi-text-dim);
+  background: transparent;
+}
+body.axi-design .report-nav-sidebar .report-nav-group-btn:hover,
+body.axi-design .report-nav-sidebar .report-nav-item-btn:hover {
+  color: var(--axi-text);
+  background: var(--axi-surface-raised);
+  border-color: transparent;
+}
+body.axi-design .report-nav-sidebar .report-nav-group-btn[data-on],
+body.axi-design .report-nav-sidebar .report-nav-group-btn[data-on]:hover {
+  background: var(--axi-accent);
+  color: var(--axi-accent-ink);
+  border-color: var(--axi-ink-line);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+body.axi-design .report-nav-sidebar .report-nav-group-btn[data-on] .report-nav-group-icon,
+body.axi-design .report-nav-sidebar .report-nav-group-btn[data-on] .report-nav-chevron { color: var(--axi-accent-ink); }
+/* The icon beside a category is a label for it, not a second accent. */
+body.axi-design .report-nav-sidebar .report-nav-group-icon { color: var(--axi-text-faint); }
+body.axi-design .report-nav-sidebar .report-nav-item-btn[data-on],
+body.axi-design .report-nav-sidebar .report-nav-item-btn[data-on]:hover {
+  color: var(--axi-text);
+  background: var(--axi-surface-raised);
+  border-color: transparent;
 }

@@ -1720,6 +1720,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                     <div key={group.id} className="space-y-1">
                                         <button
                                             onClick={() => handleGroupHeaderClick(group.id)}
+                                            data-on={isActive ? '' : undefined}
                                             className={`report-nav-group-btn w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors ${isActive
                                                 ? 'bg-white/10 text-white border-white/20'
                                                 : 'text-gray-300 border-transparent hover:border-white/10 hover:bg-white/10'
@@ -1757,6 +1758,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                                         handleSubNavClick(group.id, item.id);
                                                                         setTocOpen(false);
                                                                     }}
+                                                                    data-on={activeSectionId === item.id ? '' : undefined}
                                                                     className={`report-nav-item-btn w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] border transition-colors ${activeSectionId === item.id ? 'text-white border-white/20 bg-white/10' : 'text-gray-200 border-transparent hover:border-white/10 hover:bg-white/10'}`}
                                                                 >
                                                                     <ItemIcon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
@@ -1823,6 +1825,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                     <div key={group.id} className="space-y-1">
                                         <button
                                             onClick={() => handleGroupHeaderClick(group.id)}
+                                            data-on={isActive ? '' : undefined}
                                             className={`report-nav-group-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors ${isActive
                                                 ? 'bg-white/10 text-white border-white/20'
                                                 : 'text-gray-300 border-transparent hover:border-white/10 hover:bg-white/10'
@@ -1857,6 +1860,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                                     animate={{ opacity: 1, x: 0 }}
                                                                     transition={{ ...navFastSpring, delay: index * 0.03 }}
                                                                     onClick={() => handleSubNavClick(group.id, item.id)}
+                                                                    data-on={activeSectionId === item.id ? '' : undefined}
                                                                     className={`report-nav-item-btn w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] border transition-colors ${activeSectionId === item.id ? 'text-white border-white/20 bg-white/10' : 'text-gray-200 border-transparent hover:border-white/10 hover:bg-white/10'}`}
                                                                 >
                                                                     <ItemIcon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
