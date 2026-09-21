@@ -1248,13 +1248,17 @@ export function ReportApp({ injectedSource, assetBase }: {
             .then((resp) => (resp.ok ? resp.json() : Promise.reject()))
             .then((data) => {
                 if (!isMounted) return;
-                const defaultPath = 'svg/AxiBridge.svg';
+                // The glyph is the app's current mark; the wordmark it replaced is
+                // still the stored path in every report published before the
+                // switch, so both count as "no custom logo was set".
+                const defaultPath = 'svg/axibridge-glyph.svg';
+                const legacyDefaultPath = 'svg/AxiBridge.svg';
                 const path = data?.path ? String(data.path) : defaultPath;
                 const version = data?.updatedAt ? String(data.updatedAt) : '';
                 const urlBase = joinAssetPath(assetBasePath, path);
                 const url = version ? `${urlBase}?v=${encodeURIComponent(version)}` : urlBase;
                 setLogoUrl(url);
-                setLogoIsDefault(!data?.path || path === defaultPath);
+                setLogoIsDefault(!data?.path || path === defaultPath || path === legacyDefaultPath);
             })
             .catch(() => {
                 if (!isMounted) return;
@@ -1559,7 +1563,9 @@ export function ReportApp({ injectedSource, assetBase }: {
     );
 
     if (report) {
-        const axibridgeLogoUrl = joinAssetPath(assetBasePath, 'svg/AxiBridge.svg');
+        // The glyph, not the wordmark: this mark sits in a 40px square, and the
+        // wordmark masked into one came out as an unreadable squeeze of itself.
+        const axibridgeLogoUrl = joinAssetPath(assetBasePath, 'svg/axibridge-glyph.svg');
         const animateGroupScrollToTop = () => {
             cancelGroupTopScroll();
             const startTop = window.scrollY || window.pageYOffset || 0;
