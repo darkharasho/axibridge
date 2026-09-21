@@ -108,7 +108,10 @@ export const StatsHeader = ({
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0, ease: [0.16, 1, 0.3, 1] }}
-            className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3 shrink-0 px-2">
+            /* Embedded, this header is the first thing inside the report's
+               panel and sat about eight pixels off its top edge. The desktop
+               header has the view's own padding above it and needs none. */
+            className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3 shrink-0 px-2 ${embedded ? 'pt-3.5' : ''}`}>
         <div className="flex items-start gap-3 sm:items-center sm:gap-4">
             {/* The title and its line of context read as one block, so they were
                 set flush - but at 24px the heading only leaves a few pixels of
