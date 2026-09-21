@@ -57,7 +57,7 @@ export function WebhookModal({ isOpen, onClose, webhooks, enabledWebhookIds, onS
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                     transition={{ duration: 0.2 }}
                     className="app-modal-card rounded-[4px] w-full max-w-lg mx-4 overflow-hidden"
-                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+                    style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>

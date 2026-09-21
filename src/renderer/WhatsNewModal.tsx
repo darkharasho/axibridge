@@ -28,7 +28,7 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                     exit={{ opacity: 0, scale: 0.96, y: 18 }}
                     transition={{ duration: 0.2 }}
                     className="app-modal-card whats-new-modal w-full max-w-4xl mx-4 overflow-hidden rounded-[4px]"
-                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+                    style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
                 >
                     <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
                         <div className="flex items-center gap-3">
@@ -74,7 +74,7 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                                             </button>
                                         ),
                                         table: ({ children }) => (
-                                            <div className="overflow-x-auto rounded-[4px]" style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card-inner)' }}>
+                                            <div className="overflow-x-auto rounded-[4px]" style={{ border: 'var(--panel-border-w, 1px) solid var(--border-default)', background: 'var(--bg-card-inner)' }}>
                                                 <table className="w-full border-collapse text-left text-sm">
                                                     {children}
                                                 </table>

@@ -473,8 +473,9 @@ const CollapsedView = ({
                                                 <div key={`${row.account}-${idx}`} className={`relative border-b border-[color:var(--border-subtle)] ${activeModIsHypothetical ? 'opacity-50' : ''}`}>
                                                     {/* Bar overlay — negative grows from right, positive from left */}
                                                     <div
-                                                        className={`absolute inset-y-0 pointer-events-none ${isNegative ? 'right-0' : 'left-0'}`}
-                                                        style={{ width: `${barWidthPct}%`, background: barStyle }}
+                                                        className={`row-quantity-bar absolute inset-y-0 pointer-events-none ${isNegative ? 'right-0' : 'left-0'}`}
+                                                        data-sign={isNegative ? 'neg' : incoming ? 'incoming' : 'gain'}
+                                                        style={{ width: `${barWidthPct}%`, background: `var(--row-bar-fill, ${barStyle})` }}
                                                     />
                                                     {/* Row content */}
                                                     <div className="relative grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] px-3 py-2 text-xs text-[color:var(--text-primary)]">

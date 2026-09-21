@@ -173,8 +173,14 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         if (colorPalette !== 'electric-blue') {
             body.classList.add(`palette-${colorPalette}`);
         }
-        body.classList.toggle('glass-surfaces', glassSurfaces);
-        body.classList.toggle('glassmorphic', glassmorphic);
+        // Glass and axi are opposite claims about what a surface is: glass is
+        // translucent and lit from behind, axi is opaque with a hard block. The
+        // glass rules are written with !important (they have to be, to beat the
+        // inline styles they override), so with both on the glass wins every
+        // contested property and the result is neither language. axi-design
+        // suppresses them rather than trying to out-specify them.
+        body.classList.toggle('glass-surfaces', glassSurfaces && !axiDesign);
+        body.classList.toggle('glassmorphic', glassmorphic && !axiDesign);
         body.classList.toggle('axi-design', axiDesign);
         body.classList.toggle('particles-disabled', !particlesEnabled);
     }, [colorPalette, glassSurfaces, glassmorphic, axiDesign, particlesEnabled]);

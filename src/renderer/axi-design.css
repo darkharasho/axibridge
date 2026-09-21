@@ -64,7 +64,18 @@ body.axi-design {
      raised element, the rule for a line drawn inside one. */
   --border-subtle: var(--axi-rule);
   --border-default: var(--axi-ink-line);
-  --border-hover: var(--axi-accent);
+  /* Also not the accent. border-hover is the app's "make this edge notice
+     you" colour, and it is spent on hover states, dropdown outlines and - the
+     tell - the dashed box that says "No fight data available". An empty state
+     is the least selected thing on the screen. Hover is carried by --bg-hover
+     here, so the edge can stay neutral. */
+  --border-hover: var(--axi-rule);
+
+  /* --- remap: the one form weight components have to opt into --- */
+  /* A handful of surfaces write their border inline, which is the one place a
+     variable remap cannot reach. Those read var(--panel-border-w, 1px), so
+     with the theme off they are unchanged and with it on they step up. */
+  --panel-border-w: var(--axi-border-control);
 
   /* --- remap: text --- */
   --text-primary: var(--axi-text);
@@ -84,7 +95,13 @@ body.axi-design {
      where it is doing the work. */
   --accent-bg: var(--axi-surface-raised);
   --accent-bg-strong: var(--axi-surface-raised);
-  --accent-border: var(--axi-accent);
+  /* Not the accent. accent-border outlines every secondary button in the app -
+     the folder picker, the webhook gear, Add Logs - and pointing it at gold put
+     five gold outlines on the dashboard next to the one gold thing that was
+     actually selected. The outline goes neutral and the accent stays in the
+     icon, so these still read as the accented action without competing with
+     the nav tab that is genuinely on. */
+  --accent-border: var(--axi-rule);
   /* Nothing glows. A glow is an element lit from inside, which is the opposite
      of a flat fill with a hard block behind it. */
   --glow-primary: transparent;
@@ -134,6 +151,11 @@ body.axi-design {
   --section-support-bg: var(--axi-surface-raised);
   --section-healing-bg: var(--axi-surface-raised);
   --section-boon-bg: var(--axi-surface-raised);
+  /* The one category hue that has to move. Boons were amber (#fbbf24), which
+     is the accent to within a few percent, so a Boons panel's edge read as a
+     selection. Rotated to the one clearly-distinct hue the eleven-category
+     palette was not already using. */
+  --section-boon: #f472b6;
 
   /* --- remap: scrollbar --- */
   --scrollbar-track: var(--axi-ground);
@@ -166,6 +188,463 @@ body.axi-design :focus-visible {
   outline: var(--axi-border-control) solid var(--axi-accent);
   outline-offset: 2px;
 }
+
+/* The bridges below deliberately sit above every component section in this
+   file. They are a blanket translation of utilities the components know
+   nothing about, so anywhere a component section has made a considered choice
+   - the MVP card's ink outline, the commander chip's fill - that choice is
+   written later and wins on source order alone. */
+
+/* ---------------------------------------------------------------------------
+   THE PALETTE BRIDGE
+   Roughly fourteen hundred Tailwind palette utilities are written straight
+   into the markup - text-gray-400, bg-white/5, border-white/10, bg-amber-500/15
+   and two hundred and seventy more. None of them read a variable, so the remap
+   at the top of this file could never reach them; this is why so much of the
+   app still looked like the old app with new tokens underneath it.
+
+   So the theme claims them. body.axi-design .text-gray-400 is two classes
+   against the utility's one, which is enough to win without !important, and
+   with the setting off not one of these rules matches anything. Each utility
+   resolves to the token that carries the same meaning:
+
+     the nine greys        -> the three axi text steps
+     white and black washes-> the neutral surfaces, or the scrim
+     red, rose             -> danger      orange, amber, yellow -> warn
+     green, emerald, teal  -> ok          every cool hue        -> meta
+
+   Note what is missing: the accent. Nothing in this table hands out gold. The
+   app writes amber in a hundred places and meant "highlight" in every one of
+   them, but in this language gold means the thing you picked, so it stays out
+   of the blanket translation and is only ever spent by a rule written on
+   purpose. The one exception is accent-color on checkboxes and ranges, where
+   gold is exactly the claim being made.
+
+   Collapsing eight cool hues onto one ink is deliberate. Where a hue really is
+   data - boon colours, profession colours - it comes from JS, not from a class,
+   so rule 10's palette is untouched; the hues written into markup are chrome,
+   and chrome in this language has one cool ink.
+
+   Generated from the classes actually present in src/renderer, so there are no
+   rules here for utilities the app does not use. */
+body.axi-design .ring-cyan-400\/70,
+body.axi-design .ring-cyan-500\/30,
+body.axi-design .ring-indigo-500\/30,
+body.axi-design .ring-indigo-500\/50,
+body.axi-design .ring-sky-400\/70,
+body.axi-design .ring-sky-500\/60 { --tw-ring-color: var(--axi-meta); }
+
+body.axi-design .ring-emerald-500\/60 { --tw-ring-color: var(--axi-ok); }
+
+body.axi-design .ring-white\/20 { --tw-ring-color: var(--axi-rule); }
+
+body.axi-design .accent-blue-400,
+body.axi-design .accent-blue-500,
+body.axi-design .accent-cyan-400 { accent-color: var(--axi-accent); }
+
+body.axi-design .bg-red-400,
+body.axi-design .bg-red-500,
+body.axi-design .bg-red-600,
+body.axi-design .bg-red-700,
+body.axi-design .bg-rose-400,
+body.axi-design .bg-rose-500 { background-color: var(--axi-danger); }
+
+body.axi-design .bg-black\/20,
+body.axi-design .bg-black\/30,
+body.axi-design .bg-black\/40,
+body.axi-design .bg-black\/50,
+body.axi-design .bg-white\/5,
+body.axi-design .bg-white\/8 { background-color: var(--axi-ground); }
+
+body.axi-design .bg-blue-400\/90,
+body.axi-design .bg-cyan-300,
+body.axi-design .bg-cyan-500,
+body.axi-design .bg-cyan-500\/80,
+body.axi-design .bg-cyan-600 { background-color: var(--axi-meta); }
+
+body.axi-design .bg-emerald-400,
+body.axi-design .bg-emerald-500,
+body.axi-design .bg-green-500 { background-color: var(--axi-ok); }
+
+body.axi-design .bg-gray-600 { background-color: var(--axi-rule); }
+
+body.axi-design .bg-black\/60,
+body.axi-design .bg-black\/70 { background-color: var(--axi-scrim); }
+
+body.axi-design .bg-amber-400\/5,
+body.axi-design .bg-amber-500\/10,
+body.axi-design .bg-amber-500\/15,
+body.axi-design .bg-amber-500\/20,
+body.axi-design .bg-amber-500\/25,
+body.axi-design .bg-blue-500\/10,
+body.axi-design .bg-blue-500\/12,
+body.axi-design .bg-blue-500\/15,
+body.axi-design .bg-blue-500\/20,
+body.axi-design .bg-blue-500\/30,
+body.axi-design .bg-cyan-400\/10,
+body.axi-design .bg-cyan-400\/15,
+body.axi-design .bg-cyan-500\/10,
+body.axi-design .bg-cyan-500\/15,
+body.axi-design .bg-cyan-500\/20,
+body.axi-design .bg-cyan-500\/25,
+body.axi-design .bg-cyan-500\/30,
+body.axi-design .bg-cyan-500\/8,
+body.axi-design .bg-cyan-600\/20,
+body.axi-design .bg-emerald-400\/5,
+body.axi-design .bg-emerald-500\/10,
+body.axi-design .bg-emerald-500\/12,
+body.axi-design .bg-emerald-500\/15,
+body.axi-design .bg-emerald-500\/20,
+body.axi-design .bg-emerald-500\/25,
+body.axi-design .bg-emerald-500\/30,
+body.axi-design .bg-fuchsia-500\/20,
+body.axi-design .bg-green-500\/20,
+body.axi-design .bg-green-500\/30,
+body.axi-design .bg-indigo-500\/10,
+body.axi-design .bg-indigo-500\/15,
+body.axi-design .bg-orange-400\/15,
+body.axi-design .bg-orange-400\/25,
+body.axi-design .bg-orange-500\/10,
+body.axi-design .bg-orange-500\/12,
+body.axi-design .bg-orange-500\/15,
+body.axi-design .bg-orange-500\/20,
+body.axi-design .bg-orange-500\/25,
+body.axi-design .bg-purple-500\/20,
+body.axi-design .bg-purple-500\/30,
+body.axi-design .bg-red-500\/10,
+body.axi-design .bg-red-500\/15,
+body.axi-design .bg-red-500\/20,
+body.axi-design .bg-red-500\/25,
+body.axi-design .bg-rose-400\/20,
+body.axi-design .bg-rose-400\/30,
+body.axi-design .bg-rose-400\/5,
+body.axi-design .bg-rose-500\/10,
+body.axi-design .bg-rose-500\/15,
+body.axi-design .bg-rose-500\/20,
+body.axi-design .bg-slate-300\/15,
+body.axi-design .bg-slate-300\/25,
+body.axi-design .bg-slate-400\/10,
+body.axi-design .bg-slate-500\/10,
+body.axi-design .bg-slate-500\/20,
+body.axi-design .bg-violet-500\/15,
+body.axi-design .bg-white\/10,
+body.axi-design .bg-white\/20 { background-color: var(--axi-surface-raised); }
+
+body.axi-design .bg-slate-900 { background-color: var(--axi-surface); }
+
+body.axi-design .bg-slate-200\/70,
+body.axi-design .bg-white { background-color: var(--axi-text); }
+
+body.axi-design .bg-amber-400,
+body.axi-design .bg-amber-500,
+body.axi-design .bg-orange-400,
+body.axi-design .bg-orange-500,
+body.axi-design .bg-orange-500\/80 { background-color: var(--axi-warn); }
+
+body.axi-design .border-red-400\/25,
+body.axi-design .border-red-500\/30,
+body.axi-design .border-red-500\/40,
+body.axi-design .border-red-500\/50,
+body.axi-design .border-rose-200\/10,
+body.axi-design .border-rose-300\/30,
+body.axi-design .border-rose-400\/25,
+body.axi-design .border-rose-500\/20,
+body.axi-design .border-rose-500\/30,
+body.axi-design .border-rose-500\/35,
+body.axi-design .border-rose-500\/60,
+body.axi-design .border-rose-500\/80 { border-color: var(--axi-danger); }
+
+body.axi-design .border-blue-400,
+body.axi-design .border-blue-400\/40,
+body.axi-design .border-blue-500,
+body.axi-design .border-blue-500\/30,
+body.axi-design .border-blue-500\/40,
+body.axi-design .border-blue-500\/50,
+body.axi-design .border-cyan-200\/40,
+body.axi-design .border-cyan-200\/70,
+body.axi-design .border-cyan-300\/30,
+body.axi-design .border-cyan-300\/40,
+body.axi-design .border-cyan-300\/50,
+body.axi-design .border-cyan-400\/30,
+body.axi-design .border-cyan-400\/40,
+body.axi-design .border-cyan-400\/50,
+body.axi-design .border-cyan-500\/25,
+body.axi-design .border-cyan-500\/30,
+body.axi-design .border-cyan-500\/40,
+body.axi-design .border-cyan-500\/50,
+body.axi-design .border-indigo-300\/20,
+body.axi-design .border-purple-500\/30,
+body.axi-design .border-purple-500\/50,
+body.axi-design .border-violet-500\/35 { border-color: var(--axi-meta); }
+
+body.axi-design .border-emerald-200\/10,
+body.axi-design .border-emerald-400\/25,
+body.axi-design .border-emerald-400\/40,
+body.axi-design .border-emerald-500\/30,
+body.axi-design .border-emerald-500\/35,
+body.axi-design .border-emerald-500\/40,
+body.axi-design .border-green-500\/30,
+body.axi-design .border-green-500\/40 { border-color: var(--axi-ok); }
+
+body.axi-design .border-slate-300\/30,
+body.axi-design .border-slate-400\/30,
+body.axi-design .border-white,
+body.axi-design .border-white\/10,
+body.axi-design .border-white\/15,
+body.axi-design .border-white\/20,
+body.axi-design .border-white\/25,
+body.axi-design .border-white\/30,
+body.axi-design .border-white\/40,
+body.axi-design .border-white\/5,
+body.axi-design .border-white\/60 { border-color: var(--axi-rule); }
+
+body.axi-design .divide-white\/10 > :not([hidden]) ~ :not([hidden]),
+body.axi-design .divide-white\/5 > :not([hidden]) ~ :not([hidden]) { border-color: var(--axi-rule); }
+
+body.axi-design .border-amber-200\/10,
+body.axi-design .border-amber-300\/40,
+body.axi-design .border-amber-400,
+body.axi-design .border-amber-400\/25,
+body.axi-design .border-amber-400\/30,
+body.axi-design .border-amber-400\/40,
+body.axi-design .border-amber-500\/20,
+body.axi-design .border-amber-500\/30,
+body.axi-design .border-amber-500\/35,
+body.axi-design .border-amber-500\/40,
+body.axi-design .border-amber-500\/50,
+body.axi-design .border-orange-200\/40,
+body.axi-design .border-orange-400\/30,
+body.axi-design .border-orange-500\/30,
+body.axi-design .border-orange-500\/35,
+body.axi-design .border-yellow-500\/20 { border-color: var(--axi-warn); }
+
+body.axi-design .text-red-100,
+body.axi-design .text-red-200,
+body.axi-design .text-red-200\/50,
+body.axi-design .text-red-200\/60,
+body.axi-design .text-red-300,
+body.axi-design .text-red-300\/80,
+body.axi-design .text-red-400,
+body.axi-design .text-red-500,
+body.axi-design .text-rose-100,
+body.axi-design .text-rose-100\/75,
+body.axi-design .text-rose-100\/80,
+body.axi-design .text-rose-200,
+body.axi-design .text-rose-200\/60,
+body.axi-design .text-rose-300,
+body.axi-design .text-rose-300\/70,
+body.axi-design .text-rose-400,
+body.axi-design .text-rose-50 { color: var(--axi-danger); }
+
+body.axi-design .text-blue-100,
+body.axi-design .text-blue-200,
+body.axi-design .text-blue-200\/80,
+body.axi-design .text-blue-300,
+body.axi-design .text-blue-300\/70,
+body.axi-design .text-blue-400,
+body.axi-design .text-cyan-100,
+body.axi-design .text-cyan-200,
+body.axi-design .text-cyan-200\/60,
+body.axi-design .text-cyan-200\/70,
+body.axi-design .text-cyan-200\/80,
+body.axi-design .text-cyan-300,
+body.axi-design .text-cyan-300\/60,
+body.axi-design .text-cyan-300\/70,
+body.axi-design .text-cyan-300\/80,
+body.axi-design .text-cyan-400,
+body.axi-design .text-cyan-50,
+body.axi-design .text-fuchsia-100,
+body.axi-design .text-fuchsia-200,
+body.axi-design .text-fuchsia-400,
+body.axi-design .text-indigo-100\/90,
+body.axi-design .text-indigo-200,
+body.axi-design .text-indigo-200\/80,
+body.axi-design .text-indigo-300,
+body.axi-design .text-indigo-400,
+body.axi-design .text-pink-400,
+body.axi-design .text-purple-300,
+body.axi-design .text-purple-400,
+body.axi-design .text-sky-200,
+body.axi-design .text-sky-400,
+body.axi-design .text-violet-300 { color: var(--axi-meta); }
+
+body.axi-design .text-emerald-100,
+body.axi-design .text-emerald-100\/80,
+body.axi-design .text-emerald-200,
+body.axi-design .text-emerald-200\/80,
+body.axi-design .text-emerald-300,
+body.axi-design .text-emerald-400,
+body.axi-design .text-green-300,
+body.axi-design .text-green-400,
+body.axi-design .text-teal-400,
+body.axi-design .text-teal-500 { color: var(--axi-ok); }
+
+body.axi-design .text-gray-300,
+body.axi-design .text-gray-400,
+body.axi-design .text-slate-300,
+body.axi-design .text-slate-400 { color: var(--axi-text-dim); }
+
+body.axi-design .text-gray-500,
+body.axi-design .text-gray-600,
+body.axi-design .text-slate-300\/70,
+body.axi-design .text-slate-500,
+body.axi-design .text-slate-600,
+body.axi-design .text-white\/50 { color: var(--axi-text-faint); }
+
+body.axi-design .text-gray-100,
+body.axi-design .text-gray-200,
+body.axi-design .text-slate-100,
+body.axi-design .text-slate-200,
+body.axi-design .text-white,
+body.axi-design .text-white\/80 { color: var(--axi-text); }
+
+body.axi-design .text-amber-100,
+body.axi-design .text-amber-100\/80,
+body.axi-design .text-amber-200,
+body.axi-design .text-amber-200\/60,
+body.axi-design .text-amber-200\/70,
+body.axi-design .text-amber-200\/80,
+body.axi-design .text-amber-300,
+body.axi-design .text-amber-300\/60,
+body.axi-design .text-amber-300\/70,
+body.axi-design .text-amber-400,
+body.axi-design .text-amber-400\/80,
+body.axi-design .text-orange-100,
+body.axi-design .text-orange-200,
+body.axi-design .text-orange-200\/70,
+body.axi-design .text-orange-200\/80,
+body.axi-design .text-orange-300,
+body.axi-design .text-orange-400,
+body.axi-design .text-orange-50,
+body.axi-design .text-yellow-100,
+body.axi-design .text-yellow-200,
+body.axi-design .text-yellow-200\/70,
+body.axi-design .text-yellow-200\/90,
+body.axi-design .text-yellow-300,
+body.axi-design .text-yellow-400,
+body.axi-design .text-yellow-500 { color: var(--axi-warn); }
+
+body.axi-design .fill-amber-300,
+body.axi-design .fill-yellow-500\/40 { fill: var(--axi-warn); }
+
+/* ---------------------------------------------------------------------------
+   THE FORM BRIDGE
+   Same problem as the palette, one layer down: radius, shadow and blur are
+   written as utilities too, so --radius-* and --shadow-* never reached them.
+
+   The language has two radii and one shadow. Everything lands on those.
+
+   rounded-full is the interesting one. Squaring a capsule pill is the point -
+   a capsule is the shape this language does not have - and the two places it
+   would be wrong take care of themselves: a 6px status dot with a 6px radius
+   is still a circle. */
+body.axi-design .rounded,
+body.axi-design .rounded-sm,
+body.axi-design .rounded-md,
+body.axi-design .rounded-full { border-radius: var(--axi-radius-sm); }
+
+body.axi-design .rounded-lg,
+body.axi-design .rounded-xl,
+body.axi-design .rounded-2xl,
+body.axi-design .rounded-3xl { border-radius: var(--axi-radius); }
+
+/* A control's block and a panel's block, chosen by how far off the surface the
+   old shadow was pretending to be. */
+body.axi-design .shadow,
+body.axi-design .shadow-sm,
+body.axi-design .shadow-md {
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+body.axi-design .shadow-lg,
+body.axi-design .shadow-xl,
+body.axi-design .shadow-2xl {
+  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+}
+/* An inner shadow is a lit edge, which is the one thing a flat surface cannot
+   have. Depth here is the ground colour, and that is already handled. */
+body.axi-design .shadow-inner { box-shadow: none; }
+
+/* Blur is a frosted-glass idiom and this language has no glass: every surface
+   is opaque, so there is nothing behind one to see through. (It also does
+   nothing on Linux, so half the app was paying for it already.) */
+body.axi-design .backdrop-blur-sm,
+body.axi-design .backdrop-blur,
+body.axi-design .backdrop-blur-md,
+body.axi-design .backdrop-blur-lg,
+body.axi-design .backdrop-blur-xl,
+body.axi-design .backdrop-blur-2xl,
+body.axi-design .backdrop-blur-3xl { backdrop-filter: none; }
+body.axi-design .blur,
+body.axi-design .blur-sm,
+body.axi-design .blur-md,
+body.axi-design .blur-lg,
+body.axi-design .blur-xl,
+body.axi-design .blur-2xl,
+body.axi-design .blur-3xl { filter: none; }
+
+/* An all-sides `border` is always an outline round something - a card, a
+   button, a chip - and at 1px of near-black over a near-black ground it is
+   invisible, which is why so many surfaces looked like they had no edge at
+   all. It goes to the control step. Directional borders are left at 1px on
+   purpose: border-b and its siblings are dividers drawn inside a panel, and
+   the rule ink at a hairline is exactly what those should be. */
+body.axi-design .border,
+body.axi-design .border-2 { border-width: var(--axi-border-control); }
+
+/* There is no dashed line in this language. A dashed outline is a way of
+   saying "provisional", and the language says that with the outlined/filled
+   distinction instead. */
+body.axi-design .border-dashed,
+body.axi-design .border-dotted { border-style: solid; }
+
+/* ---------------------------------------------------------------------------
+   THE TOGGLES
+   A switch is the smallest possible "this one is on", so it is said the same
+   way everything else on is said: accent fill, ink knob. Off is the ground
+   with an outline, which is the same shape with nothing in it. */
+body.axi-design .toggle-track {
+  border-width: var(--axi-border-control);
+  border-radius: var(--axi-radius-sm);
+}
+body.axi-design .toggle-track--off {
+  background: var(--axi-ground);
+  border-color: var(--axi-ink-line);
+}
+body.axi-design .toggle-track--on {
+  background: var(--axi-accent);
+  border-color: var(--axi-ink-line);
+}
+body.axi-design .toggle-knob {
+  border-radius: 2px;
+  box-shadow: none;
+  background: var(--axi-text-faint);
+}
+body.axi-design .toggle-track--on .toggle-knob { background: var(--axi-ink-line); }
+
+/* ---------------------------------------------------------------------------
+   THE LAST GRADIENTS
+   Rule 1 forbids a gradient used as decoration. Most of the app's gradients
+   already resolve to flat colour, because they were written out of --brand-*
+   variables that now both point at the accent. These three are literals.
+
+   The conic gradient in StatsViewShared and the theme swatches in Settings are
+   left alone on purpose: in both, the gradient is the data. */
+body.axi-design .stats-sections {
+  background-image: none !important;
+  background-color: var(--axi-ground) !important;
+}
+body.axi-design .squad-comp-board {
+  background-image: none;
+  background-color: var(--axi-ground);
+}
+
+/* The damage-modifier rows draw their magnitude as a fading bar behind the
+   text. Rule 9: a quantity is length, never intensity - the fade was saying
+   the same thing the width already said, less legibly. Flat fill, sign in the
+   colour, magnitude in the width. */
+body.axi-design .row-quantity-bar[data-sign='neg'] { --row-bar-fill: var(--axi-ok); }
+body.axi-design .row-quantity-bar[data-sign='incoming'] { --row-bar-fill: var(--axi-danger); }
+body.axi-design .row-quantity-bar[data-sign='gain'] { --row-bar-fill: var(--axi-meta); }
 
 /* ---------------------------------------------------------------------------
    THE TAB STRIP
@@ -350,14 +829,21 @@ body.axi-design .mvp-group {
   background: var(--axi-ground);
   border-width: var(--axi-border-control);
   border-radius: var(--axi-radius);
+  /* The label straddles this edge, and at the control weight it is 12px
+     taller than the hairline version the classic pt-4 was measured against.
+     Pad for the half that hangs inside, plus a clear gap to the first card. */
+  padding-top: 22px;
 }
 /* The group's name, sitting on its edge: outlined, because it annotates the
-   group rather than measuring anything in it (rule 5). */
+   group rather than measuring anything in it (rule 5). Centred on the edge
+   rather than nudged by a fixed 9px, so the border weight can change without
+   dropping it onto the card below. */
 body.axi-design .mvp-group-label {
   background: var(--axi-surface);
   border-width: var(--axi-border-control);
   border-radius: var(--axi-radius-sm);
   padding: 2px 8px;
+  top: -14px;
 }
 body.axi-design .mvp-card {
   background: var(--axi-surface);
@@ -366,10 +852,13 @@ body.axi-design .mvp-card {
   border-radius: var(--axi-radius);
   box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
 }
-/* Gold is the one card that gets the accent, and it gets it as an outline
-   rather than a fill: the fill is reserved for the thing you picked, and you
-   did not pick the MVP - the data did. */
-body.axi-design .mvp-card--gold { border-color: var(--axi-accent); }
+/* First place is said with weight, not with hue. The accent was the obvious
+   choice and it was wrong twice over: there are two MVP groups on screen, so
+   an accent outline puts two golds in front of you, and gold in this language
+   is the thing you picked - nobody picked the MVP, the data did. A rank is an
+   ordering, and the panel step above its neighbours' control step reads as
+   one without spending a colour. */
+body.axi-design .mvp-card--gold { border-width: var(--axi-border-panel); }
 body.axi-design .mvp-gold-icon-ring {
   background: var(--axi-surface-raised);
   border-width: var(--axi-border-control);
@@ -465,4 +954,57 @@ body.axi-design .mvp-profession-chip {
   border-width: var(--axi-border-hairline);
   border-color: var(--axi-rule);
   border-radius: var(--axi-radius-sm);
+}
+
+/* The knob. Its position comes from Tailwind translate utilities measured
+   against a 1px track; at the control weight those numbers put it through the
+   right-hand edge. Pinning it to the track's insets instead means the knob is
+   correct at any border weight, and it stops being a transform, which is one
+   fewer thing animating for no reason. */
+body.axi-design .toggle-knob {
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  right: auto;
+  height: auto;
+  transform: none;
+}
+body.axi-design .toggle-track--on .toggle-knob { left: auto; right: 2px; }
+
+/* Four stats categories - Overview, Commander, Roster, Replay - have no hue of
+   their own and borrowed the brand colour, which in this language is the
+   accent. That put a gold edge down the side of the panel you were reading,
+   next to the gold rail item that was actually selected, and the edge won
+   because it was taller. They get a neutral instead: having no colour is a
+   truthful thing for a category to say, and gold goes back to meaning the one
+   thing you picked. */
+body.axi-design { --section-neutral: var(--axi-text-faint); }
+
+/* The dashboard's left column scrolls, and its scrollbar sat in a permanent
+   groove down the middle of the window, a second vertical line a few pixels
+   from the one that actually divides the two panes. The column still scrolls;
+   it just does it silently. Everything in there is a card with its own edge,
+   so there is no doubt about where the content runs out. */
+body.axi-design .dashboard-rail {
+  scrollbar-width: none;
+  border-right-color: var(--axi-ink-line);
+}
+body.axi-design .dashboard-rail::-webkit-scrollbar { width: 0; height: 0; }
+
+/* ---------------------------------------------------------------------------
+   THE MODALS
+   Every modal in the app shares two classes, so they only need saying once.
+   A modal is the most raised thing on the screen while it is open, which makes
+   it a panel with a panel's block. The overlay is the scrim - opaque, because
+   a modal that you can read the app through is a modal you have to squint
+   past. */
+body.axi-design .app-modal-overlay { background: var(--axi-scrim); }
+body.axi-design .app-modal-card {
+  /* The inline `border: 1px solid ...` on every one of these is a literal, so
+     no rule here could reach it - hence --panel-border-w, which the components
+     read with their old 1px as the fallback. It is set to the control step
+     globally and raised to the panel step on the modal itself. */
+  --panel-border-w: var(--axi-border-panel);
+  border-radius: var(--axi-radius);
+  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
 }
