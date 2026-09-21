@@ -367,6 +367,7 @@ export function ReportApp({ injectedSource, assetBase }: {
     const [colorPalette, setColorPalette] = useState<ColorPalette>('electric-blue');
     const [glassSurfaces, setGlassSurfaces] = useState(false);
     const [glassmorphic, setGlassmorphic] = useState(false);
+    const [axiDesign, setAxiDesign] = useState(false);
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [logoIsDefault, setLogoIsDefault] = useState(false);
     const [tocOpen, setTocOpen] = useState(false);
@@ -530,9 +531,14 @@ export function ReportApp({ injectedSource, assetBase }: {
         if (colorPalette !== 'electric-blue') {
             body.classList.add(`palette-${colorPalette}`);
         }
-        body.classList.toggle('glass-surfaces', glassSurfaces);
-        body.classList.toggle('glassmorphic', glassmorphic);
-    }, [colorPalette, glassSurfaces, glassmorphic]);
+        // Glass and axi are opposite claims about what a surface is, and the
+        // glass rules are written with !important, so with both on the glass
+        // wins every contested property and the result is neither language.
+        // The renderer suppresses them the same way (useSettings).
+        body.classList.toggle('glass-surfaces', glassSurfaces && !axiDesign);
+        body.classList.toggle('glassmorphic', glassmorphic && !axiDesign);
+        body.classList.toggle('axi-design', axiDesign);
+    }, [colorPalette, glassSurfaces, glassmorphic, axiDesign]);
 
     useEffect(() => {
         setAssetBasePath(assetBasePathCandidates[0] || '/');
@@ -1012,10 +1018,11 @@ export function ReportApp({ injectedSource, assetBase }: {
             setRollupLoading(false);
             setRollupRequestedCount(0);
             setReportPathHint(null);
-            const { palette, glass, glassmorphic: gm } = readPaletteFromReport(injectedSource.report.stats);
+            const { palette, glass, glassmorphic: gm, axi } = readPaletteFromReport(injectedSource.report.stats);
             setColorPalette(palette);
             setGlassSurfaces(glass);
             setGlassmorphic(gm);
+            setAxiDesign(axi);
             setReport(injectedSource.report);
             return () => {
                 isMounted = false;
@@ -1033,10 +1040,11 @@ export function ReportApp({ injectedSource, assetBase }: {
         setReportPathHint(reportId ? reportPath : null);
 
         const applyPaletteFromReport = (reportData: ReportPayload) => {
-            const { palette, glass, glassmorphic: gm } = readPaletteFromReport(reportData.stats);
+            const { palette, glass, glassmorphic: gm, axi } = readPaletteFromReport(reportData.stats);
             setColorPalette(palette);
             setGlassSurfaces(glass);
             setGlassmorphic(gm);
+            setAxiDesign(axi);
         };
 
         const loadIndex = (suppressError = false) => {
@@ -1049,10 +1057,11 @@ export function ReportApp({ injectedSource, assetBase }: {
                     setIndex(entries);
                     // Apply site-wide palette and glass from index.json
                     if (!Array.isArray(data) && data?.colorPalette) {
-                        const { palette, glass, glassmorphic: gm } = readPaletteFromReport(data);
+                        const { palette, glass, glassmorphic: gm, axi } = readPaletteFromReport(data);
                         setColorPalette(palette);
                         setGlassSurfaces(glass);
                         setGlassmorphic(gm);
+                        setAxiDesign(axi);
                     }
                 })
                 .catch(() => {

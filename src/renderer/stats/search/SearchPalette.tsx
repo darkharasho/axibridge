@@ -111,13 +111,13 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
     let body: ReactNode;
     if (query.trim() === '') {
         body = (
-            <div className="px-3 py-6 text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <div className="axi-search-empty px-3 py-6 text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
                 Type to search sections, metrics, and players.
             </div>
         );
     } else if (results.length === 0) {
         body = (
-            <div className="px-3 py-6 text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <div className="axi-search-empty px-3 py-6 text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
                 No results for &ldquo;{query}&rdquo;.
             </div>
         );
@@ -128,7 +128,7 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
             return (
                 <div key={type}>
                     <div
-                        className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+                        className="axi-search-group px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
                         style={{ color: 'var(--text-secondary)' }}
                     >
                         {GROUP_LABELS[type]}
@@ -144,6 +144,8 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
                                 type="button"
                                 onMouseEnter={() => setActiveIdx(idx)}
                                 onClick={() => selectAt(idx)}
+                                data-search-row
+                                data-active={isActive ? '' : undefined}
                                 className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs"
                                 style={{ background: isActive ? 'var(--bg-hover)' : 'transparent', color: 'var(--text-primary)' }}
                             >
@@ -176,7 +178,7 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
                 aria-modal="true"
                 aria-label="Search"
             >
-                <div className="flex items-center gap-2 px-3 py-2.5 shrink-0" style={{ borderBottom: '1px solid var(--border-default)' }}>
+                <div className="axi-search-bar flex items-center gap-2 px-3 py-2.5 shrink-0" style={{ borderBottom: '1px solid var(--border-default)' }}>
                     <Search className="w-4 h-4 shrink-0" style={{ color: 'var(--text-secondary)' }} />
                     <input
                         ref={inputRef}
@@ -195,7 +197,7 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
                         Esc
                     </kbd>
                 </div>
-                <div className="overflow-y-auto py-1">
+                <div className="axi-search-results overflow-y-auto py-1">
                     {body}
                 </div>
             </div>

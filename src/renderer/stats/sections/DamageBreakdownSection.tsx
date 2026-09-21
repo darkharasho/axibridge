@@ -111,8 +111,12 @@ export const DamageBreakdownSection = ({
                     No player skill damage data available for the current selection.
                 </div>
             ) : (
-                <div className="grid lg:grid-cols-[280px_1fr] gap-0 h-[480px]">
-                    <div className="pr-3 flex flex-col overflow-y-auto" style={{ borderRight: '1px solid var(--border-subtle)' }}>
+                /* The same picker-beside-a-table shape `StatsTableLayout` renders,
+                   hand-rolled here for the fixed 480px height. It wears that
+                   component's class hooks so the picker treatment - the well, the
+                   search control, the picked row - reaches it too. */
+                <div className="stats-table-layout grid lg:grid-cols-[280px_1fr] gap-0 h-[480px]">
+                    <div className="stats-table-layout__sidebar pr-3 flex flex-col overflow-y-auto" style={{ borderRight: 'var(--stats-sidebar-edge-w, 1px) solid var(--border-subtle)' }}>
                         <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-3">
                             Squad Players
                         </div>
@@ -164,7 +168,7 @@ export const DamageBreakdownSection = ({
                             </div>
                         </div>
 
-                    <div className="pl-3 flex flex-col min-h-0 overflow-y-auto">
+                    <div className="stats-table-layout__content pl-3 flex flex-col min-h-0 overflow-y-auto">
                         <div className="overflow-hidden flex-1 min-h-0 flex flex-col">
                             {!selectedPlayer ? (
                                 <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">

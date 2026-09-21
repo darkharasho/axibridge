@@ -155,7 +155,17 @@ const CAPPED_MAX_HEIGHT = '30rem';
 
 /** Column widths, in px. Fed to <colgroup> — see the note at the table. */
 const NAME_COL_PX = 172;
+/**
+ * Cells size themselves to the space the panel actually has, between these
+ * two bounds. A short fight is only a dozen buckets wide, and pinning every
+ * cell at the 26px floor left the grid stopping a third of the way across the
+ * panel with dead space beside it; growing into that space keeps the section
+ * reading as one table. The ceiling is what stops a three-bucket fight from
+ * rendering as a few enormous tiles — past it the leftover goes to the spacer
+ * column instead, so the rules and header bar still span the full width.
+ */
 const CELL_PX = 26;
+const CELL_MAX_PX = 64;
 
 export const BucketGridTable: React.FC<BucketGridTableProps> = ({
     rows, bucketCount, bucketMs, accent, renderIcon, notRecordedMessage, recorded, capHeight = true,
@@ -166,11 +176,15 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
     );
 
     if (!recorded) {
-        return <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">{notRecordedMessage}</div>;
+        return <div className="bucket-grid__empty rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">{notRecordedMessage}</div>;
     }
 
     const stride = labelStride(bucketMs);
     const cols = Array.from({ length: bucketCount }, (_, i) => i);
+    // Percentages in a <col> width resolve against the table's used width, which
+    // already accounts for the min-width above — so this is the floor on a long
+    // fight and an even share of the panel on a short one.
+    const cellWidth = `clamp(${CELL_PX}px, calc((100% - ${NAME_COL_PX}px) / ${bucketCount}), ${CELL_MAX_PX}px)`;
     // The header only sticks when the grid is the thing scrolling. Sticking it
     // unconditionally would pin it to whatever scrolls outside instead.
     const scrolls = capHeight && rows.length > SCROLL_ROW_THRESHOLD;
@@ -178,19 +192,27 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
 
     return (
         <div
-            className={`overflow-x-auto${scrolls ? ' overflow-y-auto' : ''}`}
+            className={`bucket-grid overflow-x-auto${scrolls ? ' overflow-y-auto' : ''}`}
             style={scrolls ? { maxHeight: CAPPED_MAX_HEIGHT } : undefined}
         >
             <table
                 className="text-xs border-separate border-spacing-0"
-                style={{ tableLayout: 'fixed', width: NAME_COL_PX + bucketCount * CELL_PX }}
+                // Fill the panel, but never below the width at which cells hit
+                // their floor — past that the wrapper scrolls horizontally, as
+                // it always did for a long fight.
+                style={{ tableLayout: 'fixed', width: '100%', minWidth: NAME_COL_PX + bucketCount * CELL_PX }}
             >
                 {/* `table-layout: fixed` takes column widths from <col> (or the first
                     row's `width`), and ignores min-width/max-width entirely — so the
                     widths have to live here for the header and body to share a grid. */}
                 <colgroup>
                     <col style={{ width: NAME_COL_PX }} />
-                    {cols.map(i => <col key={i} style={{ width: CELL_PX }} />)}
+                    {cols.map(i => <col key={i} style={{ width: cellWidth }} />)}
+                    {/* Auto-width, so the fixed layout hands it whatever is left
+                        once the cells have taken their clamped share — without it
+                        the surplus is spread over every column and widens the name
+                        column along with them. */}
+                    <col />
                 </colgroup>
                 <thead>
                     <tr>
@@ -201,6 +223,7 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
                                 <th
                                     key={i}
                                     scope="col"
+                                    data-tick={tick || undefined}
                                     // Labels are left-aligned, not centred, so a label's
                                     // left edge sits exactly on its column's tick line.
                                     // Centring puts the text half a cell to the right of
@@ -211,6 +234,7 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
                                 </th>
                             );
                         })}
+                        <th aria-hidden data-spacer className="pb-1.5 border-b border-white/5" />
                     </tr>
                 </thead>
                 <tbody>
@@ -221,7 +245,7 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
                         const startsGroup = rowIndex > 0 && rows[rowIndex - 1].group !== row.group;
                         const edge = startsGroup ? 'border-t border-white/10' : '';
                         return (
-                            <tr key={row.key} className="group/row">
+                            <tr key={row.key} data-group-start={startsGroup || undefined} className="group/row">
                                 <th
                                     scope="row"
                                     className={`bucket-grid__pin text-left pr-3 truncate border-b border-white/[0.03] text-[11px] font-medium text-[color:var(--text-primary)] ${edge}`}
@@ -236,11 +260,22 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
                                     const value = row.buckets[i] || 0;
                                     const intensity = max > 0 ? value / max : 0;
                                     const tick = i > 0 && i % stride === 0;
+                                    // A four-step band beside the continuous alpha. Themes
+                                    // that shade by alpha ignore it; a theme that cannot put
+                                    // colour at partial opacity over its ground (axi) needs a
+                                    // discrete step it can answer with an opaque fill, and a
+                                    // band is also where the digit has to flip to dark ink.
+                                    const heat = value <= 0 ? 0
+                                        : intensity > 0.75 ? 4
+                                            : intensity > 0.5 ? 3
+                                                : intensity > 0.25 ? 2 : 1;
                                     return (
                                         <td
                                             key={i}
                                             data-bucket-cell
+                                            data-tick={tick || undefined}
                                             data-intensity={String(intensity)}
+                                            data-heat={heat || undefined}
                                             // No per-cell vertical ruling: the shaded blocks
                                             // are the data, and a line around every one of
                                             // 60+ columns reads as a spreadsheet rather than
@@ -256,6 +291,7 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
                                         </td>
                                     );
                                 })}
+                                <td aria-hidden data-spacer className={`border-b border-white/[0.03] group-hover/row:bg-white/[0.02] ${edge}`} />
                             </tr>
                         );
                     })}

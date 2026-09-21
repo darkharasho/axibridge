@@ -6,6 +6,7 @@ import ReactDOM from 'react-dom/client';
 // pulls the fully compiled CSS in as a string so it ships inside this single
 // JS module and gets applied via a manually-appended `<style>` tag below.
 import indexCss from '../renderer/index.css?inline';
+import axiCss from '../renderer/axi-design.css?inline';
 import { ReportApp } from './reportApp';
 import { setPublicAssetBase } from '../renderer/ui/resolvePublicAssetPath';
 import { parseShareBootPayload, ShareBootPayloadError } from './share/shareBootPayload';
@@ -15,7 +16,9 @@ import { expandIconIndex, normalizeCommanderDistance, normalizeTopDownContributi
 import type { ReportPayload } from '../shared/reportTypes';
 
 const styleTag = document.createElement('style');
-styleTag.textContent = indexCss;
+// Order matters the same way it does in the renderer's entry: the axi rules
+// are written to win on source order where they contest index.css.
+styleTag.textContent = `${indexCss}\n${axiCss}`;
 document.head.appendChild(styleTag);
 
 document.documentElement.classList.add('web-report');

@@ -24,13 +24,6 @@ import { useMapSlicePainter } from '../mapSlice/useMapSlicePainter';
 
 const UNPUBLISHED_REPLAY: ReadonlySet<string> = new Set(['replay']);
 
-/** Views that draw their own selection nav inside themselves: Stats has the
- *  category rail, Settings has the section list. Their tab in the top strip is
- *  an ancestor of whatever is selected in there, not the selection itself, so
- *  under axi-design it takes the brightened-ground treatment and lets the
- *  inner nav carry the accent. Two gold items would be two claims about what
- *  you are looking at. */
-const VIEWS_WITH_OWN_NAV: ReadonlySet<string> = new Set(['stats', 'settings']);
 
 
 export function AppLayout({ ctx }: { ctx: any }) {
@@ -247,8 +240,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         key={id}
                         title={label}
                         data-nav-tab
-                        data-on={activeNavView === id && !(axiDesign && VIEWS_WITH_OWN_NAV.has(id)) ? '' : undefined}
-                        data-open={axiDesign && VIEWS_WITH_OWN_NAV.has(id) && activeNavView === id ? '' : undefined}
+                        data-on={activeNavView === id ? '' : undefined}
                         onClick={() => handleNavViewChange(id)}
                         className={`relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[4px] transition-colors ${
                             activeNavView === id

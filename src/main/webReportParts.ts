@@ -24,7 +24,7 @@ const STAGING_DIRNAME = 'web-report-staging';
 export const STUB_TITLE_SUFFIX = ' — open with AxiBridge 3.10 or newer to view';
 
 /** Stats fields the stub keeps so a pre-3.10 viewer still themes the page. */
-const STUB_STATS_KEYS = ['colorPalette', 'glassSurfaces', 'glassmorphic'] as const;
+const STUB_STATS_KEYS = ['colorPalette', 'glassSurfaces', 'glassmorphic', 'axiDesign'] as const;
 
 const writeParts = (dir: string, gzip: Buffer, baseName: string): PartsManifest => {
     const sha256 = createHash('sha256').update(gzip).digest('hex');
