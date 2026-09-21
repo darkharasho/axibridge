@@ -1985,16 +1985,17 @@ export function ReportApp({ injectedSource, assetBase }: {
                     )}
                     <div className={`${isNarrowViewport && isCompactViewport ? '' : 'hidden'} mb-4`}>
                         <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-2">Jump to</div>
-                        <div className="flex gap-2 overflow-x-auto pr-2 pb-1 snap-x snap-mandatory">
+                        <div className="mobile-jump-chips flex gap-2 overflow-x-auto pr-2 pb-1 snap-x snap-mandatory">
                             {(activeGroupDef?.items || []).map((item) => {
                                 const Icon = item.icon;
                                 return (
                                     <button
                                         key={`chip-${item.id}`}
                                         onClick={() => handleSubNavClick(activeGroupDef?.id || 'overview', item.id)}
+                                        data-on={activeSectionId === item.id ? '' : undefined}
                                         className={`group flex items-center gap-2 px-3 py-2 rounded-full text-[10px] uppercase tracking-widest whitespace-nowrap border bg-gradient-to-br shadow-[0_10px_25px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-all duration-200 active:translate-y-0 active:scale-[0.98] snap-start ${activeSectionId === item.id ? 'text-white border-[color:var(--accent-border)] from-[color:var(--accent-bg)] via-white/10 to-transparent' : 'text-gray-200 border-white/15 from-white/10 via-white/5 to-transparent hover:-translate-y-0.5 hover:border-[color:var(--accent-border)] hover:shadow-[0_18px_35px_rgba(0,0,0,0.45)]'}`}
                                     >
-                                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/10 border border-white/10 group-hover:border-[color:var(--accent-border)] group-hover:bg-[color:var(--accent-bg)] transition-colors">
+                                        <span className="mobile-jump-chip-icon flex items-center justify-center w-6 h-6 rounded-full bg-white/10 border border-white/10 group-hover:border-[color:var(--accent-border)] group-hover:bg-[color:var(--accent-bg)] transition-colors">
                                             <Icon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                                         </span>
                                         {item.label}

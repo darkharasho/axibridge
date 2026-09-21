@@ -2179,3 +2179,81 @@ body.axi-design .slice-card > input[type='checkbox'] {
   background-image: none;
   box-shadow: none;
 }
+
+/* ---------------------------------------------------------------------------
+   THE PUBLISHED REPORT ON A PHONE
+   The report's desktop frame came into the language with the left nav, but a
+   narrow viewport swaps that frame for two pieces of floating glass that the
+   sweep never reached: a scrolling row of "Jump to" capsules above the stats,
+   and a fixed bar of four actions along the bottom. Both were built out of
+   the idiom this language replaces - a gradient from white at 10% through
+   white at 5% to nothing, a 25-50px soft drop shadow, backdrop-blur-xl, and a
+   capsule radius - and on a phone they are the whole chrome, so the report
+   read as the old app the moment it left the desktop breakpoint.
+
+   The blur is the part that actively hurt: it is already switched off above,
+   and a translucent slate panel with nothing frosting the page behind it is
+   just see-through. Both become opaque objects instead.
+
+   A jump chip is the same claim as a category in the left nav - where you are
+   in the report - so it is drawn the same way: quiet until it is the section
+   you are reading, then filled with the accent and standing on its block. */
+/* The !important here and below is not emphasis: index.css closes out its own
+   theming with `.border-white\/10 { border-color: … !important }`, so a plain
+   declaration in this file loses to it however late it sits. */
+body.axi-design .mobile-jump-chips > button {
+  background-image: none;
+  background-color: var(--axi-surface);
+  border-width: var(--axi-border-control);
+  border-style: solid;
+  border-color: var(--axi-ink-line) !important;
+  border-radius: var(--axi-radius-sm);
+  box-shadow: none;
+  color: var(--axi-text-dim);
+}
+body.axi-design .mobile-jump-chips > button[data-on] {
+  background-color: var(--axi-accent);
+  color: var(--axi-accent-ink);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+/* The well around the chip's icon is a second outlined box inside an outlined
+   box at 24px across, which at that size is just a thick ring. It keeps the
+   shape and loses the edge. */
+body.axi-design .mobile-jump-chip-icon {
+  background-color: transparent;
+  border-color: transparent !important;
+  border-radius: var(--axi-radius-sm);
+}
+/* The icon is drawn in the brand colour, which here is the accent, so on the
+   filled chip it was gold on gold. Everything on an accent fill is ink. */
+body.axi-design .mobile-jump-chips > button[data-on] .mobile-jump-chip-icon svg { color: var(--axi-accent-ink); }
+body.axi-design .mobile-jump-chips > button:not([data-on]) .mobile-jump-chip-icon svg { color: var(--axi-text-faint); }
+
+/* The bottom bar is one panel carrying four actions, so the panel step goes on
+   the bar and the actions inside it are wells at ground level - the same
+   grammar as a stat row inside a section, and the reason none of the four
+   claims the accent: they are all the same size of action. */
+body.axi-design .mobile-action-bar > div {
+  background-color: var(--axi-surface);
+  border-width: var(--axi-border-panel);
+  border-style: solid;
+  border-color: var(--axi-ink-line) !important;
+  border-radius: var(--axi-radius);
+  /* The bar is four labelled actions across 393px and every label is one
+     unbreakable word, so the edges this language adds have to come out of the
+     padding or "Contents" truncates. */
+  padding-left: .5rem;
+  padding-right: .5rem;
+  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+}
+body.axi-design .mobile-action-bar > div > a,
+body.axi-design .mobile-action-bar > div > button {
+  background-color: var(--axi-ground);
+  border-width: var(--axi-border-hairline);
+  border-style: solid;
+  border-color: var(--axi-well-line) !important;
+  border-radius: var(--axi-radius-sm);
+  color: var(--axi-text-dim);
+}
+body.axi-design .mobile-action-bar > div > a svg,
+body.axi-design .mobile-action-bar > div > button svg { color: var(--axi-text-faint); }
