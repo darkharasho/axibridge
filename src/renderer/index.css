@@ -194,6 +194,20 @@ body.palette-teal-ocean {
   --glow-secondary: rgba(8, 145, 178, 0.35);
 }
 
+/* The axi language's own accent, offered as a palette so it stays reachable.
+   Before this it was hardcoded inside axi-design.css, which is what stopped
+   the picker from reaching the language at all. */
+body.palette-axi-gold {
+  --brand-primary: #ffc53d;
+  --brand-secondary: #ffa41b;
+  --brand-gradient: linear-gradient(135deg, #ffc53d, #ffa41b);
+  --accent-bg: rgba(255, 197, 61, 0.10);
+  --accent-bg-strong: rgba(255, 197, 61, 0.18);
+  --accent-border: rgba(255, 197, 61, 0.35);
+  --glow-primary: rgba(255, 197, 61, 0.35);
+  --glow-secondary: rgba(255, 164, 27, 0.35);
+}
+
 body.palette-gold-bronze {
   --brand-primary: #d4a017;
   --brand-secondary: #b8860b;
@@ -448,6 +462,7 @@ body.glassmorphic.palette-violet-purple,
 body.glassmorphic.palette-crimson-red,
 body.glassmorphic.palette-slate-silver,
 body.glassmorphic.palette-teal-ocean,
+body.glassmorphic.palette-axi-gold,
 body.glassmorphic.palette-gold-bronze {
   --brand-primary: #ffffff;
   --brand-secondary: rgba(255, 255, 255, 0.85);

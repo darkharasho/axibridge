@@ -35,7 +35,12 @@ body.axi-design {
   --axi-scrim: rgba(6, 7, 9, .72);
 
   /* --- axi tokens: accent & status --- */
-  --axi-accent: #ffc53d;
+  /* The accent is the one token this language does not own. It reads whatever
+     the colour picker set, so the ten palettes drive the language instead of
+     being shut out by it; the gold the spec draws in is still reachable, as
+     the Axi Gold palette. The fallback is only for a body that somehow carries
+     this class without index.css beneath it. */
+  --axi-accent: var(--brand-primary, #ffc53d);
   --axi-accent-ink: var(--axi-ink-line);
   --axi-meta: #4ec3ff;
   --axi-ok: #2fd38a;
@@ -96,12 +101,15 @@ body.axi-design {
   /* The gradient resolves to the flat accent: a gradient used as decoration is
      the one thing rule 1 forbids outright, and every consumer of this variable
      accepts a plain colour. */
-  --brand-primary: var(--axi-accent);
+  /* --brand-primary is deliberately absent: it is the palette's own variable
+     and restating it here is what broke the picker. --axi-accent reads it. */
   --brand-secondary: var(--axi-accent);
   --brand-gradient: var(--axi-accent);
-  /* Text sitting ON an accent fill. White on gold is the pairing the app
-     reached for by default and it is the one pairing the accent cannot take -
-     it is a light colour, so its text has to be the ink. */
+  /* Text sitting ON an accent fill. White on the accent is the pairing the app
+     reached for by default and it is the one pairing no palette can take: all
+     eleven clear 4.5:1 against the ink (worst is violet at 4.56) and not one
+     of them clears it against the light text (best is electric blue at 3.40),
+     so ink is right for every palette, not just for the gold. */
   --on-brand: var(--axi-accent-ink);
   /* accent-bg-strong is used as a tint behind accent-coloured text, which rule
      2 does not allow. It becomes an opaque neutral, so the accent stays in the
