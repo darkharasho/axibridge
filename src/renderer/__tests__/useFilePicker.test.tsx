@@ -25,7 +25,7 @@ const flushFrames = async () => {
 };
 
 describe('useFilePicker: adding selected files', () => {
-    it('goes busy, then closes, and only then does the expensive part', async () => {
+    it('goes busy before it does the work, so the press has a visible answer', async () => {
         const { result } = setup();
         act(() => { result.current.setFilePickerOpen(true); });
         act(() => { result.current.setFilePickerSelected(new Set(['/logs/a.zevtc'])); });
@@ -38,33 +38,19 @@ describe('useFilePicker: adding selected files', () => {
         expect(result.current.filePickerOpen).toBe(true);
 
         await flushFrames();
-        expect(result.current.filePickerOpen).toBe(false);
-        // Still waiting: the insert would stall the modal's exit animation.
-        expect(manualUploadBatch).not.toHaveBeenCalled();
 
-        act(() => { result.current.commitPendingAdd(); });
         expect(manualUploadBatch).toHaveBeenCalledWith(['/logs/a.zevtc']);
+        expect(result.current.filePickerOpen).toBe(false);
         expect(result.current.filePickerSubmitting).toBe(false);
     });
 
-    it('adds the files anyway if the exit never reports back', async () => {
-        const { result } = setup();
-        act(() => { result.current.setFilePickerSelected(new Set(['/logs/a.zevtc'])); });
-        act(() => { result.current.handleAddSelectedFiles(); });
-
-        await act(async () => { await new Promise((resolve) => setTimeout(resolve, 950)); });
-        expect(manualUploadBatch).toHaveBeenCalledWith(['/logs/a.zevtc']);
-    });
-
-    it('adds the files once, however many times the commit is asked for', async () => {
+    it('ignores a second press while the first is still committing', async () => {
         const { result } = setup();
         act(() => { result.current.setFilePickerSelected(new Set(['/logs/a.zevtc'])); });
 
         act(() => { result.current.handleAddSelectedFiles(); });
         act(() => { result.current.handleAddSelectedFiles(); });
         await flushFrames();
-        act(() => { result.current.commitPendingAdd(); });
-        act(() => { result.current.commitPendingAdd(); });
 
         expect(manualUploadBatch).toHaveBeenCalledTimes(1);
     });

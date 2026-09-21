@@ -59,8 +59,6 @@ export function useFilePicker({
     const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
 
     const lastPickedIndexRef = useRef<number | null>(null);
-    /** Files waiting for the modal to finish closing before they are inserted. */
-    const pendingAddRef = useRef<string[] | null>(null);
     const filePickerListRef = useRef<HTMLDivElement | null>(null);
 
     const loadLogFiles = async (dir: string | null) => {
@@ -254,13 +252,12 @@ export function useFilePicker({
         requestAnimationFrame(() => requestAnimationFrame(fn));
     };
 
-    // Inserting one optimistic row per file and closing the modal used to land
-    // in the same React batch, so the modal could not disappear until the
-    // activity list had rendered every new row - a second or more for a few
-    // hundred files. Now the click only goes busy and starts the close; the
-    // insert waits for the modal's exit animation to finish (see
-    // commitPendingAdd), because it blocks the main thread hard enough to
-    // freeze that animation half way through.
+    // The click itself only goes busy, so the press has an answer on the next
+    // frame; the insert and the close follow once that frame is on screen.
+    // They used to be the same batch as the click, which is what made the modal
+    // sit there - though the weight was never the insert itself. See the
+    // viewport fallback in App's logListVirtualization for what actually cost
+    // the second.
     const handleAddSelectedFiles = () => {
         if (filePickerSubmitting) return;
         const files = Array.from(filePickerSelected);
@@ -268,26 +265,8 @@ export function useFilePicker({
             setFilePickerError('Select at least one log file.');
             return;
         }
-        pendingAddRef.current = files;
         setFilePickerSubmitting(true);
-        afterPaint(() => {
-            setFilePickerOpen(false);
-            setFilePickerSelected(new Set());
-            setFilePickerError(null);
-            setActivePreset(null);
-        });
-        // If the exit never reports back, the selection would be dropped on the
-        // floor with no sign of it. Well past the 0.4s exit, so it normally
-        // finds nothing left to do.
-        window.setTimeout(commitPendingAdd, 900);
-    };
-
-    // Called by the modal's AnimatePresence once it has finished leaving.
-    const commitPendingAdd = () => {
-        const files = pendingAddRef.current;
-        if (!files) return;
-        pendingAddRef.current = null;
-        commitSelectedFiles(files);
+        afterPaint(() => commitSelectedFiles(files));
     };
 
     const commitSelectedFiles = (files: string[]) => {
@@ -324,6 +303,10 @@ export function useFilePicker({
             bulkUploadCompletedRef.current = 0;
         }
         window.electronAPI.manualUploadBatch(files);
+        setFilePickerOpen(false);
+        setFilePickerSelected(new Set());
+        setFilePickerError(null);
+        setActivePreset(null);
         setFilePickerSubmitting(false);
     };
 
@@ -372,7 +355,6 @@ export function useFilePicker({
         setFilePickerMonthWindow,
         ensureMonthWindowForSince,
         handleAddSelectedFiles,
-        commitPendingAdd,
         filePickerSubmitting,
         focusedIndex,
         setFocusedIndex,
