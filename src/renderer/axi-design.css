@@ -320,6 +320,7 @@ body.axi-design .bg-cyan-500\/20,
 body.axi-design .bg-cyan-500\/25,
 body.axi-design .bg-cyan-500\/30,
 body.axi-design .bg-cyan-500\/8,
+body.axi-design .bg-cyan-500\/\[0\.08\],
 body.axi-design .bg-cyan-600\/20,
 body.axi-design .bg-emerald-400\/5,
 body.axi-design .bg-emerald-500\/10,
@@ -501,6 +502,7 @@ body.axi-design .text-pink-400,
 body.axi-design .text-purple-300,
 body.axi-design .text-purple-400,
 body.axi-design .text-sky-200,
+body.axi-design .text-sky-300,
 body.axi-design .text-sky-400,
 body.axi-design .text-violet-300 { color: var(--axi-meta); }
 
@@ -611,6 +613,15 @@ body.axi-design .shadow-2xl {
 /* An inner shadow is a lit edge, which is the one thing a flat surface cannot
    have. Depth here is the ground colour, and that is already handled. */
 body.axi-design .shadow-inner { box-shadow: none; }
+
+/* A glow is light with no source, which Rule 1 rules out along with the
+   gradients. These three are written as arbitrary values, so the named-scale
+   rules above never reach them: the gold and cyan MVP icon wells, and the
+   squad-generation badge in Boon Uptime. Killing the halo leaves the tint and
+   the outline, which is where the meaning was. */
+body.axi-design .shadow-\[0_0_20px_rgba\(251\,191\,36\,0\.25\)\],
+body.axi-design .shadow-\[0_0_20px_rgba\(34\,211\,238\,0\.25\)\],
+body.axi-design .shadow-\[0_0_12px_rgba\(34\,211\,238\,0\.16\)\] { box-shadow: none; }
 
 /* Blur is a frosted-glass idiom and this language has no glass: every surface
    is opaque, so there is nothing behind one to see through. (It also does
