@@ -1,4 +1,4 @@
-export type ColorPalette = 'electric-blue' | 'refined-cyan' | 'amber-warm' | 'emerald-mint' | 'rose-pink' | 'violet-purple' | 'crimson-red' | 'slate-silver' | 'teal-ocean' | 'gold-bronze';
+export type ColorPalette = 'electric-blue' | 'refined-cyan' | 'amber-warm' | 'emerald-mint' | 'rose-pink' | 'violet-purple' | 'crimson-red' | 'slate-silver' | 'teal-ocean' | 'gold-bronze' | 'axi-gold';
 
 export interface PaletteDefinition {
     id: ColorPalette;
@@ -101,6 +101,16 @@ export const PALETTES: Record<ColorPalette, PaletteDefinition> = {
         accentBg: 'rgba(20, 184, 166, 0.10)',
         accentBgStrong: 'rgba(20, 184, 166, 0.18)',
         accentBorder: 'rgba(20, 184, 166, 0.35)',
+    },
+    'axi-gold': {
+        id: 'axi-gold',
+        label: 'Axi Gold',
+        primary: '#ffc53d',
+        secondary: '#ffa41b',
+        gradient: 'linear-gradient(135deg, #ffc53d, #ffa41b)',
+        accentBg: 'rgba(255, 197, 61, 0.10)',
+        accentBgStrong: 'rgba(255, 197, 61, 0.18)',
+        accentBorder: 'rgba(255, 197, 61, 0.35)',
     },
     'gold-bronze': {
         id: 'gold-bronze',
