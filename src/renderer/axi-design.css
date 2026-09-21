@@ -1265,12 +1265,6 @@ body.axi-design .report-nav-sidebar {
   backdrop-filter: none;
   box-shadow: none;
 }
-body.axi-design .report-nav-sidebar .report-nav-search {
-  background: var(--axi-ground);
-  border: var(--axi-border-control) solid var(--axi-well-line);
-  border-radius: var(--axi-radius-sm);
-  color: var(--axi-text-dim);
-}
 body.axi-design .report-nav-sidebar .report-nav-group-btn,
 body.axi-design .report-nav-sidebar .report-nav-item-btn {
   border: var(--axi-border-control) solid transparent;
@@ -2019,6 +2013,30 @@ body.axi-design .axi-search-bar kbd {
   padding: 2px 5px;
   font: 700 10px/1 var(--axi-sans);
 }
+/* The trigger is the same well as .axi-search-field, one size down, so the
+   button in the header and the field it opens are visibly one object. It is
+   drawn as a well rather than a control - ground fill, rule outline, no offset
+   shadow - because it stands for somewhere to type, not something to press. */
+body.axi-design .axi-search-trigger {
+  background: var(--axi-ground);
+  border: var(--axi-border-control) solid var(--axi-well-line);
+  border-radius: var(--axi-radius-sm);
+  color: var(--axi-text-dim);
+}
+body.axi-design .axi-search-trigger:hover {
+  border-color: var(--axi-accent);
+  color: var(--axi-text);
+}
+/* Same key form as the panel's Esc, scaled to the smaller row. */
+body.axi-design .axi-search-trigger kbd {
+  background: var(--axi-surface);
+  border: 2px solid var(--axi-ink-line);
+  border-radius: 3px;
+  color: var(--axi-text-faint);
+  font: 700 10px/1 var(--axi-sans);
+  padding: 2px 5px;
+}
+
 /* The filter row is the toolbar form: outlined controls on the raised bar,
    with the count sitting at the end as meta rather than as another control. */
 body.axi-design [data-search-pill] {

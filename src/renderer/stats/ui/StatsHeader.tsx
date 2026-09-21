@@ -142,11 +142,13 @@ export const StatsHeader = ({
                         onClick={onSearchClick}
                         title="Search (Ctrl+K)"
                         aria-label="Search"
-                        className="inline-flex h-[26px] items-center gap-1.5 rounded-full px-3.5 text-[11px] font-semibold transition-colors hover:bg-[var(--bg-hover)]"
-                        style={{ color: 'var(--text-secondary)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
+                        className="axi-search-trigger inline-flex h-[26px] w-[186px] items-center gap-2 rounded-[4px] px-2 text-[12px] transition-colors"
                     >
-                        <Search className="w-3.5 h-3.5" />
+                        <Search className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary)' }} />
                         Search
+                        {/* The shortcut was title-attribute-only, which is to say
+                            invisible on the one platform where it matters most. */}
+                        <kbd className="ml-auto shrink-0 rounded-[3px] px-1.5 py-px text-[10px] font-sans tracking-[0.04em]">Ctrl K</kbd>
                     </button>
                 )}
                 {onToggleSliceTray && <FightSlicePill onClick={onToggleSliceTray} />}

@@ -41,6 +41,25 @@ describe('StatsHeader', () => {
         expect(onSearchClick).toHaveBeenCalledTimes(1);
     });
 
+    it('shows the keyboard shortcut on the search trigger', () => {
+        render(
+            <StatsHeader
+                embedded={false}
+                totalLogs={0}
+                devMockAvailable={false}
+                devMockUploadState={{ uploading: false }}
+                onDevMockUpload={() => {}}
+                uploadingWeb={false}
+                onWebUpload={() => {}}
+                onSearchClick={() => {}}
+            />
+        );
+
+        // The hint used to live only in a title attribute, which never shows on
+        // a desktop app the user drives from the keyboard.
+        expect(screen.getByRole('button', { name: 'Search' }).textContent).toContain('Ctrl K');
+    });
+
     it('omits the search button in embedded mode even when onSearchClick is provided', () => {
         render(
             <StatsHeader
