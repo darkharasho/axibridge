@@ -68,7 +68,7 @@ export const WebUploadBanner = ({
         ? { background: 'var(--status-success-bg)',  border: '1px solid var(--status-success-border)',  color: 'var(--status-success)' }
         : webUploadBuildStatus === 'errored'
         ? { background: 'var(--status-error-bg)',    border: '1px solid var(--status-error-border)',    color: 'var(--status-error)'   }
-        : { background: 'var(--accent-bg)',          border: '1px solid var(--accent-border)',          color: 'var(--brand-primary)'  };
+        : { background: 'var(--accent-bg)',          border: '1px solid var(--accent-border)',          color: 'var(--button-label, var(--brand-primary))'  };
 
     const openUrl = () => {
         if (displayUrl && window.electronAPI?.openExternal) {
@@ -150,19 +150,19 @@ export const WebUploadBanner = ({
 
         {logsOpen && logEntries && createPortal(
             <div
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+                className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
                 onClick={() => setLogsOpen(false)}
             >
                 <div
-                    className="w-full max-w-lg rounded-2xl shadow-2xl"
+                    className="app-modal-card w-full max-w-lg rounded-2xl shadow-2xl"
                     style={{
-                        background: 'rgba(13,17,23,0.96)',
-                        border: '1px solid rgba(255,255,255,0.10)',
+                        background: 'var(--bg-card)',
+                        border: 'var(--panel-border-w, 1px) solid var(--border-default)',
                     }}
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.07]">
+                    <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
                         <div>
                             <div className="text-[9px] font-bold tracking-[.15em] uppercase" style={{ color: 'var(--brand-primary)' }}>
                                 Web Upload
@@ -180,23 +180,23 @@ export const WebUploadBanner = ({
                     {/* Log feed */}
                     <div
                         className="overflow-y-auto overscroll-contain px-4 py-3"
-                        style={{ background: 'rgba(0,0,0,0.28)', maxHeight: '360px' }}
+                        style={{ background: 'var(--bg-base)', maxHeight: '360px' }}
                     >
                         {logEntries.map((entry, i) => (
                             <div key={i} className="flex gap-2 items-baseline py-[2px]">
-                                <span className="text-[8.5px] font-mono shrink-0" style={{ color: 'rgba(255,255,255,0.18)' }}>
+                                <span className="text-[8.5px] font-mono shrink-0" style={{ color: 'var(--text-muted)' }}>
                                     {entry.elapsed}
                                 </span>
                                 <span
                                     className="text-[10px] leading-snug"
                                     style={{
                                         color: entry.isError
-                                            ? 'rgba(252,165,165,0.8)'
+                                            ? 'var(--status-error-muted)'
                                             : entry.isWarn
-                                            ? 'rgba(251,191,36,0.8)'
+                                            ? 'var(--status-warning)'
                                             : i === logEntries.length - 1
-                                            ? 'rgba(255,255,255,0.85)'
-                                            : 'rgba(255,255,255,0.45)',
+                                            ? 'var(--text-primary)'
+                                            : 'var(--text-secondary)',
                                     }}
                                 >
                                     {entry.text}
@@ -205,7 +205,7 @@ export const WebUploadBanner = ({
                         ))}
                     </div>
                     {/* Footer */}
-                    <div className="flex justify-end px-5 py-3 border-t border-white/[0.07]">
+                    <div className="flex justify-end px-5 py-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
                         <button
                             type="button"
                             onClick={() => setLogsOpen(false)}

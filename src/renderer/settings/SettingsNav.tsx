@@ -49,7 +49,7 @@ export function SettingsNav({
                             aria-expanded={isExpanded}
                             className="w-full flex items-center gap-2 px-2 py-1.5 rounded-[4px] text-sm transition-colors"
                             style={isExpanded
-                                ? { background: 'var(--accent-bg)', color: 'var(--brand-primary)' }
+                                ? { background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }
                                 : { color: 'var(--text-secondary)' }}
                         >
                             {isExpanded
@@ -61,7 +61,7 @@ export function SettingsNav({
                                 <span
                                     className="ml-auto shrink-0 px-1.5 py-0.5 rounded-[3px] text-[9px] font-semibold"
                                     style={matchCount
-                                        ? { background: 'var(--accent-bg)', color: 'var(--brand-primary)' }
+                                        ? { background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }
                                         : { color: 'var(--text-muted)' }}
                                 >
                                     {matchCount ?? 0}

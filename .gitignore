@@ -79,3 +79,7 @@ repomix-output.txt
 
 # Local scratch probes (never committed)
 /scratch/
+
+# axi-design screenshot harness scratch
+.axi-mocks/
+share-viewer.png

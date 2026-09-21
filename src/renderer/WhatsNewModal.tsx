@@ -75,7 +75,7 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                                         ),
                                         table: ({ children }) => (
                                             <div className="overflow-x-auto rounded-[4px]" style={{ border: 'var(--panel-border-w, 1px) solid var(--border-default)', background: 'var(--bg-card-inner)' }}>
-                                                <table className="w-full border-collapse text-left text-sm">
+                                                <table className="stats-table w-full border-collapse text-left text-sm">
                                                     {children}
                                                 </table>
                                             </div>

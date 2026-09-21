@@ -437,7 +437,7 @@ export const AllDamageSection = ({
                                 </span>
                             </div>
                             <div className="max-h-[300px] overflow-y-auto">
-                                <table className="w-full text-xs">
+                                <table className="stats-table w-full text-xs">
                                     <thead>
                                         <tr className="text-slate-500 border-b border-white/5">
                                             <th className="text-left py-1.5 px-2 font-medium">Skill</th>

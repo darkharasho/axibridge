@@ -921,8 +921,14 @@ body:not(.web-report) .modal-pane.pb-10 {
     padding-bottom: env(safe-area-inset-bottom) !important;
 }
 
-/* Expanded section body should own the available height; no outer modal scrolling. */
-body:not(.web-report) .modal-pane> :not(:first-child) {
+/* Expanded section body should own the available height; no outer modal scrolling.
+   Only the LAST child grows. This used to say `:not(:first-child)`, which in any
+   section whose pane holds three blocks - heading, then a legend or filter row,
+   then the table - handed an equal share of the free height to the legend as
+   well, so the table was pushed hundreds of pixels down the screen behind a band
+   of nothing. Sections with exactly two children are unaffected: there,
+   `:last-child` and `:not(:first-child)` select the same element. */
+body:not(.web-report) .modal-pane> :last-child {
     flex: 1 1 auto;
     min-height: 0;
 }

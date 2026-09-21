@@ -724,7 +724,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
             ? `font-semibold ${colorClass} mb-2 uppercase tracking-wider text-[10px]`
             : `font-black ${colorClass} mb-3 uppercase tracking-widest ${fullHeight ? 'text-base' : 'text-xs'}`;
         return (
-            <div className={`rounded-[4px] ${compact ? 'p-3' : 'p-4'} shadow-lg ${fullHeight ? 'h-full' : ''}`} style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+            <div className={`log-detail-tile rounded-[4px] ${compact ? 'p-3' : 'p-4'} shadow-lg ${fullHeight ? 'h-full' : ''}`} style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-default))' }}>
                 <h5 className={`${headerClass} border-b border-white/10 pb-2`} style={headerColorHex ? { color: headerColorHex } : undefined}>{title}</h5>
                 {limitedCounts.length > 0 ? (
                     <div className={`grid grid-flow-col auto-cols-fr gap-2 font-mono text-gray-200 ${fullHeight ? 'text-base' : compact ? 'text-[11px]' : 'text-sm'}`}>
@@ -785,7 +785,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         });
 
         return (
-            <div className={`rounded-[4px] p-3 shadow-inner ${fullHeight ? 'h-full' : ''}`} style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
+            <div className={`log-detail-tile rounded-[4px] p-3 shadow-inner ${fullHeight ? 'h-full' : ''}`} style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
                 <h5 className={`font-semibold text-gray-200 mb-2 border-b border-white/10 pb-1 uppercase tracking-tighter ${fullHeight ? 'text-sm' : 'text-[11px]'}`}>{title}</h5>
                 {hasData ? (
                     <div className={`font-mono space-y-1 text-gray-300 ${fullHeight ? 'text-base' : 'text-[10px]'}`}>
@@ -1097,7 +1097,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: DURATION.slow, ease: EASE.outExpo }}
-                        className="shadow-inner" style={{ borderTop: '1px solid var(--border-default)', background: 'var(--bg-card-inner)', overflow: 'hidden' }}
+                        className="log-detail-drawer shadow-inner" style={{ borderTop: 'var(--detail-drawer-cut-w, 1px) solid var(--detail-drawer-cut, var(--border-default))', background: 'var(--detail-drawer-bg, var(--bg-card-inner))', overflow: 'hidden' }}
                     >
                         <div className="p-4 space-y-4">
                             {(settings.showSquadSummary || settings.showEnemySummary) && (
@@ -1106,7 +1106,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     style={{ gridTemplateColumns: `repeat(${summaryColumnCount}, minmax(0, 1fr))` }}
                                 >
                                     {settings.showSquadSummary && (
-                                        <div className="rounded-[4px] p-3" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
+                                        <div className="log-detail-tile rounded-[4px] p-3" style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
                                             <h5 className="font-semibold text-green-400 mb-2 uppercase tracking-wider text-[10px]">Squad Summary</h5>
                                             <div className="font-mono text-gray-300 space-y-1">
                                                 <div className="flex justify-between"><span>Count:</span> <span>{squadDisplayCount} {nonSquadDisplayCount > 0 ? `(+${nonSquadDisplayCount})` : ''}</span></div>
@@ -1118,7 +1118,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                         </div>
                                     )}
                                     {settings.showEnemySummary && (!splitEnemiesByTeam || enemyTeamSummaryStats.length === 0) && (
-                                        <div className="rounded-[4px] p-3" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
+                                        <div className="log-detail-tile rounded-[4px] p-3" style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
                                             <h5 className="font-semibold text-red-400 mb-2 uppercase tracking-wider text-[10px]">Enemy Summary</h5>
                                             <div className="font-mono text-gray-300 space-y-1">
                                                 <div className="flex justify-between"><span>Count:</span> <span>{enemyCount}</span></div>
@@ -1130,7 +1130,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                         </div>
                                     )}
                                     {settings.showEnemySummary && splitEnemiesByTeam && enemyTeamSummaryStats.map((team) => (
-                                        <div key={`expanded-team-summary-${team.teamId}`} className="rounded-[4px] p-3" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
+                                        <div key={`expanded-team-summary-${team.teamId}`} className="log-detail-tile rounded-[4px] p-3" style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
                                             <h5 className="font-semibold mb-2 uppercase tracking-wider text-[10px]" style={{ color: WVW_TEAM_COLOR_META[team.color].hex }}>{`${WVW_TEAM_COLOR_META[team.color].label} team`}</h5>
                                             <div className="font-mono text-gray-300 space-y-1">
                                                 <div className="flex justify-between"><span>Count:</span> <span>{team.count}</span></div>
@@ -1164,7 +1164,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
 
                             {settings.showIncomingStats && (
                                 <div className="grid grid-cols-3 gap-2">
-                                    <div className="rounded-[4px] p-2" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
+                                    <div className="log-detail-tile rounded-[4px] p-2" style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
                                         <h5 className="font-semibold text-blue-400 mb-1 uppercase tracking-wider text-[9px]">Incoming Attack</h5>
                                         <div className="font-mono text-[10px] text-gray-300">
                                             <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-gray-300">{totalMiss}</span></div>
@@ -1172,7 +1172,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                             <div className="flex justify-between text-gray-500"><span>Total:</span> <span className="text-gray-300">{totalMiss + totalBlock + totalEvade + totalDodge}</span></div>
                                         </div>
                                     </div>
-                                    <div className="rounded-[4px] p-2" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
+                                    <div className="log-detail-tile rounded-[4px] p-2" style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
                                         <h5 className="font-semibold text-purple-400 mb-1 uppercase tracking-wider text-[9px]">Incoming CC</h5>
                                         <div className="font-mono text-[10px] text-gray-300">
                                             <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-gray-300">{totalCCMissed}</span></div>
@@ -1181,7 +1181,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                         </div>
                                     </div>
 
-                                    <div className="rounded-[4px] p-2" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
+                                    <div className="log-detail-tile rounded-[4px] p-2" style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
                                         <h5 className="font-semibold text-orange-400 mb-1 uppercase tracking-wider text-[9px]">Incoming Strips</h5>
                                         <div className="font-mono text-[10px] text-gray-300">
                                             <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-gray-300">{totalStripsMissed}</span></div>
@@ -1215,8 +1215,8 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     disabled={isSharing}
                                     className="log-card-share-link-btn w-full py-2.5 rounded-[4px] text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] text-white hover:brightness-110 disabled:cursor-not-allowed disabled:text-white/50"
                                     style={{
-                                        background: 'color-mix(in srgb, var(--brand-primary) 30%, transparent)',
-                                        border: '1px solid color-mix(in srgb, var(--brand-primary) 25%, transparent)',
+                                        background: 'var(--share-btn-bg, color-mix(in srgb, var(--brand-primary) 30%, transparent))',
+                                        border: 'var(--panel-border-w, 1px) solid var(--share-btn-edge, color-mix(in srgb, var(--brand-primary) 25%, transparent))',
                                     }}
                                 >
                                     <Share2 className="w-4 h-4" />

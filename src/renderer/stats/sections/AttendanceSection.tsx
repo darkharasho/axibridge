@@ -153,7 +153,7 @@ export const AttendanceSection = ({
                     <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No attendance data available.</div>
                 ) : (
                     <div className={`rounded-[var(--radius-md)] overflow-hidden ${shouldScrollLedger ? 'max-h-[30rem] overflow-y-auto' : ''}`}>
-                        <table className="w-full text-xs table-auto min-w-full border-separate border-spacing-0">
+                        <table className="stats-table w-full text-xs table-auto min-w-full border-separate border-spacing-0">
                             <thead>
                                 <tr className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
                                     <th className="text-left py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Account</th>
