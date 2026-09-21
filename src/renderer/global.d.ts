@@ -575,6 +575,11 @@ declare global {
         fightName?: string;
         fightLabel?: string;
         detailsStatus: DetailsStatus;
+        /** Why hydration gave up on this log, set alongside 'exhausted' /
+         *  'unavailable'. Read by the coverage banner so it can name the cause
+         *  instead of blaming the cache read for every gap. Cleared the moment
+         *  the log hydrates. */
+        detailsGap?: import('./stats/utils/axilogCoverage').AxilogGapCause;
         /** Where the details came from. Only 'axilog' carries the Axilog data
          *  the migrated stats readers need; the rest render those views empty.
          *  Absent on logs persisted before this field existed. */

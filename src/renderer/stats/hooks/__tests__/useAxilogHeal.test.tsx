@@ -20,7 +20,7 @@ vi.mock('idb-keyval', () => ({
 }));
 
 const log = (id: string, filePath: string): AxilogCoverageLog => ({
-    id, filePath, label: id, parseSource: 'dps.report',
+    id, filePath, label: id, parseSource: 'dps.report', gap: null,
 });
 
 // A real cache over a mocked IndexedDB. The heal's contract is about what
@@ -69,11 +69,11 @@ describe('useAxilogHeal', () => {
         expect(putSync).toHaveBeenCalledTimes(1);
     });
 
-    it('still counts a heal whose cache write was rejected', async () => {
-        // The re-parse handler writes the details back into the main-process
-        // store before returning, so the log is repaired at the source whatever
-        // IndexedDB does. Calling this a failure would tell the user to retry a
-        // repair that already worked.
+    it('reports a heal whose cache write was rejected as a failure', async () => {
+        // The re-parse itself worked, but the renderer's durable store refused
+        // the details, so the LRU holds them only until the next eviction and
+        // the log returns to the coverage banner unchanged. Reporting it as
+        // healed made the banner look like it had fixed something it had not.
         const onLogsHealed = vi.fn();
         const { set } = await import('idb-keyval');
         (set as any).mockRejectedValue(new Error('QuotaExceededError'));
@@ -82,8 +82,10 @@ describe('useAxilogHeal', () => {
 
         await act(async () => { await result.current.heal([log('a', '/a.zevtc')]); });
 
-        expect(onLogsHealed).toHaveBeenCalledWith(['/a.zevtc']);
-        expect(result.current.healState.failures).toEqual([]);
+        expect(onLogsHealed).not.toHaveBeenCalled();
+        expect(result.current.healState.healed).toBe(0);
+        expect(result.current.healState.failures).toHaveLength(1);
+        expect(result.current.healState.failures[0].error).toMatch(/local storage refused/i);
     });
 
     it('reports only the logs that actually healed', async () => {
