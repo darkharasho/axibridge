@@ -1717,25 +1717,35 @@ body.bulk-uploading .stats-particle-spinner__particle {
    solid backgrounds, unified borders).
    ============================================================ */
 
+/* These nine are scoped away from the axi language. They are this stylesheet's
+   own remap of the Tailwind literals onto the classic tokens, written with
+   !important, and axi-design.css remaps the same literals onto its own scale -
+   so with both in play the !important won every time and the axi sheet's radius
+   and fill bridges were dead. Worse than dead: `bg-white/10` landed on the
+   ground rather than the raised surface, which put ink text on a near-black
+   fill wherever a selected item carried it. Only the lines where the two sheets
+   actually disagree are scoped; the rest of this block is left alone because it
+   resolves to the same thing under either language. */
+
 /* --- Border Radius: everything becomes 4px --- */
-.rounded-2xl { border-radius: var(--radius-md) !important; }
-.rounded-xl { border-radius: var(--radius-md) !important; }
-.rounded-lg { border-radius: var(--radius-md) !important; }
-.rounded-md { border-radius: var(--radius-md) !important; }
+body:not(.axi-design) .rounded-2xl { border-radius: var(--radius-md) !important; }
+body:not(.axi-design) .rounded-xl { border-radius: var(--radius-md) !important; }
+body:not(.axi-design) .rounded-lg { border-radius: var(--radius-md) !important; }
+body:not(.axi-design) .rounded-md { border-radius: var(--radius-md) !important; }
 /* Keep rounded-full for pills/badges/dots — do NOT override */
 
 /* --- Backgrounds: glass → solid layered --- */
-.bg-white\/5 { background-color: var(--bg-card) !important; }
+body:not(.axi-design) .bg-white\/5 { background-color: var(--bg-card) !important; }
 .bg-white\/4 { background-color: var(--bg-card) !important; }
 .bg-white\/3 { background-color: var(--bg-card) !important; }
-.bg-white\/10 { background-color: var(--bg-card-inner) !important; }
-.bg-black\/20 { background-color: var(--bg-card) !important; }
+body:not(.axi-design) .bg-white\/10 { background-color: var(--bg-card-inner) !important; }
+body:not(.axi-design) .bg-black\/20 { background-color: var(--bg-card) !important; }
 .bg-black\/25 { background-color: var(--bg-card) !important; }
 .bg-black\/30 { background-color: var(--bg-card-inner) !important; }
 .bg-black\/40 { background-color: var(--bg-card-inner) !important; }
 .bg-black\/50 { background-color: var(--bg-input) !important; }
-.bg-black\/60 { background-color: rgba(0, 0, 0, 0.6) !important; } /* modal overlays — keep */
-.bg-black\/70 { background-color: var(--bg-base) !important; }
+body:not(.axi-design) .bg-black\/60 { background-color: rgba(0, 0, 0, 0.6) !important; } /* modal overlays — keep */
+body:not(.axi-design) .bg-black\/70 { background-color: var(--bg-base) !important; }
 
 /* --- Borders: unified opacity levels --- */
 .border-white\/5 { border-color: var(--border-subtle) !important; }
