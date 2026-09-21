@@ -200,7 +200,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay }}
             className="rounded-[4px] p-6"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)', display: hidden ? 'none' : undefined }}
+            style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)', display: hidden ? 'none' : undefined }}
             id={sectionId}
             data-settings-section={sectionId ? 'true' : undefined}
             data-settings-label={sectionId ? title : undefined}
@@ -1528,7 +1528,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         className="hidden lg:flex flex-col gap-3 min-h-0"
                         style={{ willChange: 'transform, opacity' }}
                     >
-                        <div className="rounded-[4px] p-3" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                        <div className="rounded-[4px] p-3" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
                             <div className="relative">
                                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
                                 <input
@@ -1550,7 +1550,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 )}
                             </div>
                         </div>
-                        <div className="rounded-[4px] p-3 flex-1 min-h-0" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                        <div className="rounded-[4px] p-3 flex-1 min-h-0" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
                             <div className="text-[11px] uppercase tracking-[0.25em] text-gray-500 mb-2">Sections</div>
                             <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
                                 <SettingsNav
@@ -1596,7 +1596,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             navigateToSection(id);
                                         }}
                                         className="w-full text-left px-3 py-2 rounded-[4px] text-sm transition-colors"
-                                        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}
+                                        style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', color: 'var(--text-secondary)' }}
                                     >
                                         <span style={{ color: 'var(--text-muted)' }}>{categoryLabel} ›</span>
                                         {' '}
@@ -2927,7 +2927,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             onChange={(e) => setDpsReportToken(e.target.value)}
                             placeholder="Enter your dps.report token..."
                             className="w-full rounded-[4px] px-4 py-3 text-sm text-gray-300 placeholder-gray-600 focus:border-blue-500/50 focus:outline-none transition-colors"
-                            style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
+                            style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                         />
                         <div className="mt-4 flex flex-wrap items-center gap-3">
                             <button
@@ -3119,7 +3119,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         </SettingsSection>
                     </div>
 
-                    <div id="legal" data-settings-section="true" data-settings-label="Legal" className="rounded-[4px] p-4 text-xs text-gray-400" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+                    <div id="legal" data-settings-section="true" data-settings-label="Legal" className="rounded-[4px] p-4 text-xs text-gray-400" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
                         <div className="flex items-center justify-between mb-2">
                             <div className="text-sm font-semibold text-gray-200">Legal Notice</div>
                             <div className="flex items-center gap-2">
@@ -3193,7 +3193,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             </div >
 
             <div className="fixed bottom-4 left-4 right-4 z-40 lg:hidden">
-                <div className="flex items-center justify-between gap-2 rounded-[4px] px-3 py-1.5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+                <div className="flex items-center justify-between gap-2 rounded-[4px] px-3 py-1.5" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
                     <button
                         onClick={() => setSettingsNavOpen((open) => !open)}
                         className="flex items-center gap-2 px-4 py-1.5 rounded-[4px] bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200 flex-1 justify-between"
@@ -3222,7 +3222,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             }
                         }}
                     >
-                        <div className="app-modal-card w-full max-w-sm max-h-[85vh] rounded-[4px] p-4 flex flex-col" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+                        <div className="app-modal-card w-full max-w-sm max-h-[85vh] rounded-[4px] p-4 flex flex-col" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
                             <div className="flex items-center justify-between mb-3">
                                 <div className="text-[11px] uppercase tracking-[0.3em] text-gray-400">Jump to</div>
                                 <button
@@ -3273,7 +3273,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            className="app-modal-card w-full max-w-3xl rounded-[4px]" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+                            className="app-modal-card w-full max-w-3xl rounded-[4px]" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
@@ -3347,7 +3347,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            className="app-modal-card w-full max-w-4xl rounded-[4px]" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
+                            className="app-modal-card w-full max-w-4xl rounded-[4px]" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
@@ -3580,7 +3580,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            className="app-modal-card web-reports-modal w-full max-w-3xl rounded-[4px] p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+                            className="app-modal-card web-reports-modal w-full max-w-3xl rounded-[4px] p-6" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}

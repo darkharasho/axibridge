@@ -385,7 +385,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                 >
                     <motion.div
                         className="app-modal-card file-picker-card relative isolate w-full max-w-[1100px] max-h-[92vh] flex flex-row rounded-[4px] overflow-hidden"
-                        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+                        style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
                         initial={{ opacity: 0, y: 20, scale: 0.98 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 20, scale: 0.98 }}
@@ -397,7 +397,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                             <div className="p-3 pb-0">
                                 <div className="relative">
                                     <Search className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                                    <input type="text" value={filePickerFilter} onChange={(event) => setFilePickerFilter(event.target.value)} placeholder="Search..." className="file-picker-panel w-full rounded-[4px] pl-8 pr-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-blue-500/50 transition-colors" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }} />
+                                    <input type="text" value={filePickerFilter} onChange={(event) => setFilePickerFilter(event.target.value)} placeholder="Search..." className="file-picker-panel w-full rounded-[4px] pl-8 pr-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-blue-500/50 transition-colors" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }} />
                                 </div>
                             </div>
 
@@ -412,7 +412,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
 
                             {/* Segmented filter tabs */}
                             <div className="px-3 pt-3">
-                                <div className="flex rounded-[4px] overflow-hidden" style={{ border: '1px solid var(--border-default)', background: 'var(--bg-input)' }}>
+                                <div className="flex rounded-[4px] overflow-hidden" style={{ border: 'var(--panel-border-w, 1px) solid var(--border-default)', background: 'var(--bg-input)' }}>
                                     {(['Day', 'Since', 'Range'] as const).map((mode) => {
                                         const modeKey = mode === 'Range' ? 'Between' : mode;
                                         const isActive = (modeKey === 'Day' && selectDayOpen) || (modeKey === 'Since' && selectSinceOpen) || (modeKey === 'Between' && selectBetweenOpen);
@@ -437,7 +437,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                             transition={{ duration: 0.15 }}
                                         >
                                             <div className="flex flex-col gap-4">
-                                                <div className="file-picker-panel flex-1 rounded-[4px] p-4 w-full" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                                                <div className="file-picker-panel flex-1 rounded-[4px] p-4 w-full" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
                                                     <div className="flex items-center justify-between mb-2">
                                                         <button
                                                             onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
@@ -453,7 +453,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                 {selectSinceView.toLocaleString(undefined, { month: 'long', year: 'numeric' })}
                                                             </button>
                                                             {selectSinceMonthOpen && (
-                                                                <div className="file-picker-popover absolute z-10 top-full justify-center -left-8 mt-2 w-44 rounded-[4px] p-2" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+                                                                <div className="file-picker-popover absolute z-10 top-full justify-center -left-8 mt-2 w-44 rounded-[4px] p-2" style={{ background: 'var(--bg-elevated)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
                                                                     <div className="flex items-center justify-between mb-2">
                                                                         <button
                                                                             onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear() - 1, prev.getMonth(), 1))}
@@ -558,7 +558,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                         >
                                             <div className="flex flex-col gap-4">
                                                 <div className="flex flex-col gap-3">
-                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
                                                         <div className="flex items-center justify-between mb-2">
                                                             <button
                                                                 onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
@@ -574,7 +574,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                     {selectSinceView.toLocaleString(undefined, { month: 'long', year: 'numeric' })}
                                                                 </button>
                                                                 {selectSinceMonthOpen && (
-                                                                    <div className="file-picker-popover absolute z-10 top-full justify-center -left-8 mt-2 w-44 rounded-[4px] p-2" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+                                                                    <div className="file-picker-popover absolute z-10 top-full justify-center -left-8 mt-2 w-44 rounded-[4px] p-2" style={{ background: 'var(--bg-elevated)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
                                                                         <div className="flex items-center justify-between mb-2">
                                                                             <button
                                                                                 onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear() - 1, prev.getMonth(), 1))}
@@ -658,7 +658,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                             );
                                                         })()}
                                                     </div>
-                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
                                                         <div className="text-xs uppercase tracking-widest text-cyan-200/70 mb-2">Time</div>
                                                         <div className="grid grid-cols-3 gap-2">
                                                             <div>
@@ -737,7 +737,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                         >
                                             <div className="flex flex-col gap-4">
                                                 <div className="flex flex-col gap-3">
-                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
                                                         <div className="text-[10px] text-gray-400 mb-1">Start</div>
                                                         <input
                                                             type="datetime-local"
@@ -745,10 +745,10 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                             onChange={e => setSelectBetweenStart(e.target.value)}
                                                             onClick={e => (e.currentTarget as HTMLInputElement & { showPicker?: () => void }).showPicker?.()}
                                                             className="w-full rounded-[4px] px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500"
-                                                            style={{ colorScheme: 'dark', background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
+                                                            style={{ colorScheme: 'dark', background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                                                         />
                                                     </div>
-                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
                                                         <div className="text-[10px] text-gray-400 mb-1">End</div>
                                                         <input
                                                             type="datetime-local"
@@ -756,7 +756,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                             onChange={e => setSelectBetweenEnd(e.target.value)}
                                                             onClick={e => (e.currentTarget as HTMLInputElement & { showPicker?: () => void }).showPicker?.()}
                                                             className="w-full rounded-[4px] px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500"
-                                                            style={{ colorScheme: 'dark', background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
+                                                            style={{ colorScheme: 'dark', background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                                                         />
                                                     </div>
                                                 </div>

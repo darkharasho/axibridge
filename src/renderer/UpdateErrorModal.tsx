@@ -26,7 +26,7 @@ export function UpdateErrorModal({ isOpen, onClose, onRetry, error }: UpdateErro
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                     transition={{ duration: 0.2 }}
                     className="app-modal-card rounded-[4px] w-full max-w-md mx-4 overflow-hidden"
-                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+                    style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
@@ -47,7 +47,7 @@ export function UpdateErrorModal({ isOpen, onClose, onRetry, error }: UpdateErro
                         <p className="text-gray-300 mb-6">
                             An error occurred while checking for updates or downloading the update.
                         </p>
-                        <div className="rounded-[4px] p-4 font-mono text-sm text-red-200 overflow-x-auto" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                        <div className="rounded-[4px] p-4 font-mono text-sm text-red-200 overflow-x-auto" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
                             {error || 'Unknown error'}
                         </div>
                     </div>

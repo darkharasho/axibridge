@@ -50,7 +50,7 @@ export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughMo
                     exit={{ opacity: 0, scale: 0.96, y: 18 }}
                     transition={{ duration: 0.2 }}
                     className="app-modal-card w-full max-w-3xl mx-4 overflow-hidden rounded-[4px]"
-                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+                    style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
                 >
                     <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
                         <div className="flex items-center gap-3">
@@ -78,7 +78,7 @@ export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughMo
                                     <div
                                         key={step.title}
                                         className="rounded-[4px] px-4 py-4 flex gap-4 items-start"
-                                        style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}
+                                        style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                                     >
                                         <div className="mt-0.5 rounded-[4px] border border-blue-500/30 bg-blue-500/15 p-2">
                                             <Icon className="w-4 h-4 text-blue-300" />
@@ -100,7 +100,7 @@ export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughMo
                         <button
                             onClick={() => onLearnMore?.()}
                             className="flex items-center gap-1.5 px-4 py-2 rounded-[4px] text-gray-200 hover:bg-white/10 transition-colors text-sm font-medium"
-                            style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}
+                            style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                         >
                             <BookOpen className="w-3.5 h-3.5" />
                             How-To Guide
