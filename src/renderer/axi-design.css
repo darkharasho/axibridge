@@ -659,15 +659,28 @@ body.axi-design *::-webkit-scrollbar-corner { background: var(--axi-ground); }
 /* ---------------------------------------------------------------------------
    THE TOGGLES
    A switch is the smallest possible "this one is on", so it is said the same
-   way everything else on is said: accent fill, ink knob. Off is the ground
-   with an outline, which is the same shape with nothing in it. */
+   way everything else on is said: accent fill, ink slug.
+
+   Off is a slot cut in the surface, not in the ground. Ground-on-ground was the
+   first answer and it only worked on a panel: the webhook rows and the quick
+   settings card are themselves ground, so an off switch there was a ground
+   rectangle with a hairline round it on a ground card - the track disappeared
+   and all you could see was the knob floating. A slot has to be visible whether
+   or not anything is in it, so it takes the surface and a full ink edge.
+
+   The slug is ink in both states, which leaves the track as the only thing that
+   changes. That is the point: on and off differ in what colour is in the slot,
+   not in how bright the part that moves is. No block - the block belongs to
+   things you press, and this is a slot with something sitting in it. */
 body.axi-design .toggle-track {
   border-width: var(--axi-border-control);
   border-radius: var(--axi-radius-sm);
 }
+/* !important: both switches set the off background inline, which no selector
+   can outrank. */
 body.axi-design .toggle-track--off {
-  background: var(--axi-ground);
-  border-color: var(--axi-well-line);
+  background: var(--axi-surface-raised) !important;
+  border-color: var(--axi-ink-line);
 }
 body.axi-design .toggle-track--on {
   background: var(--axi-accent);
@@ -676,9 +689,26 @@ body.axi-design .toggle-track--on {
 body.axi-design .toggle-knob {
   border-radius: 2px;
   box-shadow: none;
-  background: var(--axi-text-faint);
+  background: var(--axi-ink-line);
 }
-body.axi-design .toggle-track--on .toggle-knob { background: var(--axi-ink-line); }
+/* The Distance to Tag switch is half the size of the other two - it sits in a
+   section header beside 11px type - and the control edge on a 14px track leaves
+   no slot to put anything in. It keeps the form at a weight its size can hold. */
+body.axi-design .toggle-track--sm { border-width: 2px; }
+body.axi-design .toggle-track--sm .toggle-knob { top: 1px; bottom: 1px; left: 1px; }
+body.axi-design .toggle-track--sm.toggle-track--on .toggle-knob { left: auto; right: 1px; }
+
+/* The publish popover builds its checkboxes out of a span and a tick icon
+   rather than an <input>, so the plate rules cannot reach them. Same plate,
+   said in the one place it has to be said twice. */
+body.axi-design .menu-checkbox {
+  border-width: var(--axi-border-control);
+  border-color: var(--axi-ink-line);
+  border-radius: 3px;
+  background-color: var(--axi-surface-raised);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+body.axi-design .menu-checkbox[data-on] { background-color: var(--axi-accent); }
 
 /* ---------------------------------------------------------------------------
    THE LAST GRADIENTS
@@ -2003,3 +2033,131 @@ body.axi-design .report-back-link {
   border-radius: var(--axi-radius-sm);
 }
 body.axi-design .report-back-link:hover { background: var(--axi-accent) !important; filter: brightness(1.08); }
+
+/* ---------------------------------------------------------------------------
+   THE FILE PICKER'S CONFIRM
+   Green at 20% behind green text inside a green edge: rule 2 twice and rule
+   5's annotation chip standing in for a button again. It is also the one
+   primary action in that modal, which is the thing the language marks with
+   colour - so it gets the accent outright, and the count rides on it as an
+   ink chip rather than a second tint. Cancel beside it is already the plain
+   raised control every secondary button became. */
+body.axi-design .file-picker-confirm {
+  background-color: var(--axi-accent);
+  color: var(--axi-accent-ink);
+  border-color: var(--axi-ink-line);
+  border-width: var(--axi-border-control);
+  border-radius: var(--axi-radius-sm);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+body.axi-design .file-picker-confirm:hover:not(:disabled) { background-color: var(--axi-accent); filter: brightness(1.08); }
+/* Disabled is the control with no claim on you: the fill goes back to the
+   surface and the label goes faint, rather than the accent at half strength. */
+body.axi-design .file-picker-confirm:disabled {
+  background-color: var(--axi-surface);
+  color: var(--axi-text-faint);
+  box-shadow: none;
+  opacity: 1;
+}
+body.axi-design .file-picker-confirm__count {
+  background-color: var(--axi-accent-ink);
+  color: var(--axi-accent);
+  border-radius: var(--axi-radius-sm);
+}
+
+/* ---------------------------------------------------------------------------
+   THE CHECKBOX
+   Left to the browser, these were the one native widget the language never
+   touched: a rounded platform box in platform blue, sitting inside panels that
+   had been redrawn down to the last hairline. `accent-color` alone only
+   repaints the fill and still leaves the platform's shape.
+
+   So it is built as a plate. Square corners rather than the control radius,
+   because at this size a 6px round is most of the box and the thing stops
+   reading as a plate; the ink edge and the block carry it instead. It is
+   raised whether or not it is ticked - an empty box is still a control you can
+   press, and dropping the block when off made the off state look disabled next
+   to a row of on ones.
+
+   Checking it is a colour claim, not a brightness one: the plate goes from
+   surface to gold and takes a stamped ink tick that runs corner to corner. The
+   label it sits in stops being one of the dim ones in the row at the same time,
+   so a setting that is on reads as on from across the panel. Colour only, not
+   weight: these labels sit in a row beside each other, and reflowing one of
+   them on every click makes the whole row twitch.
+
+   The tick is a background image because ::after does not render on an input
+   outside Chromium, and this sheet also ships inside the published report. Its
+   stroke is the literal ink line - the one place in the file a token is spelled
+   out, because a data URI cannot read one. */
+body.axi-design input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  /* Sized against the text it labels rather than in fixed pixels. A 22px plate
+     is right beside 14px text and looks like a misplaced button beside the 12px
+     rows the webhook list and the settings toggles are built from; 1.5em is the
+     same plate everywhere and lands at 18px there. The floor keeps it a plate
+     in the few places the type goes smaller still. */
+  width: 1.5em;
+  height: 1.5em;
+  min-width: 16px;
+  min-height: 16px;
+  /* The block sits bottom-right, so the box reserves that much room and keeps
+     its optical centre on the label's baseline instead of riding high. */
+  margin: 0 var(--axi-offset-control) var(--axi-offset-control) 0;
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: 3px;
+  background-color: var(--axi-surface-raised);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 68% 68%;
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  cursor: pointer;
+}
+
+body.axi-design input[type='checkbox']:checked {
+  background-color: var(--axi-accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M1.5 6.1 L4.6 9.4 L10.6 2.4' fill='none' stroke='%230c0e12' stroke-width='3.4' stroke-linecap='butt'/%3E%3C/svg%3E");
+}
+
+/* Hover lifts the plate rather than tinting it - the same move the buttons
+   make, at the size a 22px control can carry. */
+body.axi-design input[type='checkbox']:hover:not(:disabled) { filter: brightness(1.12); }
+
+body.axi-design input[type='checkbox']:focus-visible {
+  outline: 2px solid var(--axi-accent);
+  outline-offset: 3px;
+}
+
+/* A setting that is on is a setting you chose, so its label stops being one of
+   the dim ones in the row. Marked !important because most of these labels carry
+   their colour inline. Only a label holding the box itself answers to this - a
+   row that merely contains one somewhere deeper is not making the claim. */
+body.axi-design label:has(> input[type='checkbox']:checked) {
+  color: var(--axi-text) !important;
+}
+
+/* A plate you cannot press is not a dimmed gold one: it loses the block and
+   sits flat in the surface, the edge drops to the rule, and a locked tick sits
+   on faint rather than on the accent at half strength. */
+body.axi-design input[type='checkbox']:disabled {
+  border-color: var(--axi-rule);
+  box-shadow: none;
+  cursor: default;
+}
+body.axi-design input[type='checkbox']:disabled:checked { background-color: var(--axi-text-faint); }
+
+/* The fight slice card puts a full-bleed transparent checkbox over the whole
+   card and draws the state as a badge beside the label. That input is a hit
+   target, not a plate, so the rules above have to let go of it. */
+body.axi-design .slice-card > input[type='checkbox'] {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: var(--axi-radius);
+  background-color: transparent;
+  background-image: none;
+  box-shadow: none;
+}
