@@ -62,13 +62,26 @@ export function useAxilogHeal({
             if (result?.success && result.details) {
                 // Both keys: streaming reads by id, hydration wrote by filePath,
                 // and logsForStats entries can still carry the pre-id filePath.
-                // The durability of this write is deliberately not checked: the
-                // re-parse handler has already written the details back into the
-                // main-process store, so even a rejected cache write leaves the
-                // log repaired at the source and re-fetchable over IPC. The LRU
-                // half is enough to make this aggregation pass see it.
-                await detailsCache?.putDurable(target.id, target.filePath, result.details);
-                healedPaths.push(target.filePath);
+                const durable = await detailsCache?.putDurable(target.id, target.filePath, result.details);
+                if (durable === false) {
+                    // The re-parse worked and the main-process store has the
+                    // repaired details, but the renderer's durable cache refused
+                    // them — so the LRU holds them only until the next eviction
+                    // and the log returns to the banner unchanged.
+                    //
+                    // This return value used to be discarded on the grounds that
+                    // "the LRU half is enough to make this aggregation pass see
+                    // it". It is, and that is exactly the problem: the heal
+                    // reported success, the banner cleared, and the gap came
+                    // back with no record of why. A heal the store rejected is
+                    // not a heal.
+                    failures.push({
+                        label: target.label,
+                        error: "Re-parsed successfully, but this app's local storage refused to keep the details. Free some disk space and try again.",
+                    });
+                } else {
+                    healedPaths.push(target.filePath);
+                }
             } else {
                 failures.push({ label: target.label, error: String(result?.error || 'Re-parse failed.') });
             }

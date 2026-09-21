@@ -45,7 +45,28 @@ export function useDetailsHydration({
     const hydrateDetailsQueueRef = useRef<number | null>(null);
     const hydrateDetailsRetryTimerRef = useRef<number | null>(null);
     const detailsHydrationAttemptsRef = useRef<Map<string, number>>(new Map());
+    /**
+     * Paths whose LAST failure was a rejected durable write rather than a
+     * failed read. Kept across passes because it sets the retry budget, and a
+     * pass-local set would let an exhausted log back in on the next tick.
+     * Cleared the moment a write for that path lands.
+     */
+    const detailsWriteFailuresRef = useRef<Set<string>>(new Set());
     const MAX_DETAILS_HYDRATION_ATTEMPTS = 8;
+    /**
+     * A rejected durable write gets a far smaller budget than a failed read.
+     * The read is worth retrying — it can be a cold main process, a busy disk,
+     * a 12s timeout on a large log. The write is not: the fetch already
+     * returned the details in full and the store refused them, so each retry
+     * re-sends a multi-MB payload over IPC to re-prove the same broken store.
+     * Two attempts covers a transient quota blip that the TTL sweep clears;
+     * eight just burns the UI thread.
+     */
+    const MAX_DETAILS_WRITE_ATTEMPTS = 2;
+    const attemptCeilingFor = (filePath: string) =>
+        detailsWriteFailuresRef.current.has(filePath)
+            ? MAX_DETAILS_WRITE_ATTEMPTS
+            : MAX_DETAILS_HYDRATION_ATTEMPTS;
 
     const applyHydratedStatsBatch = useCallback((_batch: Array<{ filePath: string; details: any }>) => {
         // No-op: details are already in DetailsCache (putSync'd before this call).
@@ -203,9 +224,15 @@ export function useDetailsHydration({
                     detailsHydrationAttemptsRef.current.delete(filePath);
                 }
             });
+            detailsWriteFailuresRef.current.forEach((filePath) => {
+                if (!candidatePaths.has(filePath)) {
+                    detailsWriteFailuresRef.current.delete(filePath);
+                }
+            });
             const allCandidates = rawCandidates.filter((log) => {
-                const attempts = detailsHydrationAttemptsRef.current.get(String(log.filePath || '')) || 0;
-                return attempts < MAX_DETAILS_HYDRATION_ATTEMPTS;
+                const filePath = String(log.filePath || '');
+                const attempts = detailsHydrationAttemptsRef.current.get(filePath) || 0;
+                return attempts < attemptCeilingFor(filePath);
             });
             if (allCandidates.length === 0) return;
             const maxPerPass = allCandidates.length;
@@ -214,6 +241,10 @@ export function useDetailsHydration({
             const hydratedBatch: Array<{ filePath: string; details: any }> = [];
             const failedPaths = new Set<string>();
             const terminalFailures = new Set<string>();
+            // Fetched fine; the durable write is what failed. Tracked apart from
+            // `failedPaths` so the retry budget and the banner's wording can
+            // both tell the two apart.
+            const writeFailures = new Set<string>();
             const flushHydratedBatch = () => {
                 if (hydratedBatch.length === 0) return;
                 const batch = hydratedBatch.splice(0, hydratedBatch.length);
@@ -230,6 +261,9 @@ export function useDetailsHydration({
                         return {
                             ...entry,
                             detailsStatus: 'loaded' as const,
+                            // The gap is closed; a stale cause would keep the
+                            // banner explaining a failure that no longer exists.
+                            detailsGap: undefined,
                             // Don't force status — aggregation pipeline controls
                             // calculating → success promotion.
                         };
@@ -264,22 +298,27 @@ export function useDetailsHydration({
                         });
                         if (result?.success && result.details && await detailsCache?.putDurable(log.id, filePath, result.details)) {
                             detailsHydrationAttemptsRef.current.delete(filePath);
+                            detailsWriteFailuresRef.current.delete(filePath);
                             hydratedBatch.push({ filePath, details: result.details });
                             if (hydratedBatch.length >= flushThreshold) {
                                 flushHydratedBatch();
                             }
                         } else if (result?.success && result.details) {
                             // Parsed fine, but the details did not reach durable
-                            // storage. Counting it as a failure — rather than
-                            // clearing the attempt counter as a success would —
-                            // lets the existing exhaustion path end the retries
-                            // and surface the log in the coverage banner, where
-                            // the user can re-parse it.
+                            // storage. Still a failure — clearing the attempt
+                            // counter would claim a durability the store never
+                            // granted — but a failure of a different kind, so it
+                            // is recorded as one. It exhausts sooner, and the
+                            // banner says "storage refused the details" instead
+                            // of accusing a read that worked.
+                            writeFailures.add(filePath);
+                            detailsWriteFailuresRef.current.add(filePath);
                             failedPaths.add(filePath);
                         } else {
                             if ((result as any)?.terminal) {
                                 terminalFailures.add(filePath);
                             }
+                            detailsWriteFailuresRef.current.delete(filePath);
                             failedPaths.add(filePath);
                         }
                         // Brief yield to keep UI responsive during bulk hydration
@@ -307,7 +346,7 @@ export function useDetailsHydration({
                 const previousAttempts = detailsHydrationAttemptsRef.current.get(filePath) || 0;
                 const nextAttempts = previousAttempts + 1;
                 detailsHydrationAttemptsRef.current.set(filePath, nextAttempts);
-                if (nextAttempts < MAX_DETAILS_HYDRATION_ATTEMPTS) {
+                if (nextAttempts < attemptCeilingFor(filePath)) {
                     retryableFailures.push(filePath);
                 } else {
                     exhaustedFailures.push(filePath);
@@ -328,6 +367,8 @@ export function useDetailsHydration({
                         return {
                             ...entry,
                             detailsStatus: (terminalFailures.has(filePath) || entry.detailsStatus === 'unavailable') ? 'unavailable' as const : 'exhausted' as const,
+                            // The coverage banner reads this to name the cause.
+                            detailsGap: writeFailures.has(filePath) ? 'unwritable' as const : 'unreadable' as const,
                             status: nextStatus
                         };
                     });

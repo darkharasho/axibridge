@@ -30,11 +30,28 @@ export type ParseSource =
     /** A hand-imported EI JSON file. */
     | 'json-import';
 
+/**
+ * Why a log reached aggregation with no details.
+ *
+ * The two are indistinguishable on screen and need opposite remedies, so the
+ * cause is stamped on the log at the point the hydration pass gives up rather
+ * than guessed at by the banner:
+ *
+ * - `unreadable` — the details never came back. The fetch failed, timed out, or
+ *   the main process had nothing on disk for that path.
+ * - `unwritable` — the details came back in full and the renderer's durable
+ *   store refused them. Nothing is wrong with the log; the browser storage is
+ *   full or blocked.
+ */
+export type AxilogGapCause = 'unreadable' | 'unwritable';
+
 export interface AxilogCoverageLog {
     id: string;
     filePath: string;
     label: string;
     parseSource: ParseSource | null;
+    /** Set only on unresolved logs, and only once hydration has given up. */
+    gap: AxilogGapCause | null;
 }
 
 export interface AxilogCoverage {
@@ -73,6 +90,11 @@ export const detailsHaveAxilogData = (details: unknown): boolean => {
     return Boolean(native && native.axilog && typeof native.axilog === 'object');
 };
 
+const readGapCause = (log: any): AxilogGapCause | null => {
+    const raw = log?.detailsGap;
+    return raw === 'unreadable' || raw === 'unwritable' ? raw : null;
+};
+
 const readParseSource = (log: any): ParseSource | null => {
     const raw = log?.parseSource;
     return raw === 'axilog' || raw === 'elite-insights' || raw === 'dps.report' || raw === 'json-import'
@@ -89,6 +111,7 @@ export const toCoverageLog = (log: any): AxilogCoverageLog => ({
     filePath: String(log?.filePath || ''),
     label: axilogCoverageLabel(log),
     parseSource: readParseSource(log),
+    gap: readGapCause(log),
 });
 
 /**
@@ -121,17 +144,35 @@ export const summarizeAxilogCoverage = (
 /**
  * The one-line explanation for logs that reached aggregation with no details.
  *
- * Deliberately says "excluded from every total" rather than naming a cause:
- * the cause is on the cache side (an evicted LRU entry whose IndexedDB write
- * never landed), which is not something the reader can see or act on. What
- * they can act on is the re-parse.
+ * This used to say "could not be read back from the cache" unconditionally,
+ * which was wrong half the time and actively misleading: a log whose details
+ * arrived in full and were then REFUSED by the browser's storage is not a read
+ * failure, and telling the user to re-parse a log that parses perfectly well
+ * sends them round a loop that cannot terminate. The cause now travels on the
+ * log as `detailsGap`, so the sentence can name it.
+ *
+ * Only a cause the whole set agrees on is named. A mixed set gets the count,
+ * which is the honest headline, and the per-log list carries the detail — the
+ * same rule `describeAxilogGap` follows.
  */
 export const describeUnresolvedGap = (coverage: AxilogCoverage): string => {
     const n = coverage.unresolvedLogs.length;
     if (n === 0) return '';
-    return n === 1
-        ? 'One log could not be read back from the cache, so it is excluded from every total below even though it still appears in the fight breakdown.'
-        : `${n} logs could not be read back from the cache, so they are excluded from every total below even though they still appear in the fight breakdown.`;
+    const subject = n === 1 ? 'One log' : `${n} logs`;
+    const tail = n === 1
+        ? 'so it is excluded from every total below even though it still appears in the fight breakdown.'
+        : 'so they are excluded from every total below even though they still appear in the fight breakdown.';
+    const causes = new Set(coverage.unresolvedLogs.map((log) => log.gap));
+    if (causes.size === 1) {
+        const [only] = Array.from(causes);
+        if (only === 'unwritable') {
+            return `${subject} parsed fine, but this app's local storage refused to keep the details, ${tail} Freeing disk space and reloading usually clears it.`;
+        }
+        if (only === 'unreadable') {
+            return `${subject} could not be read back from the cache, ${tail}`;
+        }
+    }
+    return `${subject} could not be loaded, ${tail}`;
 };
 
 /**

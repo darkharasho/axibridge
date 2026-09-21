@@ -122,8 +122,12 @@ describe('AxilogCoverageBanner', () => {
  * (Elite Insights, dps.report, a JSON import) are all wrong here.
  */
 describe('AxilogCoverageBanner unresolved logs', () => {
+    // `detailsGap` is what hydration stamps when it gives up. These cases are
+    // all read failures, which is the cause the banner's original wording
+    // assumed for every gap; the rejected-write wording is pinned in
+    // axilogCoverage.test.ts.
     const coverageUnresolved = (logs: Array<{ id: string; filePath: string }>) =>
-        summarizeAxilogCoverage([], logs);
+        summarizeAxilogCoverage([], logs.map((log) => ({ ...log, detailsGap: 'unreadable' })));
 
     it('names logs excluded from every total', () => {
         renderBanner({
@@ -152,7 +156,7 @@ describe('AxilogCoverageBanner unresolved logs', () => {
     it('counts both gaps together when a selection has each', () => {
         const coverage = summarizeAxilogCoverage(
             [{ log: { id: 'a', filePath: '/a.zevtc', parseSource: 'dps.report' }, hasAxilog: false }],
-            [{ id: 'b', filePath: '/b.zevtc' }],
+            [{ id: 'b', filePath: '/b.zevtc', detailsGap: 'unreadable' }],
         );
         renderBanner({ coverage });
         expect(screen.getByRole('button', { name: /Show 2/ })).toBeTruthy();

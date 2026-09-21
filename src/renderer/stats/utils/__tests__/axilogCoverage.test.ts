@@ -151,12 +151,41 @@ describe('unresolved logs', () => {
         expect(coverage.unresolvedLogs[0].label).toBe('Red BL');
     });
 
-    it('describes the exclusion rather than guessing at a cause', () => {
+    it('describes the exclusion without guessing when no cause was recorded', () => {
         const one = summarizeAxilogCoverage([], [{ id: 'a', filePath: '/a.zevtc' }]);
-        expect(describeUnresolvedGap(one)).toMatch(/^One log could not be read back from the cache/);
+        expect(describeUnresolvedGap(one)).toMatch(/^One log could not be loaded/);
         expect(describeUnresolvedGap(one)).toMatch(/excluded from every total below/);
         const two = summarizeAxilogCoverage([], [{ id: 'a' }, { id: 'b' }]);
-        expect(describeUnresolvedGap(two)).toMatch(/^2 logs could not be read back/);
+        expect(describeUnresolvedGap(two)).toMatch(/^2 logs could not be loaded/);
         expect(describeUnresolvedGap(EMPTY_AXILOG_COVERAGE)).toBe('');
+    });
+
+    it('names a rejected durable write instead of blaming the cache read', () => {
+        // The old wording said "could not be read back from the cache" for
+        // every gap, which sent a user whose log parses perfectly well round a
+        // re-parse loop that could never terminate.
+        const unwritable = summarizeAxilogCoverage(
+            [],
+            [{ id: 'a', filePath: '/a.zevtc', detailsGap: 'unwritable' }],
+        );
+        expect(describeUnresolvedGap(unwritable)).toMatch(/local storage refused to keep the details/);
+        expect(describeUnresolvedGap(unwritable)).not.toMatch(/read back/);
+
+        const unreadable = summarizeAxilogCoverage(
+            [],
+            [{ id: 'b', filePath: '/b.zevtc', detailsGap: 'unreadable' }],
+        );
+        expect(describeUnresolvedGap(unreadable)).toMatch(/^One log could not be read back from the cache/);
+    });
+
+    it('falls back to the count when the unresolved set mixes causes', () => {
+        const mixed = summarizeAxilogCoverage(
+            [],
+            [
+                { id: 'a', filePath: '/a.zevtc', detailsGap: 'unwritable' },
+                { id: 'b', filePath: '/b.zevtc', detailsGap: 'unreadable' },
+            ],
+        );
+        expect(describeUnresolvedGap(mixed)).toMatch(/^2 logs could not be loaded/);
     });
 });
