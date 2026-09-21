@@ -21,7 +21,7 @@ function Column({ title, tone, findings }: { title: string; tone: 'good' | 'bad'
     : 'No major failures detected — first-death timing, bomb survival, condi/strip races, and squad cohesion all came in inside thresholds.';
   return (
     <section
-      className="rounded-md border p-3"
+      className="commander-panel rounded-md border p-3"
       style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
     >
       <div className={`text-[12px] uppercase tracking-[0.06em] mb-2 ${titleColor}`}>{title}</div>

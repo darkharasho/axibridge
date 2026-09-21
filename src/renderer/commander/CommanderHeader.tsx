@@ -36,7 +36,7 @@ export function CommanderHeader({ fight, fightLabel, availableFights, selectedFi
   const m = fight.matchup;
   return (
     <div
-      className="flex flex-col gap-2 px-3 py-2.5 border rounded-md mb-3"
+      className="commander-panel flex flex-col gap-2 px-3 py-2.5 border rounded-md mb-3"
       style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
     >
       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -66,7 +66,8 @@ export function CommanderHeader({ fight, fightLabel, availableFights, selectedFi
           {fight.verdictChips.map((chip) => (
             <span
               key={chip}
-              className={`text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-sm border ${CHIP_STYLE[chip]}`}
+              data-verdict={chip}
+              className={`commander-chip text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-sm border ${CHIP_STYLE[chip]}`}
             >
               {chip}
             </span>
