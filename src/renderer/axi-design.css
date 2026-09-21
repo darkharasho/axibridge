@@ -2013,19 +2013,40 @@ body.axi-design .axi-search-bar kbd {
   padding: 2px 5px;
   font: 700 10px/1 var(--axi-sans);
 }
-/* The trigger is the same well as .axi-search-field, one size down, so the
-   button in the header and the field it opens are visibly one object. It is
-   drawn as a well rather than a control - ground fill, rule outline, no offset
-   shadow - because it stands for somewhere to type, not something to press. */
+/* The trigger is the same well as .axi-search-field, so the button in the
+   header and the field it opens are visibly one object. It stands for
+   somewhere to type rather than something to press, so it keeps the ground
+   fill - but it now spans its whole column instead of a 186px sliver, and at
+   that size the hairline outline and the floating glyph both read as timid.
+
+   So: the ink edge the rest of the language uses, and the magnifier promoted
+   out of the fill into a gold cap at the head of the well. The cap is the one
+   loud mark on the row; everything to the right of it stays quiet. */
 body.axi-design .axi-search-trigger {
   background: var(--axi-ground);
-  border: var(--axi-border-control) solid var(--axi-well-line);
+  border: var(--axi-border-control) solid var(--axi-ink-line);
   border-radius: var(--axi-radius-sm);
   color: var(--axi-text-dim);
+  gap: 0;
+  padding-left: 0;
+  overflow: hidden;
+  font-weight: 600;
+  transition: transform .1s, box-shadow .1s, color .1s;
 }
+body.axi-design .axi-search-trigger__mark {
+  background: var(--axi-accent);
+  border-right: var(--axi-border-control) solid var(--axi-ink-line);
+  margin-right: 10px;
+  padding: 0 8px;
+}
+body.axi-design .axi-search-trigger__mark svg { color: var(--axi-accent-ink) !important; }
+/* It lifts like every other control here. The well is what you press to get
+   the panel, so it should answer the cursor the way a control does - the
+   resting form already says field, and that is the part that has to carry. */
 body.axi-design .axi-search-trigger:hover {
-  border-color: var(--axi-accent);
   color: var(--axi-text);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  transform: translate(-2px, -2px);
 }
 /* Same key form as the panel's Esc, scaled to the smaller row. */
 body.axi-design .axi-search-trigger kbd {
