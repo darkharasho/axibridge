@@ -6,6 +6,7 @@ import { FolderOpen, UploadCloud, FileText, Settings, ChevronDown, Trash2, FileP
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { useStatsAggregationWorker } from './stats/hooks/useStatsAggregationWorker';
 import { AppLayout } from './app/AppLayout';
+import { ProcessingStrip } from './app/ProcessingStrip';
 import { selectSlicedLogs, computeIngestedIds, hasIngestedAllSlicedLogs } from './app/selectSlicedLogs';
 import { useLogsForStats } from './app/hooks/useLogsForStats';
 import { useFilePicker } from './app/hooks/useFilePicker';
@@ -1088,9 +1089,12 @@ function App() {
                 </div>
             </div>
             {bulkCalculatingActive && calculatingCount > 0 && (
-                <div className="mb-3 rounded-[4px] border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
-                    Bulk calculations are running. The app may feel less responsive until they finish.
-                </div>
+                <ProcessingStrip tone="warn" className="mb-3">
+                    <span style={{ color: 'var(--text-primary)' }}>Bulk calculations are running.</span>
+                    <span className="ml-1.5" style={{ color: 'var(--text-muted)' }}>
+                        The app may feel less responsive until they finish.
+                    </span>
+                </ProcessingStrip>
             )}
             {(uploadRetryQueue.failed > 0 || uploadRetryQueue.retrying > 0 || uploadRetryQueue.entries.length > 0) && (
                 <div className="mb-3 rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
