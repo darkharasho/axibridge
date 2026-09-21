@@ -1,3 +1,5 @@
+import { ProcessingStrip } from '../app/ProcessingStrip';
+
 const ACTIVE_STATUSES: ReadonlySet<NonNullable<ILogData['status']>> = new Set([
   'queued',
   'pending',
@@ -27,30 +29,11 @@ export function CommanderProcessingBanner({ logs }: { logs: ILogData[] }) {
     : `${active.length} logs processing…`;
 
   return (
-    <div
-      className="flex items-center gap-2 px-3 py-1.5 border rounded-md mb-3 text-xs"
-      style={{
-        background: 'var(--bg-card-inner)',
-        borderColor: 'var(--border-default)',
-        color: 'var(--text-secondary)',
-      }}
-      data-role="commander-processing-banner"
-    >
-      <div className="stats-particle-spinner shrink-0" style={{ width: 18, height: 18 }}>
-        <div className="stats-particle-spinner__ring" />
-        <div className="stats-particle-spinner__orbit">
-          <span className="stats-particle-spinner__particle" />
-          <span className="stats-particle-spinner__particle" />
-          <span className="stats-particle-spinner__particle" />
-          <span className="stats-particle-spinner__particle" />
-        </div>
-      </div>
-      <span>
-        <span style={{ color: 'var(--text-primary)' }}>{summary}</span>
-        <span className="ml-1.5" style={{ color: 'var(--text-muted)' }}>
-          (Commander view will update once parsing finishes)
-        </span>
+    <ProcessingStrip className="mb-3">
+      <span style={{ color: 'var(--text-primary)' }}>{summary}</span>
+      <span className="ml-1.5" style={{ color: 'var(--text-muted)' }}>
+        (Commander view will update once parsing finishes)
       </span>
-    </div>
+    </ProcessingStrip>
   );
 }

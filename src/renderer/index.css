@@ -1553,6 +1553,10 @@ body.web-report #top-players .mvp-gold-icon-badge {
 
 .axi-step-spinner {
   --step-off: var(--border-default);
+  /* The lit cell is the one piece of colour the strip around it is allowed,
+     so a caller that means something other than "the app is working" - a
+     warning tone, say - recolours it here rather than tinting its own box. */
+  --step-on: var(--brand-primary);
   /* One cell of travel: the cell itself plus the gap. */
   --step-pitch: 5px;
   position: relative;
@@ -1588,7 +1592,7 @@ body.web-report #top-players .mvp-gold-icon-badge {
   width: 3px;
   height: 10px;
   border-radius: 1px;
-  background: var(--brand-primary);
+  background: var(--step-on);
   /* Ask for the compositor layer up front rather than at the first frame,
      which is roughly when the thread stops being available to grant it. */
   will-change: transform;
