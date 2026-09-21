@@ -90,7 +90,7 @@ const UtilityRow = ({ utility, expanded, onToggle }: {
     const expandable = casters.length > 0;
 
     return (
-        <div style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+        <div className="revive-table__row border-b border-[color:var(--border-subtle)]">
             <div
                 className={`grid ${UTILITY_GRID} gap-2 px-3 py-2 text-xs`}
                 style={{ color: 'var(--text-primary)' }}
@@ -122,7 +122,7 @@ const UtilityRow = ({ utility, expanded, onToggle }: {
             </div>
 
             {expanded && expandable && (
-                <div className="pb-2" style={{ background: 'var(--bg-elevated)' }}>
+                <div className="revive-casters pb-2 bg-[color:var(--bg-elevated)]">
                     <div className={`grid ${UTILITY_GRID} gap-2 pl-8 pr-3 py-1.5 text-[10px] uppercase tracking-widest`} style={{ color: 'var(--text-muted)' }}>
                         <div>Caster</div>
                         <div className="text-right">Casts</div>
@@ -184,7 +184,7 @@ const IllusionOfLifeCard = ({ iol }: {
     const peak = buckets ? Math.max(...buckets) : 0;
 
     return (
-        <div className="rounded-[var(--radius-md)] p-3" style={{ border: '1px solid var(--border-default)' }}>
+        <div className="revive-iol rounded-[var(--radius-md)] p-3 border border-[color:var(--border-default)]">
             <div className="flex items-baseline gap-2 mb-2.5">
                 <div className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
                     Illusion of Life
@@ -196,7 +196,7 @@ const IllusionOfLifeCard = ({ iol }: {
 
             {total > 0 && (
                 <>
-                    <div className="flex h-3 w-full overflow-hidden rounded-full" style={{ background: 'var(--border-subtle)' }}>
+                    <div className="revive-iol__bar flex h-3 w-full overflow-hidden rounded-full bg-[color:var(--border-subtle)]">
                         <div style={{ width: `${(iol.survived / total) * 100}%`, background: 'var(--status-success)' }} />
                         <div style={{ width: `${(iol.reDowned / total) * 100}%`, background: 'var(--status-error)' }} />
                         <div style={{ width: `${(diedUnderIol / total) * 100}%`, background: DIED_UNDER_IOL_COLOR }} />
@@ -229,7 +229,7 @@ const IllusionOfLifeCard = ({ iol }: {
                             {/* Heights are relative to the tallest bucket, so a
                                 histogram of small counts is still readable. */}
                             <div
-                                className="w-full rounded-sm"
+                                className="revive-iol__hist-bar w-full rounded-sm"
                                 style={{
                                     height: `${peak > 0 ? Math.max(2, (count / peak) * 56) : 2}px`,
                                     background: count > 0 ? 'var(--status-error)' : 'var(--border-subtle)',
@@ -342,14 +342,13 @@ export const ReviveDetailSection = ({ reviveDetail }: ReviveDetailSectionProps) 
                 <div className="flex flex-col gap-4">
                     {coverage.logsWithoutData > 0 && (
                         <div
-                            className="rounded-[var(--radius-md)] px-3 py-2 text-xs"
-                            style={{ border: '1px dashed var(--border-default)', color: 'var(--text-secondary)' }}
+                            className="revive-note rounded-[var(--radius-md)] px-3 py-2 text-xs border border-dashed border-[color:var(--border-default)] text-[color:var(--text-secondary)]"
                         >
                             {coverage.logsWithoutData} {coverage.logsWithoutData === 1 ? 'log' : 'logs'} predate revive tracking and are excluded from these counts.
                         </div>
                     )}
 
-                    <div className="rounded-[var(--radius-md)] p-3" style={{ border: '1px solid var(--border-subtle)' }}>
+                    <div className="revive-summary rounded-[var(--radius-md)] p-3 border border-[color:var(--border-subtle)]">
                         <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
                             {`Downs ${squad.downs} · Recovered ${squad.recovered} (${recoveredRatePercent === null ? '—' : `${recoveredRatePercent}%`}) · Died ${squad.died}`}
                         </div>
@@ -366,15 +365,15 @@ export const ReviveDetailSection = ({ reviveDetail }: ReviveDetailSectionProps) 
                         </div>
                     </div>
 
-                    <div className="rounded-[var(--radius-md)] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
-                        <div className="px-3 py-2 text-xs uppercase tracking-widest" style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-default)' }}>
+                    <div className="revive-table rounded-[var(--radius-md)] overflow-hidden border border-[color:var(--border-default)]">
+                        <div className="revive-table__title px-3 py-2 text-xs uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
                             Players
                         </div>
                         {sortedPlayers.length === 0 ? (
                             <div className="px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No player revive data available.</div>
                         ) : (
                             <>
-                                <div className={`grid ${GRID_COLS} gap-2 px-3 py-2 text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]`} style={{ borderBottom: '1px solid var(--border-default)' }}>
+                                <div className={`revive-table__columns grid ${GRID_COLS} gap-2 px-3 py-2 text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]`}>
                                     {PLAYER_COLUMNS.map((col) => (
                                         <button
                                             key={col.id}
@@ -387,14 +386,13 @@ export const ReviveDetailSection = ({ reviveDetail }: ReviveDetailSectionProps) 
                                         </button>
                                     ))}
                                 </div>
-                                <div className="max-h-96 overflow-y-auto">
+                                <div className="revive-table__rows max-h-96 overflow-y-auto">
                                     {sortedPlayers.map((row) => {
                                         const seconds = totalSecondsFor(row);
                                         return (
                                             <div
                                                 key={row.key}
-                                                className={`grid ${GRID_COLS} gap-2 px-3 py-2 text-xs`}
-                                                style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
+                                                className={`revive-table__row grid ${GRID_COLS} gap-2 px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] text-[color:var(--text-primary)]`}
                                             >
                                                 <div className="min-w-0 truncate flex items-center gap-1.5">
                                                     {renderProfessionIcon(row.profession, undefined, 'w-4 h-4 flex-shrink-0')}
@@ -417,15 +415,15 @@ export const ReviveDetailSection = ({ reviveDetail }: ReviveDetailSectionProps) 
                         )}
                     </div>
 
-                    <div className="rounded-[var(--radius-md)] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
-                        <div className="px-3 py-2 text-xs uppercase tracking-widest" style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-default)' }}>
+                    <div className="revive-table rounded-[var(--radius-md)] overflow-hidden border border-[color:var(--border-default)]">
+                        <div className="revive-table__title px-3 py-2 text-xs uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
                             Utilities
                         </div>
                         {utilities.length === 0 ? (
                             <div className="px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No utility revives recorded.</div>
                         ) : (
                             <>
-                                <div className={`grid ${UTILITY_GRID} gap-2 px-3 py-2 text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]`} style={{ borderBottom: '1px solid var(--border-default)' }}>
+                                <div className={`revive-table__columns grid ${UTILITY_GRID} gap-2 px-3 py-2 text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]`}>
                                     <div>Utility</div>
                                     <div className="text-right">Casts</div>
                                     <div className="text-right">Revives</div>

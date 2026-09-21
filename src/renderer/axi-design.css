@@ -700,10 +700,21 @@ body.axi-design .squad-comp-board {
 /* The damage-modifier rows draw their magnitude as a fading bar behind the
    text. Rule 9: a quantity is length, never intensity - the fade was saying
    the same thing the width already said, less legibly. Flat fill, sign in the
-   colour, magnitude in the width. */
+   colour, magnitude in the width.
+
+   Flat was the right half of the answer and full-height was the wrong one:
+   the bar runs UNDER the row's own text, so a field strong enough to measure
+   buried the numbers it was measuring, and one weak enough to read under them
+   measured nothing. Drop the field. The length comes out from behind the text
+   and becomes a rule along the row's base - full chroma, nothing to read
+   through, and the sign still in the colour. */
+body.axi-design .row-quantity-bar {
+  top: auto;
+  height: 4px;
+  --row-bar-fill: var(--axi-meta);
+}
 body.axi-design .row-quantity-bar[data-sign='neg'] { --row-bar-fill: var(--axi-ok); }
 body.axi-design .row-quantity-bar[data-sign='incoming'] { --row-bar-fill: var(--axi-danger); }
-body.axi-design .row-quantity-bar[data-sign='gain'] { --row-bar-fill: var(--axi-meta); }
 
 /* ---------------------------------------------------------------------------
    THE TAB STRIP
@@ -727,11 +738,14 @@ body.axi-design [data-nav-tab] {
 }
 body.axi-design [data-nav-tab]:hover { color: var(--axi-text); background: var(--axi-surface-raised); }
 /* The same treatment the rail's current category gets, and a pressed pill, and
-   a current tab anywhere else: fill, ink text, ink outline, offset block. */
-/* Stats while its rail is open. Brightened text and a raised ground, no fill:
-   an ancestor is context, not a selection. It needs the ground the rail's
-   items get from their well, or among four peers it reads as nothing at all. */
-body.axi-design [data-nav-tab][data-open] { color: var(--axi-text); background: var(--axi-surface-raised); }
+   a current tab anywhere else: fill, ink text, ink outline, offset block.
+
+   All five tabs, including the two that draw their own nav inside. Holding
+   Stats and Settings back to a raised ground so the inner nav could own the
+   gold was a distinction about scale that nobody reads as one: in a row of
+   five, the two that answer differently look broken, not subordinate. The
+   strip answers which view; the rail answers which section of it. Different
+   questions, so two gold marks are not two claims about the same thing. */
 body.axi-design [data-nav-tab][data-on],
 body.axi-design [data-nav-tab][data-on]:hover {
   background: var(--axi-accent);
@@ -1264,6 +1278,10 @@ body.axi-design .stats-table-layout__sidebar {
   scrollbar-width: none;
 }
 body.axi-design .stats-table-layout__sidebar::-webkit-scrollbar { width: 0; height: 0; }
+/* Some of these sidebars scroll on an inner list rather than on the well
+   itself, which put the channel back one level in. */
+body.axi-design .stats-table-layout__sidebar * { scrollbar-width: none; }
+body.axi-design .stats-table-layout__sidebar *::-webkit-scrollbar { width: 0; height: 0; }
 
 /* The search box is a control sitting in the well, not an underline. */
 body.axi-design .stats-table-layout__sidebar input {
@@ -1705,3 +1723,283 @@ body.axi-design .log-card-share-link-btn {
   --panel-border-w: var(--axi-border-control);
   box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
 }
+
+/* ---------------------------------------------------------------------------
+   THE REVIVES SECTION
+   The fourth kind of table, and the one the table audit missed: Revives builds
+   both of its tables by hand - grid divs in a rounded box - and drew every
+   fill and line as an inline style, which no stylesheet can answer. So it kept
+   the old hairline box whatever the language said, and sat next to sections
+   that had all been redrawn looking like a screenshot of the old app.
+
+   The structure is now written in classes, so it can be spoken to, and it is
+   told the same thing the other three kinds were told: the table is the raised
+   object with an ink edge, its caption and column heads are bars cut off it,
+   rows are parted by the rule and zebra'd in two opaque fills. The squad
+   readout and the coverage note are not objects standing on the panel - they
+   are readouts sunk into it, so they take the well. */
+body.axi-design .revive-note {
+  background: var(--axi-ground);
+  border: var(--axi-border-control) dashed var(--axi-well-line);
+  border-radius: var(--axi-radius-sm);
+  color: var(--axi-text-dim);
+}
+body.axi-design .revive-summary {
+  background: var(--axi-ground);
+  border: var(--axi-border-control) solid var(--axi-well-line);
+  border-radius: var(--axi-radius);
+}
+
+body.axi-design .revive-table {
+  background: var(--axi-surface);
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius);
+}
+/* The caption names the table; the column heads measure it. Two bars, so the
+   cut between them is the rule and the ink line goes under the pair, where
+   the head stack actually ends. */
+body.axi-design .revive-table__title {
+  background: var(--axi-surface-raised);
+  color: var(--axi-text);
+  border-bottom: 1px solid var(--axi-rule);
+}
+body.axi-design .revive-table__columns {
+  background: var(--axi-surface-raised);
+  color: var(--axi-text);
+  border-bottom: var(--axi-border-control) solid var(--axi-ink-line);
+}
+body.axi-design .revive-table__row { border-bottom: 1px solid var(--axi-rule); }
+body.axi-design .revive-table__row:last-child { border-bottom: none; }
+body.axi-design .revive-table__rows > .revive-table__row:nth-child(odd),
+body.axi-design .revive-table > .revive-table__row:nth-of-type(odd) { background: var(--axi-ground); }
+body.axi-design .revive-table__row:hover { background: var(--axi-surface-raised); }
+/* A utility opened onto its casters is a well cut into the row, the same cut
+   the log card's drawer takes. */
+body.axi-design .revive-casters {
+  background: var(--axi-ground);
+  border-top: 1px solid var(--axi-rule);
+}
+
+/* The Illusion of Life card is an object on the panel, and its stacked bar is
+   a measured length, so it gets the outlined well every other bar in the app
+   now has rather than a soft-capped pill. */
+body.axi-design .revive-iol {
+  background: var(--axi-surface);
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius);
+}
+body.axi-design .revive-iol__bar {
+  height: 10px;
+  background: var(--axi-surface-raised);
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius-sm);
+}
+body.axi-design .revive-iol__hist-bar {
+  border: 1px solid var(--axi-ink-line);
+  border-radius: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   THE TIMELINE GRIDS
+   CC Timeline and Strip Timeline are one shared grid: players down, 5s
+   buckets across, each cell shaded against the fight's peak. It arrived here
+   untreated - no frame, hairline dividers, and a fill drawn as the accent at
+   an arbitrary alpha over the ground, which rule 2 does not allow and which
+   at low intensity left a digit sitting on a muddy wash.
+
+   The heatmap stays a heatmap - across a whole squad and a whole fight, a
+   matrix of intensities is the form, and length has nowhere to run. What
+   changes is that intensity now steps: four opaque bands mixed against the
+   surface rather than a continuous fade, so every occupied cell reads as a
+   deliberate step and the digit sits on a flat fill. Past the halfway band
+   the fill carries the accent, so the digit flips to the accent's ink. */
+body.axi-design .bucket-grid {
+  background: var(--axi-surface);
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius);
+  /* The control step, not the panel step: this is a framed field standing on a
+     panel, not a panel of its own, and the heavier block would put it at the
+     same depth as the card it sits in. */
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  /* Reserve the block's own footprint. The grid is the last thing in its
+     section and scrolls horizontally, so without this the offset is clipped by
+     the section's floor on one side and lost under the next section on the
+     other. */
+  margin-bottom: var(--axi-offset-control);
+  margin-right: var(--axi-offset-control);
+}
+body.axi-design .bucket-grid__empty {
+  background: var(--axi-ground);
+  border: var(--axi-border-control) dashed var(--axi-well-line);
+  border-radius: var(--axi-radius-sm);
+  color: var(--axi-text-dim);
+}
+/* The time ruler is a header bar like every other table's, cut off the grid
+   at the control step. */
+body.axi-design .stats-view .bucket-grid thead th {
+  background: var(--axi-surface-raised);
+  color: var(--axi-text);
+  padding-top: 4px;
+  border-bottom: var(--axi-border-control) solid var(--axi-ink-line);
+}
+/* The pinned name column is not depth, it is an edge: the shadow it used to
+   cast against the ruler is the one soft thing left in the section. */
+body.axi-design .stats-view .bucket-grid__pin {
+  background: var(--axi-surface);
+  box-shadow: none;
+  border-right: var(--axi-border-control) solid var(--axi-ink-line);
+  padding-left: 8px;
+}
+body.axi-design .stats-view .bucket-grid thead th.bucket-grid__pin,
+body.axi-design .stats-view .bucket-grid__pin.bucket-grid__head {
+  background: var(--axi-surface-raised);
+}
+body.axi-design .bucket-grid td[data-bucket-cell] {
+  border-radius: 0;
+}
+body.axi-design .bucket-grid td[data-heat='1'] {
+  background-color: color-mix(in srgb, var(--axi-accent) 18%, var(--axi-surface)) !important;
+}
+body.axi-design .bucket-grid td[data-heat='2'] {
+  background-color: color-mix(in srgb, var(--axi-accent) 42%, var(--axi-surface)) !important;
+}
+body.axi-design .bucket-grid td[data-heat='3'] {
+  background-color: color-mix(in srgb, var(--axi-accent) 70%, var(--axi-surface)) !important;
+  color: var(--axi-accent-ink);
+}
+body.axi-design .bucket-grid td[data-heat='4'] {
+  background-color: var(--axi-accent) !important;
+  color: var(--axi-accent-ink);
+}
+/* The row hover is a white wash in the markup, under the bracket-syntax hole
+   the utility bridge leaves; an occupied cell keeps its band. */
+body.axi-design .bucket-grid tbody tr:hover td[data-bucket-cell]:not([data-heat]) {
+  background-color: var(--axi-surface-raised);
+}
+/* Everything between the frame and the bands was still the markup's own
+   white-alpha hairlines: a row divider at 3%, a 30s tick at 10%, a subgroup
+   cut at 10%. Rule 2 rules those out, and over the axi ground they were close
+   to invisible anyway - the grid had an axi frame around a field that still
+   looked like the old one. Redrawn in the vocabulary DenseStatsTable and
+   .stats-table already share, so this reads as the third member of that family
+   rather than as a heatmap that happens to live nearby: zebra in two opaque
+   fills, row dividers on the rule, the subgroup cut in ink at the hairline
+   step because a change of party is a heavier statement than a change of row.
+
+   The zebra runs under the heat bands rather than beside them - an occupied
+   cell's fill is !important and keeps its step, so the banding stays the
+   figure and the zebra is only what the empty field does. */
+body.axi-design .stats-view .bucket-grid tbody tr > * {
+  border-bottom: 1px solid var(--axi-rule);
+  background-color: var(--axi-surface);
+}
+body.axi-design .stats-view .bucket-grid tbody tr:nth-of-type(odd) > * {
+  background-color: var(--axi-ground);
+}
+body.axi-design .stats-view .bucket-grid tbody tr:last-child > * {
+  border-bottom: none;
+}
+/* The 30s ticks are the ruler continued down the field, so they are the rule,
+   the same line that parts the rows. */
+body.axi-design .stats-view .bucket-grid [data-tick] {
+  border-left: 1px solid var(--axi-rule);
+}
+body.axi-design .stats-view .bucket-grid tbody tr[data-group-start] > * {
+  border-top: var(--axi-border-hairline) solid var(--axi-ink-line);
+}
+/* Hover is the next surface up for the whole row, spacer column included, so
+   the band a reader is tracking runs the full width of the frame. The name
+   cell also takes the accent edge every other pinned column takes on hover -
+   it is the one place the language spends gold on a row. */
+body.axi-design .stats-view .bucket-grid tbody tr:hover > *:not([data-heat]) {
+  background-color: var(--axi-surface-raised);
+}
+body.axi-design .stats-view .bucket-grid tbody tr:hover > .bucket-grid__pin {
+  box-shadow: inset var(--axi-border-control) 0 0 var(--axi-accent);
+}
+
+/* ---------------------------------------------------------------------------
+   THE SEARCH PALETTE
+   A panel that floats over everything, so it takes the panel step and the
+   offset block - nothing else on screen is above it to cast onto it. The
+   frame, the border and the shadow are written inline on the element, so the
+   overrides have to be !important to reach them.
+
+   The gold rectangle around the whole top row was the global focus ring
+   landing on an input that fills the row. An input is a well, so the focus
+   goes on the well's own edge instead of a ring around the bar it sits in. */
+body.axi-design .axi-search-panel {
+  background: var(--axi-surface) !important;
+  border: var(--axi-border-panel) solid var(--axi-ink-line) !important;
+  border-radius: var(--axi-radius) !important;
+  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line) !important;
+}
+body.axi-design .axi-search-bar {
+  background: var(--axi-surface-raised);
+  border-bottom: var(--axi-border-control) solid var(--axi-ink-line) !important;
+  padding: 8px 10px;
+}
+body.axi-design .axi-search-bar input {
+  background: var(--axi-ground);
+  border: var(--axi-border-control) solid var(--axi-well-line);
+  border-radius: var(--axi-radius-sm);
+  padding: 5px 8px;
+  color: var(--axi-text);
+}
+body.axi-design .axi-search-bar input::placeholder { color: var(--axi-text-faint); }
+/* No accent on focus here. The palette exists only to be typed into and opens
+   with the caret already in this field, so an always-on gold rectangle is not
+   telling you anything - and it would be arguing with the gold on the row the
+   cursor is sitting on, which is the one mark that means something. */
+body.axi-design .axi-search-bar input:focus-visible { outline: none; }
+/* The Esc hint is a key, so it is drawn as one: a small control with the ink
+   edge, not a hairline box. */
+body.axi-design .axi-search-bar kbd {
+  background: var(--axi-surface);
+  border: var(--axi-border-control) solid var(--axi-ink-line) !important;
+  border-radius: var(--axi-radius-sm);
+  color: var(--axi-text-dim);
+  padding: 2px 5px;
+  font: 700 10px/1 var(--axi-sans);
+}
+body.axi-design .axi-search-results { scrollbar-width: none; }
+body.axi-design .axi-search-results::-webkit-scrollbar { width: 0; height: 0; }
+/* Groups are parted by a rule, the way rows are everywhere else, rather than
+   by the gap the padding was leaving. */
+body.axi-design .axi-search-group {
+  color: var(--axi-text-faint);
+  padding: 8px 10px 4px;
+}
+body.axi-design .axi-search-results > div + div .axi-search-group {
+  border-top: 1px solid var(--axi-rule);
+  margin-top: 4px;
+}
+body.axi-design .axi-search-empty { color: var(--axi-text-faint); }
+body.axi-design [data-search-row] {
+  color: var(--axi-text-dim) !important;
+  padding: 7px 10px;
+}
+body.axi-design [data-search-row]:hover { background: var(--axi-surface-raised) !important; }
+/* The cursor row is the one thing on this panel claiming to be chosen, and
+   nothing beside it claims the gold, so it takes the fill outright. */
+body.axi-design [data-search-row][data-active] {
+  background: var(--axi-accent) !important;
+  color: var(--axi-accent-ink) !important;
+}
+body.axi-design [data-search-row][data-active] svg,
+body.axi-design [data-search-row][data-active] span { color: var(--axi-accent-ink) !important; }
+
+/* ---------------------------------------------------------------------------
+   THE PUBLISHED REPORT'S BACK LINK
+   The rest of the report's frame is drawn under THE WEB REPORT'S LEFT NAV
+   above, and the report's body is the stats view, so it arrives in the
+   language already. This is the one piece of chrome that was left: the link
+   back to the report index, which is the frame's only action. It takes the
+   button form outright - nothing else in the nav claims gold except the
+   category you are reading, and the two never sit on screen together. */
+body.axi-design .report-back-link {
+  background: var(--axi-accent) !important;
+  color: var(--axi-accent-ink) !important;
+  border-radius: var(--axi-radius-sm);
+}
+body.axi-design .report-back-link:hover { background: var(--axi-accent) !important; filter: brightness(1.08); }
