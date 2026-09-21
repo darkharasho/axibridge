@@ -1824,11 +1824,13 @@ export function ReportApp({ injectedSource, assetBase }: {
                                 onClick={() => searchOpenRef.current?.()}
                                 title="Search (Ctrl+K)"
                                 aria-label="Search report"
-                                className="report-nav-search w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:border-white/30 hover:text-gray-200 transition-colors text-left"
+                                className="report-nav-search axi-search-trigger w-full flex items-center gap-2.5 px-3 py-2 rounded-[4px] transition-colors text-left"
                             >
                                 <Search className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                                <span className="text-sm min-w-0 truncate">Search…</span>
-                                <kbd className="ml-auto shrink-0 text-[10px] px-1.5 py-0.5 rounded-md border border-white/10 bg-white/5 text-gray-500 font-sans tracking-wide">Ctrl K</kbd>
+                                {/* No ellipsis: the well already reads as a field you
+                                    type into, and the panel's own placeholder says the rest. */}
+                                <span className="text-sm min-w-0 truncate">Search</span>
+                                <kbd className="ml-auto shrink-0 text-[10px] px-1.5 py-px rounded-[3px] font-sans tracking-[0.04em]">Ctrl K</kbd>
                             </button>
                         </div>
                         <nav className="px-4 space-y-2 text-sm flex-1 overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
