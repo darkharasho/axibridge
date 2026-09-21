@@ -2568,3 +2568,17 @@ body.axi-design .recharts-bar-background-rectangle { fill: var(--axi-ground); }
 
 /* The legend is a key, so it reads as labels rather than as chips. */
 body.axi-design .recharts-legend-wrapper { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
+
+/* The report header's trophy. The component draws the accent fill and the ink
+   glyph on its own; what makes it a *raised* thing rather than a coloured
+   square - the ink outline and the hard offset - is the language's, at the
+   control weight (rule 3), same as every other small drawn object. The header
+   rule under it steps up from the app's near-invisible hairline to the axi
+   rule, which is the line a well is outlined with. */
+body.axi-design .report-head-mark {
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  border-radius: var(--axi-radius-sm);
+}
+
+body.axi-design .report-head { border-bottom-color: var(--axi-rule); }

@@ -5,6 +5,27 @@ import { PublishWebhookPopover } from './PublishWebhookPopover';
 import type { PublishWebhookOption } from '../hooks/useStatsUploads';
 import { FightSlicePill } from '../components/FightSliceTray';
 
+/* The trophy was set inline in the heading at text-yellow-500, which the axi
+   remap sends to --axi-warn: the page's one decorative glyph was dressed as a
+   warning, and a status colour spent on decoration is what stops a status
+   colour meaning anything. Drawn as an object instead - accent fill, ink glyph
+   - so the accent carries it and no status ink is borrowed. The outline and the
+   hard offset that make it a raised thing come from .report-head-mark in
+   axi-design.css, which is inert with the language off. */
+const TitleMark = () => (
+    <div
+        className="report-head-mark grid place-items-center shrink-0"
+        style={{
+            width: 36,
+            height: 36,
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--brand-primary)',
+        }}
+    >
+        <Trophy className="w-[19px] h-[19px]" strokeWidth={2.4} style={{ color: 'var(--text-inverse)' }} />
+    </div>
+);
+
 type StatsHeaderProps = {
     embedded: boolean;
     dashboardTitle?: string;
@@ -111,14 +132,32 @@ export const StatsHeader = ({
             /* Embedded, this header is the first thing inside the report's
                panel and sat about eight pixels off its top edge. The desktop
                header has the view's own padding above it and needs none. */
-            className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3 shrink-0 px-2 ${embedded ? 'pt-3.5' : ''}`}>
+            /* The header used to end in whitespace and run straight into the
+               first panel, so the page opened with two unrelated blocks and no
+               seam. A rule closes it: the title block is a header, and a header
+               has a bottom. */
+            className={`report-head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3 pb-3 shrink-0 px-2 ${embedded ? 'pt-3.5' : ''}`}
+            style={{ borderBottom: '2px solid var(--border-subtle)' }}>
         <div className="flex items-start gap-3 sm:items-center sm:gap-4">
             {/* The title and its line of context read as one block, so they were
                 set flush - but at 24px the heading only leaves a few pixels of
                 descender space and the two lines closed up into each other. */}
+            <TitleMark />
             <div className="space-y-1">
-                <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-                    <Trophy className="w-6 h-6 text-yellow-500" />
+                {/* What the page IS - a statistics dashboard - is a label, not a
+                    name. It sits above as an eyebrow so the heading can carry the
+                    thing the reader came for, the commander. With no title to
+                    carry, the label is promoted back to the heading rather than
+                    printed twice. */}
+                {dashboardTitle && (
+                    <div
+                        className="text-[10px] font-bold uppercase tracking-[0.3em]"
+                        style={{ color: 'var(--text-secondary)' }}
+                    >
+                        {singleFight ? 'Fight Statistics' : 'Statistics Dashboard'}
+                    </div>
+                )}
+                <h1 className="text-xl sm:text-2xl font-bold text-white">
                     {dashboardTitle || (singleFight ? 'Fight Statistics' : 'Statistics Dashboard')}
                 </h1>
                 {!singleFight && (
