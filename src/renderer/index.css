@@ -1589,6 +1589,9 @@ body.web-report #top-players .mvp-gold-icon-badge {
   height: 10px;
   border-radius: 1px;
   background: var(--brand-primary);
+  /* Ask for the compositor layer up front rather than at the first frame,
+     which is roughly when the thread stops being available to grant it. */
+  will-change: transform;
   /* steps(4, end) over four pitches lands the block on 0, 1, 2, 3 and wraps -
      jump-none would spread four stops over three pitches and miss the cells. */
   animation: axi-step-march 0.96s steps(4, end) infinite;

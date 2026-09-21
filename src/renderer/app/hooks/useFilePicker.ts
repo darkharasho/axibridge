@@ -59,6 +59,8 @@ export function useFilePicker({
     const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
 
     const lastPickedIndexRef = useRef<number | null>(null);
+    /** Files waiting for the modal to finish closing before they are inserted. */
+    const pendingAddRef = useRef<string[] | null>(null);
     const filePickerListRef = useRef<HTMLDivElement | null>(null);
 
     const loadLogFiles = async (dir: string | null) => {
@@ -244,11 +246,21 @@ export function useFilePicker({
         setFilePickerSelected(new Set(matching.map((entry) => entry.path)));
     };
 
-    // Inserting the optimistic rows and closing the modal land in the same React
-    // batch, so the modal cannot disappear until the activity list has rendered
-    // every new row - a second or more for a few hundred files, with nothing on
-    // screen to say the click registered. Split in two: flip the busy state,
-    // let it paint, then do the work.
+    // A callback that runs once the pending render is actually on screen. Two
+    // frames, not one: a frame scheduled from inside an event handler still
+    // runs before that frame's paint, so the first one would fire with the new
+    // markup laid out but not yet drawn.
+    const afterPaint = (fn: () => void) => {
+        requestAnimationFrame(() => requestAnimationFrame(fn));
+    };
+
+    // Inserting one optimistic row per file and closing the modal used to land
+    // in the same React batch, so the modal could not disappear until the
+    // activity list had rendered every new row - a second or more for a few
+    // hundred files. Now the click only goes busy and starts the close; the
+    // insert waits for the modal's exit animation to finish (see
+    // commitPendingAdd), because it blocks the main thread hard enough to
+    // freeze that animation half way through.
     const handleAddSelectedFiles = () => {
         if (filePickerSubmitting) return;
         const files = Array.from(filePickerSelected);
@@ -256,10 +268,26 @@ export function useFilePicker({
             setFilePickerError('Select at least one log file.');
             return;
         }
+        pendingAddRef.current = files;
         setFilePickerSubmitting(true);
-        // Two frames, not one: the first only commits the busy render, the
-        // second runs after the browser has actually painted it.
-        requestAnimationFrame(() => requestAnimationFrame(() => commitSelectedFiles(files)));
+        afterPaint(() => {
+            setFilePickerOpen(false);
+            setFilePickerSelected(new Set());
+            setFilePickerError(null);
+            setActivePreset(null);
+        });
+        // If the exit never reports back, the selection would be dropped on the
+        // floor with no sign of it. Well past the 0.4s exit, so it normally
+        // finds nothing left to do.
+        window.setTimeout(commitPendingAdd, 900);
+    };
+
+    // Called by the modal's AnimatePresence once it has finished leaving.
+    const commitPendingAdd = () => {
+        const files = pendingAddRef.current;
+        if (!files) return;
+        pendingAddRef.current = null;
+        commitSelectedFiles(files);
     };
 
     const commitSelectedFiles = (files: string[]) => {
@@ -278,11 +306,14 @@ export function useFilePicker({
         });
 
         setLogs((currentLogs) => {
+            // Was a full scan of the existing logs per selected file. Everything
+            // that happens on this path is main-thread time the user watches.
+            const seen = new Set(currentLogs.map((l) => l.filePath));
             const newLogs = [...currentLogs];
             optimisticLogs.forEach((optLog) => {
-                if (!newLogs.some((l) => l.filePath === optLog.filePath)) {
-                    newLogs.unshift(optLog);
-                }
+                if (seen.has(optLog.filePath)) return;
+                seen.add(optLog.filePath);
+                newLogs.unshift(optLog);
             });
             return newLogs;
         });
@@ -293,10 +324,6 @@ export function useFilePicker({
             bulkUploadCompletedRef.current = 0;
         }
         window.electronAPI.manualUploadBatch(files);
-        setFilePickerOpen(false);
-        setFilePickerSelected(new Set());
-        setFilePickerError(null);
-        setActivePreset(null);
         setFilePickerSubmitting(false);
     };
 
@@ -345,6 +372,7 @@ export function useFilePicker({
         setFilePickerMonthWindow,
         ensureMonthWindowForSince,
         handleAddSelectedFiles,
+        commitPendingAdd,
         filePickerSubmitting,
         focusedIndex,
         setFocusedIndex,

@@ -25,32 +25,46 @@ const flushFrames = async () => {
 };
 
 describe('useFilePicker: adding selected files', () => {
-    it('goes busy before it does the work, so the click has a visible answer', async () => {
+    it('goes busy, then closes, and only then does the expensive part', async () => {
         const { result } = setup();
         act(() => { result.current.setFilePickerOpen(true); });
         act(() => { result.current.setFilePickerSelected(new Set(['/logs/a.zevtc'])); });
 
         act(() => { result.current.handleAddSelectedFiles(); });
 
-        // The insert is what makes this slow, so it must not have happened yet.
+        // The click itself must do nothing slow, or the spinner never paints.
         expect(result.current.filePickerSubmitting).toBe(true);
         expect(manualUploadBatch).not.toHaveBeenCalled();
         expect(result.current.filePickerOpen).toBe(true);
 
         await flushFrames();
-
-        expect(manualUploadBatch).toHaveBeenCalledWith(['/logs/a.zevtc']);
         expect(result.current.filePickerOpen).toBe(false);
+        // Still waiting: the insert would stall the modal's exit animation.
+        expect(manualUploadBatch).not.toHaveBeenCalled();
+
+        act(() => { result.current.commitPendingAdd(); });
+        expect(manualUploadBatch).toHaveBeenCalledWith(['/logs/a.zevtc']);
         expect(result.current.filePickerSubmitting).toBe(false);
     });
 
-    it('ignores a second click while the first is still committing', async () => {
+    it('adds the files anyway if the exit never reports back', async () => {
+        const { result } = setup();
+        act(() => { result.current.setFilePickerSelected(new Set(['/logs/a.zevtc'])); });
+        act(() => { result.current.handleAddSelectedFiles(); });
+
+        await act(async () => { await new Promise((resolve) => setTimeout(resolve, 950)); });
+        expect(manualUploadBatch).toHaveBeenCalledWith(['/logs/a.zevtc']);
+    });
+
+    it('adds the files once, however many times the commit is asked for', async () => {
         const { result } = setup();
         act(() => { result.current.setFilePickerSelected(new Set(['/logs/a.zevtc'])); });
 
         act(() => { result.current.handleAddSelectedFiles(); });
         act(() => { result.current.handleAddSelectedFiles(); });
         await flushFrames();
+        act(() => { result.current.commitPendingAdd(); });
+        act(() => { result.current.commitPendingAdd(); });
 
         expect(manualUploadBatch).toHaveBeenCalledTimes(1);
     });

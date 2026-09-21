@@ -143,6 +143,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
         setFilePickerMonthWindow,
         ensureMonthWindowForSince,
         handleAddSelectedFiles,
+        commitPendingAdd,
         filePickerSubmitting,
         focusedIndex,
         setFocusedIndex,
@@ -375,8 +376,10 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
         return '';
     };
 
+    // The insert freezes the main thread long enough to stall this exit half way
+    // through, so it waits until the modal has actually left.
     return (
-        <AnimatePresence initial={false}>
+        <AnimatePresence initial={false} onExitComplete={commitPendingAdd}>
             {filePickerOpen && (
                 <motion.div
                     className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 file-picker-modal focus:outline-none"
@@ -903,7 +906,10 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button onClick={handleClose} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white transition-colors">Cancel</button>
-                                        <button onClick={() => { if (filePickerSelected.size > 0) handleAddSelectedFiles(); }} disabled={filePickerSelected.size === 0 || filePickerSubmitting} aria-busy={filePickerSubmitting} className="file-picker-confirm px-4 py-2 rounded-[4px] text-xs font-semibold border bg-emerald-500/20 text-emerald-200 border-emerald-400/40 hover:bg-emerald-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5">
+                                        {/* Not disabled while busy: disabled:opacity-50 would dim the
+                                            button and its spinner the moment you pressed it, which reads
+                                            as a dead click. handleAddSelectedFiles ignores a second press. */}
+                                        <button onClick={() => { if (filePickerSelected.size > 0) handleAddSelectedFiles(); }} disabled={filePickerSelected.size === 0} aria-busy={filePickerSubmitting} className="file-picker-confirm px-4 py-2 rounded-[4px] text-xs font-semibold border bg-emerald-500/20 text-emerald-200 border-emerald-400/40 hover:bg-emerald-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5">
                                             {filePickerSubmitting ? (
                                                 <>
                                                     {/* Adding a few hundred logs takes long enough that the
