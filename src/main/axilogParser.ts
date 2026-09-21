@@ -17,6 +17,7 @@
 
 import type { ParserSettings } from './parserSettings';
 import { buildNativeCarrySet } from './nativeCarrySet';
+import { parseOffThread, ParseWorkerUnavailable, shutdownParseWorker } from './axilogParseHost';
 import { normalizeAccountName } from '@axiapps/bridge-metrics/playerIdentity';
 import { withVariantLabel } from '@axiapps/bridge-metrics';
 import { applyLearnedSkillNames, getSkillNameCache, learnSkillNames } from './skillNameCache';
@@ -401,8 +402,15 @@ export class AxilogManager {
     private settings: Partial<ParserSettings> = {};
     private parseProgressCallback: ParseProgressCallback | null = null;
     private binding: AxilogBinding | null;
+    /**
+     * Only the production path parses off-thread. An injected binding is a
+     * test double, and it exists on *this* thread — the worker would load the
+     * real one and ignore it.
+     */
+    private readonly useWorker: boolean;
 
     constructor(binding?: AxilogBinding | null) {
+        this.useWorker = binding === undefined;
         this.binding = binding !== undefined ? binding : loadBinding();
     }
 
@@ -433,9 +441,9 @@ export class AxilogManager {
         this.parseProgressCallback = cb;
     }
 
-    /** No external process to kill; callers still invoke it on shutdown. */
+    /** No external process to kill, but the parse worker is ours to close. */
     killActiveProcess(): void {
-        /* no-op */
+        void shutdownParseWorker();
     }
 
     /**
@@ -450,29 +458,58 @@ export class AxilogManager {
         const options = mapParserSettingsToAxilogOptions(this.settings);
         this.parseProgressCallback?.(`[axilog] parsing ${logId}\n`);
         const started = Date.now();
-        // Synchronous native call; wrapped so callers keep the Promise contract.
-        const details = binding.parseFileEi(logPath, options);
-        // Carry native alongside EI for the duration of the migration. Migrated
-        // readers read `details.native`; unmigrated ones keep reading EI. Both
-        // halves come from ONE axilog version, so they cannot disagree about
-        // anything except shape. The EI half is deleted at Step N — removing the
-        // Elite Insights *binary* did not remove this, and it is the larger of
-        // the two costs: ~285ms and ~2.6MB per log of duplicate parse.
-        //
-        // A native failure must never fail the parse: EI-shaped compute is still
-        // the majority of the app. It degrades the migrated readers only.
-        if (typeof binding.parseFile === 'function') {
-            try {
-                const carry = buildNativeCarrySet(binding.parseFile(logPath, options));
-                if (carry) (details as any).native = carry;
-            } catch (err) {
-                this.parseProgressCallback?.(`[axilog] native parse failed for ${logId}: ${String(err)}\n`);
+        // The native calls are synchronous and hold their thread for the whole
+        // parse, so they run on a worker: on the browser process's main thread
+        // they stop the window presenting frames and freeze the entire app.
+        // `parseOffThread` rejects with ParseWorkerUnavailable when the worker
+        // could not be used, and only then do we parse here instead.
+        let details: any;
+        try {
+            if (!this.useWorker) throw new ParseWorkerUnavailable('binding was injected');
+            const parsed = await parseOffThread(logPath, options);
+            details = parsed.details;
+            if (parsed.nativeError) {
+                this.parseProgressCallback?.(`[axilog] native parse failed for ${logId}: ${parsed.nativeError}\n`);
             }
+        } catch (err) {
+            if (!(err instanceof ParseWorkerUnavailable)) throw err;
+            details = this.parseInProcess(binding, logPath, logId, options);
         }
         // After the carry-set: the shims project native encounter facts onto
         // the legacy EI field names, so they need `details.native` in place.
         applyEiCompatShims(details, logPath);
         this.parseProgressCallback?.(`[axilog] parsed ${logId} in ${Date.now() - started}ms\n`);
+        return details;
+    }
+
+    /**
+     * The pre-worker parse, kept as the fallback for when the worker cannot
+     * run. Blocks this thread for the length of the parse — which is the bug
+     * the worker exists to fix — so it is strictly a last resort.
+     *
+     * Carry native alongside EI for the duration of the migration. Migrated
+     * readers read `details.native`; unmigrated ones keep reading EI. Both
+     * halves come from ONE axilog version, so they cannot disagree about
+     * anything except shape. The EI half is deleted at Step N.
+     *
+     * A native failure must never fail the parse: EI-shaped compute is still
+     * the majority of the app. It degrades the migrated readers only.
+     */
+    private parseInProcess(
+        binding: AxilogBinding,
+        logPath: string,
+        logId: string,
+        options: AxilogParseOptions
+    ): any {
+        const details = binding.parseFileEi(logPath, options) as any;
+        if (typeof binding.parseFile === 'function') {
+            try {
+                const carry = buildNativeCarrySet(binding.parseFile(logPath, options));
+                if (carry) details.native = carry;
+            } catch (err) {
+                this.parseProgressCallback?.(`[axilog] native parse failed for ${logId}: ${String(err)}\n`);
+            }
+        }
         return details;
     }
 }
