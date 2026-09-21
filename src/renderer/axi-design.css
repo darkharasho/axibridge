@@ -2033,6 +2033,13 @@ body.axi-design .report-back-link {
   border-radius: var(--axi-radius-sm);
 }
 body.axi-design .report-back-link:hover { background: var(--axi-accent) !important; filter: brightness(1.08); }
+/* The arrow inside it is drawn in the brand colour, which in this language is
+   the accent - so on the gold button it was gold on gold and the ring around it
+   was the only thing you could see. Everything on an accent fill is ink. */
+body.axi-design .report-back-link > span {
+  color: var(--axi-accent-ink);
+  border-color: var(--axi-accent-ink);
+}
 
 /* ---------------------------------------------------------------------------
    THE FILE PICKER'S CONFIRM
