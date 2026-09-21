@@ -140,7 +140,7 @@ export const StatsHeader = ({
                         title="Search (Ctrl+K)"
                         aria-label="Search"
                         className="inline-flex h-[26px] items-center gap-1.5 rounded-full px-3.5 text-[11px] font-semibold transition-colors hover:bg-[var(--bg-hover)]"
-                        style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }}
+                        style={{ color: 'var(--text-secondary)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                     >
                         <Search className="w-3.5 h-3.5" />
                         Search
@@ -164,7 +164,7 @@ export const StatsHeader = ({
                             disabled={uploadDisabled}
                             aria-disabled={uploadDisabled}
                             className={`stats-action-upload flex items-center gap-2 px-4 py-2 font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${alternateUploadTargets.length > 0 ? 'rounded-l-md rounded-r-none' : 'rounded-md'}`}
-                            style={{ background: 'var(--accent-bg-strong)', color: 'var(--text-primary)', border: '1px solid var(--accent-border)' }}
+                            style={{ background: 'var(--accent-bg-strong)', color: 'var(--text-primary)', border: 'var(--panel-border-w, 1px) solid var(--accent-border)' }}
                         >
                             <UploadCloud className="w-4 h-4" style={{ color: 'var(--brand-primary)' }} />
                             {uploadingWeb ? 'Uploading...' : 'Upload to Web'}
@@ -177,7 +177,7 @@ export const StatsHeader = ({
                                 aria-haspopup="menu"
                                 aria-expanded={uploadMenuOpen}
                                 className="stats-action-upload flex items-center justify-center px-2 rounded-r-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                style={{ background: 'var(--accent-bg)', color: 'var(--text-primary)', border: '1px solid var(--accent-border)', borderLeft: 'none' }}
+                                style={{ background: 'var(--accent-bg)', color: 'var(--text-primary)', border: 'var(--panel-border-w, 1px) solid var(--accent-border)', borderLeft: 'none' }}
                                 title="Choose upload repository"
                             >
                                 <ChevronDown className={`w-4 h-4 transition-transform ${uploadMenuOpen ? 'rotate-180' : ''}`} />
@@ -185,7 +185,7 @@ export const StatsHeader = ({
                         )}
                     </div>
                     {uploadMenuOpen && alternateUploadTargets.length > 0 && !uploadDisabled && (
-                        <div className="app-dropdown absolute right-0 top-full mt-2 z-50 min-w-[240px] rounded-md p-1" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-hover)', boxShadow: 'var(--shadow-dropdown)' }}>
+                        <div className="app-dropdown absolute right-0 top-full mt-2 z-50 min-w-[240px] rounded-md p-1" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-hover)', boxShadow: 'var(--shadow-dropdown)' }}>
                             {alternateUploadTargets.map((target) => (
                                 <button
                                     key={target.fullName}
@@ -210,7 +210,7 @@ export const StatsHeader = ({
                         />
                     )}
                     {!actionsDisabled && (publishBlockedReason || !canUploadWeb) && (
-                        <div className="pointer-events-none absolute right-0 top-full mt-2 w-56 rounded-md px-2 py-1 text-[11px] opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-hover)', color: 'var(--text-secondary)' }}>
+                        <div className="pointer-events-none absolute right-0 top-full mt-2 w-56 rounded-md px-2 py-1 text-[11px] opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-hover)', color: 'var(--text-secondary)' }}>
                             {publishBlockedReason || 'Add at least one fight before uploading a web report.'}
                         </div>
                     )}

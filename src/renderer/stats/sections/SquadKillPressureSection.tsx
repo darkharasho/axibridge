@@ -67,7 +67,7 @@ export const SquadKillPressureSection = () => {
     return (
         <div
             className={`${isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
-            style={isExpanded ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
+            style={isExpanded ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
         >
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <Target className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
@@ -128,7 +128,7 @@ export const SquadKillPressureSection = () => {
                                         const point = payload?.[0]?.payload;
                                         if (!point) return null;
                                         return (
-                                            <div style={{ backgroundColor: 'rgba(15, 18, 25, 0.97)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', padding: '10px 12px', fontSize: '12px' }}>
+                                            <div className="chart-tooltip" style={{ backgroundColor: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', borderRadius: '0.5rem', padding: '10px 12px', fontSize: '12px' }}>
                                                 <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
                                                     {point.fullLabel}{' '}
                                                     {point.isWin === true && <span style={{ color: 'var(--status-success)', fontWeight: 700 }}>W</span>}

@@ -45,10 +45,10 @@ const QuickToggle = memo(function QuickToggle({ enabled, disabled, label, onChan
 export function QuickSettingsCard({ context }: { context: QuickSettingsContext }) {
     return (
         <div
-            className="rounded-[4px] border p-3"
+            className="rail-card rounded-[4px] border p-3"
             style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}
         >
-            <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+            <div className="rail-card__label text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
                 Quick Settings
             </div>
             <div className="space-y-0">
@@ -57,7 +57,7 @@ export function QuickSettingsCard({ context }: { context: QuickSettingsContext }
                     return (
                         <div
                             key={setting.id}
-                            className="flex items-center justify-between gap-2 py-1.5"
+                            className="rail-row flex items-center justify-between gap-2 py-1.5"
                             style={index === 0 ? undefined : { borderTop: '1px solid var(--border-subtle)' }}
                         >
                             <span className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }} title={setting.hint}>

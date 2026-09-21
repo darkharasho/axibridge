@@ -291,7 +291,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 ) : (
                                     <div
                                         className="flex items-center gap-2 text-[10px] font-medium px-2 py-0.5 rounded-[4px] border"
-                                        style={{ background: 'var(--accent-bg)', color: 'var(--brand-primary)', borderColor: 'var(--accent-border)' }}
+                                        style={{ background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))', borderColor: 'var(--accent-border)' }}
                                     >
                                         <RefreshCw className="w-3 h-3 animate-spin" />
                                         <span>{updateProgress ? `${Math.round(updateProgress.percent)}%` : 'Updating...'}</span>
@@ -515,7 +515,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                             }}
                             className="w-full px-3 py-2 text-left text-sm transition-colors"
                             style={enabledWebhookIds.length === 0
-                                ? { background: 'var(--accent-bg)', color: 'var(--brand-primary)' }
+                                ? { background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }
                                 : { color: 'var(--text-secondary)' }}
                             role="option"
                             aria-selected={enabledWebhookIds.length === 0}
@@ -535,7 +535,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                     onClick={() => handleSetDestinationEnabled(hook.id, !isEnabled)}
                                     className="w-full px-3 py-2 text-left text-sm transition-colors flex items-center gap-2"
                                     style={isEnabled
-                                        ? { background: 'var(--accent-bg)', color: 'var(--brand-primary)' }
+                                        ? { background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }
                                         : { color: 'var(--text-secondary)' }}
                                     role="option"
                                     aria-selected={isEnabled}

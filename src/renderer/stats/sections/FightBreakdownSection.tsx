@@ -209,7 +209,7 @@ export const FightBreakdownSection = ({
     return (
         <div
             className={`${isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
-            style={isExpanded ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
+            style={isExpanded ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
         >
             <div>
                 <div className="flex flex-wrap items-center gap-2 mb-3.5">
@@ -258,7 +258,7 @@ export const FightBreakdownSection = ({
                 ) : (
                     <div className="overflow-x-auto">
                         <div className="max-h-[360px] overflow-y-auto">
-                            <table className="w-full text-xs table-auto min-w-[720px]">
+                            <table className="stats-table w-full text-xs table-auto min-w-[720px]">
                                 <thead>
                                     <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                         <th className="text-right py-2 px-3 w-8">#</th>

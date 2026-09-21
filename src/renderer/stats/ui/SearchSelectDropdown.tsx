@@ -126,7 +126,7 @@ export const SearchSelectDropdown = ({
             />
             {open && (
                 <div
-                    className="absolute z-30 mt-2 w-64 border p-2 text-xs"
+                    className="app-dropdown stats-popover absolute z-30 mt-2 w-64 border p-2 text-xs"
                     style={{
                         borderRadius: 'var(--radius-md)',
                         borderColor: 'var(--border-default)',

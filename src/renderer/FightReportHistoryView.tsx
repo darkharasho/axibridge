@@ -106,7 +106,7 @@ function RepoDropdown({ options, selected, onSelect }: { options: HistoryRepoOpt
                 type="button"
                 onClick={() => setOpen((v) => !v)}
                 className="w-full flex items-center justify-between rounded-[4px] pl-3 pr-3 py-2.5 text-sm text-left"
-                style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+                style={{ background: 'var(--bg-input)', border: 'var(--history-edge-w, 1px) solid var(--border-default)', color: 'var(--text-primary)' }}
                 aria-label="Select GitHub Pages history source"
                 aria-expanded={open}
             >
@@ -114,7 +114,7 @@ function RepoDropdown({ options, selected, onSelect }: { options: HistoryRepoOpt
                 <ChevronDown className={`w-4 h-4 shrink-0 ml-2 transition-transform ${open ? 'rotate-180' : ''}`} style={{ color: 'var(--text-secondary)' }} />
             </button>
             {open && (
-                <div className="app-dropdown absolute z-50 mt-1 w-full rounded-[4px] py-1 overflow-auto max-h-60" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-hover)', boxShadow: 'var(--shadow-dropdown)' }}>
+                <div className="app-dropdown absolute z-50 mt-1 w-full rounded-[4px] py-1 overflow-auto max-h-60" style={{ background: 'var(--bg-card)', border: 'var(--history-edge-w, 1px) solid var(--border-hover)', boxShadow: 'var(--shadow-dropdown)' }}>
                     {options.map((option) => (
                         <button
                             key={option.key}
@@ -419,7 +419,7 @@ export function FightReportHistoryView() {
     if (error) {
         return (
             <div className="flex-1 min-h-0 flex items-center justify-center">
-                <div className="rounded-[4px] px-4 py-3 text-sm text-red-300" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+                <div className="rounded-[4px] px-4 py-3 text-sm text-red-300" style={{ background: 'var(--bg-card)', border: 'var(--history-edge-w, 1px) solid var(--border-default)' }}>
                     {error}
                 </div>
             </div>
@@ -435,9 +435,9 @@ export function FightReportHistoryView() {
     }
 
     return (
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className="history-view flex-1 min-h-0 flex flex-col overflow-hidden">
             {/* Tab bar */}
-            <div className="flex items-center gap-0 border-b px-4" style={{ borderColor: 'var(--border-default)' }}>
+            <div className="history-tabs flex items-center gap-0 border-b px-4" style={{ borderColor: 'var(--border-default)' }}>
                 <button type="button" onClick={() => setActiveTab('list')}
                     className="px-4 py-2 text-xs"
                     style={{
@@ -504,8 +504,8 @@ export function FightReportHistoryView() {
                         initial={{ opacity: 0, y: -12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, ease: 'easeOut' }}
-                        className="rounded-[4px] px-4 py-3 mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
-                        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+                        className="history-source-bar rounded-[4px] px-4 py-3 mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+                        style={{ background: 'var(--bg-card)', border: 'var(--history-edge-w, 1px) solid var(--border-default)' }}
                     >
                         <div className="min-w-0">
                             <div className="text-[10px] uppercase tracking-[0.22em]" style={{ color: 'var(--text-secondary)' }}>History Source</div>
@@ -520,7 +520,7 @@ export function FightReportHistoryView() {
                                     style={{
                                         background: 'var(--bg-input)',
                                         color: allFilteredSelected ? 'var(--brand-primary)' : 'var(--text-secondary)',
-                                        border: `1px solid ${allFilteredSelected ? 'var(--brand-primary)' : 'var(--border-default)'}`
+                                        border: `var(--history-edge-w, 1px) solid ${allFilteredSelected ? 'var(--brand-primary)' : 'var(--border-default)'}`
                                     }}>
                                     {allFilteredSelected ? 'Deselect All' : `Select All (${filteredEntries.length})`}
                                 </button>
@@ -530,8 +530,8 @@ export function FightReportHistoryView() {
                                 className="px-3 py-2 rounded-[4px] text-xs"
                                 style={{
                                     background: deleteMode ? 'var(--brand-primary)' : 'var(--bg-input)',
-                                    color: deleteMode ? '#fff' : 'var(--text-secondary)',
-                                    border: '1px solid var(--border-default)'
+                                    color: deleteMode ? 'var(--on-brand, #fff)' : 'var(--text-secondary)',
+                                    border: 'var(--history-edge-w, 1px) solid var(--border-default)'
                                 }}>
                                 {deleteMode ? 'Cancel' : 'Manage'}
                             </button>
@@ -556,7 +556,7 @@ export function FightReportHistoryView() {
                                     className="w-full rounded-[4px] pl-8 pr-3 py-2 text-sm outline-none"
                                     style={{
                                         background: 'var(--bg-input)',
-                                        border: '1px solid var(--border-default)',
+                                        border: 'var(--history-edge-w, 1px) solid var(--border-default)',
                                         color: 'var(--text-primary)',
                                     }}
                                 />
@@ -568,8 +568,8 @@ export function FightReportHistoryView() {
                                         onClick={() => setCommanderDropdownOpen((v) => !v)}
                                         className="flex items-center gap-1.5 rounded-[4px] px-3 py-2 text-sm whitespace-nowrap"
                                         style={{
-                                            background: commanderFilter ? 'color-mix(in srgb, var(--brand-primary) 15%, var(--bg-input))' : 'var(--bg-input)',
-                                            border: `1px solid ${commanderFilter ? 'var(--brand-primary)' : 'var(--border-default)'}`,
+                                            background: commanderFilter ? 'var(--history-filter-on-bg, color-mix(in srgb, var(--brand-primary) 15%, var(--bg-input)))' : 'var(--bg-input)',
+                                            border: `var(--history-edge-w, 1px) solid ${commanderFilter ? 'var(--brand-primary)' : 'var(--border-default)'}`,
                                             color: commanderFilter ? 'var(--brand-primary)' : 'var(--text-secondary)',
                                         }}
                                     >
@@ -579,7 +579,7 @@ export function FightReportHistoryView() {
                                     {commanderDropdownOpen && (
                                         <div
                                             className="app-dropdown absolute z-50 mt-1 right-0 w-56 rounded-[4px] py-1 overflow-auto max-h-60"
-                                            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-hover)', boxShadow: 'var(--shadow-dropdown)' }}
+                                            style={{ background: 'var(--bg-card)', border: 'var(--history-edge-w, 1px) solid var(--border-hover)', boxShadow: 'var(--shadow-dropdown)' }}
                                         >
                                             <button
                                                 type="button"
@@ -617,7 +617,7 @@ export function FightReportHistoryView() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.2 }}
                             className="rounded-[4px] px-4 py-3 mb-4 text-sm text-red-300"
-                            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+                            style={{ background: 'var(--bg-card)', border: 'var(--history-edge-w, 1px) solid var(--border-default)' }}
                         >
                             {detailError}
                         </motion.div>
@@ -659,13 +659,13 @@ export function FightReportHistoryView() {
                                     transition={{ duration: 0.3, delay: Math.min(i * 0.05, 0.4), ease: 'easeOut' }}
                                     onClick={() => handleCardClick(entry)}
                                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCardClick(entry); } }}
-                                    className="relative text-left rounded-[6px] p-4 transition-colors cursor-pointer"
+                                    className="history-card relative text-left rounded-[6px] p-4 transition-colors cursor-pointer"
                                     style={{
                                         background: 'var(--bg-card)',
-                                        border: `1px solid ${selectedForDelete.has(entry.id) ? 'var(--brand-primary)' : 'var(--border-default)'}`,
+                                        border: `var(--history-edge-w, 1px) solid ${selectedForDelete.has(entry.id) ? 'var(--brand-primary)' : 'var(--border-default)'}`,
                                         opacity: detailLoading === entry.id ? 0.6 : 1
                                     }}
-                                    whileHover={{ scale: 1.01, borderColor: 'rgba(255,255,255,0.15)' }}
+                                    whileHover={{ scale: 1.01, borderColor: 'var(--history-card-hover-edge, rgba(255,255,255,0.15))' }}
                                     whileTap={{ scale: 0.99 }}
                                 >
                                     {/* 3-dot menu */}
@@ -694,7 +694,7 @@ export function FightReportHistoryView() {
                                                     className="app-dropdown absolute right-0 top-full mt-1 w-36 rounded-[4px] py-1 z-50"
                                                     style={{
                                                         background: 'var(--bg-card)',
-                                                        border: '1px solid var(--border-hover)',
+                                                        border: 'var(--history-edge-w, 1px) solid var(--border-hover)',
                                                         boxShadow: 'var(--shadow-dropdown)',
                                                     }}
                                                 >
@@ -772,7 +772,7 @@ export function FightReportHistoryView() {
                                         </div>
                                     )}
                                     {entry.summary?.mapSlices && entry.summary.mapSlices.length > 0 && (
-                                        <div className="flex h-1 rounded-full overflow-hidden mt-2">
+                                        <div className="history-card__slices flex h-1 rounded-full overflow-hidden mt-2">
                                             {entry.summary.mapSlices.map((slice, si) => (
                                                 <div key={si} style={{ width: `${slice.value}%`, background: slice.color }} />
                                             ))}

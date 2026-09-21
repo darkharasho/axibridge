@@ -243,8 +243,8 @@ const ProfessionIcon = ({
                 <>
                     <span
                         aria-hidden="true"
-                        className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-1 ring-[var(--bg-base)] shadow-[0_0_0_1px_rgba(255,255,255,0.08)]"
-                        style={{ background: multiBadgeBackground }}
+                        className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-1 ring-[var(--bg-base)]"
+                        style={{ background: multiBadgeBackground, boxShadow: '0 0 0 1px var(--border-default)' }}
                     >
                         <span className="absolute inset-[0.7px] rounded-full bg-[var(--bg-elevated)]/55" />
                     </span>
@@ -253,12 +253,12 @@ const ProfessionIcon = ({
                         style={{
                             ...tooltipStyle,
                             background: 'var(--bg-elevated)',
-                            border: '1px solid var(--border-default)',
+                            border: 'var(--panel-border-w, 1px) solid var(--border-default)',
                             borderRadius: 'var(--radius-md)',
                             boxShadow: 'var(--shadow-dropdown)',
                             color: 'var(--text-primary)'
                         }}
-                        className={`profession-multi-tooltip absolute left-1/2 z-50 w-max px-2 py-1 text-[10px] pointer-events-none ${placementClass} ${open ? 'block' : 'hidden'}`}
+                        className={`app-dropdown profession-multi-tooltip absolute left-1/2 z-50 w-max px-2 py-1 text-[10px] pointer-events-none ${placementClass} ${open ? 'block' : 'hidden'}`}
                     >
                         <div className="mb-1 text-[9px] uppercase tracking-wider text-amber-200">Multi</div>
                         <div className="space-y-1">
@@ -326,12 +326,12 @@ export const CountClassTooltip = ({
                     style={{
                         ...tooltipStyle,
                         background: 'var(--bg-elevated)',
-                        border: '1px solid var(--border-default)',
+                        border: 'var(--panel-border-w, 1px) solid var(--border-default)',
                         borderRadius: 'var(--radius-md)',
                         boxShadow: 'var(--shadow-dropdown)',
                         color: 'var(--text-primary)'
                     }}
-                    className={`count-class-tooltip z-[9999] w-max px-2 py-1 text-[10px] pointer-events-none ${open ? 'block' : 'hidden'}`}
+                    className={`app-dropdown count-class-tooltip z-[9999] w-max px-2 py-1 text-[10px] pointer-events-none ${open ? 'block' : 'hidden'}`}
                 >
                     <div className="mb-1 text-[9px] uppercase tracking-wider text-amber-200">
                         {label}
@@ -459,14 +459,14 @@ export const SkillBreakdownTooltip = ({
                     style={{
                         ...tooltipStyle,
                         background: 'var(--bg-elevated)',
-                        border: '1px solid var(--border-default)',
+                        border: 'var(--panel-border-w, 1px) solid var(--border-default)',
                         borderRadius: 'var(--radius-md)',
                         boxShadow: 'var(--shadow-dropdown)',
                         color: 'var(--text-primary)'
                     }}
                     onMouseEnter={cancelClose}
                     onMouseLeave={scheduleClose}
-                    className={`skill-breakdown-tooltip z-[9999] w-64 px-3 py-2 text-[10px] pointer-events-auto ${open ? 'block' : 'hidden'}`}
+                    className={`app-dropdown skill-breakdown-tooltip z-[9999] w-64 px-3 py-2 text-[10px] pointer-events-auto ${open ? 'block' : 'hidden'}`}
                 >
                     <div className="text-[9px] uppercase tracking-wider text-amber-200 mb-1">{label}</div>
                     <div

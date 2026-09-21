@@ -31,14 +31,14 @@ interface ReplayViewProps {
 
 const ctrlBtnStyle: React.CSSProperties = {
     width: 26, height: 26, borderRadius: 5,
-    background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
+    background: 'var(--bg-elevated)', border: 'var(--panel-border-w, 1px) solid var(--border-default)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     color: 'var(--text-secondary)', cursor: 'pointer', backdropFilter: 'blur(4px)',
 };
 
 const chipStyle: React.CSSProperties = {
     background: 'var(--bg-elevated)', backdropFilter: 'blur(4px)',
-    border: '1px solid var(--border-default)', borderRadius: 20,
+    border: 'var(--panel-border-w, 1px) solid var(--border-default)', borderRadius: 20,
     padding: '3px 10px', fontSize: 10, display: 'flex', alignItems: 'center',
     cursor: 'pointer',
 };
@@ -393,7 +393,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                     <button
                                         type="button"
                                         onClick={() => setPickerCollapsed(true)}
-                                        style={{ fontSize: 11, color: 'var(--text-secondary)', padding: '3px 8px', borderRadius: 4, border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', cursor: 'pointer' }}
+                                        style={{ fontSize: 11, color: 'var(--text-secondary)', padding: '3px 8px', borderRadius: 4, border: 'var(--panel-border-w, 1px) solid var(--border-subtle)', background: 'var(--bg-input)', cursor: 'pointer' }}
                                     >
                                         ✕ Close
                                     </button>
@@ -404,13 +404,13 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
 
                         {/* 3. Member hover tooltip */}
                         {tooltip && (
-                            <div style={{
+                            <div className="app-dropdown replay-member-tooltip" style={{
                                 position: 'absolute',
                                 left: tooltip.x + 14,
                                 top: tooltip.y - 10,
                                 zIndex: 40,
                                 background: 'var(--bg-elevated)',
-                                border: '1px solid var(--border-default)',
+                                border: 'var(--panel-border-w, 1px) solid var(--border-default)',
                                 borderRadius: 6,
                                 padding: '5px 9px',
                                 fontSize: 12,

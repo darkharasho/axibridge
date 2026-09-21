@@ -186,7 +186,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                         <div
                             key={webhook.id}
                             className="rounded-[4px] p-4 group transition-colors"
-                            style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}
+                            style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                         >
                             {editingId === webhook.id ? (
                                 <div className="space-y-3">
@@ -195,14 +195,14 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                                         value={editName}
                                         onChange={(e) => setEditName(e.target.value)}
                                         placeholder="Webhook name"
-                                        className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
+                                        className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                                     />
                                     <input
                                         type="text"
                                         value={editUrl}
                                         onChange={(e) => setEditUrl(e.target.value)}
                                         placeholder="https://discord.com/api/webhooks/..."
-                                        className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
+                                        className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                                     />
                                     <div className="flex gap-2">
                                         <button
@@ -302,14 +302,14 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
 
             {/* Add New Webhook Form */}
             {isAdding && (
-                <div className="rounded-[4px] p-4 space-y-3 mb-3" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                <div className="rounded-[4px] p-4 space-y-3 mb-3" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
                     <div className="text-sm font-medium text-purple-300 mb-2">New Webhook</div>
                     <input
                         type="text"
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
                         placeholder="Webhook name (e.g., My Guild)"
-                        className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
+                        className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                         autoFocus
                     />
                     <input
@@ -317,7 +317,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                         value={newUrl}
                         onChange={(e) => setNewUrl(e.target.value)}
                         placeholder="https://discord.com/api/webhooks/..."
-                        className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
+                        className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                     />
                     <div className="flex gap-2">
                         <button
@@ -340,7 +340,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
 
             {/* Link AxiTools Channel Form */}
             {isLinking && (
-                <div className="rounded-[4px] p-4 space-y-3 mb-3" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                <div className="rounded-[4px] p-4 space-y-3 mb-3" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
                     <div className="text-sm font-medium text-purple-300 mb-2">Link AxiTools channel</div>
                     <div>
                         <label className="block text-xs text-gray-400 mb-1">AxiTools bridge key</label>
@@ -349,7 +349,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                             value={bridgeKey}
                             onChange={(e) => { setBridgeKey(e.target.value); setBridgeLinkError(null); }}
                             placeholder="axb1.…"
-                            className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
+                            className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                             autoFocus
                         />
                         <p className="mt-1.5 text-xs text-gray-500">

@@ -823,11 +823,11 @@ function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="flex flex-col gap-3"
+            className="rail-stack flex flex-col gap-3"
         >
             {/* Watch Folder card */}
-            <div className="rounded-[4px] border p-3" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
-                <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Watch Folder</div>
+            <div className="rail-card rounded-[4px] border p-3" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+                <div className="rail-card__label text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Watch Folder</div>
                 <div className="flex gap-1 w-full max-w-full">
                     <div className="flex-1 min-w-0 rounded-[4px] border px-1.5 h-8 flex items-center gap-2 transition-colors" style={{ background: 'var(--bg-input)', borderColor: 'var(--border-default)' }}>
                         <div className="pl-1 shrink-0">
@@ -855,7 +855,7 @@ function App() {
                         <button
                             onClick={handleSelectDirectory}
                             className="rounded-[4px] w-8 h-8 flex items-center justify-center border transition-colors"
-                            style={{ background: 'var(--accent-bg)', borderColor: 'var(--accent-border)', color: 'var(--brand-primary)' }}
+                            style={{ background: 'var(--accent-bg)', borderColor: 'var(--accent-border)', color: 'var(--button-label, var(--brand-primary))' }}
                             title="Browse..."
                         >
                             <FolderOpen className="w-3.5 h-3.5" />
@@ -865,22 +865,22 @@ function App() {
             </div>
 
             {/* Status card */}
-            <div className="rounded-[4px] border p-3" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
-                <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Status</div>
+            <div className="rail-card rounded-[4px] border p-3" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+                <div className="rail-card__label text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Status</div>
                 <div className="space-y-0">
-                    <div className="flex items-center justify-between py-1.5">
+                    <div className="rail-row flex items-center justify-between py-1.5">
                         <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>Watcher</span>
                         <span className="text-[11px] font-medium" style={{ color: logDirectory ? 'var(--status-success)' : 'var(--text-muted)' }}>
                             {logDirectory ? 'Active' : 'Inactive'}
                         </span>
                     </div>
-                    <div className="flex items-center justify-between py-1.5" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                    <div className="rail-row flex items-center justify-between py-1.5" style={{ borderTop: '1px solid var(--border-subtle)' }}>
                         <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>Upload queue</span>
                         <span className="text-[11px] font-medium" style={{ color: uploadingCount > 0 ? 'var(--brand-primary)' : 'var(--text-muted)' }}>
                             {uploadingCount > 0 ? `${uploadingCount} pending` : 'Idle'}
                         </span>
                     </div>
-                    <div className="flex items-center justify-between py-1.5" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                    <div className="rail-row flex items-center justify-between py-1.5" style={{ borderTop: '1px solid var(--border-subtle)' }}>
                         <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>Success / Errors</span>
                         <span className="text-[11px] font-medium">
                             <span style={{ color: 'var(--status-success)' }}>{successCount}</span>
@@ -892,8 +892,8 @@ function App() {
             </div>
 
             {/* Discord Webhook card */}
-            <div className="rounded-[4px] border p-3" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
-                <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Discord Webhook</div>
+            <div className="rail-card rounded-[4px] border p-3" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+                <div className="rail-card__label text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Discord Webhook</div>
                 <div className="flex gap-1 w-full">
                     <div ref={webhookDropdownRef} className="relative flex-1 min-w-0">
                         <button
@@ -923,7 +923,7 @@ function App() {
                         <button
                             onClick={() => setWebhookModalOpen(true)}
                             className="rounded-[4px] w-8 h-8 flex items-center justify-center gap-2 border transition-colors"
-                            style={{ background: 'var(--accent-bg)', borderColor: 'var(--accent-border)', color: 'var(--brand-primary)' }}
+                            style={{ background: 'var(--accent-bg)', borderColor: 'var(--accent-border)', color: 'var(--button-label, var(--brand-primary))' }}
                             title="Manage Webhooks"
                         >
                             <Settings className="w-3.5 h-3.5" />
@@ -950,14 +950,14 @@ function App() {
             </div>
 
             {/* Session card */}
-            <div className="rounded-[4px] border p-3" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
-                <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Session</div>
+            <div className="rail-card rounded-[4px] border p-3" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+                <div className="rail-card__label text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Session</div>
                 <div className="space-y-0">
-                    <div className="flex items-center justify-between py-1.5">
+                    <div className="rail-row flex items-center justify-between py-1.5">
                         <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>Logs uploaded</span>
                         <span className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{totalUploads}</span>
                     </div>
-                    <div className="flex items-center justify-between py-1.5" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                    <div className="rail-row flex items-center justify-between py-1.5" style={{ borderTop: '1px solid var(--border-subtle)' }}>
                         <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>Win / Loss</span>
                         <span className="text-[11px] font-medium">
                             <span style={{ color: 'var(--status-success-muted)' }}>{winLoss.wins}</span>
@@ -965,7 +965,7 @@ function App() {
                             <span style={{ color: 'var(--status-error-muted)' }}>{winLoss.losses}</span>
                         </span>
                     </div>
-                    <div className="flex items-center justify-between py-1.5" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                    <div className="rail-row flex items-center justify-between py-1.5" style={{ borderTop: '1px solid var(--border-subtle)' }}>
                         <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>Squad KDR</span>
                         <span className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{squadKdr}</span>
                     </div>
@@ -1037,7 +1037,7 @@ function App() {
                         <button
                             onClick={() => filePickerState.setFilePickerOpen(true)}
                             className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-medium border transition-colors"
-                            style={{ borderColor: 'var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
+                            style={{ borderColor: 'var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
                             title="Select logs to upload"
                         >
                             <FilePlus2 className="w-3 h-3" />
@@ -1048,7 +1048,7 @@ function App() {
                         <button
                             onClick={clearLogsFromActivity}
                             className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-medium border transition-colors"
-                            style={{ borderColor: 'var(--status-error-border)', background: 'var(--status-error-bg)', color: 'var(--status-error)' }}
+                            style={{ borderColor: 'var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--status-error)' }}
                             title="Clear all logs"
                         >
                             <Trash2 className="w-3 h-3" />

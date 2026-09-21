@@ -199,7 +199,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay }}
-            className="rounded-[4px] p-6"
+            className="settings-section rounded-[4px] p-6"
             style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)', display: hidden ? 'none' : undefined }}
             id={sectionId}
             data-settings-section={sectionId ? 'true' : undefined}
@@ -207,7 +207,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
         >
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-500/20 rounded-[4px] border border-blue-500/30">
+                    <div className="settings-section__badge p-2 bg-blue-500/20 rounded-[4px] border border-blue-500/30">
                         <Icon className="w-5 h-5 text-blue-400" />
                     </div>
                     <h3 className="text-lg font-semibold text-gray-200">{title}</h3>
@@ -1474,7 +1474,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                 className="flex items-center justify-between gap-4 mb-6"
             >
                 <div className="flex items-start gap-3 sm:items-center sm:gap-4">
-                    <div className="p-2 rounded-[4px] shrink-0" style={{ background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', color: 'var(--brand-primary)' }}>
+                    <div className="p-2 rounded-[4px] shrink-0" style={{ background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', color: 'var(--button-label, var(--brand-primary))' }}>
                         <Settings className="w-5 h-5" />
                     </div>
                     <div className="space-y-0">
@@ -2500,11 +2500,11 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors"
                                                             style={on
                                                                 ? { color: meta.color, background: `${meta.color}1f`, borderColor: `${meta.color}66` }
-                                                                : { color: '#6b7280', background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)' }}
+                                                                : { color: 'var(--text-muted)', background: 'var(--bg-input)', borderColor: 'var(--border-default)' }}
                                                         >
                                                             <span
                                                                 className="w-3 h-3 rounded-sm inline-flex items-center justify-center border"
-                                                                style={{ borderColor: on ? meta.color : 'rgba(255,255,255,0.18)', background: on ? meta.color : 'transparent' }}
+                                                                style={{ borderColor: on ? meta.color : 'var(--border-hover)', background: on ? meta.color : 'transparent' }}
                                                             >
                                                                 {on && (
                                                                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#0f1115" strokeWidth={4}><path d="M20 6L9 17l-5-5" /></svg>
@@ -2727,7 +2727,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             const on = w > 0;
                                             return (
                                                 <div key={def.id} className="inline-flex items-center rounded-lg border overflow-hidden"
-                                                    style={on ? { borderColor: `${meta.color}66`, background: `${meta.color}1f` } : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
+                                                    style={on ? { borderColor: `${meta.color}66`, background: `${meta.color}1f` } : { borderColor: 'var(--border-default)', background: 'var(--bg-input)' }}>
                                                     <span className="pl-2.5 pr-1 py-1 text-xs font-semibold" style={{ color: on ? meta.color : '#6b7280' }}>{mvpStatLabel(def)}</span>
                                                     <button type="button" aria-label={`decrease ${mvpStatLabel(def)}`} onClick={() => setMvpWeight(mvpBucket, def.id, w - 0.05)} className="w-5 h-6 text-sm leading-none" style={{ color: on ? meta.color : '#4b5563' }}>−</button>
                                                     <span className="min-w-[30px] text-center text-xs font-bold tabular-nums" style={{ color: on ? meta.color : '#4b5563' }}>{w.toFixed(2)}</span>
@@ -2895,7 +2895,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 type="button"
                                 onClick={onChangeLogDirectory}
                                 className="shrink-0 rounded-[4px] px-3 py-1.5 text-xs font-medium"
-                                style={{ background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
+                                style={{ background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
                             >
                                 Change Folder
                             </button>
@@ -3477,7 +3477,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 <span>threshold: <span className="text-amber-300 font-mono">{threshold.toFixed(2)}</span></span>
                                             </div>
                                             <div className="rounded-[4px] border border-white/10 overflow-hidden">
-                                                <table className="w-full text-xs">
+                                                <table className="stats-table w-full text-xs">
                                                     <thead>
                                                         <tr className="border-b border-white/10 text-gray-400">
                                                             <th className="text-left px-3 py-2 font-medium">Player</th>
@@ -3519,7 +3519,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                                                     {c.account} — <span className={c.role === 'support' ? 'text-emerald-300' : 'text-orange-300'}>{c.role}</span>
                                                                                     <span className="text-gray-500 font-normal ml-2">score {c.supportScore.toFixed(2)} / threshold {c.threshold.toFixed(2)}</span>
                                                                                 </div>
-                                                                                <table className="w-full">
+                                                                                <table className="stats-table w-full">
                                                                                     <thead>
                                                                                         <tr className="text-gray-500">
                                                                                             <th className="text-left pr-3 pb-0.5 font-medium">Metric</th>
@@ -3800,7 +3800,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         ),
                         table: ({ children }) => (
                             <div className="overflow-x-auto rounded-[4px] border border-white/10 bg-black/30">
-                                <table className="w-full border-collapse text-left text-sm">
+                                <table className="stats-table w-full border-collapse text-left text-sm">
                                     {children}
                                 </table>
                             </div>

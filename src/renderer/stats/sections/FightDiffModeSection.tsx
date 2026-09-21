@@ -146,7 +146,7 @@ export const FightDiffModeSection = () => {
     return (
         <div
             className={`${expandedSection === 'fight-diff-mode' ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
-            style={expandedSection === 'fight-diff-mode' ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
+            style={expandedSection === 'fight-diff-mode' ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
         >
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <GitCompareArrows className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
@@ -232,7 +232,7 @@ export const FightDiffModeSection = () => {
                             )}
                             columns={targetFocusRows.length > 0 ? (
                                 <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[700px] table-fixed text-xs">
+                                    <table className="stats-table w-full min-w-[700px] table-fixed text-xs">
                                         <colgroup>
                                             <col className="w-[220px]" />
                                             <col className="w-[120px]" />
@@ -276,7 +276,7 @@ export const FightDiffModeSection = () => {
                             ) : null}
                             rows={targetFocusRows.length > 0 ? (
                                 <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[700px] table-fixed text-xs">
+                                    <table className="stats-table w-full min-w-[700px] table-fixed text-xs">
                                         <colgroup>
                                             <col className="w-[220px]" />
                                             <col className="w-[120px]" />
@@ -321,7 +321,7 @@ export const FightDiffModeSection = () => {
                             )}
                             columns={squadMetricRows.length > 0 ? (
                                 <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[680px] table-fixed text-xs">
+                                    <table className="stats-table w-full min-w-[680px] table-fixed text-xs">
                                         <colgroup>
                                             <col className="w-[320px]" />
                                             <col className="w-[120px]" />
@@ -341,7 +341,7 @@ export const FightDiffModeSection = () => {
                             ) : null}
                             rows={squadMetricRows.length > 0 ? (
                                 <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[680px] table-fixed text-xs">
+                                    <table className="stats-table w-full min-w-[680px] table-fixed text-xs">
                                         <colgroup>
                                             <col className="w-[320px]" />
                                             <col className="w-[120px]" />

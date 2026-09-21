@@ -81,7 +81,7 @@ export const PlayerComparisonSection = ({
                 ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}`
                 : ''
             }`}
-            style={isExpanded ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
+            style={isExpanded ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
         >
             {/* Header */}
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
@@ -296,7 +296,7 @@ const HeadToHeadView = ({
                 </div>
             ) : (
                 <div className="rounded-[var(--radius-md)] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
-                    <table className="w-full" style={{ borderCollapse: 'collapse' }}>
+                    <table className="stats-table w-full" style={{ borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ borderBottom: '2px solid var(--border-default)' }}>
                                 <th className="text-left px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)', width: '30%' }}>Metric</th>
@@ -387,7 +387,7 @@ const VsAverageView = ({
 
     return (
         <div className="rounded-[var(--radius-md)] overflow-x-auto" style={{ border: '1px solid var(--border-default)' }}>
-            <table className="w-full" style={{ borderCollapse: 'collapse' }}>
+            <table className="stats-table w-full" style={{ borderCollapse: 'collapse' }}>
                 <thead>
                     <tr style={{ borderBottom: '2px solid var(--border-default)' }}>
                         <th className="text-left px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Player</th>
