@@ -73,6 +73,7 @@ function App() {
         colorPalette, setColorPalette,
         glassSurfaces, setGlassSurfaces,
         glassmorphic, setGlassmorphic,
+        axiDesign, setAxiDesign,
         particlesEnabled, setParticlesEnabled,
         webhooks, setWebhooks,
         selectedWebhookId, setSelectedWebhookId,
@@ -1217,7 +1218,7 @@ function App() {
         ...filePickerState, logDirectory
     }), [filePickerState, logDirectory]);
     const appLayoutCtx = useMemo(() => ({
-        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, axilogCoverage, handleLogsHealed, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, glassmorphic, setGlassmorphic, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, setR2HostingEnabled, setR2SliceEnabled, refreshR2Status, setParserSettings, parserSettings, setParserSetting, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, howToTrigger, handleHowToConsumed, isBulkUploadActive, enabledWebhookIds, handleSetDestinationEnabled, handleSaveWebhooks, logDirectory, handleSelectDirectory
+        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, axilogCoverage, handleLogsHealed, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, glassSurfaces, setGlassSurfaces, glassmorphic, setGlassmorphic, axiDesign, setAxiDesign, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, setR2HostingEnabled, setR2SliceEnabled, refreshR2Status, setParserSettings, parserSettings, setParserSetting, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, howToTrigger, handleHowToConsumed, isBulkUploadActive, enabledWebhookIds, handleSetDestinationEnabled, handleSaveWebhooks, logDirectory, handleSelectDirectory
     }), [
         shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded,
         updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason,
@@ -1225,7 +1226,7 @@ function App() {
         logsForStats, mvpWeights, disruptionMethod, statsViewSettings,
         computedStats, computedSkillUsageData, aggregationProgress,
         aggregationDiagnostics, axilogCoverage, handleLogsHealed,
-        statsDataProgress, colorPalette, glassSurfaces, glassmorphic, particlesEnabled,
+        statsDataProgress, colorPalette, glassSurfaces, glassmorphic, axiDesign, particlesEnabled,
         selectedWebhookId, developerSettingsTrigger, helpUpdatesFocusTrigger, parserSettingsFocusTrigger,
         parserSettings, setParserSetting,
         activityPanel, configurationPanel, filePickerCtx,

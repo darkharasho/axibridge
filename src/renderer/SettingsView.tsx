@@ -79,6 +79,7 @@ const IMPORT_SETTING_META: Array<{ key: string; label: string; description: stri
     { key: 'colorPalette', label: 'Color Palette', description: 'Accent color palette for the UI.', section: 'Application' },
     { key: 'glassSurfaces', label: 'Glass Surfaces', description: 'Enable frosted-glass card surfaces.', section: 'Application' },
     { key: 'glassmorphic', label: 'Lillifox Mode', description: 'Aurora background with rounded glass cards (legacy look).', section: 'Application' },
+    { key: 'axiDesign', label: 'Axi Design', description: 'Flat, outlined surfaces with hard offset blocks and a left rail.', section: 'Application' },
     { key: 'particlesEnabled', label: 'Particle Effects', description: 'Enable particle animations and effects.', section: 'Application' },
     { key: 'embedStatSettings', label: 'Discord Stat Toggles', description: 'Discord summary sections and top stat lists.', section: 'Stats' },
     { key: 'mvpWeightProfiles', label: 'MVP Weights', description: 'Score weighting for MVP.', section: 'Stats' },
@@ -116,6 +117,7 @@ interface SettingsViewProps {
     onColorPaletteSaved?: (palette: ColorPalette) => void;
     onGlassSurfacesSaved?: (glass: boolean) => void;
     onGlassmorphicSaved?: (glass: boolean) => void;
+    onAxiDesignSaved?: (enabled: boolean) => void;
     onParticlesEnabledSaved?: (enabled: boolean) => void;
     onAllowLocalJsonSaved?: (enabled: boolean) => void;
     /** Keeps App's copy (the dashboard Quick Settings card) in sync with edits made here. */
@@ -128,6 +130,7 @@ interface SettingsViewProps {
     colorPalette?: ColorPalette;
     glassSurfaces?: boolean;
     glassmorphic?: boolean;
+    axiDesign?: boolean;
     particlesEnabled?: boolean;
     developerSettingsTrigger?: number;
     isBulkUploadActive?: boolean;
@@ -216,7 +219,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onParserSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2SliceEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed, webhooks, enabledWebhookIds, onSaveWebhooks, onSetDestinationEnabled, logDirectory, onChangeLogDirectory }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onAxiDesignSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onParserSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2SliceEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, axiDesign: axiDesignProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed, webhooks, enabledWebhookIds, onSaveWebhooks, onSetDestinationEnabled, logDirectory, onChangeLogDirectory }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [dpsReportEnabled, setDpsReportEnabled] = useState<boolean>(true);
@@ -232,6 +235,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [colorPalette, setColorPalette] = useState<ColorPalette>(colorPaletteProp ?? DEFAULT_PALETTE_ID);
     const [glassSurfaces, setGlassSurfaces] = useState(glassSurfacesProp ?? false);
     const [glassmorphic, setGlassmorphic] = useState(glassmorphicProp ?? false);
+    const [axiDesign, setAxiDesign] = useState(axiDesignProp ?? false);
     const [particlesEnabled, setParticlesEnabled] = useState(particlesEnabledProp ?? true);
     const [allowLocalJson, setAllowLocalJson] = useState(false);
     const [parserSettings, setParserSettings] = useState<IParserSettings | null>(null);
@@ -555,6 +559,9 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         if (typeof settings.glassSurfaces === 'boolean') {
             setGlassSurfaces(settings.glassSurfaces);
         }
+        if (typeof settings.axiDesign === 'boolean') {
+            setAxiDesign(settings.axiDesign);
+        }
         if (typeof settings.glassmorphic === 'boolean') {
             setGlassmorphic(settings.glassmorphic);
         }
@@ -835,6 +842,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         colorPalette,
         glassSurfaces,
         glassmorphic,
+        axiDesign,
         githubRepoOwner,
         githubRepoName,
         githubToken,
@@ -1007,6 +1015,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             colorPalette,
             glassSurfaces,
             glassmorphic,
+            axiDesign,
             particlesEnabled,
             githubRepoName: githubRepoName || null,
             githubRepoOwner: githubRepoOwner || null,
@@ -1030,6 +1039,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         onColorPaletteSaved?.(colorPalette);
         onGlassSurfacesSaved?.(glassSurfaces);
         onGlassmorphicSaved?.(glassmorphic);
+        onAxiDesignSaved?.(axiDesign);
         onParticlesEnabledSaved?.(particlesEnabled);
         onAllowLocalJsonSaved?.(allowLocalJson);
 
@@ -1059,6 +1069,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         colorPalette,
         glassSurfaces,
         glassmorphic,
+        axiDesign,
         particlesEnabled,
         githubRepoName,
         githubRepoOwner,
@@ -2996,6 +3007,12 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 onChange={(v) => { setGlassmorphic(v); onGlassmorphicSaved?.(v); }}
                                 label="Lillifox Mode"
                                 description="Aurora background, rounded translucent cards — the original AxiBridge look"
+                            />
+                            <Toggle
+                                enabled={axiDesign}
+                                onChange={(v) => { setAxiDesign(v); onAxiDesignSaved?.(v); }}
+                                label="Axi Design"
+                                description="Flat outlined surfaces, hard offset blocks, and a left rail instead of the top tab strip"
                             />
                             <Toggle
                                 enabled={particlesEnabled}

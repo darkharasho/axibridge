@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS,
-    DEFAULT_GLASS_SURFACES, DEFAULT_GLASSMORPHIC, DEFAULT_PARTICLES_ENABLED, DEFAULT_MVP_WEIGHT_PROFILES,
+    DEFAULT_AXI_DESIGN, DEFAULT_GLASS_SURFACES, DEFAULT_GLASSMORPHIC, DEFAULT_PARTICLES_ENABLED, DEFAULT_MVP_WEIGHT_PROFILES,
     DEFAULT_STATS_VIEW_SETTINGS, DisruptionMethod, IEmbedStatSettings, IMvpWeightProfiles,
     IStatsViewSettings,
 } from '../../global.d';
@@ -27,6 +27,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     const [colorPalette, setColorPalette] = useState<ColorPalette>('electric-blue');
     const [glassSurfaces, setGlassSurfaces] = useState(DEFAULT_GLASS_SURFACES);
     const [glassmorphic, setGlassmorphic] = useState(DEFAULT_GLASSMORPHIC);
+    const [axiDesign, setAxiDesign] = useState(DEFAULT_AXI_DESIGN);
     const [particlesEnabled, setParticlesEnabled] = useState(DEFAULT_PARTICLES_ENABLED);
     const [webhooks, setWebhooks] = useState<Webhook[]>([]);
     const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
@@ -101,6 +102,9 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
             if (typeof settings.glassmorphic === 'boolean') {
                 setGlassmorphic(settings.glassmorphic);
             }
+            if (typeof settings.axiDesign === 'boolean') {
+                setAxiDesign(settings.axiDesign);
+            }
             if (typeof settings.particlesEnabled === 'boolean') {
                 setParticlesEnabled(settings.particlesEnabled);
             }
@@ -171,8 +175,9 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         }
         body.classList.toggle('glass-surfaces', glassSurfaces);
         body.classList.toggle('glassmorphic', glassmorphic);
+        body.classList.toggle('axi-design', axiDesign);
         body.classList.toggle('particles-disabled', !particlesEnabled);
-    }, [colorPalette, glassSurfaces, glassmorphic, particlesEnabled]);
+    }, [colorPalette, glassSurfaces, glassmorphic, axiDesign, particlesEnabled]);
 
     return useMemo(() => ({
         logDirectory, setLogDirectory,
@@ -188,6 +193,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         colorPalette, setColorPalette,
         glassSurfaces, setGlassSurfaces,
         glassmorphic, setGlassmorphic,
+        axiDesign, setAxiDesign,
         particlesEnabled, setParticlesEnabled,
         webhooks, setWebhooks,
         selectedWebhookId, setSelectedWebhookId,
@@ -202,7 +208,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         shouldOpenWhatsNew,
     }), [
         logDirectory, notificationType, embedStatSettings, mvpWeights,
-        statsViewSettings, disruptionMethod, allowLocalJson, r2PreciseReplay, r2HostingEnabled, r2SliceEnabled, colorPalette, glassSurfaces, glassmorphic, particlesEnabled,
+        statsViewSettings, disruptionMethod, allowLocalJson, r2PreciseReplay, r2HostingEnabled, r2SliceEnabled, colorPalette, glassSurfaces, glassmorphic, axiDesign, particlesEnabled,
         webhooks, selectedWebhookId, enabledWebhookIds, discordDestinationStatus, handleUpdateSettings, handleSelectDirectory,
         settingsLoaded, whatsNewVersion, whatsNewNotes, walkthroughSeen,
         shouldOpenWhatsNew,

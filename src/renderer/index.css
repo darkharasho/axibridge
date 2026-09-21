@@ -105,6 +105,16 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* The content region below the titlebar: a flex row so a nav rail can sit
+   beside the content. With no rail mounted it is a row of one, which is what
+   the layout was before it existed. */
+.app-body-shell {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+}
+
 /* Palette overrides */
 body.palette-refined-cyan {
   --brand-primary: #5eadd5;

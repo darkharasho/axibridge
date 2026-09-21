@@ -13,6 +13,7 @@ import { UpdateErrorModal } from '../UpdateErrorModal';
 import { WalkthroughModal } from '../WalkthroughModal';
 import { WebhookModal } from '../WebhookModal';
 import { WhatsNewModal } from '../WhatsNewModal';
+import { AxiRail } from './AxiRail';
 import { FilePickerModal } from './FilePickerModal';
 import { WebUploadOverlay } from './WebUploadOverlay';
 import { FightReportHistoryView } from '../FightReportHistoryView';
@@ -62,6 +63,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
         setColorPalette,
         setGlassSurfaces,
         setGlassmorphic,
+        axiDesign,
+        setAxiDesign,
         particlesEnabled,
         setParticlesEnabled,
         handleWebUpload,
@@ -225,7 +228,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
             </div>
 
             <div className="flex items-center px-3 py-1.5 gap-1 border-b shrink-0" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-elevated)' }}>
-                {([
+                {axiDesign ? null : ([
                     { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
                     { id: 'stats' as const, label: 'Stats', icon: BarChart3 },
                     { id: 'commander' as const, label: 'Commander', icon: CommanderIcon },
@@ -359,6 +362,14 @@ export function AppLayout({ ctx }: { ctx: any }) {
             </div>
 
 
+            <div className="app-body-shell">
+            {axiDesign && (
+                <AxiRail
+                    activeView={activeNavView}
+                    onSelectView={handleNavViewChange}
+                    unpublishedCategoryIds={replayPublishing.published ? undefined : UNPUBLISHED_REPLAY}
+                />
+            )}
             <div className={`app-content relative z-10 max-w-none flex-1 w-full min-w-0 flex flex-col min-h-0 ${(view === 'stats' || view === 'history' || view === 'commander') ? 'pt-4 px-4 pb-2 overflow-hidden' : 'p-4 overflow-hidden'}`} style={{ background: 'var(--bg-elevated)' }}>
 
                 {createPortal(
@@ -402,7 +413,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                whole app — header included. With it, the width stops here and
                                `#stats-dashboard-container` scrolls horizontally instead. */
                             <div className="flex-1 min-h-0 min-w-0 flex gap-3">
-                                <CategoryBar unpublishedCategoryIds={replayPublishing.published ? undefined : UNPUBLISHED_REPLAY} />
+                                {!axiDesign && <CategoryBar unpublishedCategoryIds={replayPublishing.published ? undefined : UNPUBLISHED_REPLAY} />}
                                 <div className="flex-1 min-w-0 min-h-0 flex flex-col">
                                     <StatsErrorBoundary>
                                         <StatsView
@@ -446,6 +457,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 onColorPaletteSaved={setColorPalette}
                                 onGlassSurfacesSaved={setGlassSurfaces}
                                 onGlassmorphicSaved={setGlassmorphic}
+                                onAxiDesignSaved={setAxiDesign}
+                                axiDesign={axiDesign}
                                 onParticlesEnabledSaved={setParticlesEnabled}
                                 onAllowLocalJsonSaved={setAllowLocalJson}
                                 onParserSettingsSaved={setParserSettings}
@@ -475,6 +488,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         )}
                     </motion.div>
                 </AnimatePresence>
+            </div>
             </div>
 
             <FilePickerModal ctx={filePickerCtx} isBulkUploadActive={isBulkUploadActive} />
