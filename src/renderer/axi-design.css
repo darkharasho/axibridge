@@ -1988,11 +1988,19 @@ body.axi-design .axi-search-bar {
   border-bottom: var(--axi-border-control) solid var(--axi-ink-line) !important;
   padding: 8px 10px;
 }
-body.axi-design .axi-search-bar input {
+/* The field is the whole well, magnifier included, the way .axi-search draws
+   it on the site: the glyph is inside the outline and takes the accent, so the
+   bar is one object with a mark in it rather than an icon next to a box. */
+body.axi-design .axi-search-field {
   background: var(--axi-ground);
   border: var(--axi-border-control) solid var(--axi-well-line);
   border-radius: var(--axi-radius-sm);
-  padding: 5px 8px;
+}
+body.axi-design .axi-search-icon { color: var(--axi-accent) !important; }
+body.axi-design .axi-search-bar input {
+  background: transparent;
+  border: 0;
+  padding: 6px 8px 6px 32px;
   color: var(--axi-text);
 }
 body.axi-design .axi-search-bar input::placeholder { color: var(--axi-text-faint); }
@@ -2011,6 +2019,30 @@ body.axi-design .axi-search-bar kbd {
   padding: 2px 5px;
   font: 700 10px/1 var(--axi-sans);
 }
+/* The filter row is the toolbar form: outlined controls on the raised bar,
+   with the count sitting at the end as meta rather than as another control. */
+body.axi-design [data-search-pill] {
+  background: var(--axi-ground) !important;
+  border: var(--axi-border-control) solid var(--axi-ink-line) !important;
+  border-radius: var(--axi-radius-sm);
+  color: var(--axi-text-dim) !important;
+  padding: 4px 7px;
+  transition: transform .1s, box-shadow .1s;
+}
+body.axi-design [data-search-pill]:hover {
+  color: var(--axi-text) !important;
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  transform: translate(-2px, -2px);
+}
+/* A pressed pill keeps its fill under the cursor and lifts rather than slides -
+   spelled out because the pressed and hover rules have equal specificity. */
+body.axi-design [data-search-pill][aria-pressed="true"],
+body.axi-design [data-search-pill][aria-pressed="true"]:hover {
+  background: var(--axi-accent) !important;
+  color: var(--axi-accent-ink) !important;
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+body.axi-design [data-search-count] { color: var(--axi-text-faint) !important; }
 body.axi-design .axi-search-results { scrollbar-width: none; }
 body.axi-design .axi-search-results::-webkit-scrollbar { width: 0; height: 0; }
 /* Groups are parted by a rule, the way rows are everywhere else, rather than
@@ -2029,8 +2061,10 @@ body.axi-design [data-search-row] {
   padding: 7px 10px;
 }
 body.axi-design [data-search-row]:hover { background: var(--axi-surface-raised) !important; }
-/* The cursor row is the one thing on this panel claiming to be chosen, and
-   nothing beside it claims the gold, so it takes the fill outright. */
+/* The cursor row takes the fill outright. It shares the gold with a pressed
+   filter pill now, but the two sit in different zones and answer different
+   questions - the pill is what you asked for, the row is where Enter goes -
+   and the row is the larger mark, so the hierarchy still reads. */
 body.axi-design [data-search-row][data-active] {
   background: var(--axi-accent) !important;
   color: var(--axi-accent-ink) !important;

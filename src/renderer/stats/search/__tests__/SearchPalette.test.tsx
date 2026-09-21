@@ -84,6 +84,41 @@ describe('SearchPalette', () => {
         expect(overlay.className).toContain('z-[10000]');
     });
 
+    it('narrows results to one type when a filter pill is pressed', () => {
+        render(<SearchPalette open onClose={() => {}} index={INDEX} onSelect={() => {}} />);
+        // "stab" hits both a section (Stab Performance) and a metric.
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'stab' } });
+        expect(screen.getByText('Stab Performance')).toBeTruthy();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Players', pressed: false }));
+
+        expect(screen.queryByText('Stab Performance')).toBeNull();
+        expect(screen.getByText(/No results for/)).toBeTruthy();
+    });
+
+    it('clears the filter when its own pill is pressed again', () => {
+        render(<SearchPalette open onClose={() => {}} index={INDEX} onSelect={() => {}} />);
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'stab' } });
+        const pill = screen.getByRole('button', { name: 'Players' });
+        fireEvent.click(pill);
+        expect(pill.getAttribute('aria-pressed')).toBe('true');
+        fireEvent.click(pill);
+        expect(pill.getAttribute('aria-pressed')).toBe('false');
+        expect(screen.getByText('Stab Performance')).toBeTruthy();
+    });
+
+    it('says how many matches the result cap is hiding', () => {
+        const { container } = render(<SearchPalette open onClose={() => {}} index={INDEX} onSelect={() => {}} />);
+        const count = () => container.querySelector('[data-search-count]')!.textContent;
+        // A one-letter query matches far more than the 12 the list shows, so the
+        // count has to name the total rather than let 12 pass for the answer.
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'a' } });
+        expect(count()).toMatch(/^12 of \d+$/);
+        // A query with few hits reports them plainly instead.
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Ravi.1234' } });
+        expect(count()).toBe('1 match');
+    });
+
     it('carries the axi-search-panel class the glass theme targets for its opaque override', () => {
         // index.css: `body.glass-surfaces .axi-search-panel { background: rgb(15,18,25) !important }`
         // Glass surfaces are translucent and backdrop blur is unavailable on Linux,
