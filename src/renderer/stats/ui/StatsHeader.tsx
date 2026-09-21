@@ -110,7 +110,10 @@ export const StatsHeader = ({
             transition={{ duration: 1, delay: 0, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3 shrink-0 px-2">
         <div className="flex items-start gap-3 sm:items-center sm:gap-4">
-            <div className="space-y-0">
+            {/* The title and its line of context read as one block, so they were
+                set flush - but at 24px the heading only leaves a few pixels of
+                descender space and the two lines closed up into each other. */}
+            <div className="space-y-1">
                 <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
                     <Trophy className="w-6 h-6 text-yellow-500" />
                     {dashboardTitle || (singleFight ? 'Fight Statistics' : 'Statistics Dashboard')}
