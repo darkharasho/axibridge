@@ -5,7 +5,8 @@ export function InsightCard({ finding }: { finding: DetectorFinding }) {
   const borderColor = finding.side === 'good' ? 'border-l-emerald-500' : 'border-l-rose-500';
   return (
     <div
-      className={`grid grid-cols-[1fr_110px] gap-2.5 items-center rounded-md border-l-4 ${borderColor} p-2.5 mb-2`}
+      data-side={finding.side}
+      className={`insight-card grid grid-cols-[1fr_110px] gap-2.5 items-center rounded-md border-l-4 ${borderColor} p-2.5 mb-2`}
       style={{ background: 'var(--bg-card-inner)' }}
     >
       <div>

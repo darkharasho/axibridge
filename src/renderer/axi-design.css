@@ -303,3 +303,166 @@ body.axi-design .recharts-cartesian-axis-line,
 body.axi-design .recharts-cartesian-axis-tick-line {
   stroke: var(--axi-rule);
 }
+
+/* ---------------------------------------------------------------------------
+   THE SECTIONS
+   Everything below here is the same argument applied to the screens the
+   variable remap could not reach on its own: form weight is a literal in the
+   markup (a 1px border is a 1px border whatever the variables say), and a few
+   places paint colour directly rather than through a token. The components
+   that carry a weight now read it from a variable with their old value as the
+   fallback, so these are the two steps being chosen rather than overridden. */
+
+/* A stats group is a panel: the panel border, the panel block, and a left edge
+   in the category's own hue - the one piece of colour the language hands to
+   the data (rule 10). */
+body.axi-design {
+  --stats-group-border-w: var(--axi-border-panel);
+  --stats-group-accent-w: var(--axi-border-panel);
+  /* Rule 2: a hue at 20% over the ground is a wash. The mark keeps the hue in
+     its icon and takes its ground from the surface above it. */
+  --stats-group-mark-bg: var(--axi-surface-raised);
+}
+body.axi-design .stats-group-container { border-radius: var(--axi-radius); }
+
+/* A pill group is a well with one control in it. The sliding indicator is the
+   fill, so the option riding on top of it has to be ink, not accent. */
+body.axi-design {
+  --pill-group-bg: var(--axi-ground);
+  --pill-group-border: var(--axi-ink-line);
+  --pill-group-border-w: var(--axi-border-control);
+  --pill-group-radius: 8px;
+  --pill-indicator-bg: var(--axi-accent);
+  --pill-indicator-border: var(--axi-ink-line);
+  --pill-indicator-border-w: var(--axi-border-control);
+}
+body.axi-design .pill-toggle-option { color: var(--axi-text-dim); }
+body.axi-design .pill-toggle-option--active { color: var(--axi-accent-ink); }
+
+/* ---------------------------------------------------------------------------
+   THE MVP CARDS
+   These were the loudest thing on the Stats screen: a blurred colour blob
+   behind each card, a glowing ring around each crown, and every surface a
+   tinted wash. Rule 1 takes the blobs, rule 2 takes the washes, and what is
+   left is a card that says who won by being a card with a name in it. */
+body.axi-design .mvp-card__glow { display: none; }
+body.axi-design .mvp-group {
+  background: var(--axi-ground);
+  border-width: var(--axi-border-control);
+  border-radius: var(--axi-radius);
+}
+/* The group's name, sitting on its edge: outlined, because it annotates the
+   group rather than measuring anything in it (rule 5). */
+body.axi-design .mvp-group-label {
+  background: var(--axi-surface);
+  border-width: var(--axi-border-control);
+  border-radius: var(--axi-radius-sm);
+  padding: 2px 8px;
+}
+body.axi-design .mvp-card {
+  background: var(--axi-surface);
+  border-width: var(--axi-border-control);
+  border-color: var(--axi-ink-line);
+  border-radius: var(--axi-radius);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+/* Gold is the one card that gets the accent, and it gets it as an outline
+   rather than a fill: the fill is reserved for the thing you picked, and you
+   did not pick the MVP - the data did. */
+body.axi-design .mvp-card--gold { border-color: var(--axi-accent); }
+body.axi-design .mvp-gold-icon-ring {
+  background: var(--axi-surface-raised);
+  border-width: var(--axi-border-control);
+  border-color: var(--axi-ink-line);
+  box-shadow: none;
+}
+body.axi-design .mvp-gold-icon-badge {
+  background: var(--axi-accent);
+  color: var(--axi-accent-ink);
+  border-width: var(--axi-border-control);
+  border-color: var(--axi-ink-line);
+}
+body.axi-design .mvp-gold-icon-badge svg { color: var(--axi-accent-ink); }
+
+/* ---------------------------------------------------------------------------
+   THE COMMANDER VIEW
+   Same two steps. The cards here already read their colours from tokens, so
+   what they needed was the weight and, for the chips, a decision about which
+   of the two ways of carrying colour they are. */
+body.axi-design .commander-panel,
+body.axi-design .commander-metric,
+body.axi-design .insight-card {
+  border-width: var(--axi-border-control);
+  border-color: var(--axi-ink-line);
+  border-radius: var(--axi-radius);
+}
+body.axi-design .commander-panel {
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+/* The severity stripe and the good/bad edge are measurements of the row they
+   sit on, so they stay - at the panel weight, which is the only other weight
+   the language has. */
+body.axi-design .commander-metric,
+body.axi-design .insight-card { border-left-width: var(--axi-border-panel); }
+body.axi-design .commander-metric[data-severity='green'] { border-left-color: var(--axi-ok); }
+body.axi-design .commander-metric[data-severity='yellow'] { border-left-color: var(--axi-warn); }
+body.axi-design .commander-metric[data-severity='red'] { border-left-color: var(--axi-danger); }
+body.axi-design .insight-card[data-side='good'] { border-left-color: var(--axi-ok); }
+body.axi-design .insight-card[data-side='bad'] { border-left-color: var(--axi-danger); }
+
+/* A verdict chip is a status, and rule 5 says a status is filled. Filled means
+   ink text on the status colour, which is also what makes eight chips in a row
+   legible at 10px. */
+body.axi-design .commander-chip {
+  color: var(--axi-ink-line);
+  border-width: var(--axi-border-hairline);
+  border-color: var(--axi-ink-line);
+  border-radius: var(--axi-radius-sm);
+}
+body.axi-design .commander-chip[data-verdict='wipe'],
+body.axi-design .commander-chip[data-verdict='bomb-broke-us'] { background: var(--axi-danger); }
+body.axi-design .commander-chip[data-verdict='trade'],
+body.axi-design .commander-chip[data-verdict='outnumbered'] { background: var(--axi-warn); }
+body.axi-design .commander-chip[data-verdict='carry'],
+body.axi-design .commander-chip[data-verdict='clean'] { background: var(--axi-ok); }
+body.axi-design .commander-chip[data-verdict='caught-engage'],
+body.axi-design .commander-chip[data-verdict='caught-out'] { background: var(--axi-meta); }
+
+/* A leader tile is a card you can press, so it takes the control block and
+   moves under the press the way every other control does. */
+body.axi-design .leader-card {
+  background: var(--axi-surface);
+  border-width: var(--axi-border-control);
+  border-color: var(--axi-ink-line) !important;
+  border-radius: var(--axi-radius);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+body.axi-design .leader-card:hover {
+  box-shadow: var(--axi-offset-control-hover) var(--axi-offset-control-hover) 0 var(--axi-ink-line);
+}
+/* The open tile is the one you picked: accent outline, no ring. */
+body.axi-design .leader-card--active {
+  border-color: var(--axi-accent) !important;
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  --tw-ring-color: transparent;
+}
+
+/* The stat rows inside an MVP card. Each one is a label and a number, which is
+   a reading - so it is drawn as one: the ground, the control outline, and no
+   hue behind the number (rule 2). */
+body.axi-design .mvp-stat-pill {
+  background: var(--axi-ground);
+  border-width: var(--axi-border-control);
+  border-color: var(--axi-ink-line);
+  border-radius: var(--axi-radius-sm);
+}
+
+/* The profession beside an MVP's name is a label on the player, not a reading
+   about them: outlined, in the annotation colour, at the hairline weight. */
+body.axi-design .mvp-profession-chip {
+  background: transparent;
+  color: var(--axi-text-dim);
+  border-width: var(--axi-border-hairline);
+  border-color: var(--axi-rule);
+  border-radius: var(--axi-radius-sm);
+}
