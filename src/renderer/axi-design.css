@@ -1037,7 +1037,7 @@ body.axi-design .commander-chip[data-verdict='caught-out'] { background: var(--a
 body.axi-design .leader-card {
   background: var(--axi-surface);
   border-width: var(--axi-border-control);
-  border-color: var(--axi-ink-line) !important;
+  border-color: var(--axi-ink-line);
   border-radius: var(--axi-radius);
   box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
 }
@@ -1046,7 +1046,7 @@ body.axi-design .leader-card:hover {
 }
 /* The open tile is the one you picked: accent outline, no ring. */
 body.axi-design .leader-card--active {
-  border-color: var(--axi-accent) !important;
+  border-color: var(--axi-accent);
   box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
   --tw-ring-color: transparent;
 }
@@ -2198,15 +2198,12 @@ body.axi-design .slice-card > input[type='checkbox'] {
    A jump chip is the same claim as a category in the left nav - where you are
    in the report - so it is drawn the same way: quiet until it is the section
    you are reading, then filled with the accent and standing on its block. */
-/* The !important here and below is not emphasis: index.css closes out its own
-   theming with `.border-white\/10 { border-color: … !important }`, so a plain
-   declaration in this file loses to it however late it sits. */
 body.axi-design .mobile-jump-chips > button {
   background-image: none;
   background-color: var(--axi-surface);
   border-width: var(--axi-border-control);
   border-style: solid;
-  border-color: var(--axi-ink-line) !important;
+  border-color: var(--axi-ink-line);
   border-radius: var(--axi-radius-sm);
   box-shadow: none;
   color: var(--axi-text-dim);
@@ -2221,7 +2218,7 @@ body.axi-design .mobile-jump-chips > button[data-on] {
    shape and loses the edge. */
 body.axi-design .mobile-jump-chip-icon {
   background-color: transparent;
-  border-color: transparent !important;
+  border-color: transparent;
   border-radius: var(--axi-radius-sm);
 }
 /* The icon is drawn in the brand colour, which here is the accent, so on the
@@ -2237,7 +2234,7 @@ body.axi-design .mobile-action-bar > div {
   background-color: var(--axi-surface);
   border-width: var(--axi-border-panel);
   border-style: solid;
-  border-color: var(--axi-ink-line) !important;
+  border-color: var(--axi-ink-line);
   border-radius: var(--axi-radius);
   /* The bar is four labelled actions across 393px and every label is one
      unbreakable word, so the edges this language adds have to come out of the
@@ -2251,7 +2248,7 @@ body.axi-design .mobile-action-bar > div > button {
   background-color: var(--axi-ground);
   border-width: var(--axi-border-hairline);
   border-style: solid;
-  border-color: var(--axi-well-line) !important;
+  border-color: var(--axi-well-line);
   border-radius: var(--axi-radius-sm);
   color: var(--axi-text-dim);
 }
