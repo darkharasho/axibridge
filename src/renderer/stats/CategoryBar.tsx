@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronDown, CloudOff } from 'lucide-react';
 import { STATS_CATEGORIES } from './statsTaxonomy';
-import { useStatsStore } from './statsStore';
+import { useCategoryNavigation } from './useCategoryNavigation';
 import { SectionSubnav } from './SectionSubnav';
 
 const COLLAPSED_W = 72;
@@ -33,13 +33,10 @@ export interface CategoryBarProps {
  * accordion — the active category IS the open one).
  */
 export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed, unpublishedCategoryIds }: CategoryBarProps) {
-    const activeCategory = useStatsStore((s) => s.activeCategory);
-    const setActiveCategory = useStatsStore((s) => s.setActiveCategory);
     // Active-section highlight comes from the store, not local click-only state, so
     // it follows the desktop scroll-spy (useStatsNavigation) and every jump
     // (search palette, data map, subnav) — see statsStore.activeSectionId.
-    const activeSectionId = useStatsStore((s) => s.activeSectionId);
-    const setActiveSectionId = useStatsStore((s) => s.setActiveSectionId);
+    const { activeCategory, activeSectionId, handleCategoryClick, handleSectionClick } = useCategoryNavigation();
     const [isHovered, setIsHovered] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -70,41 +67,6 @@ export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed, unpub
         const sectionIds = activeCategoryDef.sections.map((s) => s.id);
         onSectionVisibilityChange((id: string) => sectionIds.includes(id));
     }, [activeCategoryDef, onSectionVisibilityChange]);
-
-    // Retry pattern copied from the old sidebar: the target section may not
-    // be mounted yet (category switch can unmount/remount sections), so poll a few
-    // animation frames until it shows up.
-    const scrollToSection = useCallback((id: string) => {
-        let attempts = 0;
-        const run = () => {
-            const container = document.getElementById('stats-dashboard-container');
-            const node = document.getElementById(id);
-            if (!(container instanceof HTMLElement) || !(node instanceof HTMLElement)) {
-                if (attempts++ < 10) requestAnimationFrame(run);
-                return;
-            }
-            node.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        };
-        requestAnimationFrame(run);
-    }, []);
-
-    const handleCategoryClick = useCallback((categoryId: string) => {
-        // Already active — its subnav is already showing, don't yank the scroll
-        // position back to the first section.
-        if (categoryId === activeCategory) return;
-        const category = STATS_CATEGORIES.find((c) => c.id === categoryId);
-        const targetId = category?.sections[0]?.id;
-        setActiveCategory(categoryId);
-        if (targetId) {
-            setActiveSectionId(targetId);
-            scrollToSection(targetId);
-        }
-    }, [activeCategory, scrollToSection, setActiveCategory]);
-
-    const handleSectionClick = useCallback((sectionId: string) => {
-        setActiveSectionId(sectionId);
-        scrollToSection(sectionId);
-    }, [scrollToSection]);
 
     const expanded = isHovered;
 

@@ -1,0 +1,290 @@
+/* AxiBridge in the axi design language.
+   ---------------------------------------------------------------------------
+   The app is already drawn entirely through the CSS variables declared in
+   index.css, so the whole of the flat/outlined look is a remap of those
+   variables rather than a rewrite of any component. Everything here is scoped
+   to body.axi-design and is inert with the setting off.
+
+   Two halves:
+   1. the axi tokens themselves, copied from axi-design/src/tokens.css. They
+      live on body rather than :root deliberately - a stray --axi-* reference
+      in an untoggled app should resolve to nothing, not to half a theme.
+   2. the remap: every AxiBridge variable pointed at the token that carries the
+      same meaning. Where the two languages disagree, axi wins, and the reason
+      is written down beside the line. */
+
+body.axi-design {
+  /* --- axi tokens: surface & text --- */
+  --axi-ground: #15181d;
+  --axi-surface: #222731;
+  --axi-surface-raised: #2b313d;
+  --axi-ink-line: #0c0e12;
+  --axi-rule: #3a4250;
+  --axi-text: #f4f6f9;
+  --axi-text-dim: #a7b0be;
+  --axi-text-faint: #7c8695;
+  --axi-scrim: rgba(6, 7, 9, .72);
+
+  /* --- axi tokens: accent & status --- */
+  --axi-accent: #ffc53d;
+  --axi-accent-ink: var(--axi-ink-line);
+  --axi-meta: #4ec3ff;
+  --axi-ok: #2fd38a;
+  --axi-warn: #ff7a2f;
+  --axi-danger: #ff5252;
+
+  /* --- axi tokens: form --- */
+  --axi-border-panel: 4px;
+  --axi-offset-panel: 6px;
+  --axi-border-control: 3px;
+  --axi-offset-control: 3px;
+  --axi-offset-panel-hover: 10px;
+  --axi-offset-control-hover: 6px;
+  --axi-border-hairline: 2px;
+  --axi-radius: 10px;
+  --axi-radius-sm: 6px;
+  --axi-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* --- remap: surfaces --- */
+  /* bg-card-inner is the ground rather than a third surface: in axi a thing
+     sunk inside a panel goes back down to the page colour, which is what makes
+     a stat tile read as content instead of as another floating card. */
+  --bg-base: var(--axi-ground);
+  --bg-elevated: var(--axi-surface);
+  --bg-card: var(--axi-surface);
+  --bg-card-inner: var(--axi-ground);
+  --bg-input: var(--axi-ground);
+  /* Rule 2: no colour at partial opacity over the ground. The app's hover is a
+     5% white wash; here it is the next surface up the neutral ramp. */
+  --bg-hover: var(--axi-surface-raised);
+
+  /* --- remap: borders --- */
+  /* Every border in this language is opaque and near-black. The app's three
+     weights collapse onto two inks: the ink line for anything that outlines a
+     raised element, the rule for a line drawn inside one. */
+  --border-subtle: var(--axi-rule);
+  --border-default: var(--axi-ink-line);
+  --border-hover: var(--axi-accent);
+
+  /* --- remap: text --- */
+  --text-primary: var(--axi-text);
+  --text-secondary: var(--axi-text-dim);
+  --text-muted: var(--axi-text-faint);
+  --text-inverse: var(--axi-accent-ink);
+
+  /* --- remap: accent --- */
+  /* The gradient resolves to the flat accent: a gradient used as decoration is
+     the one thing rule 1 forbids outright, and every consumer of this variable
+     accepts a plain colour. */
+  --brand-primary: var(--axi-accent);
+  --brand-secondary: var(--axi-accent);
+  --brand-gradient: var(--axi-accent);
+  /* accent-bg is used as a tint behind accent-coloured text, which rule 2 does
+     not allow. It becomes an opaque neutral, so the accent stays in the text
+     where it is doing the work. */
+  --accent-bg: var(--axi-surface-raised);
+  --accent-bg-strong: var(--axi-surface-raised);
+  --accent-border: var(--axi-accent);
+  /* Nothing glows. A glow is an element lit from inside, which is the opposite
+     of a flat fill with a hard block behind it. */
+  --glow-primary: transparent;
+  --glow-secondary: transparent;
+
+  /* --- remap: shadows --- */
+  /* The hard offset block, at the step each surface sits at: a card and a
+     dropdown are panels, a button is a control. Every soft shadow in the app
+     resolves to one of these two, so no component has to know. */
+  --shadow-card: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+  --shadow-button: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  --shadow-dropdown: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+
+  /* --- remap: radius --- */
+  --radius-sm: var(--axi-radius-sm);
+  --radius-md: 8px;
+  --radius-lg: var(--axi-radius);
+  --window-radius: var(--axi-radius);
+
+  /* --- remap: status --- */
+  /* Rule 5: filled means status. The status inks keep their jobs; only their
+     translucent backgrounds change, for the same reason accent-bg did. */
+  --status-success: var(--axi-ok);
+  --status-success-muted: var(--axi-ok);
+  --status-success-bg: var(--axi-surface-raised);
+  --status-success-border: var(--axi-ok);
+  --status-error: var(--axi-danger);
+  --status-error-muted: var(--axi-danger);
+  --status-error-bg: var(--axi-surface-raised);
+  --status-error-border: var(--axi-danger);
+  --status-warning: var(--axi-warn);
+  --status-warning-muted: var(--axi-warn);
+  --status-warning-bg: var(--axi-surface-raised);
+  --status-warning-border: var(--axi-warn);
+  /* meta is the one cool ink, and info is exactly what it is for. */
+  --status-info: var(--axi-meta);
+  --status-info-bg: var(--axi-surface-raised);
+  --status-info-border: var(--axi-meta);
+
+  /* --- remap: section accents --- */
+  /* Rule 10's third case: past two series the data owns its palette. Eleven
+     stats categories are a domain palette, so the hues stay; only the washes
+     behind them go opaque. */
+  --section-offense-bg: var(--axi-surface-raised);
+  --section-defense-bg: var(--axi-surface-raised);
+  --section-mitigation-bg: var(--axi-surface-raised);
+  --section-support-bg: var(--axi-surface-raised);
+  --section-healing-bg: var(--axi-surface-raised);
+  --section-boon-bg: var(--axi-surface-raised);
+
+  /* --- remap: scrollbar --- */
+  --scrollbar-track: var(--axi-ground);
+  --scrollbar-thumb: var(--axi-rule);
+  --scrollbar-thumb-hover: var(--axi-text-faint);
+
+  background: var(--axi-ground);
+  color: var(--axi-text);
+}
+
+/* The window is the most raised element on the screen, so it takes the panel
+   outline and no block - a block is an element's shadow on the surface behind
+   it, and there is nothing behind a window we are entitled to draw on. */
+body.axi-design .app-shell {
+  background: var(--axi-ground);
+  border: var(--axi-border-panel) solid var(--axi-ink-line);
+}
+
+/* The titlebar is the outline widened into a strip, which is what makes the
+   app's content read as sitting inside the outline rather than under a second
+   toolbar. */
+body.axi-design .app-titlebar {
+  background: var(--axi-ink-line);
+  border-bottom-color: var(--axi-ink-line);
+}
+
+/* Focus is accent-coloured and thick enough to read against a near-black
+   outline, which a 1px ring does not. */
+body.axi-design :focus-visible {
+  outline: var(--axi-border-control) solid var(--axi-accent);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+   THE RAIL
+   Eleven stats categories on top of five app views is more than a horizontal
+   strip holds. The rail is the one structural division on the screen, so it
+   gets the panel weight, and nothing inside it is outlined except the item
+   that is on. */
+body.axi-design .axi-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: var(--axi-rail-w, 232px);
+  flex: none;
+  padding: 14px 12px;
+  overflow-y: auto;
+  background: var(--axi-surface);
+  border-right: var(--axi-border-panel) solid var(--axi-ink-line);
+}
+body.axi-design .axi-rail__nav { display: flex; flex-direction: column; gap: 3px; }
+body.axi-design .axi-rail__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  font: 800 13.5px/1 var(--axi-sans);
+  color: var(--axi-text-dim);
+  text-align: left;
+  background: transparent;
+  border: var(--axi-border-control) solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+}
+body.axi-design .axi-rail__item:hover { color: var(--axi-text); background: var(--axi-surface-raised); }
+/* Same treatment as a pressed pill and a current tab: this one is on. Only
+   ever one of these on screen. */
+body.axi-design .axi-rail__item[aria-current='page'],
+body.axi-design .axi-rail__item[aria-current='page']:hover {
+  background: var(--axi-accent);
+  color: var(--axi-accent-ink);
+  border-color: var(--axi-ink-line);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+/* The view you are inside, when the thing that is on is one of its children.
+   Brightened text and nothing else: an ancestor is context, not a selection,
+   and a second gold item would be a second answer to "where am I". */
+body.axi-design .axi-rail__item[data-open] { color: var(--axi-text); }
+/* The open view's children, drawn as a well rather than an indent: the ground
+   colour with the control outline, which is the same treatment a stat tile
+   gets - flat content sunk into the surface around it. An indent alone was not
+   legible at this type size, and a spine was a new kind of line the language
+   does not otherwise draw. */
+body.axi-design .axi-rail__sub {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 4px 0 4px 10px;
+  padding: 6px;
+  background: var(--axi-ground);
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: 8px;
+}
+body.axi-design .axi-rail__sub .axi-rail__item { padding: 7px 10px; font-size: 12.5px; font-weight: 700; }
+body.axi-design .axi-rail__sub .axi-rail__item:hover { background: var(--axi-surface); }
+/* The third level: the sections inside the open category. It gets no well and
+   no fill. The gold category answers "where am I"; a section is where the page
+   happens to be scrolled to, which is a smaller claim and is drawn as one -
+   brightened text against the dim list around it. */
+body.axi-design .axi-rail__sections {
+  display: flex;
+  flex-direction: column;
+  margin: 2px 0 4px 10px;
+}
+body.axi-design .axi-rail__section {
+  padding: 5px 8px;
+  font: 700 11.5px/1.3 var(--axi-sans);
+  text-align: left;
+  color: var(--axi-text-faint);
+  background: transparent;
+  border: 0;
+  border-radius: var(--axi-radius-sm);
+  cursor: pointer;
+}
+body.axi-design .axi-rail__section:hover { color: var(--axi-text-dim); background: var(--axi-surface); }
+body.axi-design .axi-rail__section[data-on] { color: var(--axi-text); }
+
+/* An annotation, not a status: rule 5 says an outline is what marks something
+   the app knows *about* the data rather than a measurement of it. */
+body.axi-design .axi-rail__mark {
+  margin-left: auto;
+  padding: 2px 5px;
+  font: var(--axi-t-micro, 800 11px/1 var(--axi-sans));
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--axi-meta);
+  border: var(--axi-border-hairline) solid var(--axi-meta);
+  border-radius: 4px;
+}
+
+body.axi-design .axi-rail__foot { margin-top: auto; }
+body.axi-design .axi-rail__shell { flex: 1; display: flex; min-height: 0; }
+body.axi-design .axi-rail__main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+/* ---------------------------------------------------------------------------
+   THE CUT
+   An ink line wherever one fill meets the next. It is not a third form step,
+   it is the same outline the shape already carries continued inward, which is
+   why it can be drawn at one weight - the control step - at every size.
+   The app draws its charts with recharts, so the cut is a stroke rather than a
+   border, but it is the same line: every sector and every bar segment is
+   separated from its neighbour by the ink the chart is outlined in. */
+body.axi-design .recharts-sector,
+body.axi-design .recharts-rectangle {
+  stroke: var(--axi-ink-line);
+  stroke-width: var(--axi-border-control);
+}
+/* A chart's structure is drawn in rules, its data in ink. */
+body.axi-design .recharts-cartesian-grid line,
+body.axi-design .recharts-cartesian-axis-line,
+body.axi-design .recharts-cartesian-axis-tick-line {
+  stroke: var(--axi-rule);
+}
