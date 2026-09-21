@@ -52,6 +52,7 @@ export function useFilePicker({
 
     const [filePickerError, setFilePickerError] = useState<string | null>(null);
     const [filePickerLoading, setFilePickerLoading] = useState(false);
+    const [filePickerSubmitting, setFilePickerSubmitting] = useState(false);
     const [filePickerAtBottom, setFilePickerAtBottom] = useState(false);
 
     // Keyboard navigation
@@ -243,12 +244,25 @@ export function useFilePicker({
         setFilePickerSelected(new Set(matching.map((entry) => entry.path)));
     };
 
+    // Inserting the optimistic rows and closing the modal land in the same React
+    // batch, so the modal cannot disappear until the activity list has rendered
+    // every new row - a second or more for a few hundred files, with nothing on
+    // screen to say the click registered. Split in two: flip the busy state,
+    // let it paint, then do the work.
     const handleAddSelectedFiles = () => {
+        if (filePickerSubmitting) return;
         const files = Array.from(filePickerSelected);
         if (!files.length) {
             setFilePickerError('Select at least one log file.');
             return;
         }
+        setFilePickerSubmitting(true);
+        // Two frames, not one: the first only commits the busy render, the
+        // second runs after the browser has actually painted it.
+        requestAnimationFrame(() => requestAnimationFrame(() => commitSelectedFiles(files)));
+    };
+
+    const commitSelectedFiles = (files: string[]) => {
         const optimisticLogs: ILogData[] = [];
         files.forEach((filePath) => {
             const fileName = filePath.split(/[\\/]/).pop() || filePath;
@@ -283,6 +297,7 @@ export function useFilePicker({
         setFilePickerSelected(new Set());
         setFilePickerError(null);
         setActivePreset(null);
+        setFilePickerSubmitting(false);
     };
 
     return {
@@ -330,6 +345,7 @@ export function useFilePicker({
         setFilePickerMonthWindow,
         ensureMonthWindowForSince,
         handleAddSelectedFiles,
+        filePickerSubmitting,
         focusedIndex,
         setFocusedIndex,
         activePreset,

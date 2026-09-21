@@ -2335,3 +2335,33 @@ body.axi-design .mobile-action-bar > div > button {
 }
 body.axi-design .mobile-action-bar > div > a svg,
 body.axi-design .mobile-action-bar > div > button svg { color: var(--axi-text-faint); }
+
+/* The two step spinners, redrawn. Nothing in this language sweeps, blurs or
+   eases, so a spinner here cannot be a rotating arc with a fading tail - it
+   has to count. Both forms keep their base markup and take the ink edge:
+
+   - the cell march is a sunken well with four cells, the accent occupying one
+     at a time, which is the shape of a queue draining;
+   - the quarter snap is one accent mark with an ink notch, turning 90 degrees
+     a beat.
+
+   The cell march is what the log picker uses; the snap is here as the other
+   option for a spot too narrow for four cells. */
+body.axi-design .axi-step-spinner {
+  /* Off cells sit on the ground, and --border-default is the ink line here -
+     black on black. The rule is the line a well gets, so it is the one that
+     reads. */
+  --step-off: var(--axi-rule);
+  background: var(--axi-ground);
+  border: var(--axi-border-hairline) solid var(--axi-ink-line);
+  border-radius: 2px;
+}
+body.axi-design .axi-step-spinner > i { border-radius: 0; }
+
+body.axi-design .axi-snap-spinner {
+  border: var(--axi-border-hairline) solid var(--axi-ink-line);
+  border-radius: 2px;
+}
+/* The notch is cut in ink rather than in the surface behind it, so the mark
+   keeps its shape wherever it is placed. */
+body.axi-design .axi-snap-spinner::after { background: var(--axi-ink-line); }
