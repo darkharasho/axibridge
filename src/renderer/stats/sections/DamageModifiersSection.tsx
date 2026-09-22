@@ -147,7 +147,7 @@ export const DamageModifiersSection = ({
     return (
         <div
             className={`${isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
-            style={isExpanded ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
+            style={isExpanded ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
         >
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 {incoming
@@ -473,8 +473,9 @@ const CollapsedView = ({
                                                 <div key={`${row.account}-${idx}`} className={`relative border-b border-[color:var(--border-subtle)] ${activeModIsHypothetical ? 'opacity-50' : ''}`}>
                                                     {/* Bar overlay — negative grows from right, positive from left */}
                                                     <div
-                                                        className={`absolute inset-y-0 pointer-events-none ${isNegative ? 'right-0' : 'left-0'}`}
-                                                        style={{ width: `${barWidthPct}%`, background: barStyle }}
+                                                        className={`row-quantity-bar absolute inset-y-0 pointer-events-none ${isNegative ? 'right-0' : 'left-0'}`}
+                                                        data-sign={isNegative ? 'neg' : incoming ? 'incoming' : 'gain'}
+                                                        style={{ width: `${barWidthPct}%`, background: `var(--row-bar-fill, ${barStyle})` }}
                                                     />
                                                     {/* Row content */}
                                                     <div className="relative grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] px-3 py-2 text-xs text-[color:var(--text-primary)]">
@@ -642,7 +643,7 @@ const ExpandedView = ({
                                     type="button"
                                     onClick={() => setSelectedColumnIds((prev) => prev.filter((e) => e !== id))}
                                     className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                    style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
+                                    style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
                                 >
                                     <span>{label}</span>
                                     <span style={{ color: 'var(--text-secondary)' }}>&times;</span>
@@ -655,7 +656,7 @@ const ExpandedView = ({
                                 type="button"
                                 onClick={() => setSelectedPlayers((prev) => prev.filter((e) => e !== id))}
                                 className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
+                                style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
                             >
                                 <span>{id}</span>
                                 <span style={{ color: 'var(--text-secondary)' }}>&times;</span>

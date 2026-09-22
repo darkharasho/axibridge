@@ -52,6 +52,7 @@ export function useFilePicker({
 
     const [filePickerError, setFilePickerError] = useState<string | null>(null);
     const [filePickerLoading, setFilePickerLoading] = useState(false);
+    const [filePickerSubmitting, setFilePickerSubmitting] = useState(false);
     const [filePickerAtBottom, setFilePickerAtBottom] = useState(false);
 
     // Keyboard navigation
@@ -243,12 +244,32 @@ export function useFilePicker({
         setFilePickerSelected(new Set(matching.map((entry) => entry.path)));
     };
 
+    // A callback that runs once the pending render is actually on screen. Two
+    // frames, not one: a frame scheduled from inside an event handler still
+    // runs before that frame's paint, so the first one would fire with the new
+    // markup laid out but not yet drawn.
+    const afterPaint = (fn: () => void) => {
+        requestAnimationFrame(() => requestAnimationFrame(fn));
+    };
+
+    // The click itself only goes busy, so the press has an answer on the next
+    // frame; the insert and the close follow once that frame is on screen.
+    // They used to be the same batch as the click, which is what made the modal
+    // sit there - though the weight was never the insert itself. See the
+    // viewport fallback in App's logListVirtualization for what actually cost
+    // the second.
     const handleAddSelectedFiles = () => {
+        if (filePickerSubmitting) return;
         const files = Array.from(filePickerSelected);
         if (!files.length) {
             setFilePickerError('Select at least one log file.');
             return;
         }
+        setFilePickerSubmitting(true);
+        afterPaint(() => commitSelectedFiles(files));
+    };
+
+    const commitSelectedFiles = (files: string[]) => {
         const optimisticLogs: ILogData[] = [];
         files.forEach((filePath) => {
             const fileName = filePath.split(/[\\/]/).pop() || filePath;
@@ -264,11 +285,14 @@ export function useFilePicker({
         });
 
         setLogs((currentLogs) => {
+            // Was a full scan of the existing logs per selected file. Everything
+            // that happens on this path is main-thread time the user watches.
+            const seen = new Set(currentLogs.map((l) => l.filePath));
             const newLogs = [...currentLogs];
             optimisticLogs.forEach((optLog) => {
-                if (!newLogs.some((l) => l.filePath === optLog.filePath)) {
-                    newLogs.unshift(optLog);
-                }
+                if (seen.has(optLog.filePath)) return;
+                seen.add(optLog.filePath);
+                newLogs.unshift(optLog);
             });
             return newLogs;
         });
@@ -283,6 +307,7 @@ export function useFilePicker({
         setFilePickerSelected(new Set());
         setFilePickerError(null);
         setActivePreset(null);
+        setFilePickerSubmitting(false);
     };
 
     return {
@@ -330,6 +355,7 @@ export function useFilePicker({
         setFilePickerMonthWindow,
         ensureMonthWindowForSince,
         handleAddSelectedFiles,
+        filePickerSubmitting,
         focusedIndex,
         setFocusedIndex,
         activePreset,

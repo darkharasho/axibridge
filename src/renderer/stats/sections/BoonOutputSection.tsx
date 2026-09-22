@@ -82,7 +82,7 @@ export const BoonOutputSection = ({
             ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}`
             : ''
         }`}
-        style={expandedSection === 'boon-output' ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
+        style={expandedSection === 'boon-output' ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
     >
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
             <span className="flex shrink-0" style={{ color: 'var(--section-boon)' }}><Gw2BoonIcon className="w-4 h-4" /></span>
@@ -228,7 +228,7 @@ export const BoonOutputSection = ({
                                         type="button"
                                         onClick={() => setSelectedBoonColumnIds((prev) => prev.filter((entry) => entry !== id))}
                                         className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
+                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
                                     >
                                         <span>{label}</span>
                                         <span style={{ color: 'var(--text-secondary)' }}>×</span>
@@ -241,7 +241,7 @@ export const BoonOutputSection = ({
                                     type="button"
                                     onClick={() => setSelectedBoonPlayers((prev) => prev.filter((entry) => entry !== id))}
                                     className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                    style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
+                                    style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
                                 >
                                     <span>{id}</span>
                                     <span style={{ color: 'var(--text-secondary)' }}>×</span>

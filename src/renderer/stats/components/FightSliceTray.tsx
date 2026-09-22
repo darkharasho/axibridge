@@ -37,7 +37,7 @@ export const FightSlicePill = ({ onClick, prominent = false }: { onClick: () => 
         <button
             type="button"
             onClick={onClick}
-            className={`inline-flex items-center gap-2 rounded-full border px-3.5 font-semibold transition-colors ${prominent ? 'h-[28px] text-[11.5px]' : 'h-[26px] text-[11px]'} ${active
+            className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-3.5 font-semibold transition-colors ${prominent ? 'h-[28px] text-[11.5px]' : 'h-[26px] text-[11px]'} ${active
                 ? 'border-[color:var(--accent-border)] bg-[var(--accent-bg-strong)] text-[color:var(--text-primary)]'
                 : resting}`}
         >

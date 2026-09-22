@@ -96,19 +96,19 @@ export function WebUploadOverlay({
 
     return (
         <div
-            className={`fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg transition-opacity duration-700 ${closing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            className={`app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg transition-opacity duration-700 ${closing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             onClick={hasFailure ? clearOverlay : undefined}
         >
             <div
-                className={`w-full rounded-2xl shadow-2xl backdrop-blur-2xl ${hasErrorDetail && hasFailure ? 'max-w-2xl' : 'max-w-md'}`}
+                className={`app-modal-card w-full rounded-2xl shadow-2xl backdrop-blur-2xl ${hasErrorDetail && hasFailure ? 'max-w-2xl' : 'max-w-md'}`}
                 style={{
-                    background: 'rgba(13,17,23,0.96)',
-                    border: `1px solid ${hasFailure ? 'var(--status-error-border)' : 'rgba(255,255,255,0.10)'}`,
+                    background: 'var(--bg-card)',
+                    border: `var(--panel-border-w, 1px) solid ${hasFailure ? 'var(--status-error-border)' : 'var(--border-default)'}`,
                 }}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* ── Topbar ── */}
-                <div className="flex items-start justify-between px-5 pt-4 pb-3 border-b border-white/[0.07]">
+                <div className="flex items-start justify-between px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
                     <div>
                         <div className="text-[9px] font-bold tracking-[.15em] uppercase" style={{ color: 'var(--brand-primary)' }}>
                             Web Upload
@@ -120,7 +120,7 @@ export function WebUploadOverlay({
                     {!hasFailure && stepIndex >= 0 && (
                         <div className="text-right">
                             <div className="text-[11px] font-bold" style={{ color: 'var(--brand-primary)' }}>{stepIndex + 1} / {UPLOAD_STEPS.length}</div>
-                            <div className="text-[9px] mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>steps</div>
+                            <div className="text-[9px] mt-0.5" style={{ color: 'var(--text-muted)' }}>steps</div>
                         </div>
                     )}
                 </div>
@@ -153,7 +153,7 @@ export function WebUploadOverlay({
                                             ? 'var(--brand-primary)'
                                             : isActive
                                             ? 'var(--text-primary)'
-                                            : 'rgba(255,255,255,0.2)',
+                                            : 'var(--text-muted)',
                                     }}
                                 >
                                     {step.label}
@@ -165,7 +165,7 @@ export function WebUploadOverlay({
 
                 {/* ── Progress bar + current message ── */}
                 <div className="px-5 pb-2">
-                    <div className="h-[3px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                    <div className="web-upload-track h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--bg-input)' }}>
                         <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{
@@ -176,7 +176,7 @@ export function WebUploadOverlay({
                             }}
                         />
                     </div>
-                    <div className={`text-[11px] font-medium mt-2 leading-snug ${hasFailure ? 'text-red-300' : 'text-white/80'}`}>
+                    <div className="text-[11px] font-medium mt-2 leading-snug" style={{ color: hasFailure ? 'var(--status-error-muted)' : 'var(--text-secondary)' }}>
                         {webUploadState.detail || webUploadState.message || 'Working...'}
                     </div>
                 </div>
@@ -184,26 +184,26 @@ export function WebUploadOverlay({
                 {/* ── Log feed ── */}
                 {logEntries.length > 0 && (
                     <div
-                        className="border-t border-white/[0.06] overflow-y-auto overscroll-contain px-4 py-2"
-                        style={{ background: 'rgba(0,0,0,0.28)', maxHeight: '96px' }}
+                        className="border-t overflow-y-auto overscroll-contain px-4 py-2"
+                        style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-base)', maxHeight: '96px' }}
                         onWheel={(e) => e.stopPropagation()}
                         onTouchMove={(e) => e.stopPropagation()}
                     >
                         {logEntries.map((entry, i) => (
                             <div key={i} className="flex gap-2 items-baseline py-[1.5px]">
-                                <span className="text-[8.5px] font-mono shrink-0" style={{ color: 'rgba(255,255,255,0.18)' }}>
+                                <span className="text-[8.5px] font-mono shrink-0" style={{ color: 'var(--text-muted)' }}>
                                     {entry.elapsed}
                                 </span>
                                 <span
                                     className="text-[10px] leading-snug"
                                     style={{
                                         color: entry.isError
-                                            ? 'rgba(252,165,165,0.8)'
+                                            ? 'var(--status-error-muted)'
                                             : entry.isWarn
-                                            ? 'rgba(251,191,36,0.8)'
+                                            ? 'var(--status-warning)'
                                             : i === logEntries.length - 1
-                                            ? 'rgba(255,255,255,0.85)'
-                                            : 'rgba(255,255,255,0.45)',
+                                            ? 'var(--text-primary)'
+                                            : 'var(--text-secondary)',
                                     }}
                                 >
                                     {entry.text}
@@ -229,7 +229,7 @@ export function WebUploadOverlay({
                 <div className="flex items-center justify-between px-5 py-3">
                     <span
                         className="text-[9px]"
-                        style={{ color: hasFailure ? 'var(--status-error)' : 'rgba(255,255,255,0.2)' }}
+                        style={{ color: hasFailure ? 'var(--status-error)' : 'var(--text-muted)' }}
                     >
                         {hasFailure
                             ? failedIndex >= 0
@@ -279,7 +279,7 @@ function StepFragment({
     } else if (isActive) {
         bg = 'var(--accent-bg-strong)';  borderColor = 'var(--brand-primary)';       color = 'var(--brand-primary)';      boxShadow = '0 0 8px var(--glow-primary)';
     } else {
-        bg = 'rgba(255,255,255,0.04)';   borderColor = 'rgba(255,255,255,0.10)';     color = 'rgba(255,255,255,0.2)';     boxShadow = undefined;
+        bg = 'var(--bg-input)';          borderColor = 'var(--border-default)';      color = 'var(--text-muted)';         boxShadow = undefined;
     }
 
     return (
@@ -293,7 +293,7 @@ function StepFragment({
             {!last && (
                 <div
                     className="flex-1 h-px mx-1"
-                    style={{ background: isDone ? 'var(--accent-border)' : 'rgba(255,255,255,0.07)' }}
+                    style={{ background: isDone ? 'var(--accent-border)' : 'var(--border-default)' }}
                 />
             )}
         </>

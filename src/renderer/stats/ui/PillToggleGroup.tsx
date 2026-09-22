@@ -41,18 +41,23 @@ export const PillToggleGroup = <T extends string>({
         <div
             ref={containerRef}
             className={`pill-toggle-group relative flex items-center gap-1 p-[1px] text-[10px] uppercase tracking-[0.25em] overflow-x-auto ${className}`}
-            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: '3px', color: 'var(--text-secondary)' }}
+            style={{
+                background: 'var(--pill-group-bg, rgba(255,255,255,0.03))',
+                border: 'var(--pill-group-border-w, 1px) solid var(--pill-group-border, var(--border-subtle))',
+                borderRadius: 'var(--pill-group-radius, 3px)',
+                color: 'var(--text-secondary)',
+            }}
         >
             {indicator && (
                 <span
-                    className="absolute top-[1px] bottom-[1px] rounded-sm pointer-events-none"
+                    className="pill-toggle-indicator absolute top-[1px] bottom-[1px] rounded-sm pointer-events-none"
                     style={{
                         left: 0,
                         transform: `translateX(${indicator.left}px)`,
                         width: indicator.width,
                         transition: 'transform 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94), width 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                        background: 'var(--accent-bg-strong)',
-                        border: '1px solid var(--accent-border)',
+                        background: 'var(--pill-indicator-bg, var(--accent-bg-strong))',
+                        border: 'var(--pill-indicator-border-w, 1px) solid var(--pill-indicator-border, var(--accent-border))',
                     }}
                 />
             )}

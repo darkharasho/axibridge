@@ -36,7 +36,7 @@ const LeaderCard = ({ icon: Icon, title, data, isBoon = false, accentColor, unit
                     onClick?.();
                 }
             }}
-            className={`border rounded-[var(--radius-md)] p-4 flex flex-col gap-3 group cursor-pointer relative ${active ? 'ring-1 ring-white/20' : ''}`}
+            className={`leader-card border rounded-[var(--radius-md)] p-4 flex flex-col gap-3 group cursor-pointer relative ${active ? 'leader-card--active ring-1 ring-white/20' : ''}`}
             style={{ borderColor: 'var(--border-default)' }}
         >
             <div className="flex items-center gap-4">
@@ -334,7 +334,7 @@ export const TopPlayersSection = ({
                                 <span className="mvp-group-label-title font-bold uppercase tracking-widest text-xs text-[color:var(--text-primary)]">{group.title}</span>
                             </div>
                             <div className={`mvp-card mvp-card--gold border rounded-[var(--radius-md)] p-3 min-h-[182px] relative overflow-visible z-0 group hover:z-20 flex items-center ${group.goldCardBorder}`}>
-                                <div className={`absolute top-0 right-0 w-64 h-64 blur-[80px] rounded-full pointer-events-none transition-all ${group.accentBlob}`} />
+                                <div className={`mvp-card__glow absolute top-0 right-0 w-64 h-64 blur-[80px] rounded-full pointer-events-none transition-all ${group.accentBlob}`} />
                                 <div className="flex items-center gap-5 relative z-10 w-full">
                                     <div className={`mvp-gold-icon-ring flex shrink-0 aspect-square items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full border relative ${group.goldIconWrap}`}>
                                         <Crown className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-400" />
@@ -350,7 +350,7 @@ export const TopPlayersSection = ({
                                                 <div className="text-2xl sm:text-3xl font-black text-white flex flex-wrap items-center gap-2 sm:gap-3">
                                                     <span className="min-w-0 max-w-full truncate">{group.gold?.account || 'None'}</span>
                                                     {renderProfessionIcon(group.gold?.profession || 'Unknown', group.gold?.professionList, 'w-6 h-6')}
-                                                    <span className="text-xs sm:text-sm font-medium text-yellow-200/70 bg-[var(--bg-hover)] px-2 py-0.5 sm:px-1.5 sm:py-0 rounded border border-yellow-500/20 max-w-full truncate">
+                                                    <span className="mvp-profession-chip text-xs sm:text-sm font-medium text-yellow-200/70 bg-[var(--bg-hover)] px-2 py-0.5 sm:px-1.5 sm:py-0 rounded border border-yellow-500/20 max-w-full truncate">
                                                         {group.gold?.profession || 'Unknown'}
                                                     </span>
                                                 </div>
@@ -398,7 +398,7 @@ export const TopPlayersSection = ({
                                         key={`${group.title}-${entry.label}`}
                                         className={`mvp-card mvp-card--${entry.label.toLowerCase()} border border-[color:var(--border-default)] rounded-[var(--radius-md)] p-3 min-h-[126px] relative overflow-visible z-0 group hover:z-20 flex flex-col`}
                                     >
-                                        <div className={`absolute top-0 right-0 w-48 h-48 rounded-full blur-[70px] pointer-events-none transition-all ${entry.label === 'Silver'
+                                        <div className={`mvp-card__glow absolute top-0 right-0 w-48 h-48 rounded-full blur-[70px] pointer-events-none transition-all ${entry.label === 'Silver'
                                             ? 'bg-slate-300/15 group-hover:bg-slate-300/25'
                                             : 'bg-orange-400/15 group-hover:bg-orange-400/25'
                                             }`} />

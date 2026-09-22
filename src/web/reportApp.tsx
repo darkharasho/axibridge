@@ -367,6 +367,7 @@ export function ReportApp({ injectedSource, assetBase }: {
     const [colorPalette, setColorPalette] = useState<ColorPalette>('electric-blue');
     const [glassSurfaces, setGlassSurfaces] = useState(false);
     const [glassmorphic, setGlassmorphic] = useState(false);
+    const [axiDesign, setAxiDesign] = useState(false);
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [logoIsDefault, setLogoIsDefault] = useState(false);
     const [tocOpen, setTocOpen] = useState(false);
@@ -530,9 +531,14 @@ export function ReportApp({ injectedSource, assetBase }: {
         if (colorPalette !== 'electric-blue') {
             body.classList.add(`palette-${colorPalette}`);
         }
-        body.classList.toggle('glass-surfaces', glassSurfaces);
-        body.classList.toggle('glassmorphic', glassmorphic);
-    }, [colorPalette, glassSurfaces, glassmorphic]);
+        // Glass and axi are opposite claims about what a surface is, and the
+        // glass rules are written with !important, so with both on the glass
+        // wins every contested property and the result is neither language.
+        // The renderer suppresses them the same way (useSettings).
+        body.classList.toggle('glass-surfaces', glassSurfaces && !axiDesign);
+        body.classList.toggle('glassmorphic', glassmorphic && !axiDesign);
+        body.classList.toggle('axi-design', axiDesign);
+    }, [colorPalette, glassSurfaces, glassmorphic, axiDesign]);
 
     useEffect(() => {
         setAssetBasePath(assetBasePathCandidates[0] || '/');
@@ -1012,10 +1018,11 @@ export function ReportApp({ injectedSource, assetBase }: {
             setRollupLoading(false);
             setRollupRequestedCount(0);
             setReportPathHint(null);
-            const { palette, glass, glassmorphic: gm } = readPaletteFromReport(injectedSource.report.stats);
+            const { palette, glass, glassmorphic: gm, axi } = readPaletteFromReport(injectedSource.report.stats);
             setColorPalette(palette);
             setGlassSurfaces(glass);
             setGlassmorphic(gm);
+            setAxiDesign(axi);
             setReport(injectedSource.report);
             return () => {
                 isMounted = false;
@@ -1033,10 +1040,11 @@ export function ReportApp({ injectedSource, assetBase }: {
         setReportPathHint(reportId ? reportPath : null);
 
         const applyPaletteFromReport = (reportData: ReportPayload) => {
-            const { palette, glass, glassmorphic: gm } = readPaletteFromReport(reportData.stats);
+            const { palette, glass, glassmorphic: gm, axi } = readPaletteFromReport(reportData.stats);
             setColorPalette(palette);
             setGlassSurfaces(glass);
             setGlassmorphic(gm);
+            setAxiDesign(axi);
         };
 
         const loadIndex = (suppressError = false) => {
@@ -1049,10 +1057,11 @@ export function ReportApp({ injectedSource, assetBase }: {
                     setIndex(entries);
                     // Apply site-wide palette and glass from index.json
                     if (!Array.isArray(data) && data?.colorPalette) {
-                        const { palette, glass, glassmorphic: gm } = readPaletteFromReport(data);
+                        const { palette, glass, glassmorphic: gm, axi } = readPaletteFromReport(data);
                         setColorPalette(palette);
                         setGlassSurfaces(glass);
                         setGlassmorphic(gm);
+                        setAxiDesign(axi);
                     }
                 })
                 .catch(() => {
@@ -1239,13 +1248,17 @@ export function ReportApp({ injectedSource, assetBase }: {
             .then((resp) => (resp.ok ? resp.json() : Promise.reject()))
             .then((data) => {
                 if (!isMounted) return;
-                const defaultPath = 'svg/AxiBridge.svg';
+                // The glyph is the app's current mark; the wordmark it replaced is
+                // still the stored path in every report published before the
+                // switch, so both count as "no custom logo was set".
+                const defaultPath = 'svg/axibridge-glyph.svg';
+                const legacyDefaultPath = 'svg/AxiBridge.svg';
                 const path = data?.path ? String(data.path) : defaultPath;
                 const version = data?.updatedAt ? String(data.updatedAt) : '';
                 const urlBase = joinAssetPath(assetBasePath, path);
                 const url = version ? `${urlBase}?v=${encodeURIComponent(version)}` : urlBase;
                 setLogoUrl(url);
-                setLogoIsDefault(!data?.path || path === defaultPath);
+                setLogoIsDefault(!data?.path || path === defaultPath || path === legacyDefaultPath);
             })
             .catch(() => {
                 if (!isMounted) return;
@@ -1550,7 +1563,9 @@ export function ReportApp({ injectedSource, assetBase }: {
     );
 
     if (report) {
-        const axibridgeLogoUrl = joinAssetPath(assetBasePath, 'svg/AxiBridge.svg');
+        // The glyph, not the wordmark: this mark sits in a 40px square, and the
+        // wordmark masked into one came out as an unreadable squeeze of itself.
+        const axibridgeLogoUrl = joinAssetPath(assetBasePath, 'svg/axibridge-glyph.svg');
         const animateGroupScrollToTop = () => {
             cancelGroupTopScroll();
             const startTop = window.scrollY || window.pageYOffset || 0;
@@ -1720,6 +1735,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                     <div key={group.id} className="space-y-1">
                                         <button
                                             onClick={() => handleGroupHeaderClick(group.id)}
+                                            data-on={isActive ? '' : undefined}
                                             className={`report-nav-group-btn w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors ${isActive
                                                 ? 'bg-white/10 text-white border-white/20'
                                                 : 'text-gray-300 border-transparent hover:border-white/10 hover:bg-white/10'
@@ -1757,6 +1773,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                                         handleSubNavClick(group.id, item.id);
                                                                         setTocOpen(false);
                                                                     }}
+                                                                    data-on={activeSectionId === item.id ? '' : undefined}
                                                                     className={`report-nav-item-btn w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] border transition-colors ${activeSectionId === item.id ? 'text-white border-white/20 bg-white/10' : 'text-gray-200 border-transparent hover:border-white/10 hover:bg-white/10'}`}
                                                                 >
                                                                     <ItemIcon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
@@ -1807,11 +1824,17 @@ export function ReportApp({ injectedSource, assetBase }: {
                                 onClick={() => searchOpenRef.current?.()}
                                 title="Search (Ctrl+K)"
                                 aria-label="Search report"
-                                className="report-nav-search w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:border-white/30 hover:text-gray-200 transition-colors text-left"
+                                className="report-nav-search axi-search-trigger w-full flex items-center gap-2.5 px-3 py-2 rounded-[4px] transition-colors text-left"
                             >
-                                <Search className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                                <span className="text-sm min-w-0 truncate">Search…</span>
-                                <kbd className="ml-auto shrink-0 text-[10px] px-1.5 py-0.5 rounded-md border border-white/10 bg-white/5 text-gray-500 font-sans tracking-wide">Ctrl K</kbd>
+                                {/* The glyph gets its own element so the axi language
+                                    can cap the well with it. See .axi-search-trigger__mark. */}
+                                <span className="axi-search-trigger__mark flex shrink-0 items-center self-stretch">
+                                    <Search className="w-4 h-4 text-[color:var(--brand-primary)]" />
+                                </span>
+                                {/* No ellipsis: the well already reads as a field you
+                                    type into, and the panel's own placeholder says the rest. */}
+                                <span className="text-sm min-w-0 truncate">Search</span>
+                                <kbd className="ml-auto shrink-0 text-[10px] px-1.5 py-px rounded-[3px] font-sans tracking-[0.04em]">Ctrl K</kbd>
                             </button>
                         </div>
                         <nav className="px-4 space-y-2 text-sm flex-1 overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
@@ -1823,6 +1846,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                     <div key={group.id} className="space-y-1">
                                         <button
                                             onClick={() => handleGroupHeaderClick(group.id)}
+                                            data-on={isActive ? '' : undefined}
                                             className={`report-nav-group-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors ${isActive
                                                 ? 'bg-white/10 text-white border-white/20'
                                                 : 'text-gray-300 border-transparent hover:border-white/10 hover:bg-white/10'
@@ -1857,6 +1881,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                                     animate={{ opacity: 1, x: 0 }}
                                                                     transition={{ ...navFastSpring, delay: index * 0.03 }}
                                                                     onClick={() => handleSubNavClick(group.id, item.id)}
+                                                                    data-on={activeSectionId === item.id ? '' : undefined}
                                                                     className={`report-nav-item-btn w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] border transition-colors ${activeSectionId === item.id ? 'text-white border-white/20 bg-white/10' : 'text-gray-200 border-transparent hover:border-white/10 hover:bg-white/10'}`}
                                                                 >
                                                                     <ItemIcon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
@@ -1966,16 +1991,17 @@ export function ReportApp({ injectedSource, assetBase }: {
                     )}
                     <div className={`${isNarrowViewport && isCompactViewport ? '' : 'hidden'} mb-4`}>
                         <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-2">Jump to</div>
-                        <div className="flex gap-2 overflow-x-auto pr-2 pb-1 snap-x snap-mandatory">
+                        <div className="mobile-jump-chips flex gap-2 overflow-x-auto pr-2 pb-1 snap-x snap-mandatory">
                             {(activeGroupDef?.items || []).map((item) => {
                                 const Icon = item.icon;
                                 return (
                                     <button
                                         key={`chip-${item.id}`}
                                         onClick={() => handleSubNavClick(activeGroupDef?.id || 'overview', item.id)}
+                                        data-on={activeSectionId === item.id ? '' : undefined}
                                         className={`group flex items-center gap-2 px-3 py-2 rounded-full text-[10px] uppercase tracking-widest whitespace-nowrap border bg-gradient-to-br shadow-[0_10px_25px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-all duration-200 active:translate-y-0 active:scale-[0.98] snap-start ${activeSectionId === item.id ? 'text-white border-[color:var(--accent-border)] from-[color:var(--accent-bg)] via-white/10 to-transparent' : 'text-gray-200 border-white/15 from-white/10 via-white/5 to-transparent hover:-translate-y-0.5 hover:border-[color:var(--accent-border)] hover:shadow-[0_18px_35px_rgba(0,0,0,0.45)]'}`}
                                     >
-                                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/10 border border-white/10 group-hover:border-[color:var(--accent-border)] group-hover:bg-[color:var(--accent-bg)] transition-colors">
+                                        <span className="mobile-jump-chip-icon flex items-center justify-center w-6 h-6 rounded-full bg-white/10 border border-white/10 group-hover:border-[color:var(--accent-border)] group-hover:bg-[color:var(--accent-bg)] transition-colors">
                                             <Icon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                                         </span>
                                         {item.label}

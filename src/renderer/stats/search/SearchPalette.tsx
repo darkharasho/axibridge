@@ -18,6 +18,10 @@ const GROUP_LABELS: Record<SearchEntryType, string> = {
 
 const GROUP_ORDER: readonly SearchEntryType[] = ['section', 'metric', 'player'];
 
+// The list is capped so the panel never becomes a scrolling wall. The cap is
+// named here because the count line has to say when it bit.
+const RESULT_LIMIT = 12;
+
 // SearchEntry is a flat, index-serializable shape with no icon reference, so
 // resolve section icons from the taxonomy registry by sectionId, once.
 const SECTION_ICONS: Record<string, StatsIcon> = {};
@@ -43,11 +47,18 @@ const rowKey = (entry: SearchEntry): string =>
 
 export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteProps) {
     const [query, setQuery] = useState('');
+    const [typeFilter, setTypeFilter] = useState<SearchEntryType | null>(null);
     const [activeIdx, setActiveIdx] = useState(0);
     const inputRef = useRef<HTMLInputElement | null>(null);
     const activeRowRef = useRef<HTMLButtonElement | null>(null);
 
-    const results = useMemo(() => matchSearchIndex(index, query), [index, query]);
+    // Matched uncapped, then sliced here, so the count line can say how many
+    // matches the cap is hiding rather than quietly pretending there are 12.
+    const allMatches = useMemo(
+        () => matchSearchIndex(index, query, Number.POSITIVE_INFINITY, typeFilter),
+        [index, query, typeFilter],
+    );
+    const results = useMemo(() => allMatches.slice(0, RESULT_LIMIT), [allMatches]);
     // matchSearchIndex already ranks section > metric > player among ties, so
     // bucketing the flat, ranked list by type (for the group headers below)
     // preserves each bucket's internal ranking without a second sort.
@@ -63,6 +74,7 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
     useEffect(() => {
         if (!open) return;
         setQuery('');
+        setTypeFilter(null);
         setActiveIdx(0);
         const raf = requestAnimationFrame(() => inputRef.current?.focus());
         return () => cancelAnimationFrame(raf);
@@ -108,17 +120,25 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
         }
     };
 
+    // Says when the cap bit, so a truncated list never passes for the whole
+    // answer. Blank before there is anything to count.
+    const countLabel = query.trim() === ''
+        ? ''
+        : allMatches.length > results.length
+            ? `${results.length} of ${allMatches.length}`
+            : `${allMatches.length} ${allMatches.length === 1 ? 'match' : 'matches'}`;
+
     let body: ReactNode;
     if (query.trim() === '') {
         body = (
-            <div className="px-3 py-6 text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <div className="axi-search-empty px-3 py-6 text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
                 Type to search sections, metrics, and players.
             </div>
         );
     } else if (results.length === 0) {
         body = (
-            <div className="px-3 py-6 text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
-                No results for &ldquo;{query}&rdquo;.
+            <div className="axi-search-empty px-3 py-6 text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
+                No results for &ldquo;{query}&rdquo;{typeFilter ? ` in ${GROUP_LABELS[typeFilter].toLowerCase()}` : ''}.
             </div>
         );
     } else {
@@ -128,7 +148,7 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
             return (
                 <div key={type}>
                     <div
-                        className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+                        className="axi-search-group px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
                         style={{ color: 'var(--text-secondary)' }}
                     >
                         {GROUP_LABELS[type]}
@@ -144,6 +164,8 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
                                 type="button"
                                 onMouseEnter={() => setActiveIdx(idx)}
                                 onClick={() => selectAt(idx)}
+                                data-search-row
+                                data-active={isActive ? '' : undefined}
                                 className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs"
                                 style={{ background: isActive ? 'var(--bg-hover)' : 'transparent', color: 'var(--text-primary)' }}
                             >
@@ -176,26 +198,66 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
                 aria-modal="true"
                 aria-label="Search"
             >
-                <div className="flex items-center gap-2 px-3 py-2.5 shrink-0" style={{ borderBottom: '1px solid var(--border-default)' }}>
-                    <Search className="w-4 h-4 shrink-0" style={{ color: 'var(--text-secondary)' }} />
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        value={query}
-                        onChange={(e) => { setQuery(e.target.value); setActiveIdx(0); }}
-                        onKeyDown={handleKeyDown}
-                        placeholder="Search sections, metrics, players..."
-                        className="flex-1 min-w-0 bg-transparent text-sm focus:outline-none"
-                        style={{ color: 'var(--text-primary)' }}
-                    />
-                    <kbd
-                        className="text-[10px] px-1.5 py-0.5 rounded-sm shrink-0"
-                        style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)' }}
-                    >
-                        Esc
-                    </kbd>
+                <div className="axi-search-bar px-3 py-2.5 shrink-0" style={{ borderBottom: '1px solid var(--border-default)' }}>
+                    <div className="flex items-center gap-2">
+                        {/* The glyph sits in the well rather than beside it, so the
+                            field reads as one object the way it does on the site. */}
+                        <div className="axi-search-field relative flex-1 min-w-0">
+                            <Search
+                                className="axi-search-icon absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                                style={{ color: 'var(--brand-primary)' }}
+                                aria-hidden="true"
+                            />
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                value={query}
+                                onChange={(e) => { setQuery(e.target.value); setActiveIdx(0); }}
+                                onKeyDown={handleKeyDown}
+                                placeholder="Search sections, metrics, players..."
+                                className="w-full bg-transparent text-sm pl-9 focus:outline-none"
+                                style={{ color: 'var(--text-primary)' }}
+                            />
+                        </div>
+                        <kbd
+                            className="text-[10px] px-1.5 py-0.5 rounded-sm shrink-0"
+                            style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)' }}
+                        >
+                            Esc
+                        </kbd>
+                    </div>
+                    <div className="axi-search-filters flex items-center gap-1.5 mt-2">
+                        {GROUP_ORDER.map((type) => {
+                            const pressed = typeFilter === type;
+                            return (
+                                <button
+                                    key={type}
+                                    type="button"
+                                    data-search-pill
+                                    aria-pressed={pressed}
+                                    // Pressing the live pill clears it, so the filter
+                                    // is its own way out and needs no reset control.
+                                    onClick={() => { setTypeFilter(pressed ? null : type); setActiveIdx(0); }}
+                                    className="px-2 py-1 rounded-sm text-[10px] font-semibold uppercase tracking-[0.16em]"
+                                    style={pressed
+                                        ? { background: 'var(--brand-primary)', color: 'var(--bg-base)' }
+                                        : { color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)' }}
+                                >
+                                    {GROUP_LABELS[type]}
+                                </button>
+                            );
+                        })}
+                        <span
+                            data-search-count
+                            aria-live="polite"
+                            className="ml-auto shrink-0 text-[10px] uppercase tracking-[0.16em]"
+                            style={{ color: 'var(--text-secondary)' }}
+                        >
+                            {countLabel}
+                        </span>
+                    </div>
                 </div>
-                <div className="overflow-y-auto py-1">
+                <div className="axi-search-results overflow-y-auto py-1">
                     {body}
                 </div>
             </div>

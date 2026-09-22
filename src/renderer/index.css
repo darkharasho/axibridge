@@ -194,6 +194,20 @@ body.palette-teal-ocean {
   --glow-secondary: rgba(8, 145, 178, 0.35);
 }
 
+/* The axi language's own accent, offered as a palette so it stays reachable.
+   Before this it was hardcoded inside axi-design.css, which is what stopped
+   the picker from reaching the language at all. */
+body.palette-axi-gold {
+  --brand-primary: #ffc53d;
+  --brand-secondary: #ffa41b;
+  --brand-gradient: linear-gradient(135deg, #ffc53d, #ffa41b);
+  --accent-bg: rgba(255, 197, 61, 0.10);
+  --accent-bg-strong: rgba(255, 197, 61, 0.18);
+  --accent-border: rgba(255, 197, 61, 0.35);
+  --glow-primary: rgba(255, 197, 61, 0.35);
+  --glow-secondary: rgba(255, 164, 27, 0.35);
+}
+
 body.palette-gold-bronze {
   --brand-primary: #d4a017;
   --brand-secondary: #b8860b;
@@ -448,6 +462,7 @@ body.glassmorphic.palette-violet-purple,
 body.glassmorphic.palette-crimson-red,
 body.glassmorphic.palette-slate-silver,
 body.glassmorphic.palette-teal-ocean,
+body.glassmorphic.palette-axi-gold,
 body.glassmorphic.palette-gold-bronze {
   --brand-primary: #ffffff;
   --brand-secondary: rgba(255, 255, 255, 0.85);
@@ -921,8 +936,14 @@ body:not(.web-report) .modal-pane.pb-10 {
     padding-bottom: env(safe-area-inset-bottom) !important;
 }
 
-/* Expanded section body should own the available height; no outer modal scrolling. */
-body:not(.web-report) .modal-pane> :not(:first-child) {
+/* Expanded section body should own the available height; no outer modal scrolling.
+   Only the LAST child grows. This used to say `:not(:first-child)`, which in any
+   section whose pane holds three blocks - heading, then a legend or filter row,
+   then the table - handed an equal share of the free height to the legend as
+   well, so the table was pushed hundreds of pixels down the screen behind a band
+   of nothing. Sections with exactly two children are unaffected: there,
+   `:last-child` and `:not(:first-child)` select the same element. */
+body:not(.web-report) .modal-pane> :last-child {
     flex: 1 1 auto;
     min-height: 0;
 }
@@ -1523,6 +1544,98 @@ body.web-report #top-players .mvp-gold-icon-badge {
   50% { opacity: 1; transform: scale(1.3); }
 }
 
+/* ── Step spinners ─────────────────────────────────────────────────────────
+   For a click whose work outlives the click - the log picker's confirm, which
+   inserts one row per selected file before the modal can close. Both forms
+   count in discrete beats instead of sweeping: a sweep promises smooth
+   progress, and what is actually happening is N files going past one at a
+   time. The axi language redraws both; see axi-design.css. */
+
+.axi-step-spinner {
+  --step-off: var(--border-default);
+  /* The lit cell is the one piece of colour the strip around it is allowed,
+     so a caller that means something other than "the app is working" - a
+     warning tone, say - recolours it here rather than tinting its own box. */
+  --step-on: var(--brand-primary);
+  /* One cell of travel: the cell itself plus the gap. */
+  --step-pitch: 5px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  padding: 2px;
+  border-radius: 3px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+}
+
+.axi-step-spinner > i {
+  display: block;
+  width: 3px;
+  height: 10px;
+  border-radius: 1px;
+  background: var(--step-off);
+}
+
+/* The lit cell is one block moving across the four, not four cells taking
+   turns changing colour. That is the whole point: a background-color
+   animation runs on the main thread, and the main thread is exactly what is
+   busy while this is on screen - it would freeze on its first frame and sit
+   there looking broken. transform is composited, so it keeps marching
+   through a blocked render. */
+.axi-step-spinner::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 3px;
+  height: 10px;
+  border-radius: 1px;
+  background: var(--step-on);
+  /* Ask for the compositor layer up front rather than at the first frame,
+     which is roughly when the thread stops being available to grant it. */
+  will-change: transform;
+  /* steps(4, end) over four pitches lands the block on 0, 1, 2, 3 and wraps -
+     jump-none would spread four stops over three pitches and miss the cells. */
+  animation: axi-step-march 0.96s steps(4, end) infinite;
+}
+
+@keyframes axi-step-march {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(var(--step-pitch) * 4)); }
+}
+
+/* The other half of the pair: one mark turning a quarter at a time. The
+   notch is what makes the turn readable - a plain square rotating 90 degrees
+   is indistinguishable from a square standing still. */
+.axi-snap-spinner {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  background: var(--brand-primary);
+  border: 1px solid var(--border-default);
+  animation: axi-snap-quarter 1.2s steps(1, end) infinite;
+}
+
+.axi-snap-spinner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--bg-card);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+@keyframes axi-snap-quarter {
+  0%   { transform: rotate(0deg); }
+  25%  { transform: rotate(90deg); }
+  50%  { transform: rotate(180deg); }
+  75%  { transform: rotate(270deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .stats-section-wrap {
   position: relative;
 }
@@ -1685,6 +1798,15 @@ body.glass-surfaces .stats-dashboard-nav-panel {
   .stats-particle-spinner__particle {
     animation: none !important;
   }
+
+  /* The march rests in the first cell rather than stopping wherever it was. */
+  .axi-step-spinner::after {
+    animation: none !important;
+  }
+
+  .axi-snap-spinner {
+    animation: none !important;
+  }
 }
 
 body.bulk-uploading .stats-particle-spinner__ring,
@@ -1711,31 +1833,46 @@ body.bulk-uploading .stats-particle-spinner__particle {
    solid backgrounds, unified borders).
    ============================================================ */
 
+/* These nine are scoped away from the axi language. They are this stylesheet's
+   own remap of the Tailwind literals onto the classic tokens, written with
+   !important, and axi-design.css remaps the same literals onto its own scale -
+   so with both in play the !important won every time and the axi sheet's radius
+   and fill bridges were dead. Worse than dead: `bg-white/10` landed on the
+   ground rather than the raised surface, which put ink text on a near-black
+   fill wherever a selected item carried it. Only the lines where the two sheets
+   actually disagree are scoped; the rest of this block is left alone because it
+   resolves to the same thing under either language. */
+
 /* --- Border Radius: everything becomes 4px --- */
-.rounded-2xl { border-radius: var(--radius-md) !important; }
-.rounded-xl { border-radius: var(--radius-md) !important; }
-.rounded-lg { border-radius: var(--radius-md) !important; }
-.rounded-md { border-radius: var(--radius-md) !important; }
+body:not(.axi-design) .rounded-2xl { border-radius: var(--radius-md) !important; }
+body:not(.axi-design) .rounded-xl { border-radius: var(--radius-md) !important; }
+body:not(.axi-design) .rounded-lg { border-radius: var(--radius-md) !important; }
+body:not(.axi-design) .rounded-md { border-radius: var(--radius-md) !important; }
 /* Keep rounded-full for pills/badges/dots — do NOT override */
 
 /* --- Backgrounds: glass → solid layered --- */
-.bg-white\/5 { background-color: var(--bg-card) !important; }
+body:not(.axi-design) .bg-white\/5 { background-color: var(--bg-card) !important; }
 .bg-white\/4 { background-color: var(--bg-card) !important; }
 .bg-white\/3 { background-color: var(--bg-card) !important; }
-.bg-white\/10 { background-color: var(--bg-card-inner) !important; }
-.bg-black\/20 { background-color: var(--bg-card) !important; }
+body:not(.axi-design) .bg-white\/10 { background-color: var(--bg-card-inner) !important; }
+body:not(.axi-design) .bg-black\/20 { background-color: var(--bg-card) !important; }
 .bg-black\/25 { background-color: var(--bg-card) !important; }
 .bg-black\/30 { background-color: var(--bg-card-inner) !important; }
 .bg-black\/40 { background-color: var(--bg-card-inner) !important; }
 .bg-black\/50 { background-color: var(--bg-input) !important; }
-.bg-black\/60 { background-color: rgba(0, 0, 0, 0.6) !important; } /* modal overlays — keep */
-.bg-black\/70 { background-color: var(--bg-base) !important; }
+body:not(.axi-design) .bg-black\/60 { background-color: rgba(0, 0, 0, 0.6) !important; } /* modal overlays — keep */
+body:not(.axi-design) .bg-black\/70 { background-color: var(--bg-base) !important; }
 
-/* --- Borders: unified opacity levels --- */
-.border-white\/5 { border-color: var(--border-subtle) !important; }
-.border-white\/10 { border-color: var(--border-default) !important; }
-.border-white\/15 { border-color: var(--border-hover) !important; }
-.border-white\/20 { border-color: var(--border-hover) !important; }
+/* --- Borders: unified opacity levels ---
+   These four are deliberately not !important. They only have to beat Tailwind's
+   own .border-white/N, which is imported above, so source order is enough - and
+   dropping the flag lets a later stylesheet (axi-design.css) restate a hairline
+   without having to shout. The hover variants further down keep their flag;
+   they win on specificity regardless, so that is a separate question. */
+.border-white\/5 { border-color: var(--border-subtle); }
+.border-white\/10 { border-color: var(--border-default); }
+.border-white\/15 { border-color: var(--border-hover); }
+.border-white\/20 { border-color: var(--border-hover); }
 
 /* --- Text Colors: map grays to design tokens --- */
 .text-gray-200 { color: var(--text-primary) !important; }
@@ -2021,4 +2158,26 @@ body.web-report {
 
 .replay-scroll::-webkit-scrollbar-thumb:hover {
     background-color: var(--scrollbar-thumb-hover);
+}
+
+/* The search trigger is the palette's field at rest: the same recessed well,
+   the same accent magnifier inside it, and the shortcut sitting where the
+   panel puts its Esc key. Both entry points — the app header and the report
+   sidebar — wear this, so opening the palette looks like the button growing
+   rather than a different object appearing. Hover brightens the outline
+   instead of filling, because a field does not light up when you point at it. */
+.axi-search-trigger {
+    background: var(--bg-base);
+    border: var(--panel-border-w, 1px) solid var(--border-default);
+    color: var(--text-secondary);
+}
+
+.axi-search-trigger:hover {
+    border-color: var(--border-hover, rgba(255, 255, 255, 0.18));
+    color: var(--text-primary);
+}
+
+.axi-search-trigger kbd {
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
 }

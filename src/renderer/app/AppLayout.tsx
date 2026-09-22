@@ -13,6 +13,7 @@ import { UpdateErrorModal } from '../UpdateErrorModal';
 import { WalkthroughModal } from '../WalkthroughModal';
 import { WebhookModal } from '../WebhookModal';
 import { WhatsNewModal } from '../WhatsNewModal';
+import { AxiRail } from './AxiRail';
 import { FilePickerModal } from './FilePickerModal';
 import { WebUploadOverlay } from './WebUploadOverlay';
 import { FightReportHistoryView } from '../FightReportHistoryView';
@@ -22,6 +23,7 @@ import { TRANSITION } from '../motion';
 import { useMapSlicePainter } from '../mapSlice/useMapSlicePainter';
 
 const UNPUBLISHED_REPLAY: ReadonlySet<string> = new Set(['replay']);
+
 
 
 export function AppLayout({ ctx }: { ctx: any }) {
@@ -62,6 +64,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
         setColorPalette,
         setGlassSurfaces,
         setGlassmorphic,
+        axiDesign,
+        setAxiDesign,
         particlesEnabled,
         setParticlesEnabled,
         handleWebUpload,
@@ -224,7 +228,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 </div>
             </div>
 
-            <div className="flex items-center px-3 py-1.5 gap-1 border-b shrink-0" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-elevated)' }}>
+            <div data-nav-strip className="flex items-center px-3 py-1.5 gap-1 border-b shrink-0" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-elevated)' }}>
                 {([
                     { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
                     { id: 'stats' as const, label: 'Stats', icon: BarChart3 },
@@ -235,17 +239,19 @@ export function AppLayout({ ctx }: { ctx: any }) {
                     <button
                         key={id}
                         title={label}
+                        data-nav-tab
+                        data-on={activeNavView === id ? '' : undefined}
                         onClick={() => handleNavViewChange(id)}
                         className={`relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[4px] transition-colors ${
                             activeNavView === id
                                 ? 'text-[color:var(--brand-primary)]'
                                 : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                         }`}
-                        style={activeNavView === id ? { background: 'var(--accent-bg)' } : {}}
+                        style={activeNavView === id && !axiDesign ? { background: 'var(--accent-bg)' } : {}}
                     >
                         <Icon className="w-3.5 h-3.5" />
                         {label}
-                        {activeNavView === id && (
+                        {activeNavView === id && !axiDesign && (
                             <motion.div
                                 layoutId="activeNavIndicator"
                                 className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full"
@@ -277,7 +283,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 ) : (
                                     <div
                                         className="flex items-center gap-2 text-[10px] font-medium px-2 py-0.5 rounded-[4px] border"
-                                        style={{ background: 'var(--accent-bg)', color: 'var(--brand-primary)', borderColor: 'var(--accent-border)' }}
+                                        style={{ background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))', borderColor: 'var(--accent-border)' }}
                                     >
                                         <RefreshCw className="w-3 h-3 animate-spin" />
                                         <span>{updateProgress ? `${Math.round(updateProgress.percent)}%` : 'Updating...'}</span>
@@ -402,7 +408,9 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                whole app — header included. With it, the width stops here and
                                `#stats-dashboard-container` scrolls horizontally instead. */
                             <div className="flex-1 min-h-0 min-w-0 flex gap-3">
-                                <CategoryBar unpublishedCategoryIds={replayPublishing.published ? undefined : UNPUBLISHED_REPLAY} />
+                                {axiDesign
+                                    ? <AxiRail unpublishedCategoryIds={replayPublishing.published ? undefined : UNPUBLISHED_REPLAY} />
+                                    : <CategoryBar unpublishedCategoryIds={replayPublishing.published ? undefined : UNPUBLISHED_REPLAY} />}
                                 <div className="flex-1 min-w-0 min-h-0 flex flex-col">
                                     <StatsErrorBoundary>
                                         <StatsView
@@ -446,6 +454,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 onColorPaletteSaved={setColorPalette}
                                 onGlassSurfacesSaved={setGlassSurfaces}
                                 onGlassmorphicSaved={setGlassmorphic}
+                                onAxiDesignSaved={setAxiDesign}
+                                axiDesign={axiDesign}
                                 onParticlesEnabledSaved={setParticlesEnabled}
                                 onAllowLocalJsonSaved={setAllowLocalJson}
                                 onParserSettingsSaved={setParserSettings}
@@ -497,7 +507,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                             }}
                             className="w-full px-3 py-2 text-left text-sm transition-colors"
                             style={enabledWebhookIds.length === 0
-                                ? { background: 'var(--accent-bg)', color: 'var(--brand-primary)' }
+                                ? { background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }
                                 : { color: 'var(--text-secondary)' }}
                             role="option"
                             aria-selected={enabledWebhookIds.length === 0}
@@ -517,7 +527,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                     onClick={() => handleSetDestinationEnabled(hook.id, !isEnabled)}
                                     className="w-full px-3 py-2 text-left text-sm transition-colors flex items-center gap-2"
                                     style={isEnabled
-                                        ? { background: 'var(--accent-bg)', color: 'var(--brand-primary)' }
+                                        ? { background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }
                                         : { color: 'var(--text-secondary)' }}
                                     role="option"
                                     aria-selected={isEnabled}
