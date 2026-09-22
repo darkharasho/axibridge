@@ -13,8 +13,8 @@ import type { ReportCardModel } from '../shared/reportCardModel';
 
 const RENDER_TIMEOUT_MS = 15_000;
 /** A valid card is tens of KB. Anything smaller is a blank or half-painted
- *  frame, which some platform/compositor combinations return for hidden
- *  windows — we would rather post text than a grey rectangle. */
+ *  frame, which a capture that lands before the first full paint can still
+ *  return — we would rather post text than a grey rectangle. */
 const MIN_CARD_BYTES = 4096;
 
 const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> =>
@@ -26,10 +26,73 @@ const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> =>
         );
     });
 
+/**
+ * One offscreen window, reused for every card, never destroyed.
+ *
+ * This used to be a window per render with `win.destroy()` in a `finally`. On
+ * Electron 44 that first destroy poisons the process: every subsequent
+ * `loadFile` fails with `ERR_FAILED (-2)`, and destroying then waiting could
+ * wedge the main loop outright. So a session with both card styles enabled
+ * rendered the first variant and silently fell back to text for the second.
+ *
+ * Reuse sidesteps it and is much faster besides — a warm render is tens of ms
+ * against ~500ms cold. The cost is one idle offscreen renderer process for the
+ * rest of the session; `about:blank` after each capture gives the card's
+ * bitmap back without touching the destroy path.
+ */
+let sharedWindow: BrowserWindow | null = null;
+/** Renders share one window, so they must not interleave. */
+let renderChain: Promise<unknown> = Promise.resolve();
+
+function acquireWindow(width: number, height: number): BrowserWindow {
+    if (sharedWindow && !sharedWindow.isDestroyed() && !sharedWindow.webContents.isDestroyed()) {
+        return sharedWindow;
+    }
+    // Offscreen rendering, NOT a hidden platform window. `show: false` with
+    // `paintWhenInitiallyHidden` asks the compositor to paint a window it
+    // never mapped: under Wayland an unmapped window has no surface, so no
+    // frame is ever produced and `capturePage()` never resolves — every card
+    // died on the 15s timeout and silently degraded to text. OSR draws into a
+    // bitmap with no surface at all, which is what this code always wanted,
+    // and it takes the host GPU stack out of the loop.
+    sharedWindow = new BrowserWindow({
+        width,
+        height,
+        useContentSize: true,
+        show: false,
+        frame: false,
+        backgroundColor: '#1a1b1e',
+        webPreferences: { nodeIntegration: false, contextIsolation: true, offscreen: true },
+    });
+    return sharedWindow;
+}
+
+/** Drop the card we just captured. Best effort: a window we cannot blank is
+ *  still reusable, and if it is truly wedged the next render times out and
+ *  degrades to text exactly as a failed render always has. */
+function releaseWindow(win: BrowserWindow): void {
+    try {
+        if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
+            void win.loadURL('about:blank').catch(() => { /* best effort */ });
+        }
+    } catch { /* best effort */ }
+}
+
 /** Renders the session card offscreen. Never throws: a null result means the
  *  caller posts the text embed instead, so a broken card cannot cost someone
  *  their report link. */
 export async function renderReportCard(
+    model: ReportCardModel,
+    variant: ReportCardVariant
+): Promise<Buffer | null> {
+    const run = renderChain.then(() => renderCardOnSharedWindow(model, variant));
+    // The chain must survive a rejection, but renderCardOnSharedWindow never
+    // rejects — this only keeps a future throw from stalling every later card.
+    renderChain = run.catch(() => null);
+    return run;
+}
+
+async function renderCardOnSharedWindow(
     model: ReportCardModel,
     variant: ReportCardVariant
 ): Promise<Buffer | null> {
@@ -56,20 +119,14 @@ export async function renderReportCard(
         );
         fs.writeFileSync(htmlFile, html, 'utf8');
 
-        win = new BrowserWindow({
-            width: size.width,
-            height: size.height,
-            useContentSize: true,
-            show: false,
-            paintWhenInitiallyHidden: true,
-            frame: false,
-            backgroundColor: '#1a1b1e',
-            webPreferences: { nodeIntegration: false, contextIsolation: true, offscreen: false },
-        });
+        win = acquireWindow(size.width, size.height);
 
         const buffer = await withTimeout(
             (async (): Promise<Buffer | null> => {
                 const target = win!;
+                // The window is shared, so the previous card's height is still
+                // set on it — put it back before loading.
+                target.setContentSize(size.width, size.height);
                 await target.loadFile(htmlFile!);
                 // One round-trip that waits for fonts and a painted frame, then
                 // reports the real content height. Capturing before this
@@ -101,8 +158,7 @@ export async function renderReportCard(
         console.error('[Main] Report card render failed:', err);
         return null;
     } finally {
-        // destroy(), not close(): a headless window has no reliable close path.
-        try { win?.destroy(); } catch { /* already gone */ }
+        if (win) releaseWindow(win);
         if (htmlFile) {
             try { fs.unlinkSync(htmlFile); } catch { /* best effort */ }
         }
