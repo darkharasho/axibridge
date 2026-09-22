@@ -66,10 +66,13 @@ export function WebUploadOverlay({
     // the overlay will be destroyed mid-fade.
     useEffect(() => {
         const stage = webUploadState.stage ?? '';
+        // A pending Discord post keeps the overlay up: the upload is done, but the
+        // trailing step below is still running and we want it visible.
+        if (webUploadState.postStatus === 'pending') return;
         if (stage === 'Complete' || stage === 'Upload complete') {
             setClosing(true);
         }
-    }, [webUploadState.stage]);
+    }, [webUploadState.stage, webUploadState.postStatus]);
 
     if (!(webUploadState.uploading || webUploadState.stage)) return null;
 
@@ -90,6 +93,7 @@ export function WebUploadOverlay({
             progress: null,
             detail: null,
             message: null,
+            postStatus: 'idle',
             buildStatus: 'idle',
         }));
     };
@@ -97,7 +101,7 @@ export function WebUploadOverlay({
     return (
         <div
             className={`app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg transition-opacity duration-700 ${closing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-            onClick={hasFailure ? clearOverlay : undefined}
+            onClick={hasFailure || webUploadState.postStatus === 'pending' ? clearOverlay : undefined}
         >
             <div
                 className={`app-modal-card w-full rounded-2xl shadow-2xl backdrop-blur-2xl ${hasErrorDetail && hasFailure ? 'max-w-2xl' : 'max-w-md'}`}
@@ -181,6 +185,34 @@ export function WebUploadOverlay({
                     </div>
                 </div>
 
+                {/* ── Trailing Discord step (runs detached from the upload) ── */}
+                {webUploadState.postStatus !== 'idle' && (
+                    <div className="flex items-center gap-2 px-5 pb-2">
+                        <div
+                            className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0 border"
+                            style={
+                                webUploadState.postStatus === 'done'
+                                    ? { background: 'var(--accent-bg)', borderColor: 'var(--accent-border)', color: 'var(--brand-primary)' }
+                                    : webUploadState.postStatus === 'warn'
+                                    ? { background: 'var(--status-warning-bg)', borderColor: 'var(--status-warning)', color: 'var(--status-warning)' }
+                                    : { background: 'var(--accent-bg-strong)', borderColor: 'var(--brand-primary)', color: 'var(--brand-primary)' }
+                            }
+                        >
+                            {webUploadState.postStatus === 'done' ? '✓' : webUploadState.postStatus === 'warn' ? '!' : '·'}
+                        </div>
+                        <span className="text-[10px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                            Discord
+                        </span>
+                        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                            {webUploadState.postStatus === 'done'
+                                ? 'posted'
+                                : webUploadState.postStatus === 'warn'
+                                ? 'posted with warnings'
+                                : 'posting in the background...'}
+                        </span>
+                    </div>
+                )}
+
                 {/* ── Log feed ── */}
                 {logEntries.length > 0 && (
                     <div
@@ -239,11 +271,14 @@ export function WebUploadOverlay({
                             ? `${Math.round(webUploadState.progress)}%`
                             : 'Preparing...'}
                     </span>
-                    {hasFailure && (
+                    {(hasFailure || webUploadState.postStatus === 'pending') && (
                         <button
                             type="button"
                             onClick={clearOverlay}
-                            className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-amber-500/40 bg-amber-500/10 text-amber-100 hover:bg-amber-500/20"
+                            className={hasFailure
+                                ? 'px-3 py-1.5 rounded-lg text-xs font-semibold border border-amber-500/40 bg-amber-500/10 text-amber-100 hover:bg-amber-500/20'
+                                : 'px-3 py-1.5 rounded-lg text-xs font-semibold border'}
+                            style={hasFailure ? undefined : { borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                         >
                             Dismiss
                         </button>
