@@ -33,12 +33,16 @@ const Side = ({ name, color, size, kdr, align }: {
 }) => {
     const right = align === 'right';
     return (
-        <div className={`grid gap-[9px] content-start px-5 ${right ? 'justify-items-end' : ''}`}>
+        <div className={`grid gap-[9px] content-start px-2 sm:px-5 ${right ? 'justify-items-end' : ''}`}>
             <div className={`grid gap-[7px] ${right ? 'justify-items-end' : ''}`}>
                 <Cap color={color} />
                 <div className={LABEL} style={{ color: 'var(--overview-label, var(--text-secondary))' }}>{name}</div>
             </div>
-            <div className={`flex gap-7 ${right ? 'justify-end' : ''}`}>
+            {/* Two numbers abreast is what sets a side's min-content width,
+                and two sides of it either side of a rule still did not fit a
+                393px screen. Stacked, a side is only as wide as its widest
+                label. */}
+            <div className={`flex flex-col gap-3 sm:flex-row sm:gap-5 md:gap-7 ${right ? 'items-end sm:items-start sm:justify-end' : ''}`}>
                 <Stat value={size} label="Avg size" align={align} />
                 <Stat value={kdr} label="KDR" align={align} />
             </div>
@@ -77,7 +81,9 @@ export const OverviewSection = () => {
     /* The two sides are split by a line drawn inside the panel, not by an
        outline around each of them - the subtle step, same as a rule between
        cells in a table. */
-    const rule = <div style={{ background: 'var(--overview-well-line, var(--border-subtle))', borderRadius: '1px' }} />;
+    const rule = (className?: string) => (
+        <div className={className} style={{ background: 'var(--overview-well-line, var(--border-subtle))', borderRadius: '1px' }} />
+    );
 
     return (
         <div className="overview-card" style={{ border: 'var(--panel-border-w, 1px) solid var(--border-default)', borderRadius: 'var(--radius-md)', padding: '16px 18px' }}>
@@ -87,10 +93,19 @@ export const OverviewSection = () => {
                 outcome. Squad KDR is worse than redundant here: one fight
                 routinely ends with zero squad deaths, and the aggregate card
                 renders that as an unqualified infinity. */}
-            {!singleFight && <div className="grid items-stretch mb-4" style={{ gridTemplateColumns: '1fr 2px auto 2px 1fr' }}>
+            {/* Five tracks - side, rule, tally, rule, side - and two of them
+                are 1fr, whose min track size is auto. A phone cannot give a
+                side its min-content width twice over with the tally between
+                them, and an fr track will not go below min-content, so the
+                whole scoreboard ran 238px off a 393px screen rather than
+                wrapping. Narrow keeps the reading and drops a row: the tally
+                on top, the two sides beneath it either side of the same rule,
+                still mirrored so each number sits next to the one it is read
+                against. */}
+            {!singleFight && <div className="grid items-stretch mb-4 grid-cols-[1fr_2px_1fr] sm:grid-cols-[1fr_2px_auto_2px_1fr]">
                 <Side name="Squad" color="var(--status-success)" size={stats.avgSquadSize} kdr={stats.squadKDR} align="left" />
-                {rule}
-                <div className="flex items-center gap-3.5 mx-[18px] px-[22px] py-2.5" style={WELL}>
+                {rule()}
+                <div className="order-first col-span-3 mb-3.5 flex items-center justify-center gap-3.5 px-[22px] py-2.5 sm:order-none sm:col-span-1 sm:mx-[18px] sm:mb-0 sm:justify-start" style={WELL}>
                     <div className="text-center">
                         <div className="text-[46px] font-black leading-[0.9] tabular-nums" style={{ color: 'var(--status-success)' }}>{stats.wins}</div>
                         <div className={`${LABEL} mt-[7px]`} style={{ color: 'var(--overview-label, var(--text-secondary))' }}>Won</div>
@@ -101,7 +116,9 @@ export const OverviewSection = () => {
                         <div className={`${LABEL} mt-[7px]`} style={{ color: 'var(--overview-label, var(--text-secondary))' }}>Lost</div>
                     </div>
                 </div>
-                {rule}
+                {/* Between the tally and the enemy side when they are side by
+                    side; between nothing once the tally is its own row. */}
+                {rule('hidden sm:block')}
                 <Side name="Enemy" color="var(--status-error)" size={stats.avgEnemies} kdr={stats.enemyKDR} align="right" />
             </div>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
