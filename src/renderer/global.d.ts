@@ -122,8 +122,16 @@ export interface IDiscordEnemySplitSettings {
 
 export type WebUploadBuildStatus = 'idle' | 'checking' | 'building' | 'built' | 'errored' | 'unknown';
 
+/**
+ * State of the trailing "post to Discord" step. This step runs detached from the
+ * upload itself (see the `upload-web-report` handler), so it has to be tracked
+ * separately from `uploading` — the upload can be done while the post is pending.
+ */
+export type WebUploadPostStatus = 'idle' | 'pending' | 'done' | 'warn';
+
 export interface IWebUploadState {
     uploading: boolean;
+    postStatus: WebUploadPostStatus;
     message: string | null;
     stage: string | null;
     progress: number | null;
@@ -272,6 +280,7 @@ export const DEFAULT_STATS_VIEW_SETTINGS: IStatsViewSettings = {
 
 export const DEFAULT_WEB_UPLOAD_STATE: IWebUploadState = {
     uploading: false,
+    postStatus: 'idle',
     message: null,
     stage: null,
     progress: null,
@@ -472,7 +481,7 @@ export interface IElectronAPI {
     ensureGithubTemplate: () => Promise<{ success: boolean; updated?: boolean; error?: string }>;
     selectGithubLogo: () => Promise<string | null>;
     applyGithubLogo: (payload?: { logoPath?: string }) => Promise<{ success: boolean; updated?: boolean; error?: string }>;
-    uploadWebReport: (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecar?: SliceSidecar }) => Promise<{ success: boolean; url?: string; replayDataUrl?: string | null; error?: string; errorDetail?: string; webhookResults?: Array<{ id: string; name: string; ok: boolean; error?: string }> }>;
+    uploadWebReport: (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecar?: SliceSidecar }) => Promise<{ success: boolean; url?: string; replayDataUrl?: string | null; error?: string; errorDetail?: string }>;
     mockWebReport: (payload: { meta: any; stats: any }) => Promise<{ success: boolean; url?: string; error?: string }>;
     /** Dev-only: renders a Discord report card PNG and opens it locally. No-ops in packaged builds. */
     previewReportCard: (payload: { meta: any; stats: any; variant?: 'hybrid' | 'graphic' }) => Promise<{ success: boolean; filePath?: string; error?: string }>;

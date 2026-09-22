@@ -5,6 +5,7 @@ import type { IWebUploadState } from '../global.d';
 
 const base: IWebUploadState = {
     uploading: false,
+    postStatus: 'idle',
     message: null,
     stage: null,
     progress: null,
@@ -116,5 +117,83 @@ describe('WebUploadOverlay', () => {
         );
         screen.getByRole('button', { name: /dismiss/i }).click();
         expect(setFn).toHaveBeenCalled();
+    });
+});
+
+describe('WebUploadOverlay trailing Discord step', () => {
+    it('is absent when no Discord post is running', () => {
+        render(
+            <WebUploadOverlay
+                webUploadState={{ ...base, stage: 'Uploading', uploading: true }}
+                isDev={false}
+                setWebUploadState={vi.fn()}
+                logEntries={[]}
+            />
+        );
+        expect(screen.queryByText('Discord')).toBeNull();
+    });
+
+    it('shows the step as pending while the detached post runs', () => {
+        render(
+            <WebUploadOverlay
+                webUploadState={{ ...base, stage: 'Upload complete', uploading: false, postStatus: 'pending' }}
+                isDev={false}
+                setWebUploadState={vi.fn()}
+                logEntries={[]}
+            />
+        );
+        expect(screen.getByText('Discord')).toBeTruthy();
+        expect(screen.getByText('posting in the background...')).toBeTruthy();
+    });
+
+    it('stays visible while the post is pending, even though the upload is complete', () => {
+        const { container } = render(
+            <WebUploadOverlay
+                webUploadState={{ ...base, stage: 'Upload complete', uploading: false, postStatus: 'pending' }}
+                isDev={false}
+                setWebUploadState={vi.fn()}
+                logEntries={[]}
+            />
+        );
+        expect(container.querySelector('.app-modal-overlay')?.className).toContain('opacity-100');
+    });
+
+    it('fades out once the post settles', () => {
+        const { container } = render(
+            <WebUploadOverlay
+                webUploadState={{ ...base, stage: 'Complete', uploading: false, postStatus: 'done' }}
+                isDev={false}
+                setWebUploadState={vi.fn()}
+                logEntries={[]}
+            />
+        );
+        expect(container.querySelector('.app-modal-overlay')?.className).toContain('opacity-0');
+    });
+
+    it('can be dismissed while the post is still pending', () => {
+        const setState = vi.fn();
+        render(
+            <WebUploadOverlay
+                webUploadState={{ ...base, stage: 'Upload complete', uploading: false, postStatus: 'pending' }}
+                isDev={false}
+                setWebUploadState={setState}
+                logEntries={[]}
+            />
+        );
+        screen.getByRole('button', { name: 'Dismiss' }).click();
+        expect(setState).toHaveBeenCalledOnce();
+        expect(setState.mock.calls[0][0](base)).toMatchObject({ postStatus: 'idle', stage: null });
+    });
+
+    it('reports a degraded post', () => {
+        render(
+            <WebUploadOverlay
+                webUploadState={{ ...base, stage: 'Complete', uploading: false, postStatus: 'warn' }}
+                isDev={false}
+                setWebUploadState={vi.fn()}
+                logEntries={[]}
+            />
+        );
+        expect(screen.getByText('posted with warnings')).toBeTruthy();
     });
 });

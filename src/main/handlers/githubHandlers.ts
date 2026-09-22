@@ -13,12 +13,10 @@ import {
     type RollupReportPayload
 } from '../../web/rollup';
 import { parseAttendanceFile, updateAttendanceForPublish, type AttendanceRaid } from '../../web/attendance';
-import { postReportToWebhooks, type ReportWebhookPostResult } from '../reportWebhooks';
+import { startReportPost } from '../reportPostRunner';
 import { type IReportWebhook, selectReportWebhooks } from '../../shared/reportWebhooks';
 import { buildReportCardModel } from '../../shared/reportCardModel';
-import { planReportCardVariants } from '../reportCardRenderPlan';
 import { renderReportCard } from '../reportCardRenderer';
-import type { ReportCardVariant } from '../reportCardTemplate';
 import { resolveGuild } from '../guildDirectory';
 import { type R2Config } from '../cloudflare/r2SigV4';
 import {
@@ -2443,59 +2441,27 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 await publishCommit(retryBaseTreeSha, retryHeadSha);
             }
 
-            sendWebUploadStatus('Complete', 'Web report uploaded.', 100);
-
-            // Post the report link to configured report webhooks. Failures are
-            // logged into the upload status feed but never fail the upload.
-            let webhookResults: ReportWebhookPostResult[] = [];
+            // The report is live on Pages the moment the commit lands. Rendering the
+            // card and posting to Discord is follow-up work that must NOT hold this
+            // handler open — the renderer's upload modal resolves on our return
+            // value, so awaiting it pinned the modal at "100% Complete" for the
+            // whole post. Detached on purpose; it reports itself over `onStatus`.
             const rawReportWebhooks = store.get('reportWebhooks', []);
             const allReportWebhooks = Array.isArray(rawReportWebhooks) ? rawReportWebhooks as IReportWebhook[] : [];
             // The renderer sends the user's per-publish choice; absent → all enabled.
             const reportWebhooks = selectReportWebhooks(allReportWebhooks, payload.reportWebhookIds);
-            if (reportWebhooks.length > 0) {
-                sendWebUploadStatus('Posting', `Posting report link to ${reportWebhooks.length} Discord webhook${reportWebhooks.length === 1 ? '' : 's'}...`, 100);
-                // Render the report card(s) needed for the styles in use. Non-blocking:
-                // a failure here must not abort the publish — the report is already live.
-                const images: Partial<Record<ReportCardVariant, Buffer | null>> = {};
-                const variants = planReportCardVariants(reportWebhooks);
-                if (variants.length > 0) {
-                    sendWebUploadStatus('Posting', 'Rendering report card...', 100);
-                }
-                for (const variant of variants) {
-                    // Per variant, not per loop: a throw while rendering one
-                    // style must not deny the other style's hooks their card.
-                    try {
-                        const cardModel = buildReportCardModel(reportMeta, payload.stats);
-                        images[variant] = await renderReportCard(cardModel, variant);
-                    } catch (err) {
-                        log.warn(`[Main] Failed to render report card (${variant}) (non-blocking):`, err);
-                    }
-                    if (!images[variant]) {
-                        sendWebUploadStatus('Warning', `Report card (${variant}) could not be rendered — posting text instead.`, 100);
-                    }
-                }
-                // Non-blocking: the report is already live on Pages, so a throw
-                // in the posting path (model build, meta coercion, or any hook)
-                // must not turn this publish into a failure for the renderer.
-                try {
-                    webhookResults = await postReportToWebhooks({
-                        webhooks: reportWebhooks,
-                        meta: reportMeta,
-                        stats: payload.stats,
-                        url: reportUrl,
-                        onStatus: (line: string, isWarn?: boolean) => sendWebUploadStatus(isWarn ? 'Warning' : 'Posting', line, 100),
-                        persistForumFlag: (id: string, isForum: boolean) => {
-                            const current = store.get('reportWebhooks', []) as IReportWebhook[];
-                            store.set('reportWebhooks', current.map((hook) => (hook.id === id ? { ...hook, isForum } : hook)));
-                        },
-                        images,
-                    });
-                } catch (err) {
-                    log.warn('[Main] Failed to post report to webhooks (non-blocking):', err);
-                    sendWebUploadStatus('Warning', 'Could not post the report link to Discord.', 100);
-                }
-            }
-            return { success: true, url: reportUrl, replayDataUrl: replayDataUrl ?? null, webhookResults };
+            void startReportPost({
+                webhooks: reportWebhooks,
+                meta: reportMeta,
+                stats: payload.stats,
+                url: reportUrl,
+                onStatus: sendWebUploadStatus,
+                persistForumFlag: (id: string, isForum: boolean) => {
+                    const current = store.get('reportWebhooks', []) as IReportWebhook[];
+                    store.set('reportWebhooks', current.map((hook) => (hook.id === id ? { ...hook, isForum } : hook)));
+                },
+            });
+            return { success: true, url: reportUrl, replayDataUrl: replayDataUrl ?? null };
         } catch (err: any) {
             const error = err?.message || 'Upload failed.';
             const errorDetail = err?.stack || String(err);
