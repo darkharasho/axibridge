@@ -2582,3 +2582,46 @@ body.axi-design .report-head-mark {
 }
 
 body.axi-design .report-head { border-bottom-color: var(--axi-rule); }
+
+/* The single-fight report's hero. The utility bridge above already carries its
+   card, its tiles and its text across; what it cannot reach is the three
+   things the component writes inline, because an inline style is the one place
+   a variable remap has no purchase. Hence !important here - not to win an
+   argument with another rule, but to reach past the element's own style
+   attribute, which is where the classic look has to live. */
+
+/* A verdict is status, so this is the one place on the page a status colour is
+   spent on exactly what rule 5 reserves it for - and having earned it, it gets
+   the full weight: flat fill, ink label, ink edge, hard offset. It ends up the
+   loudest object in the report, which is right for the one word a share link
+   is opened to read. The fill comes in as --outcome-fill, so which status this
+   is stays the component's business. */
+body.axi-design .fight-hero-outcome {
+  background: var(--outcome-fill) !important;
+  color: var(--axi-accent-ink) !important;
+  border: var(--axi-border-control) solid var(--axi-ink-line) !important;
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+
+/* Except when there is no verdict. An undecided fight has no status to report,
+   and ink on a neutral grey is unreadable anyway, so it steps back to a plain
+   raised chip. */
+body.axi-design .fight-hero-outcome[data-outcome='none'] {
+  background: var(--axi-surface-raised) !important;
+  color: var(--axi-text) !important;
+}
+
+/* The two strength bars were drawn as gradients, which rule 1 forbids outright
+   - a gradient is decoration standing in for a shape. Flat, and outlined as a
+   well rather than as a raised thing (see --axi-well-line): the trough sits at
+   ground level. Taller than the app's 8px, because a squared 8px bar reads as
+   a hairline where the capsule read as a bar. */
+body.axi-design .fight-hero-track {
+  height: 14px;
+  border: var(--axi-border-hairline) solid var(--axi-well-line);
+}
+
+body.axi-design .fight-hero-fill[data-side='friendly'] { background: var(--axi-meta) !important; }
+body.axi-design .fight-hero-fill[data-side='enemy'] { background: var(--axi-danger) !important; }
+
+body.axi-design .fight-hero-rule { border-top-color: var(--axi-rule); }
