@@ -481,7 +481,7 @@ export interface IElectronAPI {
     ensureGithubTemplate: () => Promise<{ success: boolean; updated?: boolean; error?: string }>;
     selectGithubLogo: () => Promise<string | null>;
     applyGithubLogo: (payload?: { logoPath?: string }) => Promise<{ success: boolean; updated?: boolean; error?: string }>;
-    uploadWebReport: (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecar?: SliceSidecar }) => Promise<{ success: boolean; url?: string; replayDataUrl?: string | null; error?: string; errorDetail?: string }>;
+    uploadWebReport: (payload: { meta: any; statsJson: string; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecarJson?: string; sliceSidecarMeta?: { frameCount: number; settingsHash?: string } }) => Promise<{ success: boolean; url?: string; replayDataUrl?: string | null; error?: string; errorDetail?: string }>;
     mockWebReport: (payload: { meta: any; stats: any }) => Promise<{ success: boolean; url?: string; error?: string }>;
     /** Dev-only: renders a Discord report card PNG and opens it locally. No-ops in packaged builds. */
     previewReportCard: (payload: { meta: any; stats: any; variant?: 'hybrid' | 'graphic' }) => Promise<{ success: boolean; filePath?: string; error?: string }>;

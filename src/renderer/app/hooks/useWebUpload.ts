@@ -168,7 +168,26 @@ export function useWebUpload(opts?: {
                 buildStatusRepo: repoLabel || null
             }));
         try {
-            const { logIds, ...ipcPayload } = payload;
+            const { logIds, stats, sliceSidecar, ...rest } = payload;
+            // Serialize the two large bodies before they touch the bridge. A live
+            // object graph crosses contextBridge node by node (a deep copy into the
+            // preload world) and is then serialized again by ipcRenderer.invoke; on
+            // a full night's stats that double walk froze the renderer for ~40s. A
+            // string crosses as a single value, and main has to stringify both
+            // bodies anyway, so this is strictly less work on both sides.
+            const ipcPayload = {
+                ...rest,
+                statsJson: JSON.stringify(stats),
+                ...(sliceSidecar
+                    ? {
+                        sliceSidecarJson: JSON.stringify(sliceSidecar),
+                        sliceSidecarMeta: {
+                            frameCount: Array.isArray(sliceSidecar.frames) ? sliceSidecar.frames.length : 0,
+                            settingsHash: sliceSidecar.settingsHash
+                        }
+                    }
+                    : {})
+            };
             const result = await window.electronAPI.uploadWebReport(ipcPayload);
             if (result?.success) {
                 const url = result.url || '';

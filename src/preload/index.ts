@@ -149,7 +149,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // `useStatsAggregationWorker.ts`'s `--jsx`/`import.meta` errors). Same
     // cross-process-boundary excuse the review already accepted for
     // `githubHandlers.ts`.
-    uploadWebReport: (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecar?: any }) => ipcRenderer.invoke('upload-web-report', payload),
+    uploadWebReport: (payload: { meta: any; statsJson: string; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecarJson?: string; sliceSidecarMeta?: { frameCount: number; settingsHash?: string } }) => ipcRenderer.invoke('upload-web-report', payload),
     mockWebReport: (payload: { meta: any; stats: any }) => ipcRenderer.invoke('mock-web-report', payload),
     // Dev-only: renders a Discord report card (hybrid/graphic) to a PNG and opens it
     // in the system image viewer, for tuning the template without publishing or
