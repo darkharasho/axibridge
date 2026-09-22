@@ -1193,8 +1193,14 @@ export const selectStaleAssetPaths = (
  * them all in one publish would mean downloading a gigabyte mid-upload, so
  * each publish takes a bite instead. Largest-first, so the worst offenders go
  * first and the curve is front-loaded.
+ *
+ * Sized by how long a publish may grow, not by any API limit: parts are capped
+ * at PART_BYTES whatever the budget is, so a larger budget means more blob
+ * requests, never a larger one that could trip the ~60 s blob timeout. At
+ * 150 MB the repo above drains in ~9 publishes, adding roughly a minute and a
+ * half to each until it does.
  */
-const COMPACT_BUDGET_BYTES = 60 * 1024 * 1024;
+const COMPACT_BUDGET_BYTES = 150 * 1024 * 1024;
 
 interface PublishedTreeEntry {
     path?: string;
