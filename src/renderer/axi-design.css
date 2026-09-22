@@ -10,9 +10,9 @@
       They used to be copied into this file by hand, which is the one
       arrangement where the values are guaranteed to drift: nothing told us
       when axi changed, and nothing would have told us we were a version
-      behind. `axi-design/tokens.css` is the palette without the components,
-      which is exactly what an app that draws itself through its own variables
-      needs.
+      behind. `@axiapps/axi-design/tokens.css` is the palette without the
+      components, which is exactly what an app that draws itself through its
+      own variables needs.
 
       The copy put them on `body.axi-design` rather than `:root`, so a stray
       --axi-* in an untoggled app resolved to nothing rather than to half a
@@ -24,7 +24,7 @@
       same meaning. Where the two languages disagree, axi wins, and the reason
       is written down beside the line. */
 
-@import 'axi-design/tokens.css';
+@import '@axiapps/axi-design/tokens.css';
 
 body.axi-design {
   /* --- the three places this app departs from the shipped tokens --- */
