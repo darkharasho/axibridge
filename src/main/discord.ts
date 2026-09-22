@@ -221,6 +221,90 @@ export const buildSlicePayloadJson = (embeds: any[], isBridge: boolean): Record<
     return payload;
 };
 
+/** The widest a top-list row may render inside a Discord embed's inline-field
+ *  column, in monospace cells. This is measured, not documented: Discord has
+ *  quietly narrowed the column twice (26 -> 23 -> 20 here), each time making
+ *  every row wrap into two ragged lines with names cut mid-word. If rows start
+ *  wrapping again, lower this first. */
+export const TOP_LIST_MAX_LINE_WIDTH = 20;
+
+export type TopListClassDisplay = 'off' | 'short' | 'emoji';
+
+export interface TopListEntry {
+    /** Displayed position. Passed in rather than derived, because boards skip
+     *  players whose stat is zero and the surviving ranks keep their gaps. */
+    rank: number;
+    name: string;
+    /** Unicode emoji, a `{{spec:x}}` bridge token, a short abbreviation, or ''. */
+    classToken: string;
+    /** Already formatted; padded into a common column here. */
+    value: string;
+}
+
+/** Lays top-list entries out as fixed monospace columns that fit
+ *  `TOP_LIST_MAX_LINE_WIDTH`.
+ *
+ *  Column widths come from the entries themselves, not from the cap: a board
+ *  of short names produces short rows. Padding every name to the widest name
+ *  the cap ALLOWS is what made low-value boards wrap needlessly, since a row
+ *  then always measured exactly the cap even when its content was half that.
+ *
+ *  Ruling K / option D2. A bridged row's class cell is a `{{spec:x}}` token the
+ *  relay turns into a custom application emoji, and a custom emoji inside a
+ *  fence renders as literal `<:name:id>` text -- so a fully fenced row can have
+ *  aligned columns or icons, never both. D2 splits the row into per-segment
+ *  inline code spans with the token BETWEEN them:
+ *      `RR` {{spec:x}} `Name - Value`
+ *  Each span is monospace, and because every custom emoji renders at one
+ *  uniform glyph width the trailing span starts at the same offset on every
+ *  row, so the columns still line up. Only the bridge emoji path takes this
+ *  layout: 'short'/'off' emit plain text a fence renders correctly, and the
+ *  webhook path's unicode emoji render inside a fence too. */
+export const buildTopListRows = (
+    entries: TopListEntry[],
+    options: { useSpanLayout: boolean; classDisplay: TopListClassDisplay }
+): string[] => {
+    if (entries.length === 0) return [];
+
+    const RANK_WIDTH = 3; // "10 "
+    const MIN_SEPARATOR = 1; // at least one space between name and value
+    const SPAN_TOKEN_WIDTH = 2; // one emoji glyph + separator space
+    const SPAN_VALUE_SEPARATOR = ' - ';
+
+    const valueWidth = Math.max(1, ...entries.map((entry) => entry.value.length));
+    const availableWidth = options.useSpanLayout
+        ? TOP_LIST_MAX_LINE_WIDTH - RANK_WIDTH - SPAN_TOKEN_WIDTH - SPAN_VALUE_SEPARATOR.length
+        : TOP_LIST_MAX_LINE_WIDTH - RANK_WIDTH - MIN_SEPARATOR;
+    const maxNameWidth = Math.max(0, availableWidth - valueWidth);
+
+    // In the span layout the token lives outside the padded text entirely, so
+    // the name cell holds only real monospace characters. In the fenced layout
+    // the token shares the cell, and short-form tokens vary in length, so each
+    // cell is built first and the column is sized to the widest one.
+    const cells = entries.map((entry) => {
+        if (options.useSpanLayout) return entry.name.substring(0, maxNameWidth);
+        const classCell = entry.classToken
+            ? (options.classDisplay === 'emoji' ? `${entry.classToken} ` : `[${entry.classToken}] `)
+            : '';
+        const room = Math.max(0, maxNameWidth - classCell.length);
+        return `${classCell}${entry.name.substring(0, room)}`;
+    });
+    const nameWidth = Math.max(0, ...cells.map((cell) => cell.length));
+
+    return entries.map((entry, i) => {
+        const name = cells[i].padEnd(nameWidth);
+        const value = entry.value.padStart(valueWidth);
+        if (options.useSpanLayout) {
+            // A row with no resolvable spec still pads to `nameWidth`, keeping
+            // its value column aligned with its neighbours instead of sliding
+            // one glyph left.
+            const tokenCell = entry.classToken ? `${entry.classToken} ` : '';
+            return `\`${String(entry.rank).padStart(2)}\` ${tokenCell}\`${name}${SPAN_VALUE_SEPARATOR}${value}\``;
+        }
+        return `${String(entry.rank).padEnd(2)} ${name} ${value}`;
+    });
+};
+
 const resolveFightTimestampMs = (jsonDetails: any, logData: any) => {
     const raw = jsonDetails?.timeStartStd
         ?? jsonDetails?.timeStart
@@ -982,49 +1066,12 @@ export class DiscordNotifier {
                             return '';
                         };
 
-                        // Calculate the maximum value width for this specific list
-                        let maxValueWidth = 0;
-                        const formattedValues: string[] = [];
-                        top.forEach(p => {
-                            const val = valFn(p);
-                            const formatted = fmtVal(val);
-                            formattedValues.push(formatted);
-                            maxValueWidth = Math.max(maxValueWidth, formatted.length);
-                        });
-                        maxValueWidth = Math.max(1, maxValueWidth);
-
-                        // Discord embed inline field max width is ~23 chars in monospace
-                        // (narrower than the historical ~25 — Discord adjusted column widths)
-                        // Format: "RR NAME... VALUE" where RR=rank (2 chars + 1 space)
-                        const MAX_LINE_WIDTH = 23
-                        const RANK_WIDTH = 3; // "10 " = 3 chars
-                        const MIN_SEPARATOR = 1; // At least 1 space between name and value
-
-                        // Ruling K / option D2. A bridged row's class cell is a
-                        // `{{spec:x}}` token the relay turns into a custom application
-                        // emoji, and a custom emoji inside a fence renders as literal
-                        // `<:name:id>` text -- so a fully fenced row can have aligned
-                        // columns or icons, never both. D2 splits the row into per-segment
-                        // inline code spans with the token BETWEEN them:
-                        //     `RR` {{spec:x}} `Name - Value`
-                        // Each span is monospace, and because every custom emoji renders
-                        // at one uniform glyph width the trailing span starts at the same
-                        // offset on every row, so the name/value columns still line up.
-                        // Only the bridge emoji path takes this layout: `classDisplay`
-                        // 'short'/'off' emit plain text that a fence renders correctly,
-                        // and the webhook path's unicode emoji render inside a fence too.
                         const useSpanLayout = isBridge && classDisplay === 'emoji';
-                        const SPAN_TOKEN_WIDTH = 2; // one emoji glyph + separator space
-                        const SPAN_VALUE_SEPARATOR = ' - ';
-                        const availableWidth = useSpanLayout
-                            ? MAX_LINE_WIDTH - RANK_WIDTH - SPAN_TOKEN_WIDTH - SPAN_VALUE_SEPARATOR.length
-                            : MAX_LINE_WIDTH - RANK_WIDTH - MIN_SEPARATOR;
-                        const nameWidth = Math.max(0, availableWidth - maxValueWidth);
-
-                        let str = "";
-                        for (let i = 0; i < maxTopRows; i += 1) {
-                            const p = top[i];
-                            if (!p) break;
+                        // Zero-stat players are dropped but the survivors keep their
+                        // original ranks, so a board can read 1, 2, 5 -- the rank is
+                        // carried on the entry rather than re-derived from the row index.
+                        const entries: TopListEntry[] = [];
+                        top.forEach((p: any, i: number) => {
                             const val = valFn(p);
                             const shouldRenderValue = options?.allowZero
                                 ? (
@@ -1033,33 +1080,20 @@ export class DiscordNotifier {
                                         : (typeof val === 'string' ? val !== '' : Boolean(val))
                                 )
                                 : (val > 0 || (typeof val === 'string' && val !== '0' && val !== ''));
-                            if (!shouldRenderValue) continue;
-                            const fullName = p.name || p.character_name || p.account || 'Unknown';
-                            const classToken = getClassToken(p);
-                            const vStr = formattedValues[i]?.padStart(maxValueWidth) || ''.padStart(maxValueWidth);
+                            if (!shouldRenderValue) return;
+                            entries.push({
+                                rank: i + 1,
+                                name: p.name || p.character_name || p.account || 'Unknown',
+                                classToken: getClassToken(p),
+                                value: fmtVal(val),
+                            });
+                        });
+                        const rows = buildTopListRows(entries, {
+                            useSpanLayout,
+                            classDisplay: classDisplay as TopListClassDisplay,
+                        });
+                        const str = rows.length > 0 ? `${rows.join('\n')}\n` : '';
 
-                            if (useSpanLayout) {
-                                // The token leaves the padded text entirely, so nothing here
-                                // has to model its rendered width -- the span holds only real
-                                // monospace characters. A row with no resolvable spec still
-                                // pads to `nameWidth`, keeping the value column aligned with
-                                // its neighbours instead of sliding one glyph left.
-                                const rank = (i + 1).toString().padStart(2);
-                                const spanName = fullName.substring(0, nameWidth).padEnd(nameWidth);
-                                const tokenCell = classToken ? `${classToken} ` : '';
-                                str += `\`${rank}\` ${tokenCell}\`${spanName}${SPAN_VALUE_SEPARATOR}${vStr}\`\n`;
-                                continue;
-                            }
-
-                            const rank = (i + 1).toString().padEnd(2);
-                            const classCell = classToken
-                                ? (classDisplay === 'emoji' ? `${classToken} ` : `[${classToken}] `)
-                                : '';
-                            const availableNameWidth = Math.max(0, nameWidth - classCell.length);
-                            const trimmedName = fullName.substring(0, availableNameWidth).padEnd(availableNameWidth);
-                            const name = `${classCell}${trimmedName}`.padEnd(nameWidth);
-                            str += `${rank} ${name} ${vStr}\n`;
-                        }
                         // A board whose every row was filtered out (all-zero stat, or a
                         // metric this parse cannot populate) leaves `str` empty. The fenced
                         // webhook value still has its backticks, but a span-layout value
