@@ -61,7 +61,7 @@ const formatFightTime = (iso: string): string => {
 };
 
 const Kpi = ({ value, label, tone }: { value: React.ReactNode; label: string; tone?: string }) => (
-    <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5">
+    <div className="fight-hero-kpi rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5">
         <div className="text-lg font-semibold leading-tight" style={tone ? { color: tone } : undefined}>{value}</div>
         <div className="mt-1 text-[9px] uppercase tracking-[0.16em] text-gray-400">{label}</div>
     </div>
@@ -94,60 +94,93 @@ export function FightHero({
     const commanders = Array.isArray(meta.commanders) ? meta.commanders.filter(Boolean) : [];
     const timeLabel = formatFightTime(meta.dateStart);
 
+    /* The tinted capsule this used to be - a status colour at 14% over the
+       ground, behind pastel text - is the one shape the language does not
+       have, and rule 2 does not allow colour at partial opacity anyway. The
+       classic look is kept, but drawn from the app's own status tokens so it
+       moves with the theme; `fill` is the flat colour the language paints the
+       whole chip in, handed to CSS as a custom property because which status
+       it is, is the component's to know and the chip's shape is not. */
     const outcome = fight.isWin === true
-        ? { text: 'Victory', bg: 'rgba(34,197,94,0.14)', border: 'rgba(34,197,94,0.45)', fg: '#86efac' }
+        ? { key: 'win', text: 'Victory', bg: 'var(--status-success-bg)', border: 'var(--status-success-border)', fg: 'var(--status-success-muted)', fill: 'var(--status-success)' }
         : fight.isWin === false
-            ? { text: 'Defeat', bg: 'rgba(239,68,68,0.14)', border: 'rgba(239,68,68,0.45)', fg: '#fca5a5' }
-            : { text: 'Inconclusive', bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.18)', fg: '#cbd5e1' };
+            ? { key: 'loss', text: 'Defeat', bg: 'var(--status-error-bg)', border: 'var(--status-error-border)', fg: 'var(--status-error-muted)', fill: 'var(--status-error)' }
+            : { key: 'none', text: 'Inconclusive', bg: 'var(--bg-hover)', border: 'var(--border-hover)', fg: 'var(--text-secondary)', fill: 'var(--bg-hover)' };
+
+    const outcomeStyle: React.CSSProperties & Record<'--outcome-fill', string> = {
+        background: outcome.bg,
+        borderColor: outcome.border,
+        color: outcome.fg,
+        '--outcome-fill': outcome.fill
+    };
 
     return (
         <div className={`${className} relative overflow-hidden p-5 sm:p-6 mb-6 mx-1 sm:mx-1 lg:mx-0`} style={style}>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em]" style={{ color: 'var(--brand-primary)' }}>
-                        <Swords className="h-3.5 w-3.5 shrink-0" />
-                        WvW Fight
+                <div className="flex min-w-0 items-start gap-3.5">
+                    {/* Same move as the report header's trophy: the one
+                        decorative glyph on the page is drawn as an object of
+                        the language - accent fill, ink glyph - rather than set
+                        inline in accent-coloured text beside a label. The ink
+                        outline and the hard offset that make it raised come
+                        from .report-head-mark, which is inert with the
+                        language off. */}
+                    <div
+                        className="report-head-mark grid shrink-0 place-items-center"
+                        style={{ width: 38, height: 38, borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)' }}
+                    >
+                        <Swords className="h-5 w-5" strokeWidth={2.4} style={{ color: 'var(--text-inverse)' }} />
                     </div>
-                    <h1 className="mt-2 flex flex-wrap items-center gap-2 text-2xl font-bold sm:text-3xl">
-                        <span>{mapLabel}</span>
-                        {(meta as { guild?: { tag?: string; name?: string } }).guild?.tag && (
-                            <span
-                                className="inline-flex items-center rounded-[4px] border px-2 py-0.5 text-sm font-semibold tracking-wide"
-                                style={{ borderColor: 'var(--border-hover)', color: 'var(--text-secondary)' }}
-                                title={(meta as { guild?: { name?: string } }).guild?.name || undefined}
-                            >
-                                [{(meta as { guild?: { tag?: string } }).guild?.tag}]
-                            </span>
-                        )}
-                    </h1>
-                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400 sm:text-sm">
-                        {timeLabel && (
-                            <span className="inline-flex items-center gap-1.5">
-                                <CalendarDays className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                                {timeLabel}
-                            </span>
-                        )}
-                        {fight.duration && (
-                            <span className="inline-flex items-center gap-1.5">
-                                <Clock className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                                {fight.duration}
-                            </span>
-                        )}
-                        {commanders.length > 0 && (
-                            <span className="inline-flex min-w-0 items-center gap-1.5">
-                                <CommanderTagIcon className="h-3.5 w-3.5 shrink-0 text-[color:var(--brand-primary)]" />
-                                <span className="truncate">{commanders.join(', ')}</span>
-                            </span>
-                        )}
+                    <div className="min-w-0">
+                        <div className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: 'var(--text-secondary)' }}>
+                            WvW Fight
+                        </div>
+                        <h1 className="mt-1 flex flex-wrap items-center gap-2 text-2xl font-bold sm:text-3xl">
+                            <span>{mapLabel}</span>
+                            {(meta as { guild?: { tag?: string; name?: string } }).guild?.tag && (
+                                <span
+                                    className="inline-flex items-center rounded-[4px] border px-2 py-0.5 text-sm font-semibold tracking-wide"
+                                    style={{ borderColor: 'var(--border-hover)', color: 'var(--text-secondary)' }}
+                                    title={(meta as { guild?: { name?: string } }).guild?.name || undefined}
+                                >
+                                    [{(meta as { guild?: { tag?: string } }).guild?.tag}]
+                                </span>
+                            )}
+                        </h1>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400 sm:text-sm">
+                            {timeLabel && (
+                                <span className="inline-flex items-center gap-1.5">
+                                    <CalendarDays className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+                                    {timeLabel}
+                                </span>
+                            )}
+                            {fight.duration && (
+                                <span className="inline-flex items-center gap-1.5">
+                                    <Clock className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+                                    {fight.duration}
+                                </span>
+                            )}
+                            {commanders.length > 0 && (
+                                <span className="inline-flex min-w-0 items-center gap-1.5">
+                                    <CommanderTagIcon className="h-3.5 w-3.5 shrink-0 text-[color:var(--brand-primary)]" />
+                                    <span className="truncate">{commanders.join(', ')}</span>
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <div
-                    className="shrink-0 self-start rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.14em]"
-                    style={{ background: outcome.bg, borderColor: outcome.border, color: outcome.fg }}
+                    className="fight-hero-outcome shrink-0 self-start rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.14em]"
+                    data-outcome={outcome.key}
+                    style={outcomeStyle}
                 >
                     {outcome.text}
                 </div>
             </div>
+
+            {/* The identity and the numbers used to run together on plain
+                whitespace. A rule separates who-and-where from how-it-went. */}
+            <div className="fight-hero-rule mt-5" style={{ borderTop: '2px solid var(--border-subtle)' }} />
 
             <div className="mt-5 flex items-center gap-4">
                 <div className="min-w-0 flex-1">
@@ -157,8 +190,8 @@ export function FightHero({
                         </span>
                         <span className="text-xl font-semibold text-sky-300">{friendly}</span>
                     </div>
-                    <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/[0.07]">
-                        <div className="h-full rounded-full" style={{ width: `${(friendly / widest) * 100}%`, background: 'linear-gradient(90deg,#2563eb,#60a5fa)' }} />
+                    <div className="fight-hero-track mt-1.5 h-2 overflow-hidden rounded-full bg-white/[0.07]">
+                        <div className="fight-hero-fill h-full rounded-full" data-side="friendly" style={{ width: `${(friendly / widest) * 100}%`, background: 'linear-gradient(90deg,#2563eb,#60a5fa)' }} />
                     </div>
                 </div>
                 <div className="shrink-0 pt-4 text-[10px] uppercase tracking-[0.2em] text-gray-500">vs</div>
@@ -167,20 +200,20 @@ export function FightHero({
                         <span className="text-xl font-semibold text-red-300">{enemies}</span>
                         <span className="truncate text-[10px] uppercase tracking-[0.14em] text-gray-400">Enemies</span>
                     </div>
-                    <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/[0.07]">
-                        <div className="ml-auto h-full rounded-full" style={{ width: `${(enemies / widest) * 100}%`, background: 'linear-gradient(90deg,#b91c1c,#f87171)' }} />
+                    <div className="fight-hero-track mt-1.5 h-2 overflow-hidden rounded-full bg-white/[0.07]">
+                        <div className="fight-hero-fill ml-auto h-full rounded-full" data-side="enemy" style={{ width: `${(enemies / widest) * 100}%`, background: 'linear-gradient(90deg,#b91c1c,#f87171)' }} />
                     </div>
                 </div>
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
                 <Kpi
-                    tone="#86efac"
+                    tone="var(--status-success-muted)"
                     label="Enemy Downs / Kills"
                     value={<>{num(fight.enemyDowns)} <span className="text-xs text-gray-500">/ {num(fight.enemyDeaths)}</span></>}
                 />
                 <Kpi
-                    tone="#fca5a5"
+                    tone="var(--status-error-muted)"
                     label="Squad Downs / Deaths"
                     value={<>{num(fight.alliesDown)} <span className="text-xs text-gray-500">/ {num(fight.alliesDead)}</span></>}
                 />
