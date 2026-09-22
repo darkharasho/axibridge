@@ -1,9 +1,26 @@
 # Release Notes
 
-Version v3.16.1 — September 21, 2026
+Version v3.17.0 — September 22, 2026
+
+## Publishing to the web is much faster
+
+A publish that took over two minutes now takes about 45 seconds, and the busiest
+sites were closer to five minutes before. The reason it was slow had nothing to
+do with your logs: GitHub re-deploys your entire report site on every publish, so
+as the site grew, every future publish paid for it. Three things changed — old
+reports get packed down as you go, leftover viewer files from previous versions
+get swept up, and a GitHub build step your site never needed is now switched off.
+
+The clean-up is spread across publishes rather than done all at once, so a site
+with hundreds of old reports gets faster with each one you publish until it has
+caught up. Nothing is lost — old reports stay readable the whole time.
+
+NOTE: Reports published by very old versions get repacked into a format that
+needs AxiBridge 3.10 or newer to open. If someone opens one with an older
+version, the title tells them so instead of showing a broken page.
 
 ## Fixes
 
-- Discord report cards (the little preview images attached to fight posts) were prone to timing out and killing the whole post. They're now rendered offscreen on a single reused window instead of spawning and tearing down a window per card, which was quietly poisoning later renders after the first one.
-- Posting a fight report to Discord no longer blocks the upload modal — uploads keep moving while the report posts in the background.
-- Fixed top-list rows in Discord embeds wrapping onto extra lines. The name column is now sized from the names actually in the list instead of always assuming the longest possible name, and the row cap is a bit tighter to keep things readable.
+- Clicking Upload to Web no longer freezes the app for half a minute on a big
+  night's worth of logs. It was copying the whole stats set twice on its way to
+  the uploader; now it doesn't.
