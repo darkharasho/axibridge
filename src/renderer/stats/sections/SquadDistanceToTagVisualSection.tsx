@@ -129,7 +129,7 @@ export const SquadDistanceToTagVisualSection = (props: Props) => {
     return (
         <div
             className={isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}
-            style={isExpanded ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
+            style={isExpanded ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
         >
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <Crosshair className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
@@ -235,13 +235,14 @@ export const SquadDistanceToTagVisualSection = (props: Props) => {
                         </svg>
                         {hovered && (
                             <div
+                                className="chart-tooltip"
                                 style={{
                                     position: 'absolute',
                                     left: '50%',
                                     bottom: 0,
                                     transform: 'translate(-50%, calc(100% + 6px))',
                                     background: 'var(--bg-card)',
-                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    border: 'var(--panel-border-w, 1px) solid var(--border-default)',
                                     borderRadius: '0.5rem',
                                     padding: '8px 10px',
                                     fontSize: 11,

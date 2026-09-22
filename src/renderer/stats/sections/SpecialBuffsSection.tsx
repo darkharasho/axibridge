@@ -112,7 +112,7 @@ export const SpecialBuffsSection = ({
                 ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}`
                 : ''
             }`}
-            style={expandedSection === 'special-buffs' ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
+            style={expandedSection === 'special-buffs' ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
         >
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
             <Star className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
@@ -229,7 +229,7 @@ export const SpecialBuffsSection = ({
                                         type="button"
                                         onClick={() => setSelectedSpecialColumns((prev) => prev.filter((entry) => entry !== id))}
                                         className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
+                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
                                     >
                                         <span>{label}</span>
                                         <span style={{ color: 'var(--text-secondary)' }}>×</span>
@@ -242,7 +242,7 @@ export const SpecialBuffsSection = ({
                                     type="button"
                                     onClick={() => setSelectedSpecialPlayers((prev) => prev.filter((entry) => entry !== id))}
                                     className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                    style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
+                                    style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
                                 >
                                     <span>{id}</span>
                                     <span style={{ color: 'var(--text-secondary)' }}>×</span>

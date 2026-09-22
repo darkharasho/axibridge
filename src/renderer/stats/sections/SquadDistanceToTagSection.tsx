@@ -92,7 +92,7 @@ export const SquadDistanceToTagSection = (props: Props) => {
     return (
         <div
             className={isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}
-            style={isExpanded ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
+            style={isExpanded ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
         >
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <Crosshair className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
@@ -104,13 +104,14 @@ export const SquadDistanceToTagSection = (props: Props) => {
                             role="switch"
                             aria-checked={filterEnabled}
                             onClick={() => setFilterEnabled(v => !v)}
-                            className="relative inline-flex items-center shrink-0"
+                            /* The app's third switch. Drawn entirely inline it had none of the
+                               hooks the other two carry, so it stayed a capsule while they became
+                               slots. Frame moves to classes; only the sizes stay inline. */
+                            className={`toggle-track toggle-track--sm relative inline-flex items-center shrink-0 rounded-full border border-[color:var(--border-subtle)] ${filterEnabled ? 'toggle-track--on' : 'toggle-track--off'}`}
                             style={{
                                 width: 26,
                                 height: 14,
-                                borderRadius: 9999,
                                 background: filterEnabled ? 'var(--brand-primary)' : 'var(--bg-card-inner)',
-                                border: '1px solid var(--border-subtle)',
                                 transition: 'background 120ms',
                                 cursor: 'pointer',
                             }}
@@ -118,16 +119,8 @@ export const SquadDistanceToTagSection = (props: Props) => {
                         >
                             <span
                                 aria-hidden
-                                style={{
-                                    position: 'absolute',
-                                    top: 1,
-                                    left: filterEnabled ? 13 : 1,
-                                    width: 10,
-                                    height: 10,
-                                    borderRadius: '50%',
-                                    background: 'var(--text-primary)',
-                                    transition: 'left 120ms',
-                                }}
+                                className={`toggle-knob absolute top-px h-2.5 w-2.5 rounded-full bg-[color:var(--text-primary)] ${filterEnabled ? 'left-[13px]' : 'left-px'}`}
+                                style={{ transition: 'left 120ms' }}
                             />
                         </button>
                         <span className="shrink-0">Min</span>
@@ -177,7 +170,7 @@ export const SquadDistanceToTagSection = (props: Props) => {
             ) : (
                 <>
                     <div className={`rounded-[var(--radius-md)] overflow-hidden ${visibleRows.length > 12 ? 'max-h-[30rem] overflow-y-auto' : ''}`}>
-                        <table className="w-full text-xs table-auto min-w-full border-separate border-spacing-0" style={{ color: 'var(--text-primary)' }}>
+                        <table className="stats-table w-full text-xs table-auto min-w-full border-separate border-spacing-0" style={{ color: 'var(--text-primary)' }}>
                             <thead>
                                 <tr className="text-[10px] uppercase tracking-widest border-b border-[color:var(--border-default)]" style={{ color: 'var(--text-secondary)' }}>
                                     <th className="text-left py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer" onClick={() => onSort('account')}>Player {sortIcon('account')}</th>

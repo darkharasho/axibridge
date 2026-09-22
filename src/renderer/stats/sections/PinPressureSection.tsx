@@ -54,7 +54,7 @@ export const PinPressureSection = ({ result }: Props) => {
     return (
         <div
             className={isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}
-            style={isExpanded ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
+            style={isExpanded ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
         >
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <Crosshair className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
@@ -93,7 +93,7 @@ export const PinPressureSection = ({ result }: Props) => {
             ) : (
                 <>
                     <div className={`rounded-[var(--radius-md)] overflow-hidden ${visible.length > 12 && !isExpanded ? 'max-h-[30rem] overflow-y-auto' : ''}`}>
-                        <table className="w-full text-xs table-auto min-w-full border-separate border-spacing-0" style={{ color: 'var(--text-primary)' }}>
+                        <table className="stats-table w-full text-xs table-auto min-w-full border-separate border-spacing-0" style={{ color: 'var(--text-primary)' }}>
                             <thead>
                                 <tr className="text-[10px] uppercase tracking-widest border-b border-[color:var(--border-default)]" style={{ color: 'var(--text-secondary)' }}>
                                     <th className="text-left py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title="Ordered by how hard the enemy converged on the tag, hardest first — not chronologically.">Fight<span className="ml-1 normal-case tracking-normal opacity-70">(hardest first)</span></th>

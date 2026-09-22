@@ -289,6 +289,9 @@ export const DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS: IDiscordEnemySplitSettings = 
 
 export const DEFAULT_GLASS_SURFACES = false;
 export const DEFAULT_GLASSMORPHIC = false;
+/* The axi design language: flat, outlined, hard offset blocks. Off by default
+   while it lives alongside the existing look. */
+export const DEFAULT_AXI_DESIGN = false;
 export const DEFAULT_PARTICLES_ENABLED = true;
 
 export interface CloudflareStatus {
@@ -345,6 +348,7 @@ export interface IElectronAPI {
         colorPalette?: ColorPalette;
         glassSurfaces?: boolean;
         glassmorphic?: boolean;
+        axiDesign?: boolean;
         particlesEnabled?: boolean;
         autoUpdateSupported?: boolean;
         autoUpdateDisabledReason?: string | null;
@@ -398,6 +402,7 @@ export interface IElectronAPI {
         colorPalette?: ColorPalette;
         glassSurfaces?: boolean;
         glassmorphic?: boolean;
+        axiDesign?: boolean;
         particlesEnabled?: boolean;
         githubRepoOwner?: string | null;
         githubRepoName?: string | null;

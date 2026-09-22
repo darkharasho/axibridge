@@ -19,7 +19,8 @@ const STRIPE: Record<Severity, string> = {
 export function MetricCard({ label, value, description, meta, severity, children }: MetricCardProps) {
   return (
     <div
-      className={`flex flex-col gap-1 rounded-md border border-l-4 ${STRIPE[severity]} px-2.5 py-2 min-h-[108px]`}
+      data-severity={severity}
+      className={`commander-metric flex flex-col gap-1 rounded-md border border-l-4 ${STRIPE[severity]} px-2.5 py-2 min-h-[108px]`}
       style={{
         background: 'var(--bg-card)',
         borderTopColor: 'var(--border-default)',

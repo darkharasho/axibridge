@@ -919,7 +919,8 @@ const buildWebReportPayload = (
     sourceStats: any,
     colorPalette: string,
     glassSurfaces: boolean,
-    glassmorphic: boolean
+    glassmorphic: boolean,
+    axiDesign: boolean
 ) => {
     const payload = {
         meta: { ...(reportMeta || {}) },
@@ -927,7 +928,8 @@ const buildWebReportPayload = (
             ...(sourceStats || {}),
             colorPalette,
             glassSurfaces,
-            glassmorphic
+            glassmorphic,
+            axiDesign
         } as Record<string, any>
     };
 
@@ -1977,6 +1979,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const paletteValue = (store.get('colorPalette', 'electric-blue') as string) || 'electric-blue';
             const glassValue = !!store.get('glassSurfaces', false);
             const glassmorphicValue = !!store.get('glassmorphic', false);
+            const axiValue = !!store.get('axiDesign', false);
 
             // R2: if configured, strip replayFights from the main payload and upload separately.
             const { uploader: r2, missingFields: r2MissingFields, partiallyConfigured } = resolveR2Uploader(store);
@@ -2042,7 +2045,8 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 sourceStats,
                 paletteValue,
                 glassValue,
-                glassmorphicValue
+                glassmorphicValue,
+                axiValue
             );
 
             let replayHostedOnPages = false;
@@ -2238,6 +2242,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 colorPalette: paletteValue,
                 glassSurfaces: glassValue,
                 glassmorphic: glassmorphicValue,
+                axiDesign: axiValue,
                 entries: mergedEntries
             };
 
@@ -2527,12 +2532,14 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const localPalette = (store.get('colorPalette', 'electric-blue') as string) || 'electric-blue';
             const localGlass = !!store.get('glassSurfaces', false);
             const localGlassmorphic = !!store.get('glassmorphic', false);
+            const localAxi = !!store.get('axiDesign', false);
             const builtReport = buildWebReportPayload(
                 reportMeta,
                 payload.stats || {},
                 localPalette,
                 localGlass,
-                localGlassmorphic
+                localGlassmorphic,
+                localAxi
             );
             const reportsRoot = path.join(webRoot, 'reports');
             const reportDir = path.join(reportsRoot, reportMeta.id);
@@ -2617,6 +2624,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 colorPalette: localPalette,
                 glassSurfaces: localGlass,
                 glassmorphic: localGlassmorphic,
+                axiDesign: localAxi,
                 entries: mergedLocalEntries
             };
             fs.writeFileSync(indexPath, JSON.stringify(localIndexPayload, null, 2));

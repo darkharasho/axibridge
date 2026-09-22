@@ -19,6 +19,7 @@ tile-work/
 
 # Dev web report build artifacts (copied from dist-web/ by dev upload)
 web/assets/
+web/fonts/
 web/img/
 web/svg/
 web/web/
@@ -79,3 +80,7 @@ repomix-output.txt
 
 # Local scratch probes (never committed)
 /scratch/
+
+# axi-design screenshot harness scratch
+.axi-mocks/
+share-viewer.png

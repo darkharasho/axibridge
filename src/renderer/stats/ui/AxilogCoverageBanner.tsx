@@ -48,7 +48,7 @@ export const AxilogCoverageBanner = ({
         return (
             <div
                 className="mb-3 rounded-xl px-3 py-2.5 flex items-center gap-3"
-                style={{ background: 'var(--status-success-bg)', border: '1px solid var(--status-success-border)' }}
+                style={{ background: 'var(--status-success-bg)', border: 'var(--panel-border-w, 1px) solid var(--status-success-border)' }}
             >
                 <span className="text-[11px]" style={{ color: 'var(--status-success)' }}>
                     Re-parsed {healState.healed} {healState.healed === 1 ? 'log' : 'logs'}. Axilog data restored.
@@ -66,12 +66,12 @@ export const AxilogCoverageBanner = ({
     return (
         <div
             className="mb-3 rounded-xl px-3 py-2.5"
-            style={{ background: 'var(--status-warning-bg)', border: '1px solid var(--status-warning-border)' }}
+            style={{ background: 'var(--status-warning-bg)', border: 'var(--panel-border-w, 1px) solid var(--status-warning-border)' }}
         >
             <div className="flex items-center gap-3">
                 <div
                     className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center"
-                    style={{ background: 'var(--status-warning-bg)', border: '1px solid var(--status-warning-border)' }}
+                    style={{ background: 'var(--status-warning-bg)', border: 'var(--panel-border-w, 1px) solid var(--status-warning-border)' }}
                     aria-hidden="true"
                 >
                     <AlertTriangle className="w-4 h-4" style={{ color: 'var(--status-warning)' }} />

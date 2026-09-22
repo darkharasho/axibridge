@@ -79,6 +79,7 @@ const IMPORT_SETTING_META: Array<{ key: string; label: string; description: stri
     { key: 'colorPalette', label: 'Color Palette', description: 'Accent color palette for the UI.', section: 'Application' },
     { key: 'glassSurfaces', label: 'Glass Surfaces', description: 'Enable frosted-glass card surfaces.', section: 'Application' },
     { key: 'glassmorphic', label: 'Lillifox Mode', description: 'Aurora background with rounded glass cards (legacy look).', section: 'Application' },
+    { key: 'axiDesign', label: 'Axi Design', description: 'Flat, outlined surfaces with hard offset blocks and a left rail.', section: 'Application' },
     { key: 'particlesEnabled', label: 'Particle Effects', description: 'Enable particle animations and effects.', section: 'Application' },
     { key: 'embedStatSettings', label: 'Discord Stat Toggles', description: 'Discord summary sections and top stat lists.', section: 'Stats' },
     { key: 'mvpWeightProfiles', label: 'MVP Weights', description: 'Score weighting for MVP.', section: 'Stats' },
@@ -116,6 +117,7 @@ interface SettingsViewProps {
     onColorPaletteSaved?: (palette: ColorPalette) => void;
     onGlassSurfacesSaved?: (glass: boolean) => void;
     onGlassmorphicSaved?: (glass: boolean) => void;
+    onAxiDesignSaved?: (enabled: boolean) => void;
     onParticlesEnabledSaved?: (enabled: boolean) => void;
     onAllowLocalJsonSaved?: (enabled: boolean) => void;
     /** Keeps App's copy (the dashboard Quick Settings card) in sync with edits made here. */
@@ -128,6 +130,7 @@ interface SettingsViewProps {
     colorPalette?: ColorPalette;
     glassSurfaces?: boolean;
     glassmorphic?: boolean;
+    axiDesign?: boolean;
     particlesEnabled?: boolean;
     developerSettingsTrigger?: number;
     isBulkUploadActive?: boolean;
@@ -144,20 +147,28 @@ interface SettingsViewProps {
 // Toggle switch component — memoized with a custom comparator that ignores onChange reference
 // changes. All onChange handlers use functional state updaters (setX(prev => ...)) so calling
 // a slightly older reference is always safe, and this prevents ~20 re-renders per state change.
-const Toggle = memo(function Toggle({ enabled, onChange, label, description }: {
+const Toggle = memo(function Toggle({ enabled, onChange, label, description, disabled, disabledNote }: {
     enabled: boolean;
     onChange: (value: boolean) => void;
     label: string;
     description?: string;
+    // A toggle whose class the body refuses to apply must not read as live.
+    // disabledNote says which mode is holding it, so the way out is visible.
+    disabled?: boolean;
+    disabledNote?: string;
 }) {
     return (
         <div
-            className="flex items-center justify-between py-3 cursor-pointer group"
-            onClick={() => onChange(!enabled)}
+            className={`flex items-center justify-between py-3 group ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+            aria-disabled={disabled}
+            onClick={() => { if (!disabled) onChange(!enabled); }}
         >
             <div className="flex-1">
-                <div className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors">
+                <div className={`text-sm font-medium text-gray-200 transition-colors ${disabled ? '' : 'group-hover:text-white'}`}>
                     {label}
+                    {disabled && disabledNote ? (
+                        <span className="ml-2 text-xs font-normal text-gray-500">{disabledNote}</span>
+                    ) : null}
                 </div>
                 {description && (
                     <div className="text-xs text-gray-500 mt-0.5">{description}</div>
@@ -178,7 +189,9 @@ const Toggle = memo(function Toggle({ enabled, onChange, label, description }: {
 }, (prev, next) =>
     prev.enabled === next.enabled &&
     prev.label === next.label &&
-    prev.description === next.description
+    prev.description === next.description &&
+    prev.disabled === next.disabled &&
+    prev.disabledNote === next.disabledNote
 );
 
 // Section component for grouping settings
@@ -196,15 +209,15 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay }}
-            className="rounded-[4px] p-6"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)', display: hidden ? 'none' : undefined }}
+            className="settings-section rounded-[4px] p-6"
+            style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)', display: hidden ? 'none' : undefined }}
             id={sectionId}
             data-settings-section={sectionId ? 'true' : undefined}
             data-settings-label={sectionId ? title : undefined}
         >
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-500/20 rounded-[4px] border border-blue-500/30">
+                    <div className="settings-section__badge p-2 bg-blue-500/20 rounded-[4px] border border-blue-500/30">
                         <Icon className="w-5 h-5 text-blue-400" />
                     </div>
                     <h3 className="text-lg font-semibold text-gray-200">{title}</h3>
@@ -216,7 +229,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onParserSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2SliceEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed, webhooks, enabledWebhookIds, onSaveWebhooks, onSetDestinationEnabled, logDirectory, onChangeLogDirectory }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onAxiDesignSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onParserSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2SliceEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, axiDesign: axiDesignProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed, webhooks, enabledWebhookIds, onSaveWebhooks, onSetDestinationEnabled, logDirectory, onChangeLogDirectory }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [dpsReportEnabled, setDpsReportEnabled] = useState<boolean>(true);
@@ -232,6 +245,9 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [colorPalette, setColorPalette] = useState<ColorPalette>(colorPaletteProp ?? DEFAULT_PALETTE_ID);
     const [glassSurfaces, setGlassSurfaces] = useState(glassSurfacesProp ?? false);
     const [glassmorphic, setGlassmorphic] = useState(glassmorphicProp ?? false);
+    const [axiDesign, setAxiDesign] = useState(axiDesignProp ?? false);
+    // Mirrors useSettings: axi and glass are mutually exclusive on the body, and axi wins.
+    const paletteLocked = glassmorphic && !axiDesign;
     const [particlesEnabled, setParticlesEnabled] = useState(particlesEnabledProp ?? true);
     const [allowLocalJson, setAllowLocalJson] = useState(false);
     const [parserSettings, setParserSettings] = useState<IParserSettings | null>(null);
@@ -555,6 +571,9 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         if (typeof settings.glassSurfaces === 'boolean') {
             setGlassSurfaces(settings.glassSurfaces);
         }
+        if (typeof settings.axiDesign === 'boolean') {
+            setAxiDesign(settings.axiDesign);
+        }
         if (typeof settings.glassmorphic === 'boolean') {
             setGlassmorphic(settings.glassmorphic);
         }
@@ -835,6 +854,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         colorPalette,
         glassSurfaces,
         glassmorphic,
+        axiDesign,
         githubRepoOwner,
         githubRepoName,
         githubToken,
@@ -1007,6 +1027,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             colorPalette,
             glassSurfaces,
             glassmorphic,
+            axiDesign,
             particlesEnabled,
             githubRepoName: githubRepoName || null,
             githubRepoOwner: githubRepoOwner || null,
@@ -1030,6 +1051,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         onColorPaletteSaved?.(colorPalette);
         onGlassSurfacesSaved?.(glassSurfaces);
         onGlassmorphicSaved?.(glassmorphic);
+        onAxiDesignSaved?.(axiDesign);
         onParticlesEnabledSaved?.(particlesEnabled);
         onAllowLocalJsonSaved?.(allowLocalJson);
 
@@ -1059,6 +1081,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         colorPalette,
         glassSurfaces,
         glassmorphic,
+        axiDesign,
         particlesEnabled,
         githubRepoName,
         githubRepoOwner,
@@ -1463,10 +1486,10 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                 className="flex items-center justify-between gap-4 mb-6"
             >
                 <div className="flex items-start gap-3 sm:items-center sm:gap-4">
-                    <div className="p-2 rounded-[4px] shrink-0" style={{ background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', color: 'var(--brand-primary)' }}>
+                    <div className="p-2 rounded-[4px] shrink-0" style={{ background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', color: 'var(--button-label, var(--brand-primary))' }}>
                         <Settings className="w-5 h-5" />
                     </div>
-                    <div className="space-y-0">
+                    <div className="space-y-1">
                         <h2 className="settings-title text-2xl font-bold text-white flex items-center gap-2">
                             Settings
                         </h2>
@@ -1517,7 +1540,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         className="hidden lg:flex flex-col gap-3 min-h-0"
                         style={{ willChange: 'transform, opacity' }}
                     >
-                        <div className="rounded-[4px] p-3" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                        <div className="rounded-[4px] p-3" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
                             <div className="relative">
                                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
                                 <input
@@ -1539,7 +1562,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 )}
                             </div>
                         </div>
-                        <div className="rounded-[4px] p-3 flex-1 min-h-0" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}>
+                        <div className="rounded-[4px] p-3 flex-1 min-h-0" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
                             <div className="text-[11px] uppercase tracking-[0.25em] text-gray-500 mb-2">Sections</div>
                             <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
                                 <SettingsNav
@@ -1585,7 +1608,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             navigateToSection(id);
                                         }}
                                         className="w-full text-left px-3 py-2 rounded-[4px] text-sm transition-colors"
-                                        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}
+                                        style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', color: 'var(--text-secondary)' }}
                                     >
                                         <span style={{ color: 'var(--text-muted)' }}>{categoryLabel} ›</span>
                                         {' '}
@@ -2489,11 +2512,11 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors"
                                                             style={on
                                                                 ? { color: meta.color, background: `${meta.color}1f`, borderColor: `${meta.color}66` }
-                                                                : { color: '#6b7280', background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)' }}
+                                                                : { color: 'var(--text-muted)', background: 'var(--bg-input)', borderColor: 'var(--border-default)' }}
                                                         >
                                                             <span
                                                                 className="w-3 h-3 rounded-sm inline-flex items-center justify-center border"
-                                                                style={{ borderColor: on ? meta.color : 'rgba(255,255,255,0.18)', background: on ? meta.color : 'transparent' }}
+                                                                style={{ borderColor: on ? meta.color : 'var(--border-hover)', background: on ? meta.color : 'transparent' }}
                                                             >
                                                                 {on && (
                                                                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#0f1115" strokeWidth={4}><path d="M20 6L9 17l-5-5" /></svg>
@@ -2716,7 +2739,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             const on = w > 0;
                                             return (
                                                 <div key={def.id} className="inline-flex items-center rounded-lg border overflow-hidden"
-                                                    style={on ? { borderColor: `${meta.color}66`, background: `${meta.color}1f` } : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
+                                                    style={on ? { borderColor: `${meta.color}66`, background: `${meta.color}1f` } : { borderColor: 'var(--border-default)', background: 'var(--bg-input)' }}>
                                                     <span className="pl-2.5 pr-1 py-1 text-xs font-semibold" style={{ color: on ? meta.color : '#6b7280' }}>{mvpStatLabel(def)}</span>
                                                     <button type="button" aria-label={`decrease ${mvpStatLabel(def)}`} onClick={() => setMvpWeight(mvpBucket, def.id, w - 0.05)} className="w-5 h-6 text-sm leading-none" style={{ color: on ? meta.color : '#4b5563' }}>−</button>
                                                     <span className="min-w-[30px] text-center text-xs font-bold tabular-nums" style={{ color: on ? meta.color : '#4b5563' }}>{w.toFixed(2)}</span>
@@ -2884,7 +2907,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 type="button"
                                 onClick={onChangeLogDirectory}
                                 className="shrink-0 rounded-[4px] px-3 py-1.5 text-xs font-medium"
-                                style={{ background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
+                                style={{ background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
                             >
                                 Change Folder
                             </button>
@@ -2916,7 +2939,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             onChange={(e) => setDpsReportToken(e.target.value)}
                             placeholder="Enter your dps.report token..."
                             className="w-full rounded-[4px] px-4 py-3 text-sm text-gray-300 placeholder-gray-600 focus:border-blue-500/50 focus:outline-none transition-colors"
-                            style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}
+                            style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                         />
                         <div className="mt-4 flex flex-wrap items-center gap-3">
                             <button
@@ -2958,17 +2981,21 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         <p className="text-sm text-gray-400 mb-4">
                             Choose a color palette for the interface accent colors.
                         </p>
+                        {/* Lillifox paints its own accents, so the picker is dead under it — but
+                            axi suppresses Lillifox (useSettings refuses both classes at once), and
+                            the picker drives axi. So the grid is only dead when Lillifox is the one
+                            actually applied. */}
                         <div className="text-[11px] uppercase tracking-[0.2em] text-gray-500 mb-2">
-                            Color Palette {glassmorphic ? <span className="ml-2 normal-case tracking-normal text-gray-500">(disabled in Lillifox Mode)</span> : null}
+                            Color Palette {paletteLocked ? <span className="ml-2 normal-case tracking-normal text-gray-500">(disabled in Lillifox Mode)</span> : null}
                         </div>
-                        <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 ${glassmorphic ? 'opacity-40 pointer-events-none' : ''}`} aria-disabled={glassmorphic}>
+                        <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 ${paletteLocked ? 'opacity-40 pointer-events-none' : ''}`} aria-disabled={paletteLocked}>
                             {(Object.values(PALETTES) as import('../shared/webThemes').PaletteDefinition[]).map((palette) => {
                                 const isActive = colorPalette === palette.id;
                                 return (
                                     <button
                                         key={palette.id}
                                         type="button"
-                                        disabled={glassmorphic}
+                                        disabled={paletteLocked}
                                         onClick={() => { setColorPalette(palette.id); onColorPaletteSaved?.(palette.id); }}
                                         className={`rounded-[4px] border px-3 py-3 text-left transition-colors ${isActive
                                             ? 'border-white/40 bg-white/10'
@@ -2990,12 +3017,22 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 onChange={(v) => { setGlassSurfaces(v); onGlassSurfacesSaved?.(v); }}
                                 label="Glass Surfaces"
                                 description="Enable frosted-glass card backgrounds with backdrop blur"
+                                disabled={axiDesign}
+                                disabledNote="(disabled in Axi Design)"
                             />
                             <Toggle
                                 enabled={glassmorphic}
                                 onChange={(v) => { setGlassmorphic(v); onGlassmorphicSaved?.(v); }}
                                 label="Lillifox Mode"
                                 description="Aurora background, rounded translucent cards — the original AxiBridge look"
+                                disabled={axiDesign}
+                                disabledNote="(disabled in Axi Design)"
+                            />
+                            <Toggle
+                                enabled={axiDesign}
+                                onChange={(v) => { setAxiDesign(v); onAxiDesignSaved?.(v); }}
+                                label="Axi Design"
+                                description="Flat outlined surfaces, hard offset blocks, and a left rail instead of the top tab strip"
                             />
                             <Toggle
                                 enabled={particlesEnabled}
@@ -3102,7 +3139,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         </SettingsSection>
                     </div>
 
-                    <div id="legal" data-settings-section="true" data-settings-label="Legal" className="rounded-[4px] p-4 text-xs text-gray-400" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+                    <div id="legal" data-settings-section="true" data-settings-label="Legal" className="rounded-[4px] p-4 text-xs text-gray-400" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
                         <div className="flex items-center justify-between mb-2">
                             <div className="text-sm font-semibold text-gray-200">Legal Notice</div>
                             <div className="flex items-center gap-2">
@@ -3176,7 +3213,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             </div >
 
             <div className="fixed bottom-4 left-4 right-4 z-40 lg:hidden">
-                <div className="flex items-center justify-between gap-2 rounded-[4px] px-3 py-1.5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+                <div className="flex items-center justify-between gap-2 rounded-[4px] px-3 py-1.5" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
                     <button
                         onClick={() => setSettingsNavOpen((open) => !open)}
                         className="flex items-center gap-2 px-4 py-1.5 rounded-[4px] bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200 flex-1 justify-between"
@@ -3205,7 +3242,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             }
                         }}
                     >
-                        <div className="app-modal-card w-full max-w-sm max-h-[85vh] rounded-[4px] p-4 flex flex-col" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+                        <div className="app-modal-card w-full max-w-sm max-h-[85vh] rounded-[4px] p-4 flex flex-col" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
                             <div className="flex items-center justify-between mb-3">
                                 <div className="text-[11px] uppercase tracking-[0.3em] text-gray-400">Jump to</div>
                                 <button
@@ -3256,7 +3293,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            className="app-modal-card w-full max-w-3xl rounded-[4px]" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+                            className="app-modal-card w-full max-w-3xl rounded-[4px]" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
@@ -3330,7 +3367,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            className="app-modal-card w-full max-w-4xl rounded-[4px]" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
+                            className="app-modal-card w-full max-w-4xl rounded-[4px]" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
@@ -3460,7 +3497,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 <span>threshold: <span className="text-amber-300 font-mono">{threshold.toFixed(2)}</span></span>
                                             </div>
                                             <div className="rounded-[4px] border border-white/10 overflow-hidden">
-                                                <table className="w-full text-xs">
+                                                <table className="stats-table w-full text-xs">
                                                     <thead>
                                                         <tr className="border-b border-white/10 text-gray-400">
                                                             <th className="text-left px-3 py-2 font-medium">Player</th>
@@ -3502,7 +3539,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                                                     {c.account} — <span className={c.role === 'support' ? 'text-emerald-300' : 'text-orange-300'}>{c.role}</span>
                                                                                     <span className="text-gray-500 font-normal ml-2">score {c.supportScore.toFixed(2)} / threshold {c.threshold.toFixed(2)}</span>
                                                                                 </div>
-                                                                                <table className="w-full">
+                                                                                <table className="stats-table w-full">
                                                                                     <thead>
                                                                                         <tr className="text-gray-500">
                                                                                             <th className="text-left pr-3 pb-0.5 font-medium">Metric</th>
@@ -3563,7 +3600,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            className="app-modal-card web-reports-modal w-full max-w-3xl rounded-[4px] p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+                            className="app-modal-card web-reports-modal w-full max-w-3xl rounded-[4px] p-6" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
@@ -3783,7 +3820,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         ),
                         table: ({ children }) => (
                             <div className="overflow-x-auto rounded-[4px] border border-white/10 bg-black/30">
-                                <table className="w-full border-collapse text-left text-sm">
+                                <table className="stats-table w-full border-collapse text-left text-sm">
                                     {children}
                                 </table>
                             </div>

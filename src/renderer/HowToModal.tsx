@@ -171,7 +171,7 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                     exit={isBulkUploadActive ? undefined : { opacity: 0, scale: 0.96, y: 18 }}
                     transition={{ duration: 0.2 }}
                     className="app-modal-card w-full max-w-6xl mx-4 h-[min(82vh,860px)] overflow-hidden rounded-[4px] flex flex-col"
-                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+                    style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
                 >
                     <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
                         <div className="flex items-center gap-3">
@@ -287,7 +287,7 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                                                 type="button"
                                                 onClick={() => setSelectedId(child.id)}
                                                 className="w-full rounded-[4px] px-3 py-3 text-left transition-colors"
-                                                style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}
+                                                style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                                             >
                                                 <div className="text-sm font-medium text-white">{child.title}</div>
                                                 {child.summary && <div className="text-xs text-gray-400 mt-1">{child.summary}</div>}

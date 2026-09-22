@@ -1,0 +1,2584 @@
+/* AxiBridge in the axi design language.
+   ---------------------------------------------------------------------------
+   The app is already drawn entirely through the CSS variables declared in
+   index.css, so the whole of the flat/outlined look is a remap of those
+   variables rather than a rewrite of any component. Everything here is scoped
+   to body.axi-design and is inert with the setting off.
+
+   Two halves:
+   1. the axi tokens themselves, copied from axi-design/src/tokens.css. They
+      live on body rather than :root deliberately - a stray --axi-* reference
+      in an untoggled app should resolve to nothing, not to half a theme.
+   2. the remap: every AxiBridge variable pointed at the token that carries the
+      same meaning. Where the two languages disagree, axi wins, and the reason
+      is written down beside the line. */
+
+body.axi-design {
+  /* --- axi tokens: surface & text --- */
+  --axi-ground: #15181d;
+  --axi-surface: #222731;
+  --axi-surface-raised: #2b313d;
+  --axi-ink-line: #0c0e12;
+  --axi-rule: #3a4250;
+  /* The line around a well. axi draws its outlines in near-black, which works
+     because the language assumes a ground the lines can be darker than.
+     AxiBridge's ground IS near-black, so an ink outline round a ground-filled
+     element - a toggle track, a bar's trough, a stat row - is a black line on
+     a black field, and those elements came out looking like the untouched old
+     ones. The rule holds: ink outlines something raised above the ground (it
+     reads, because the fill is lighter than the line), and a well that sits at
+     ground level is outlined by the rule instead. */
+  --axi-well-line: var(--axi-rule);
+  --axi-text: #f4f6f9;
+  --axi-text-dim: #a7b0be;
+  --axi-text-faint: #7c8695;
+  --axi-scrim: rgba(6, 7, 9, .72);
+
+  /* --- axi tokens: accent & status --- */
+  /* The accent is the one token this language does not own. It reads whatever
+     the colour picker set, so the ten palettes drive the language instead of
+     being shut out by it; the gold the spec draws in is still reachable, as
+     the Axi Gold palette. The fallback is only for a body that somehow carries
+     this class without index.css beneath it. */
+  --axi-accent: var(--brand-primary, #ffc53d);
+  --axi-accent-ink: var(--axi-ink-line);
+  --axi-meta: #4ec3ff;
+  --axi-ok: #2fd38a;
+  --axi-warn: #ff7a2f;
+  --axi-danger: #ff5252;
+
+  /* --- axi tokens: form --- */
+  --axi-border-panel: 4px;
+  --axi-offset-panel: 6px;
+  --axi-border-control: 3px;
+  --axi-offset-control: 3px;
+  --axi-offset-panel-hover: 10px;
+  --axi-offset-control-hover: 6px;
+  --axi-border-hairline: 2px;
+  --axi-radius: 10px;
+  --axi-radius-sm: 6px;
+  --axi-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* --- remap: surfaces --- */
+  /* bg-card-inner is the ground rather than a third surface: in axi a thing
+     sunk inside a panel goes back down to the page colour, which is what makes
+     a stat tile read as content instead of as another floating card. */
+  --bg-base: var(--axi-ground);
+  --bg-elevated: var(--axi-surface);
+  --bg-card: var(--axi-surface);
+  --bg-card-inner: var(--axi-ground);
+  --bg-input: var(--axi-ground);
+  /* Rule 2: no colour at partial opacity over the ground. The app's hover is a
+     5% white wash; here it is the next surface up the neutral ramp. */
+  --bg-hover: var(--axi-surface-raised);
+
+  /* --- remap: borders --- */
+  /* Every border in this language is opaque and near-black. The app's three
+     weights collapse onto two inks: the ink line for anything that outlines a
+     raised element, the rule for a line drawn inside one. */
+  --border-subtle: var(--axi-rule);
+  --border-default: var(--axi-ink-line);
+  /* Also not the accent. border-hover is the app's "make this edge notice
+     you" colour, and it is spent on hover states, dropdown outlines and - the
+     tell - the dashed box that says "No fight data available". An empty state
+     is the least selected thing on the screen. Hover is carried by --bg-hover
+     here, so the edge can stay neutral. */
+  --border-hover: var(--axi-rule);
+
+  /* --- remap: the one form weight components have to opt into --- */
+  /* A handful of surfaces write their border inline, which is the one place a
+     variable remap cannot reach. Those read var(--panel-border-w, 1px), so
+     with the theme off they are unchanged and with it on they step up. */
+  --panel-border-w: var(--axi-border-control);
+
+  /* --- remap: text --- */
+  --text-primary: var(--axi-text);
+  --text-secondary: var(--axi-text-dim);
+  --text-muted: var(--axi-text-faint);
+  --text-inverse: var(--axi-accent-ink);
+
+  /* --- remap: accent --- */
+  /* The gradient resolves to the flat accent: a gradient used as decoration is
+     the one thing rule 1 forbids outright, and every consumer of this variable
+     accepts a plain colour. */
+  /* --brand-primary is deliberately absent: it is the palette's own variable
+     and restating it here is what broke the picker. --axi-accent reads it. */
+  --brand-secondary: var(--axi-accent);
+  --brand-gradient: var(--axi-accent);
+  /* Text sitting ON an accent fill. White on the accent is the pairing the app
+     reached for by default and it is the one pairing no palette can take: all
+     eleven clear 4.5:1 against the ink (worst is violet at 4.56) and not one
+     of them clears it against the light text (best is electric blue at 3.40),
+     so ink is right for every palette, not just for the gold. */
+  --on-brand: var(--axi-accent-ink);
+  /* accent-bg-strong is used as a tint behind accent-coloured text, which rule
+     2 does not allow. It becomes an opaque neutral, so the accent stays in the
+     text where it is doing the work. */
+  --accent-bg-strong: var(--axi-surface-raised);
+  /* The next three make every secondary button in the app - the folder picker,
+     the webhook gear, Add Logs. They were a coloured outline round a tinted
+     fill round coloured text, which is rule 5's annotation chip, not a button:
+     an outlined chip asserts something about a thing, a button does something.
+     The spec's button is a plain raised element - fill, ink edge, quiet label
+     - and the colour it does or does not carry is what separates the one
+     primary action on a screen from the rest.
+
+     The fill is the surface rather than the ground `.axi-btn` uses, for the
+     reason the whole `--axi-well-line` note gives: ink reads against a fill
+     lighter than itself, and half these buttons sit on the ground already. */
+  --accent-bg: var(--axi-surface);
+  --accent-border: var(--axi-ink-line);
+  --button-label: var(--axi-text-dim);
+  /* Nothing glows. A glow is an element lit from inside, which is the opposite
+     of a flat fill with a hard block behind it. */
+  --glow-primary: transparent;
+  --glow-secondary: transparent;
+
+  /* --- remap: shadows --- */
+  /* The hard offset block, at the step each surface sits at: a card and a
+     dropdown are panels, a button is a control. Every soft shadow in the app
+     resolves to one of these two, so no component has to know. */
+  --shadow-card: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+  --shadow-button: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  --shadow-dropdown: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+
+  /* --- remap: radius --- */
+  --radius-sm: var(--axi-radius-sm);
+  --radius-md: 8px;
+  --radius-lg: var(--axi-radius);
+  --window-radius: var(--axi-radius);
+
+  /* --- remap: status --- */
+  /* Rule 5: filled means status. The status inks keep their jobs; only their
+     translucent backgrounds change, for the same reason accent-bg did. */
+  --status-success: var(--axi-ok);
+  --status-success-muted: var(--axi-ok);
+  --status-success-bg: var(--axi-surface-raised);
+  --status-success-border: var(--axi-ok);
+  --status-error: var(--axi-danger);
+  --status-error-muted: var(--axi-danger);
+  --status-error-bg: var(--axi-surface-raised);
+  --status-error-border: var(--axi-danger);
+  --status-warning: var(--axi-warn);
+  --status-warning-muted: var(--axi-warn);
+  --status-warning-bg: var(--axi-surface-raised);
+  --status-warning-border: var(--axi-warn);
+  /* meta is the one cool ink, and info is exactly what it is for. */
+  --status-info: var(--axi-meta);
+  --status-info-bg: var(--axi-surface-raised);
+  --status-info-border: var(--axi-meta);
+
+  /* --- remap: section accents --- */
+  /* Rule 10's third case: past two series the data owns its palette. Eleven
+     stats categories are a domain palette, so the hues stay; only the washes
+     behind them go opaque. */
+  --section-offense-bg: var(--axi-surface-raised);
+  --section-defense-bg: var(--axi-surface-raised);
+  --section-mitigation-bg: var(--axi-surface-raised);
+  --section-support-bg: var(--axi-surface-raised);
+  --section-healing-bg: var(--axi-surface-raised);
+  --section-boon-bg: var(--axi-surface-raised);
+  /* The one category hue that has to move. Boons were amber (#fbbf24), which
+     is the accent to within a few percent, so a Boons panel's edge read as a
+     selection. Rotated to the one clearly-distinct hue the eleven-category
+     palette was not already using. */
+  --section-boon: #f472b6;
+
+  /* --- remap: scrollbar --- */
+  --scrollbar-track: var(--axi-ground);
+  --scrollbar-thumb: var(--axi-rule);
+  --scrollbar-thumb-hover: var(--axi-text-faint);
+
+  background: var(--axi-ground);
+  color: var(--axi-text);
+}
+
+/* The window is the most raised element on the screen, so it takes the panel
+   outline and no block - a block is an element's shadow on the surface behind
+   it, and there is nothing behind a window we are entitled to draw on. */
+body.axi-design .app-shell {
+  background: var(--axi-ground);
+  border: var(--axi-border-panel) solid var(--axi-ink-line);
+}
+
+/* The titlebar is the outline widened into a strip, which is what makes the
+   app's content read as sitting inside the outline rather than under a second
+   toolbar. */
+body.axi-design .app-titlebar {
+  background: var(--axi-ink-line);
+  border-bottom-color: var(--axi-ink-line);
+}
+
+/* Focus is accent-coloured and thick enough to read against a near-black
+   outline, which a 1px ring does not. */
+body.axi-design :focus-visible {
+  outline: var(--axi-border-control) solid var(--axi-accent);
+  outline-offset: 2px;
+}
+
+/* The bridges below deliberately sit above every component section in this
+   file. They are a blanket translation of utilities the components know
+   nothing about, so anywhere a component section has made a considered choice
+   - the MVP card's ink outline, the commander chip's fill - that choice is
+   written later and wins on source order alone. */
+
+/* ---------------------------------------------------------------------------
+   THE PALETTE BRIDGE
+   Roughly fourteen hundred Tailwind palette utilities are written straight
+   into the markup - text-gray-400, bg-white/5, border-white/10, bg-amber-500/15
+   and two hundred and seventy more. None of them read a variable, so the remap
+   at the top of this file could never reach them; this is why so much of the
+   app still looked like the old app with new tokens underneath it.
+
+   So the theme claims them. body.axi-design .text-gray-400 is two classes
+   against the utility's one, which is enough to win without !important, and
+   with the setting off not one of these rules matches anything. Each utility
+   resolves to the token that carries the same meaning:
+
+     the nine greys        -> the three axi text steps
+     white and black washes-> the neutral surfaces, or the scrim
+     red, rose             -> danger      orange, amber, yellow -> warn
+     green, emerald, teal  -> ok          every cool hue        -> meta
+
+   Note what is missing: the accent. Nothing in this table hands out gold. The
+   app writes amber in a hundred places and meant "highlight" in every one of
+   them, but in this language gold means the thing you picked, so it stays out
+   of the blanket translation and is only ever spent by a rule written on
+   purpose. The one exception is accent-color on checkboxes and ranges, where
+   gold is exactly the claim being made.
+
+   Collapsing eight cool hues onto one ink is deliberate. Where a hue really is
+   data - boon colours, profession colours - it comes from JS, not from a class,
+   so rule 10's palette is untouched; the hues written into markup are chrome,
+   and chrome in this language has one cool ink.
+
+   Generated from the classes actually present in src/renderer, so there are no
+   rules here for utilities the app does not use. */
+body.axi-design .ring-cyan-400\/70,
+body.axi-design .ring-cyan-500\/30,
+body.axi-design .ring-indigo-500\/30,
+body.axi-design .ring-indigo-500\/50,
+body.axi-design .ring-sky-400\/70,
+body.axi-design .ring-sky-500\/60 { --tw-ring-color: var(--axi-meta); }
+
+body.axi-design .ring-emerald-500\/60 { --tw-ring-color: var(--axi-ok); }
+
+body.axi-design .ring-white\/20 { --tw-ring-color: var(--axi-rule); }
+
+body.axi-design .accent-blue-400,
+body.axi-design .accent-blue-500,
+body.axi-design .accent-cyan-400 { accent-color: var(--axi-accent); }
+
+body.axi-design .bg-red-400,
+body.axi-design .bg-red-500,
+body.axi-design .bg-red-600,
+body.axi-design .bg-red-700,
+body.axi-design .bg-rose-400,
+body.axi-design .bg-rose-500 { background-color: var(--axi-danger); }
+
+body.axi-design .bg-black\/20,
+body.axi-design .bg-black\/30,
+body.axi-design .bg-black\/40,
+body.axi-design .bg-black\/50,
+body.axi-design .bg-white\/5,
+body.axi-design .bg-white\/8,
+/* The arbitrary forms are the same hole the radii had: Tailwind's named
+   fractions were bridged and the bracket syntax never was, so a `bg-white/5`
+   moved onto the ramp while the `bg-white/[0.05]` two lines below it stayed
+   white at 5%. Twenty-six of these across the renderer, every one in the same
+   band the named ones already cover. */
+body.axi-design .bg-white\/\[0\.02\],
+body.axi-design .bg-white\/\[0\.03\],
+body.axi-design .bg-white\/\[0\.035\],
+body.axi-design .bg-white\/\[0\.04\],
+body.axi-design .bg-white\/\[0\.05\],
+body.axi-design .bg-white\/\[0\.07\],
+body.axi-design .bg-white\/\[0\.08\] { background-color: var(--axi-ground); }
+
+body.axi-design .bg-blue-400\/90,
+body.axi-design .bg-cyan-300,
+body.axi-design .bg-cyan-500,
+body.axi-design .bg-cyan-500\/80,
+body.axi-design .bg-cyan-600 { background-color: var(--axi-meta); }
+
+body.axi-design .bg-emerald-400,
+body.axi-design .bg-emerald-500,
+body.axi-design .bg-green-500 { background-color: var(--axi-ok); }
+
+body.axi-design .bg-gray-600 { background-color: var(--axi-rule); }
+
+body.axi-design .bg-black\/60,
+body.axi-design .bg-black\/70 { background-color: var(--axi-scrim); }
+
+body.axi-design .bg-amber-400\/5,
+body.axi-design .bg-amber-500\/10,
+body.axi-design .bg-amber-500\/15,
+body.axi-design .bg-amber-500\/20,
+body.axi-design .bg-amber-500\/25,
+body.axi-design .bg-blue-500\/10,
+body.axi-design .bg-blue-500\/12,
+body.axi-design .bg-blue-500\/15,
+body.axi-design .bg-blue-500\/20,
+body.axi-design .bg-blue-500\/30,
+body.axi-design .bg-cyan-400\/10,
+body.axi-design .bg-cyan-400\/15,
+body.axi-design .bg-cyan-500\/10,
+body.axi-design .bg-cyan-500\/15,
+body.axi-design .bg-cyan-500\/20,
+body.axi-design .bg-cyan-500\/25,
+body.axi-design .bg-cyan-500\/30,
+body.axi-design .bg-cyan-500\/8,
+body.axi-design .bg-cyan-500\/\[0\.08\],
+body.axi-design .bg-cyan-600\/20,
+body.axi-design .bg-emerald-400\/5,
+body.axi-design .bg-emerald-500\/10,
+body.axi-design .bg-emerald-500\/12,
+body.axi-design .bg-emerald-500\/15,
+body.axi-design .bg-emerald-500\/20,
+body.axi-design .bg-emerald-500\/25,
+body.axi-design .bg-emerald-500\/30,
+body.axi-design .bg-fuchsia-500\/20,
+body.axi-design .bg-green-500\/20,
+body.axi-design .bg-green-500\/30,
+body.axi-design .bg-indigo-500\/10,
+body.axi-design .bg-indigo-500\/15,
+body.axi-design .bg-orange-400\/15,
+body.axi-design .bg-orange-400\/25,
+body.axi-design .bg-orange-500\/10,
+body.axi-design .bg-orange-500\/12,
+body.axi-design .bg-orange-500\/15,
+body.axi-design .bg-orange-500\/20,
+body.axi-design .bg-orange-500\/25,
+body.axi-design .bg-purple-500\/20,
+body.axi-design .bg-purple-500\/30,
+body.axi-design .bg-red-500\/10,
+body.axi-design .bg-red-500\/15,
+body.axi-design .bg-red-500\/20,
+body.axi-design .bg-red-500\/25,
+body.axi-design .bg-rose-400\/20,
+body.axi-design .bg-rose-400\/30,
+body.axi-design .bg-rose-400\/5,
+body.axi-design .bg-rose-500\/10,
+body.axi-design .bg-rose-500\/15,
+body.axi-design .bg-rose-500\/20,
+body.axi-design .bg-slate-300\/15,
+body.axi-design .bg-slate-300\/25,
+body.axi-design .bg-slate-400\/10,
+body.axi-design .bg-slate-500\/10,
+body.axi-design .bg-slate-500\/20,
+body.axi-design .bg-violet-500\/15,
+body.axi-design .bg-white\/10,
+body.axi-design .bg-white\/20,
+body.axi-design .bg-white\/\[0\.10\] { background-color: var(--axi-surface-raised); }
+
+body.axi-design .bg-slate-900 { background-color: var(--axi-surface); }
+
+body.axi-design .bg-slate-200\/70,
+body.axi-design .bg-white { background-color: var(--axi-text); }
+
+body.axi-design .bg-amber-400,
+body.axi-design .bg-amber-500,
+body.axi-design .bg-orange-400,
+body.axi-design .bg-orange-500,
+body.axi-design .bg-orange-500\/80 { background-color: var(--axi-warn); }
+
+body.axi-design .border-red-400\/25,
+body.axi-design .border-red-500\/30,
+body.axi-design .border-red-500\/40,
+body.axi-design .border-red-500\/50,
+body.axi-design .border-rose-200\/10,
+body.axi-design .border-rose-300\/30,
+body.axi-design .border-rose-400\/25,
+body.axi-design .border-rose-500\/20,
+body.axi-design .border-rose-500\/30,
+body.axi-design .border-rose-500\/35,
+body.axi-design .border-rose-500\/60,
+body.axi-design .border-rose-500\/80 { border-color: var(--axi-danger); }
+
+body.axi-design .border-blue-400,
+body.axi-design .border-blue-400\/40,
+body.axi-design .border-blue-500,
+body.axi-design .border-blue-500\/30,
+body.axi-design .border-blue-500\/40,
+body.axi-design .border-blue-500\/50,
+body.axi-design .border-cyan-200\/40,
+body.axi-design .border-cyan-200\/70,
+body.axi-design .border-cyan-300\/30,
+body.axi-design .border-cyan-300\/40,
+body.axi-design .border-cyan-300\/50,
+body.axi-design .border-cyan-400\/30,
+body.axi-design .border-cyan-400\/40,
+body.axi-design .border-cyan-400\/50,
+body.axi-design .border-cyan-500\/25,
+body.axi-design .border-cyan-500\/30,
+body.axi-design .border-cyan-500\/40,
+body.axi-design .border-cyan-500\/50,
+body.axi-design .border-indigo-300\/20,
+body.axi-design .border-purple-500\/30,
+body.axi-design .border-purple-500\/50,
+body.axi-design .border-violet-500\/35 { border-color: var(--axi-meta); }
+
+body.axi-design .border-emerald-200\/10,
+body.axi-design .border-emerald-400\/25,
+body.axi-design .border-emerald-400\/40,
+body.axi-design .border-emerald-500\/30,
+body.axi-design .border-emerald-500\/35,
+body.axi-design .border-emerald-500\/40,
+body.axi-design .border-green-500\/30,
+body.axi-design .border-green-500\/40 { border-color: var(--axi-ok); }
+
+body.axi-design .border-slate-300\/30,
+body.axi-design .border-slate-400\/30,
+body.axi-design .border-white,
+body.axi-design .border-white\/10,
+body.axi-design .border-white\/15,
+body.axi-design .border-white\/20,
+body.axi-design .border-white\/25,
+body.axi-design .border-white\/30,
+body.axi-design .border-white\/40,
+body.axi-design .border-white\/5,
+body.axi-design .border-white\/60,
+body.axi-design .border-white\/\[0\.03\],
+body.axi-design .border-white\/\[0\.07\],
+body.axi-design .border-white\/\[0\.08\],
+body.axi-design .border-white\/\[0\.09\] { border-color: var(--axi-rule); }
+
+body.axi-design .divide-white\/10 > :not([hidden]) ~ :not([hidden]),
+body.axi-design .divide-white\/5 > :not([hidden]) ~ :not([hidden]) { border-color: var(--axi-rule); }
+
+body.axi-design .border-amber-200\/10,
+body.axi-design .border-amber-300\/40,
+body.axi-design .border-amber-400,
+body.axi-design .border-amber-400\/25,
+body.axi-design .border-amber-400\/30,
+body.axi-design .border-amber-400\/40,
+body.axi-design .border-amber-500\/20,
+body.axi-design .border-amber-500\/30,
+body.axi-design .border-amber-500\/35,
+body.axi-design .border-amber-500\/40,
+body.axi-design .border-amber-500\/50,
+body.axi-design .border-orange-200\/40,
+body.axi-design .border-orange-400\/30,
+body.axi-design .border-orange-500\/30,
+body.axi-design .border-orange-500\/35,
+body.axi-design .border-yellow-500\/20 { border-color: var(--axi-warn); }
+
+body.axi-design .text-red-100,
+body.axi-design .text-red-200,
+body.axi-design .text-red-200\/50,
+body.axi-design .text-red-200\/60,
+body.axi-design .text-red-300,
+body.axi-design .text-red-300\/80,
+body.axi-design .text-red-400,
+body.axi-design .text-red-500,
+body.axi-design .text-rose-100,
+body.axi-design .text-rose-100\/75,
+body.axi-design .text-rose-100\/80,
+body.axi-design .text-rose-200,
+body.axi-design .text-rose-200\/60,
+body.axi-design .text-rose-300,
+body.axi-design .text-rose-300\/70,
+body.axi-design .text-rose-400,
+body.axi-design .text-rose-50 { color: var(--axi-danger); }
+
+body.axi-design .text-blue-100,
+body.axi-design .text-blue-200,
+body.axi-design .text-blue-200\/80,
+body.axi-design .text-blue-300,
+body.axi-design .text-blue-300\/70,
+body.axi-design .text-blue-400,
+body.axi-design .text-cyan-100,
+body.axi-design .text-cyan-200,
+body.axi-design .text-cyan-200\/60,
+body.axi-design .text-cyan-200\/70,
+body.axi-design .text-cyan-200\/80,
+body.axi-design .text-cyan-300,
+body.axi-design .text-cyan-300\/60,
+body.axi-design .text-cyan-300\/70,
+body.axi-design .text-cyan-300\/80,
+body.axi-design .text-cyan-400,
+body.axi-design .text-cyan-50,
+body.axi-design .text-fuchsia-100,
+body.axi-design .text-fuchsia-200,
+body.axi-design .text-fuchsia-400,
+body.axi-design .text-indigo-100\/90,
+body.axi-design .text-indigo-200,
+body.axi-design .text-indigo-200\/80,
+body.axi-design .text-indigo-300,
+body.axi-design .text-indigo-400,
+body.axi-design .text-pink-400,
+body.axi-design .text-purple-300,
+body.axi-design .text-purple-400,
+body.axi-design .text-sky-200,
+body.axi-design .text-sky-300,
+body.axi-design .text-sky-400,
+body.axi-design .text-violet-300 { color: var(--axi-meta); }
+
+body.axi-design .text-emerald-100,
+body.axi-design .text-emerald-100\/80,
+body.axi-design .text-emerald-200,
+body.axi-design .text-emerald-200\/80,
+body.axi-design .text-emerald-300,
+body.axi-design .text-emerald-400,
+body.axi-design .text-green-300,
+body.axi-design .text-green-400,
+body.axi-design .text-teal-400,
+body.axi-design .text-teal-500 { color: var(--axi-ok); }
+
+body.axi-design .text-gray-300,
+body.axi-design .text-gray-400,
+body.axi-design .text-slate-300,
+body.axi-design .text-slate-400 { color: var(--axi-text-dim); }
+
+body.axi-design .text-gray-500,
+body.axi-design .text-gray-600,
+body.axi-design .text-slate-300\/70,
+body.axi-design .text-slate-500,
+body.axi-design .text-slate-600,
+body.axi-design .text-white\/50 { color: var(--axi-text-faint); }
+
+body.axi-design .text-gray-100,
+body.axi-design .text-gray-200,
+body.axi-design .text-slate-100,
+body.axi-design .text-slate-200,
+body.axi-design .text-white,
+body.axi-design .text-white\/80 { color: var(--axi-text); }
+
+body.axi-design .text-amber-100,
+body.axi-design .text-amber-100\/80,
+body.axi-design .text-amber-200,
+body.axi-design .text-amber-200\/60,
+body.axi-design .text-amber-200\/70,
+body.axi-design .text-amber-200\/80,
+body.axi-design .text-amber-300,
+body.axi-design .text-amber-300\/60,
+body.axi-design .text-amber-300\/70,
+body.axi-design .text-amber-400,
+body.axi-design .text-amber-400\/80,
+body.axi-design .text-orange-100,
+body.axi-design .text-orange-200,
+body.axi-design .text-orange-200\/70,
+body.axi-design .text-orange-200\/80,
+body.axi-design .text-orange-300,
+body.axi-design .text-orange-400,
+body.axi-design .text-orange-50,
+body.axi-design .text-yellow-100,
+body.axi-design .text-yellow-200,
+body.axi-design .text-yellow-200\/70,
+body.axi-design .text-yellow-200\/90,
+body.axi-design .text-yellow-300,
+body.axi-design .text-yellow-400,
+body.axi-design .text-yellow-500 { color: var(--axi-warn); }
+
+body.axi-design .fill-amber-300,
+body.axi-design .fill-yellow-500\/40 { fill: var(--axi-warn); }
+
+/* ---------------------------------------------------------------------------
+   THE FORM BRIDGE
+   Same problem as the palette, one layer down: radius, shadow and blur are
+   written as utilities too, so --radius-* and --shadow-* never reached them.
+
+   The language has two radii and one shadow. Everything lands on those.
+
+   rounded-full is the interesting one. Squaring a capsule pill is the point -
+   a capsule is the shape this language does not have - and the two places it
+   would be wrong take care of themselves: a 6px status dot with a 6px radius
+   is still a circle. */
+body.axi-design .rounded,
+body.axi-design .rounded-sm,
+body.axi-design .rounded-md,
+body.axi-design .rounded-full { border-radius: var(--axi-radius-sm); }
+
+body.axi-design .rounded-lg,
+body.axi-design .rounded-xl,
+body.axi-design .rounded-2xl,
+body.axi-design .rounded-3xl { border-radius: var(--axi-radius); }
+
+/* The named scale above is only half the radii in this app. The other half are
+   written as arbitrary values - `rounded-[4px]` alone appears 227 times - and
+   an arbitrary value is a literal, so none of them ever moved onto the step.
+   That is why whole views (History worst of all) kept their old near-square
+   corners while everything around them rounded: nothing was reaching them.
+   They all sit in the 2-6px band, which is the small step. */
+body.axi-design .rounded-\[2px\],
+body.axi-design .rounded-\[3px\],
+body.axi-design .rounded-\[4px\],
+body.axi-design .rounded-\[5px\],
+body.axi-design .rounded-\[6px\] { border-radius: var(--axi-radius-sm); }
+
+/* A control's block and a panel's block, chosen by how far off the surface the
+   old shadow was pretending to be. */
+body.axi-design .shadow,
+body.axi-design .shadow-sm,
+body.axi-design .shadow-md {
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+body.axi-design .shadow-lg,
+body.axi-design .shadow-xl,
+body.axi-design .shadow-2xl {
+  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+}
+/* An inner shadow is a lit edge, which is the one thing a flat surface cannot
+   have. Depth here is the ground colour, and that is already handled. */
+body.axi-design .shadow-inner { box-shadow: none; }
+
+/* A glow is light with no source, which Rule 1 rules out along with the
+   gradients. These three are written as arbitrary values, so the named-scale
+   rules above never reach them: the gold and cyan MVP icon wells, and the
+   squad-generation badge in Boon Uptime. Killing the halo leaves the tint and
+   the outline, which is where the meaning was. */
+body.axi-design .shadow-\[0_0_20px_rgba\(251\,191\,36\,0\.25\)\],
+body.axi-design .shadow-\[0_0_20px_rgba\(34\,211\,238\,0\.25\)\],
+body.axi-design .shadow-\[0_0_12px_rgba\(34\,211\,238\,0\.16\)\] { box-shadow: none; }
+
+/* Blur is a frosted-glass idiom and this language has no glass: every surface
+   is opaque, so there is nothing behind one to see through. (It also does
+   nothing on Linux, so half the app was paying for it already.) */
+body.axi-design .backdrop-blur-sm,
+body.axi-design .backdrop-blur,
+body.axi-design .backdrop-blur-md,
+body.axi-design .backdrop-blur-lg,
+body.axi-design .backdrop-blur-xl,
+body.axi-design .backdrop-blur-2xl,
+body.axi-design .backdrop-blur-3xl { backdrop-filter: none; }
+body.axi-design .blur,
+body.axi-design .blur-sm,
+body.axi-design .blur-md,
+body.axi-design .blur-lg,
+body.axi-design .blur-xl,
+body.axi-design .blur-2xl,
+body.axi-design .blur-3xl { filter: none; }
+
+/* An all-sides `border` is always an outline round something - a card, a
+   button, a chip - and at 1px of near-black over a near-black ground it is
+   invisible, which is why so many surfaces looked like they had no edge at
+   all. It goes to the control step. Directional borders are left at 1px on
+   purpose: border-b and its siblings are dividers drawn inside a panel, and
+   the rule ink at a hairline is exactly what those should be. */
+body.axi-design .border,
+body.axi-design .border-2 { border-width: var(--axi-border-control); }
+
+/* There is no dashed line in this language. A dashed outline is a way of
+   saying "provisional", and the language says that with the outlined/filled
+   distinction instead. */
+body.axi-design .border-dashed,
+body.axi-design .border-dotted { border-style: solid; }
+
+/* ---------------------------------------------------------------------------
+   THE SCROLLBARS
+   The colours already came through the remap, but the shape did not: the thumb
+   was a 999px capsule, which is the one radius this language does not have.
+   Everything else here is a rectangle with a corner, and so is this. */
+body.axi-design *::-webkit-scrollbar-thumb {
+  border-radius: 0;
+  border: var(--axi-border-hairline) solid var(--scrollbar-track);
+}
+body.axi-design *::-webkit-scrollbar-corner { background: var(--axi-ground); }
+
+/* ---------------------------------------------------------------------------
+   THE TOGGLES
+   A switch is the smallest possible "this one is on", so it is said the same
+   way everything else on is said: accent fill, ink slug.
+
+   Off is a slot cut in the surface, not in the ground. Ground-on-ground was the
+   first answer and it only worked on a panel: the webhook rows and the quick
+   settings card are themselves ground, so an off switch there was a ground
+   rectangle with a hairline round it on a ground card - the track disappeared
+   and all you could see was the knob floating. A slot has to be visible whether
+   or not anything is in it, so it takes the surface and a full ink edge.
+
+   The slug is ink in both states, which leaves the track as the only thing that
+   changes. That is the point: on and off differ in what colour is in the slot,
+   not in how bright the part that moves is. No block - the block belongs to
+   things you press, and this is a slot with something sitting in it. */
+body.axi-design .toggle-track {
+  border-width: var(--axi-border-control);
+  border-radius: var(--axi-radius-sm);
+}
+/* !important: both switches set the off background inline, which no selector
+   can outrank. */
+body.axi-design .toggle-track--off {
+  background: var(--axi-surface-raised) !important;
+  border-color: var(--axi-ink-line);
+}
+body.axi-design .toggle-track--on {
+  background: var(--axi-accent);
+  border-color: var(--axi-ink-line);
+}
+body.axi-design .toggle-knob {
+  border-radius: 2px;
+  box-shadow: none;
+  background: var(--axi-ink-line);
+}
+/* The Distance to Tag switch is half the size of the other two - it sits in a
+   section header beside 11px type - and the control edge on a 14px track leaves
+   no slot to put anything in. It keeps the form at a weight its size can hold. */
+body.axi-design .toggle-track--sm { border-width: 2px; }
+body.axi-design .toggle-track--sm .toggle-knob { top: 1px; bottom: 1px; left: 1px; }
+body.axi-design .toggle-track--sm.toggle-track--on .toggle-knob { left: auto; right: 1px; }
+
+/* The publish popover builds its checkboxes out of a span and a tick icon
+   rather than an <input>, so the plate rules cannot reach them. Same plate,
+   said in the one place it has to be said twice. */
+body.axi-design .menu-checkbox {
+  border-width: var(--axi-border-control);
+  border-color: var(--axi-ink-line);
+  border-radius: 3px;
+  background-color: var(--axi-surface-raised);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+body.axi-design .menu-checkbox[data-on] { background-color: var(--axi-accent); }
+
+/* ---------------------------------------------------------------------------
+   THE LAST GRADIENTS
+   Rule 1 forbids a gradient used as decoration. Most of the app's gradients
+   already resolve to flat colour, because they were written out of --brand-*
+   variables that now both point at the accent. These three are literals.
+
+   The conic gradient in StatsViewShared and the theme swatches in Settings are
+   left alone on purpose: in both, the gradient is the data. */
+body.axi-design .stats-sections {
+  background-image: none !important;
+  background-color: var(--axi-ground) !important;
+  /* The sections field is a well sunk one step below the panel around it, and
+     that step is the edge. Its own border was a third vertical rule inside the
+     35px between the report nav's ink edge and the first section's accent
+     stripe. Transparent rather than 0 so nothing shifts. */
+  border-color: transparent;
+}
+body.axi-design .squad-comp-board {
+  background-image: none;
+  background-color: var(--axi-ground);
+}
+
+/* The damage-modifier rows draw their magnitude as a fading bar behind the
+   text. Rule 9: a quantity is length, never intensity - the fade was saying
+   the same thing the width already said, less legibly. Flat fill, sign in the
+   colour, magnitude in the width.
+
+   Flat was the right half of the answer and full-height was the wrong one:
+   the bar runs UNDER the row's own text, so a field strong enough to measure
+   buried the numbers it was measuring, and one weak enough to read under them
+   measured nothing. Drop the field. The length comes out from behind the text
+   and becomes a rule along the row's base - full chroma, nothing to read
+   through, and the sign still in the colour. */
+body.axi-design .row-quantity-bar {
+  top: auto;
+  height: 4px;
+  --row-bar-fill: var(--axi-meta);
+}
+body.axi-design .row-quantity-bar[data-sign='neg'] { --row-bar-fill: var(--axi-ok); }
+body.axi-design .row-quantity-bar[data-sign='incoming'] { --row-bar-fill: var(--axi-danger); }
+
+/* ---------------------------------------------------------------------------
+   THE TAB STRIP
+   Four of the five views are a handful of things each, so the strip stays and
+   carries them. Its underline is gone: an underline is a third way of saying
+   "this one is on" next to the fill and the block, and the language only has
+   one. */
+body.axi-design [data-nav-strip] {
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: var(--axi-border-panel) solid var(--axi-ink-line) !important;
+  border-color: var(--axi-ink-line) !important;
+  background: var(--axi-surface) !important;
+}
+body.axi-design [data-nav-tab] {
+  padding: 7px 12px;
+  font: 800 12.5px/1 var(--axi-sans);
+  color: var(--axi-text-dim);
+  border: var(--axi-border-control) solid transparent;
+  border-radius: 8px;
+}
+body.axi-design [data-nav-tab]:hover { color: var(--axi-text); background: var(--axi-surface-raised); }
+/* The same treatment the rail's current category gets, and a pressed pill, and
+   a current tab anywhere else: fill, ink text, ink outline, offset block.
+
+   All five tabs, including the two that draw their own nav inside. Holding
+   Stats and Settings back to a raised ground so the inner nav could own the
+   gold was a distinction about scale that nobody reads as one: in a row of
+   five, the two that answer differently look broken, not subordinate. The
+   strip answers which view; the rail answers which section of it. Different
+   questions, so two gold marks are not two claims about the same thing. */
+body.axi-design [data-nav-tab][data-on],
+body.axi-design [data-nav-tab][data-on]:hover {
+  background: var(--axi-accent);
+  color: var(--axi-accent-ink);
+  border-color: var(--axi-ink-line);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+
+/* ---------------------------------------------------------------------------
+   THE RAIL
+   Stats only. Eleven categories and their sections are more than the top tab
+   strip holds, so this replaces the hover-expand CategoryBar on that one view
+   and the strip keeps carrying the other four. It is a panel like any other
+   panel on the page - the same border weight and the same offset block - and
+   nothing inside it is outlined except the item that is on. */
+body.axi-design .axi-rail {
+  display: flex;
+  flex-direction: column;
+  width: var(--axi-rail-w, 208px);
+  flex: none;
+  padding: 10px;
+  /* The offset block falls below the rail, so end short of the row's floor to
+     keep it from being clipped by the scroll container. */
+  margin-bottom: var(--axi-offset-panel);
+  overflow-y: auto;
+  background: var(--axi-surface);
+  border: var(--axi-border-panel) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius);
+  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+}
+body.axi-design .axi-rail__nav { display: flex; flex-direction: column; gap: 2px; }
+body.axi-design .axi-rail__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  font: 800 12.5px/1 var(--axi-sans);
+  color: var(--axi-text-dim);
+  text-align: left;
+  background: transparent;
+  border: var(--axi-border-control) solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+}
+body.axi-design .axi-rail__item:hover { color: var(--axi-text); background: var(--axi-surface-raised); }
+/* Same treatment as a pressed pill and a current tab: this one is on. Only
+   ever one of these on screen. */
+body.axi-design .axi-rail__item[aria-current='page'],
+body.axi-design .axi-rail__item[aria-current='page']:hover {
+  background: var(--axi-accent);
+  color: var(--axi-accent-ink);
+  border-color: var(--axi-ink-line);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+/* The sections inside the open category. No well and no fill: the gold
+   category answers "where am I"; a section is where the page happens to be
+   scrolled to, which is a smaller claim and is drawn as one - brightened text
+   against the dim list around it. */
+body.axi-design .axi-rail__sections {
+  display: flex;
+  flex-direction: column;
+  margin: 3px 0 5px 10px;
+}
+body.axi-design .axi-rail__section {
+  padding: 5px 8px;
+  font: 700 11.5px/1.3 var(--axi-sans);
+  text-align: left;
+  color: var(--axi-text-faint);
+  background: transparent;
+  border: 0;
+  border-radius: var(--axi-radius-sm);
+  cursor: pointer;
+}
+body.axi-design .axi-rail__section:hover { color: var(--axi-text-dim); background: var(--axi-surface-raised); }
+body.axi-design .axi-rail__section[data-on] { color: var(--axi-text); }
+
+/* An annotation, not a status: rule 5 says an outline is what marks something
+   the app knows *about* the data rather than a measurement of it. */
+body.axi-design .axi-rail__mark {
+  margin-left: auto;
+  padding: 2px 5px;
+  font: var(--axi-t-micro, 800 11px/1 var(--axi-sans));
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--axi-meta);
+  border: var(--axi-border-hairline) solid var(--axi-meta);
+  border-radius: 4px;
+}
+
+/* ---------------------------------------------------------------------------
+   THE CUT
+   An ink line wherever one fill meets the next. It is not a third form step,
+   it is the same outline the shape already carries continued inward, which is
+   why it can be drawn at one weight - the control step - at every size.
+   The app draws its charts with recharts, so the cut is a stroke rather than a
+   border, but it is the same line: every sector and every bar segment is
+   separated from its neighbour by the ink the chart is outlined in. */
+body.axi-design .recharts-sector,
+body.axi-design .recharts-rectangle {
+  stroke: var(--axi-ink-line);
+  stroke-width: var(--axi-border-control);
+}
+/* A chart's structure is drawn in rules, its data in ink. */
+body.axi-design .recharts-cartesian-grid line,
+body.axi-design .recharts-cartesian-axis-line,
+body.axi-design .recharts-cartesian-axis-tick-line {
+  stroke: var(--axi-rule);
+}
+
+/* ---------------------------------------------------------------------------
+   THE SECTIONS
+   Everything below here is the same argument applied to the screens the
+   variable remap could not reach on its own: form weight is a literal in the
+   markup (a 1px border is a 1px border whatever the variables say), and a few
+   places paint colour directly rather than through a token. The components
+   that carry a weight now read it from a variable with their old value as the
+   fallback, so these are the two steps being chosen rather than overridden. */
+
+/* A stats group is a panel: the panel border, the panel block, and a left edge
+   in the category's own hue - the one piece of colour the language hands to
+   the data (rule 10). */
+body.axi-design {
+  --stats-group-border-w: var(--axi-border-panel);
+  --stats-group-accent-w: var(--axi-border-panel);
+  /* Rule 2: a hue at 20% over the ground is a wash. The mark keeps the hue in
+     its icon and takes its ground from the surface above it. */
+  --stats-group-mark-bg: var(--axi-surface-raised);
+}
+body.axi-design .stats-group-container { border-radius: var(--axi-radius); }
+
+/* A pill group is a well with one control in it. The sliding indicator is the
+   fill, so the option riding on top of it has to be ink, not accent. */
+body.axi-design {
+  --pill-group-bg: var(--axi-ground);
+  --pill-group-border: var(--axi-well-line);
+  --pill-group-border-w: var(--axi-border-control);
+  --pill-group-radius: 8px;
+  --pill-indicator-bg: var(--axi-accent);
+  --pill-indicator-border: var(--axi-ink-line);
+  --pill-indicator-border-w: var(--axi-border-control);
+}
+body.axi-design .pill-toggle-option { color: var(--axi-text-dim); }
+body.axi-design .pill-toggle-option--active { color: var(--axi-accent-ink); }
+
+/* ---------------------------------------------------------------------------
+   THE MVP CARDS
+   These were the loudest thing on the Stats screen: a blurred colour blob
+   behind each card, a glowing ring around each crown, and every surface a
+   tinted wash. Rule 1 takes the blobs, rule 2 takes the washes, and what is
+   left is a card that says who won by being a card with a name in it. */
+body.axi-design .mvp-card__glow { display: none; }
+body.axi-design .mvp-group {
+  background: var(--axi-ground);
+  border-width: var(--axi-border-control);
+  border-color: var(--axi-well-line);
+  border-radius: var(--axi-radius);
+  /* The label straddles this edge, and at the control weight it is 12px
+     taller than the hairline version the classic pt-4 was measured against.
+     Pad for the half that hangs inside, plus a clear gap to the first card. */
+  padding-top: 22px;
+}
+/* The group's name, sitting on its edge: outlined, because it annotates the
+   group rather than measuring anything in it (rule 5). Centred on the edge
+   rather than nudged by a fixed 9px, so the border weight can change without
+   dropping it onto the card below. */
+body.axi-design .mvp-group-label {
+  background: var(--axi-surface);
+  border-width: var(--axi-border-control);
+  border-radius: var(--axi-radius-sm);
+  padding: 2px 8px;
+  top: -14px;
+}
+body.axi-design .mvp-card {
+  background: var(--axi-surface);
+  border-width: var(--axi-border-control);
+  border-color: var(--axi-ink-line);
+  border-radius: var(--axi-radius);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+/* First place is said with weight, not with hue. The accent was the obvious
+   choice and it was wrong twice over: there are two MVP groups on screen, so
+   an accent outline puts two golds in front of you, and gold in this language
+   is the thing you picked - nobody picked the MVP, the data did. A rank is an
+   ordering, and the panel step above its neighbours' control step reads as
+   one without spending a colour. */
+body.axi-design .mvp-card--gold { border-width: var(--axi-border-panel); }
+body.axi-design .mvp-gold-icon-ring {
+  background: var(--axi-surface-raised);
+  border-width: var(--axi-border-control);
+  border-color: var(--axi-ink-line);
+  box-shadow: none;
+}
+body.axi-design .mvp-gold-icon-badge {
+  background: var(--axi-accent);
+  color: var(--axi-accent-ink);
+  border-width: var(--axi-border-control);
+  border-color: var(--axi-ink-line);
+}
+body.axi-design .mvp-gold-icon-badge svg { color: var(--axi-accent-ink); }
+
+/* ---------------------------------------------------------------------------
+   THE COMMANDER VIEW
+   Same two steps. The cards here already read their colours from tokens, so
+   what they needed was the weight and, for the chips, a decision about which
+   of the two ways of carrying colour they are. */
+body.axi-design .commander-panel,
+body.axi-design .commander-metric,
+body.axi-design .insight-card {
+  border-width: var(--axi-border-control);
+  border-color: var(--axi-ink-line);
+  border-radius: var(--axi-radius);
+}
+body.axi-design .commander-panel {
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+/* The severity verdict is a judgement about the number on the card, so it is
+   drawn where Overview draws it: as a cap across the top edge, directly over
+   the value it judges. Down the left at full height it was the card's frame
+   instead - five cards in a row read as five coloured bars - and the edge it
+   ran along was the same edge that separates the card from the one beside it.
+   The cap names the card once, at the head, then gets out of the way; the left
+   edge drops back to the ink every other outline in the language uses. */
+body.axi-design .commander-metric,
+body.axi-design .insight-card {
+  border-left-width: var(--axi-border-control);
+  border-left-color: var(--axi-ink-line);
+  border-top-width: var(--axi-border-panel);
+}
+/* !important because a metric card writes its top, right and bottom edge
+   colours as inline styles - the one place a stylesheet cannot outrank - and
+   the top edge is exactly the one the cap needs. */
+body.axi-design .commander-metric[data-severity='green'] { border-top-color: var(--axi-ok) !important; }
+body.axi-design .commander-metric[data-severity='yellow'] { border-top-color: var(--axi-warn) !important; }
+body.axi-design .commander-metric[data-severity='red'] { border-top-color: var(--axi-danger) !important; }
+body.axi-design .insight-card[data-side='good'] { border-top-color: var(--axi-ok); }
+body.axi-design .insight-card[data-side='bad'] { border-top-color: var(--axi-danger); }
+
+/* A verdict chip is a status, and rule 5 says a status is filled. Filled means
+   ink text on the status colour, which is also what makes eight chips in a row
+   legible at 10px. */
+body.axi-design .commander-chip {
+  color: var(--axi-ink-line);
+  border-width: var(--axi-border-hairline);
+  border-color: var(--axi-ink-line);
+  border-radius: var(--axi-radius-sm);
+}
+body.axi-design .commander-chip[data-verdict='wipe'],
+body.axi-design .commander-chip[data-verdict='bomb-broke-us'] { background: var(--axi-danger); }
+body.axi-design .commander-chip[data-verdict='trade'],
+body.axi-design .commander-chip[data-verdict='outnumbered'] { background: var(--axi-warn); }
+body.axi-design .commander-chip[data-verdict='carry'],
+body.axi-design .commander-chip[data-verdict='clean'] { background: var(--axi-ok); }
+body.axi-design .commander-chip[data-verdict='caught-engage'],
+body.axi-design .commander-chip[data-verdict='caught-out'] { background: var(--axi-meta); }
+
+/* A leader tile is a card you can press, so it takes the control block and
+   moves under the press the way every other control does. */
+body.axi-design .leader-card {
+  background: var(--axi-surface);
+  border-width: var(--axi-border-control);
+  border-color: var(--axi-ink-line);
+  border-radius: var(--axi-radius);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+body.axi-design .leader-card:hover {
+  box-shadow: var(--axi-offset-control-hover) var(--axi-offset-control-hover) 0 var(--axi-ink-line);
+}
+/* The open tile is the one you picked: accent outline, no ring. */
+body.axi-design .leader-card--active {
+  border-color: var(--axi-accent);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  --tw-ring-color: transparent;
+}
+
+/* The stat rows inside an MVP card. Each one is a label and a number, which is
+   a reading - so it is drawn as one: the ground, the control outline, and no
+   hue behind the number (rule 2). */
+body.axi-design .mvp-stat-pill {
+  background: var(--axi-ground);
+  border-width: var(--axi-border-control);
+  border-color: var(--axi-well-line);
+  border-radius: var(--axi-radius-sm);
+}
+
+/* The profession beside an MVP's name is a label on the player, not a reading
+   about them: outlined, in the annotation colour, at the hairline weight. */
+body.axi-design .mvp-profession-chip {
+  background: transparent;
+  color: var(--axi-text-dim);
+  border-width: var(--axi-border-hairline);
+  border-color: var(--axi-rule);
+  border-radius: var(--axi-radius-sm);
+}
+
+/* The knob. Its position comes from Tailwind translate utilities measured
+   against a 1px track; at the control weight those numbers put it through the
+   right-hand edge. Pinning it to the track's insets instead means the knob is
+   correct at any border weight, and it stops being a transform, which is one
+   fewer thing animating for no reason. */
+body.axi-design .toggle-knob {
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  right: auto;
+  height: auto;
+  transform: none;
+}
+body.axi-design .toggle-track--on .toggle-knob { left: auto; right: 2px; }
+
+/* Four stats categories - Overview, Commander, Roster, Replay - have no hue of
+   their own and borrowed the brand colour, which in this language is the
+   accent. That put a gold edge down the side of the panel you were reading,
+   next to the gold rail item that was actually selected, and the edge won
+   because it was taller. They get a neutral instead: having no colour is a
+   truthful thing for a category to say, and gold goes back to meaning the one
+   thing you picked. */
+body.axi-design { --section-neutral: var(--axi-text-faint); }
+
+/* The dashboard's left column is a fixed set of cards, not a feed. Everything
+   in it is either a status line or a switch you flip between runs, and all of
+   it is meant to be read at a glance - so it has to be on screen at once. It
+   was scrolling because the language's own weight pushed it over: thicker
+   borders, larger radii, the block under each card. The column buys that
+   height back out of its own padding rather than out of the content, and then
+   stops scrolling entirely. */
+body.axi-design .dashboard-rail {
+  overflow: hidden;
+  /* The rail and the activity column are the same ground, and the cards in
+     one and the panel in the other are already objects standing on it. A rule
+     between two identical fields separates nothing - it just ran a second
+     vertical line beside the activity panel's own edge. */
+  border-right: none;
+  /* The rail was the same surface as the cards standing on it, so five panels
+     and the strip behind them were all one colour and the only thing telling
+     them apart was a near-black line. A panel sits on the ground, not on
+     another panel. */
+  background: var(--axi-ground);
+  padding: 8px;
+}
+body.axi-design .dashboard-rail .rail-stack { gap: 8px; }
+body.axi-design .dashboard-rail .rail-card { padding: 8px 10px; }
+body.axi-design .dashboard-rail .rail-card__label { margin-bottom: 4px; }
+/* Rows carry a hairline between them, so their own padding is the only thing
+   holding them apart and 3px is still a clear gap at this type size. */
+body.axi-design .dashboard-rail .rail-row { padding-top: 3px; padding-bottom: 3px; }
+
+/* ---------------------------------------------------------------------------
+   THE MODALS
+   Every modal in the app shares two classes, so they only need saying once.
+   A modal is the most raised thing on the screen while it is open, which makes
+   it a panel with a panel's block. The overlay is the scrim - opaque, because
+   a modal that you can read the app through is a modal you have to squint
+   past. */
+body.axi-design .app-modal-overlay { background: var(--axi-scrim); }
+body.axi-design .app-modal-card {
+  /* The inline `border: 1px solid ...` on every one of these is a literal, so
+     no rule here could reach it - hence --panel-border-w, which the components
+     read with their old 1px as the fallback. It is set to the control step
+     globally and raised to the panel step on the modal itself. */
+  --panel-border-w: var(--axi-border-panel);
+  border-radius: var(--axi-radius);
+  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+}
+
+/* ---------------------------------------------------------------------------
+   THE DENSE TABLES
+   These are the biggest surface in the app and none of the remap reached them:
+   every fill and every line in .dense-table is a literal rgba white or black
+   at two to twelve percent, which is precisely what rule 2 rules out. At those
+   alphas over the axi ground they are also nearly invisible, so the tables had
+   neither the old look nor the new one - they had almost no look at all.
+
+   Redrawn on the neutral ramp. The zebra is two opaque surfaces rather than a
+   1.5% wash, the dividers are the rule, and the two soft shadows that held the
+   sticky header and the pinned column off the rest of the table become hard
+   ink lines - a shadow in this language is an offset block, and a blurred one
+   pretending to be depth is the thing it replaced. */
+/* The table was drawn but never framed: rows, zebra and dividers all landed,
+   and the whole thing still floated on the panel with nothing saying where it
+   began or ended. The container is the raised object - surface, ink edge, the
+   panel radius - and the header and the grid are what sits inside it, so the
+   header's own edge becomes the cut between the two rather than the table's
+   only line. */
+body.axi-design .dense-table__container {
+  background: var(--axi-surface);
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius);
+  overflow: hidden;
+}
+body.axi-design .dense-table__header {
+  background: var(--axi-surface-raised);
+  border-bottom: var(--axi-border-control) solid var(--axi-ink-line);
+}
+body.axi-design .dense-table__head,
+body.axi-design .dense-table__cell {
+  border-bottom: 1px solid var(--axi-rule);
+  background: var(--axi-surface);
+}
+body.axi-design .dense-table__row:nth-of-type(odd) > .dense-table__cell {
+  background: var(--axi-ground);
+}
+body.axi-design .dense-table__row:hover > .dense-table__cell {
+  background: var(--axi-surface-raised);
+}
+body.axi-design .dense-table__head {
+  color: var(--axi-text);
+  background: var(--axi-surface-raised);
+  border-bottom: var(--axi-border-control) solid var(--axi-ink-line);
+  box-shadow: none;
+}
+/* Scrolled-under is a real state and still worth saying; it is said with the
+   ink line the header already sits on, thickened, not with a blur. */
+body.axi-design .dense-table__scroll--scrolled .dense-table__head {
+  box-shadow: 0 var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+body.axi-design .dense-table__head:not(:last-child)::after {
+  background: var(--axi-rule);
+}
+/* The pinned first column is a panel edge, not a gradient falling away from
+   one. Hard line, ink, control weight. */
+body.axi-design .dense-table__head--pinned,
+body.axi-design .dense-table__cell--pinned {
+  background: var(--axi-surface);
+  box-shadow: var(--axi-border-control) 0 0 var(--axi-ink-line);
+}
+body.axi-design .dense-table__row:nth-of-type(odd) > .dense-table__cell--pinned {
+  background: var(--axi-ground);
+}
+body.axi-design .dense-table__row:hover > .dense-table__cell--pinned {
+  background: var(--axi-surface-raised);
+  box-shadow: inset var(--axi-border-control) 0 0 var(--axi-accent),
+              var(--axi-border-control) 0 0 var(--axi-ink-line);
+}
+body.axi-design .dense-table__cell--label { background: inherit; }
+
+/* A quantity bar. At 6px tall with a soft rounded cap it was a progress
+   indicator borrowed from somewhere else; here a measured length gets an
+   outlined well and a flat fill sitting in it, which is the same shape the
+   language uses everywhere else and is readable at a glance from across the
+   row. Rule 9 is already satisfied by the width - this just stops the bar
+   being the one element on the screen with nothing drawn around it. */
+body.axi-design .quantity-bar {
+  height: 10px;
+  /* The trough is filled at the raised step rather than the ground, and that
+     is what earns it the ink outline the rest of the bars carry: ink reads
+     against a fill lighter than itself. Left on the ground it was a black line
+     on a black field, which is how these two came to be the only bars in the
+     app without an edge. */
+  background: var(--axi-surface-raised);
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius-sm);
+  overflow: hidden;
+}
+body.axi-design .quantity-bar > * { border-radius: 0; }
+
+/* Overview's scoreboard. It used to be two mirrored boxes, each a 3-up of
+   unrelated numbers with one blown up in the middle, and each outlined in its
+   own status colour for the whole height of the box - so the colour read as
+   the card's frame rather than as a name for the side. Now it is one panel:
+   the sides sit either side of the tally, split by a rule, and each is named
+   once by a cap of status colour over its label. The wells inside it are the
+   ground, so their line is the well line and not the ink. */
+body.axi-design .overview-card {
+  /* The card carried no fill of its own, which was survivable when it was an
+     outlined box but not now that it holds wells: ground inside ground is not
+     a well, it is nothing. It sits on the ground like every other panel. */
+  background: var(--axi-surface);
+  --panel-border-w: var(--axi-border-panel);
+  --overview-edge-w: var(--axi-border-panel);
+  --overview-label: var(--axi-text-dim);
+  --overview-well-w: var(--axi-border-control);
+  --overview-well-line: var(--axi-well-line);
+  --overview-cap-h: var(--axi-border-panel);
+}
+
+/* ---------------------------------------------------------------------------
+   THE WEB REPORT'S LEFT NAV
+   A published report ships its own sidebar - the desktop app's rail and
+   CategoryBar are not used there - and it had none of this language: black at
+   20% behind frosted glass, a 60px soft drop shadow down its edge, and its
+   items drawn as rounded capsules outlined in white at 10-20%. Every one of
+   those is a thing the language does not do, which is why it kept reading as
+   the old app next to the sections it was scrolling.
+
+   Same grammar as the desktop rail: the strip is a surface with an ink edge,
+   a category you are reading is filled with the accent and takes the control
+   block, and a section is brightened text because it is a smaller claim. */
+body.axi-design .report-nav-sidebar {
+  background: var(--axi-surface);
+  border-right: var(--axi-border-panel) solid var(--axi-ink-line);
+  backdrop-filter: none;
+  box-shadow: none;
+}
+/* The nav list scrolls; it just stops carving a channel down the strip to say
+   so, the same way the table-picker wells do. The groove was reading as one
+   more vertical line next to the strip's own edge, and it was eating the width
+   the category labels needed. */
+body.axi-design .report-nav-sidebar nav { scrollbar-width: none; }
+body.axi-design .report-nav-sidebar nav::-webkit-scrollbar { width: 0; height: 0; }
+body.axi-design .report-nav-sidebar .report-nav-group-btn,
+body.axi-design .report-nav-sidebar .report-nav-item-btn {
+  border: var(--axi-border-control) solid transparent;
+  border-radius: var(--axi-radius-sm);
+  color: var(--axi-text-dim);
+  background: transparent;
+}
+body.axi-design .report-nav-sidebar .report-nav-group-btn:hover,
+body.axi-design .report-nav-sidebar .report-nav-item-btn:hover {
+  color: var(--axi-text);
+  background: var(--axi-surface-raised);
+  border-color: transparent;
+}
+body.axi-design .report-nav-sidebar .report-nav-group-btn[data-on],
+body.axi-design .report-nav-sidebar .report-nav-group-btn[data-on]:hover {
+  background: var(--axi-accent);
+  color: var(--axi-accent-ink);
+  border-color: var(--axi-ink-line);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+body.axi-design .report-nav-sidebar .report-nav-group-btn[data-on] .report-nav-group-icon,
+body.axi-design .report-nav-sidebar .report-nav-group-btn[data-on] .report-nav-chevron { color: var(--axi-accent-ink); }
+/* The icon beside a category is a label for it, not a second accent. */
+body.axi-design .report-nav-sidebar .report-nav-group-icon { color: var(--axi-text-faint); }
+body.axi-design .report-nav-sidebar .report-nav-item-btn[data-on],
+body.axi-design .report-nav-sidebar .report-nav-item-btn[data-on]:hover {
+  color: var(--axi-text);
+  background: var(--axi-surface-raised);
+  border-color: transparent;
+}
+
+/* ---------------------------------------------------------------------------
+   THE TABLE-WITH-A-PICKER SECTIONS
+   A dozen sections share one layout: a list on the left picks what the table
+   on the right shows. It read flat because nothing in it was an object - the
+   list and the table were the same field, parted by a hairline, and the list's
+   scrollbar cut a groove down the middle of the panel. Two objects instead:
+   the picker is a well sunk into the panel, the table is a surface standing on
+   it, and the hairline between them is redundant once both have edges. */
+body.axi-design .stats-table-layout {
+  --stats-sidebar-edge-w: 0;
+  gap: 10px;
+}
+body.axi-design .stats-table-layout__sidebar,
+body.axi-design .stats-table-layout__content { padding-left: 0; padding-right: 0; }
+
+body.axi-design .stats-table-layout__sidebar {
+  background: var(--axi-ground);
+  border: var(--axi-border-control) solid var(--axi-well-line);
+  border-radius: var(--axi-radius);
+  padding: 10px;
+  /* The list scrolls; it just stops carving a channel to say so. The well's
+     own edge already tells you where the list ends. */
+  scrollbar-width: none;
+}
+body.axi-design .stats-table-layout__sidebar::-webkit-scrollbar { width: 0; height: 0; }
+/* Some of these sidebars scroll on an inner list rather than on the well
+   itself, which put the channel back one level in. */
+body.axi-design .stats-table-layout__sidebar * { scrollbar-width: none; }
+body.axi-design .stats-table-layout__sidebar *::-webkit-scrollbar { width: 0; height: 0; }
+
+/* The category rail is the same kind of well, and it scrolls on an inner
+   container rather than on the panel, so the channel landed inside the
+   panel's own edge - two vertical lines a few pixels apart down a strip
+   only wide enough for an icon. */
+body.axi-design .stats-dashboard-nav-panel,
+body.axi-design .stats-dashboard-nav-panel * { scrollbar-width: none; }
+body.axi-design .stats-dashboard-nav-panel::-webkit-scrollbar,
+body.axi-design .stats-dashboard-nav-panel *::-webkit-scrollbar { width: 0; height: 0; }
+
+/* The search box is a control sitting in the well, not an underline. */
+body.axi-design .stats-table-layout__sidebar input {
+  background: var(--axi-surface);
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius-sm);
+  padding: 4px 8px;
+  color: var(--axi-text);
+}
+body.axi-design .stats-table-layout__sidebar input::placeholder { color: var(--axi-text-faint); }
+
+/* Every one of these lists writes its selected row the same way, so it only
+   needs saying once. The picked row is the ancestor treatment, not the accent:
+   the table beside it already carries the gold in its own controls, and two
+   gold claims on one panel is one too many. */
+body.axi-design .stats-table-layout__sidebar button {
+  border-radius: var(--axi-radius-sm);
+  color: var(--axi-text-dim);
+}
+body.axi-design .stats-table-layout__sidebar button:hover { background: var(--axi-surface); color: var(--axi-text); }
+body.axi-design .stats-table-layout__sidebar button[class*="accent-bg-strong"] {
+  background: var(--axi-surface-raised);
+  color: var(--axi-text);
+  box-shadow: inset var(--axi-border-control) 0 0 var(--axi-accent);
+}
+
+/* The table is the raised thing on the panel, so it takes the ink edge. */
+body.axi-design .stats-table-layout__content {
+  background: var(--axi-surface);
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius);
+  overflow: hidden;
+}
+
+/* ---------------------------------------------------------------------------
+   THE EXPANDED LOG CARD
+   Opening a log card drops a drawer of summary tiles, and every tile was
+   filled with the same colour as the drawer behind it and outlined with a
+   hairline - eight rectangles you could only find by reading their headings.
+   The drawer is a well cut into the card: it takes the ground, and the cut
+   above it is the panel step, because that line is where the card ends. The
+   tiles stand in the well, so they take the surface and the ink edge. */
+body.axi-design .log-detail-drawer {
+  --detail-drawer-bg: var(--axi-ground);
+  --detail-drawer-cut-w: var(--axi-border-panel);
+  --detail-drawer-cut: var(--axi-ink-line);
+  box-shadow: none;
+}
+body.axi-design .log-detail-tile {
+  --detail-tile-bg: var(--axi-surface);
+  --detail-tile-line: var(--axi-ink-line);
+  --detail-tile-border-w: var(--axi-border-control);
+  border-radius: var(--axi-radius-sm);
+  box-shadow: none;
+}
+
+/* ---------------------------------------------------------------------------
+   THE EXPANDED SECTION
+   Blowing a section up to fill the window gave it a modal's chrome - a rounded
+   outline and a soft card shadow drawn round something with no edge on screen,
+   because it is pinned to all four sides. A fullscreen pane is not a floating
+   object, it is the ground with one thing on it. So: no outline, no block, no
+   radius, and the only line in it is the one under the heading, which is the
+   heading doing the job the outline was pretending to do. */
+body.axi-design .modal-pane {
+  --pane-bg: var(--axi-ground);
+  --pane-block: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 12px 16px;
+}
+/* The pane's heading row. It was floating loose at the top with the close
+   control half over the pane's edge; it becomes a bar with a cut under it, and
+   the control sits inside the bar like every other control in the app. */
+body.axi-design .modal-pane > :first-child {
+  padding-bottom: 10px;
+  border-bottom: var(--axi-border-control) solid var(--axi-ink-line);
+}
+body.axi-design .modal-pane button[aria-label^="Close "] {
+  background: var(--axi-surface);
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius-sm);
+  margin-top: 0;
+}
+body.axi-design .modal-pane button[aria-label^="Close "]:hover { background: var(--axi-surface-raised); }
+
+/* ---------------------------------------------------------------------------
+   THE PLAIN TABLES
+   Thirty tables across the stats, commander, settings and release-notes views
+   were written as bare `<table>` with nothing but utility classes on them: no
+   frame, no header ground, a hairline under each row and nothing else. They
+   are the majority of the tables in the app by count, and they were the ones
+   that kept looking untouched, because there was no hook to touch.
+
+   They now carry one class and read as the same object DenseStatsTable is -
+   deliberately the same vocabulary, because two kinds of table in one app is
+   two systems. Frame at the control step in ink, header at the raised step
+   with the control cut under it, rows parted by the rule, zebra in two opaque
+   fills rather than a wash. */
+body.axi-design .stats-table {
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius-sm);
+  /* Cell radii - and so the table's own rounded corners - only exist under
+     separate borders; collapse throws them away. */
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--axi-surface);
+}
+body.axi-design .stats-table thead th {
+  background: var(--axi-surface-raised);
+  color: var(--axi-text);
+  border-bottom: var(--axi-border-control) solid var(--axi-ink-line);
+}
+body.axi-design .stats-table thead th:not(:last-child) {
+  border-right: 1px solid var(--axi-rule);
+}
+body.axi-design .stats-table tbody td {
+  border-bottom: 1px solid var(--axi-rule);
+  background: transparent;
+}
+body.axi-design .stats-table tbody tr:last-child > td { border-bottom: none; }
+body.axi-design .stats-table tbody tr:nth-of-type(odd) > td { background: var(--axi-ground); }
+body.axi-design .stats-table tbody tr:hover > td { background: var(--axi-surface-raised); }
+/* The frame's corners have to be cut into the cells that sit in them. */
+body.axi-design .stats-table thead tr:first-child > *:first-child { border-top-left-radius: var(--axi-radius-sm); }
+body.axi-design .stats-table thead tr:first-child > *:last-child { border-top-right-radius: var(--axi-radius-sm); }
+body.axi-design .stats-table tbody tr:last-child > *:first-child { border-bottom-left-radius: var(--axi-radius-sm); }
+body.axi-design .stats-table tbody tr:last-child > *:last-child { border-bottom-right-radius: var(--axi-radius-sm); }
+
+/* ---------------------------------------------------------------------------
+   THE SHELL-BUILT TABLES
+   The third kind. A dozen sections build their rows as bare `grid-cols-[...]`
+   divs inside StatsTableShell, whose wrapper classes existed but had never had
+   a single rule written against them. Same vocabulary again, applied to the
+   two containers rather than to thirty hand-written column templates. */
+body.axi-design .stats-table-shell__columns {
+  background: var(--axi-surface-raised);
+  color: var(--axi-text);
+  border-bottom: var(--axi-border-control) solid var(--axi-ink-line);
+  border-top-left-radius: var(--axi-radius-sm);
+  border-top-right-radius: var(--axi-radius-sm);
+}
+body.axi-design .stats-table-shell__columns > * { border-bottom: none; }
+/* The shell renders the head stack and the rows as siblings, not as one box,
+   so the frame is drawn in two halves that meet: the head stack carries the
+   top and sides, the rows carry the sides and the bottom, and neither draws
+   the line between them twice - that line is the header's own cut. */
+body.axi-design .stats-table-shell__head-stack {
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-bottom: none;
+  border-top-left-radius: var(--axi-radius-sm);
+  border-top-right-radius: var(--axi-radius-sm);
+  overflow: hidden;
+}
+body.axi-design .stats-table-shell__rows {
+  background: var(--axi-surface);
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-top: none;
+  border-bottom-left-radius: var(--axi-radius-sm);
+  border-bottom-right-radius: var(--axi-radius-sm);
+}
+body.axi-design .stats-table-shell__rows > *:nth-child(odd) { background: var(--axi-ground); }
+
+/* ---------------------------------------------------------------------------
+   THE CHART CHROME
+   The plot itself came through the remap - the series keep their own colours,
+   which rule 10 asks for past two series - but everything recharts draws
+   around the plot was still library default. The brush under a long timeline
+   was the giveaway: a periwinkle capsule with two lavender handles, the one
+   piece of the old library's palette left anywhere in the app.
+
+   Presentation attributes set in JSX lose to CSS properties of the same name,
+   so stroke and fill can be reclaimed here without touching thirty call
+   sites. */
+body.axi-design .recharts-brush .recharts-brush-slide {
+  fill: var(--axi-surface-raised);
+  fill-opacity: 1;
+  stroke: var(--axi-ink-line);
+  stroke-width: var(--axi-border-control);
+}
+body.axi-design .recharts-brush > rect:first-of-type {
+  fill: var(--axi-ground);
+  stroke: var(--axi-ink-line);
+  stroke-width: var(--axi-border-control);
+}
+/* The two handles are the only thing in the brush you grab, so they are the
+   thing that carries the accent. */
+body.axi-design .recharts-brush-traveller rect {
+  fill: var(--axi-accent);
+  stroke: var(--axi-ink-line);
+  stroke-width: var(--axi-border-control);
+}
+body.axi-design .recharts-brush-traveller line { stroke: var(--axi-accent-ink); }
+body.axi-design .recharts-brush-texts { fill: var(--axi-text-dim); }
+
+/* A dashed grid is a texture. The grid is structure, so it is a rule, drawn
+   once, solid.
+
+   It also has to stop being white at 8%. That literal is written at 36 call
+   sites across the sections and is the single most repeated rule 2 violation
+   in the app - but it is a presentation attribute, so one selector here
+   retires all 36 without editing a section. The grid takes --axi-rule rather
+   than the ink for the --axi-well-line reason: the plot area is the ground,
+   and ink only reads against a fill lighter than itself. */
+body.axi-design .recharts-cartesian-grid line {
+  stroke-dasharray: none;
+  stroke: var(--axi-rule);
+}
+
+/* The axis is the edge of the plot, not part of its texture, so it reads one
+   step stronger than the grid it bounds. Same ground, so still not the ink. */
+body.axi-design .recharts-cartesian-axis-line,
+body.axi-design .recharts-cartesian-axis-tick-line {
+  stroke: var(--axi-text-faint);
+}
+
+/* The cursor is the reading you are taking, so it is the one line in the plot
+   allowed to be the accent. */
+body.axi-design .recharts-tooltip-cursor {
+  stroke: var(--axi-accent);
+  stroke-width: var(--axi-border-control);
+  fill: var(--axi-surface-raised);
+  fill-opacity: 1;
+}
+body.axi-design .recharts-cartesian-axis-tick text { fill: var(--axi-text-faint); }
+body.axi-design .recharts-label, body.axi-design .recharts-legend-item-text { fill: var(--axi-text-dim); color: var(--axi-text-dim); }
+
+/* Five charts hand-rolled their own tooltip instead of using recharts', and
+   those five are outside every selector below. They share one class now, so
+   the two kinds of tooltip in the app look like one thing. */
+body.axi-design .chart-tooltip {
+  --panel-border-w: var(--axi-border-control);
+  background: var(--axi-surface);
+  border-radius: var(--axi-radius-sm);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+
+/* recharts' own tooltip, for the charts that did not hand-roll one. */
+body.axi-design .recharts-default-tooltip {
+  background: var(--axi-surface) !important;
+  border: var(--axi-border-control) solid var(--axi-ink-line) !important;
+  /* These two need the same hammer as the two above them. The sections pass
+     recharts a `contentStyle` object, which lands as an inline style, and an
+     inline style beats a plain rule - so a tooltip would otherwise keep its
+     0.5rem corner and its hardcoded white text while its border moved. */
+  border-radius: var(--axi-radius-sm) !important;
+  color: var(--axi-text) !important;
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+
+/* A reference line is an annotation on the plot - the zero line a diverging
+   bar chart is read against. It is structure, so it reads as the axis does. */
+body.axi-design .recharts-reference-line line { stroke: var(--axi-text-faint); }
+
+/* ---------------------------------------------------------------------------
+   THE HISTORY TAB
+   This view came through the palette remap fully recoloured and still looked
+   untouched, which is the clearest case yet of the rule that the remap can
+   recolour but not reshape. Every edge here is an inline `1px solid`, every
+   corner an arbitrary `rounded-[4px]`, and neither is something a variable
+   could reach - hence --history-edge-w at the call sites and the arbitrary
+   radii now folded into the form bridge above.
+
+   The report cards are the substance of the view, so they take the panel step
+   and its block. Everything else - the source bar, the search field, the
+   filter - is chrome around them and stays at the control step, which is also
+   what keeps the cards reading as the thing you are meant to click. */
+body.axi-design .history-view {
+  --history-edge-w: var(--axi-border-control);
+  --history-card-hover-edge: var(--axi-rule);
+  /* The filter's "on" state was the accent at 15% over the ground. An accent
+     at partial opacity is rule 2 exactly; the state is carried by the accent
+     edge and the accent label it already has, so the fill just goes opaque. */
+  --history-filter-on-bg: var(--axi-surface-raised);
+}
+
+/* The width has to arrive through the variable rather than a `border-width`
+   rule: the edge is an inline shorthand, and an inline shorthand beats any
+   selector. Setting --history-edge-w on the card itself re-resolves the
+   inline var() in place, which is the only way in. */
+body.axi-design .history-card {
+  --history-edge-w: var(--axi-border-panel);
+  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+}
+
+/* The map split is a quantity read as length, so it keeps its proportions and
+   gains the edge every other bar in the app carries. It sits on the card's
+   surface rather than the ground, which is what lets the ink read. */
+body.axi-design .history-card__slices {
+  height: 8px;
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius-sm);
+  overflow: hidden;
+}
+
+/* The two borderTop dividers in this view are left alone on purpose. They are
+   rules drawn inside a panel, and ink at a hairline is what a divider should
+   be - the same call the form bridge makes for border-b. (They are also inline
+   shorthands, so nothing short of !important could reach them anyway.) */
+
+/* The source bar's fill already lands on the surface through --bg-card, so it
+   only needs the block that separates chrome from ground. */
+body.axi-design .history-source-bar {
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+
+/* The strip's own cut goes to the control step so the tabs sit on something.
+   The accent underline that marks the active tab is inline and stays as it is
+   - it is the one gold item here, and it is the one saying "you are here". */
+body.axi-design .history-tabs {
+  border-bottom-width: var(--axi-border-control);
+  background: var(--axi-ground);
+  gap: 2px;
+  padding-top: 6px;
+}
+body.axi-design .history-tabs button { border-radius: var(--axi-radius-sm) var(--axi-radius-sm) 0 0; }
+body.axi-design .history-tabs > button:hover,
+body.axi-design .history-tabs > div:hover { background: var(--axi-surface); }
+
+/* ---------------------------------------------------------------------------
+   THE WEB UPLOAD OVERLAY
+   This is the only modal in the app that never joined the two shared modal
+   classes, so it sat outside THE MODALS while its seven siblings were covered
+   for free. It also carried the app's densest patch of rule 2 - ten values of
+   white at partial opacity doing the work of an edge, a divider, a well and
+   four rungs of the text ramp, all of which the app already has tokens for.
+   Those went to the tokens rather than to axi variables, because a hardcoded
+   white ignores whichever theme is actually on, which is wrong everywhere and
+   not only here. What is left is the one thing a token could not carry. */
+
+/* The progress bar is the last bar in the app without the ink edge. It has to
+   grow to take one: an outline at the control step is thicker than the 3px
+   track was tall, so the track becomes a bar you can actually read. */
+body.axi-design .web-upload-track {
+  height: 10px;
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius-sm);
+}
+body.axi-design .web-upload-track > div { border-radius: 0; }
+
+/* ---------------------------------------------------------------------------
+   THE FLOATING CHROME
+   The dropdowns, popovers and tooltips that sit above the Stats content. They
+   came through the remap already fully tokenised - every one reads --bg-elevated
+   and --border-default - so unlike History they were never the wrong colour.
+   What they had no way to get was form: a floating surface is the most raised
+   thing on screen after a modal, and these were flat against the content they
+   float over.
+
+   They take the control step rather than the panel step. A dropdown is chrome
+   you open, act in and dismiss; the panel step belongs to the things you are
+   reading. The block is what lifts them off the page. */
+body.axi-design .app-dropdown,
+body.axi-design .stats-popover {
+  --panel-border-w: var(--axi-border-control);
+  border-radius: var(--axi-radius-sm);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+
+/* The one exception: a tooltip is not a surface you act in, it is a label that
+   follows the cursor. It keeps the edge so it stays legible over a chart, and
+   loses the block, which on something that moves reads as lag. */
+body.axi-design .profession-multi-tooltip,
+body.axi-design .count-class-tooltip,
+body.axi-design .skill-breakdown-tooltip { box-shadow: none; }
+
+/* A dropdown's rows are a list inside a well, not a stack of little panels, so
+   they step down to the small radius rather than keeping the panel-sized one
+   the named scale gives them. The separation is carried by the fill. */
+body.axi-design .app-dropdown button.rounded-lg,
+body.axi-design .stats-popover button.rounded-lg { border-radius: var(--axi-radius-sm); }
+
+/* ---------------------------------------------------------------------------
+   THE REPLAY CHROME
+   The map itself is data, not surface, and is left alone. What sits on top of
+   it is: the transport buttons, the fight chips, the picker cards and the
+   member tooltip. All four were already on the tokens, so this is the same
+   job as the floating chrome above - the edge steps up, and the things you
+   click get a block while the tooltip that follows the cursor does not.
+
+   The one thing deliberately not touched is the white stroke on the objective
+   markers. That is a legibility outline over a map tile, not a colour over the
+   app's ground, and over terrain it has to be the thing that stays readable. */
+body.axi-design .replay-picker-card {
+  --panel-border-w: var(--axi-border-control);
+  border-radius: var(--axi-radius-sm);
+}
+body.axi-design .replay-picker-card.is-active {
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+body.axi-design .replay-member-tooltip { box-shadow: none; }
+
+/* ---------------------------------------------------------------------------
+   THE SETTINGS VIEW
+   The largest surface in the app and the last one with no section of its own.
+   It is the opposite case to History: History was recoloured and unreshaped,
+   Settings is built almost entirely from Tailwind classes the palette bridge
+   already covers - border-white/10, bg-black/30, bg-white/5 - so its colour
+   has been right for several passes. What it never had was a hierarchy. Every
+   section, every well inside a section and every input inside a well carried
+   the same hairline at the same radius, so nothing in a 3800-line view told
+   you what contained what.
+
+   It needs almost nothing, because every section in the view goes through one
+   wrapper and every well and input in the cards reads --panel-border-w. Give
+   the wrapper the panel step and the rest falls out: the sections become the
+   panels, and the wells and inputs inside them stay at the control step the
+   body already sets, one rung down. That single step of difference is the
+   whole fix. */
+body.axi-design .settings-section {
+  --panel-border-w: var(--axi-border-panel);
+  border-radius: var(--axi-radius);
+  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+}
+
+/* The section's icon sat in a tinted blue box with a coloured edge, which is
+   rule 5's annotation chip - the same form the buttons were pulled out of two
+   passes ago. An icon that labels a section is not asserting anything about
+   it, so it becomes what the section headers elsewhere in the app are: a
+   plain raised square with an ink edge. */
+body.axi-design .settings-section__badge {
+  background: var(--axi-surface-raised);
+  border-color: var(--axi-ink-line);
+  border-width: var(--axi-border-control);
+  border-radius: var(--axi-radius-sm);
+}
+body.axi-design .settings-section__badge svg { color: var(--axi-text-dim); }
+
+/* The share button on an expanded log card was the accent at 30% for its fill
+   and 25% for its edge, with white text on top - rule 2 twice over, and the
+   same illegible pairing the History Manage button had. It is one action among
+   several on that card rather than the card's one primary action, so it
+   becomes a plain raised control and lets the card's own accent stay the thing
+   that carries the eye. */
+body.axi-design .log-card-share-link-btn {
+  --share-btn-bg: var(--axi-surface-raised);
+  --share-btn-edge: var(--axi-ink-line);
+  --panel-border-w: var(--axi-border-control);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+
+/* ---------------------------------------------------------------------------
+   THE REVIVES SECTION
+   The fourth kind of table, and the one the table audit missed: Revives builds
+   both of its tables by hand - grid divs in a rounded box - and drew every
+   fill and line as an inline style, which no stylesheet can answer. So it kept
+   the old hairline box whatever the language said, and sat next to sections
+   that had all been redrawn looking like a screenshot of the old app.
+
+   The structure is now written in classes, so it can be spoken to, and it is
+   told the same thing the other three kinds were told: the table is the raised
+   object with an ink edge, its caption and column heads are bars cut off it,
+   rows are parted by the rule and zebra'd in two opaque fills. The squad
+   readout and the coverage note are not objects standing on the panel - they
+   are readouts sunk into it, so they take the well. */
+body.axi-design .revive-note {
+  background: var(--axi-ground);
+  border: var(--axi-border-control) dashed var(--axi-well-line);
+  border-radius: var(--axi-radius-sm);
+  color: var(--axi-text-dim);
+}
+body.axi-design .revive-summary {
+  background: var(--axi-ground);
+  border: var(--axi-border-control) solid var(--axi-well-line);
+  border-radius: var(--axi-radius);
+}
+
+body.axi-design .revive-table {
+  background: var(--axi-surface);
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius);
+}
+/* The caption names the table; the column heads measure it. Two bars, so the
+   cut between them is the rule and the ink line goes under the pair, where
+   the head stack actually ends. */
+body.axi-design .revive-table__title {
+  background: var(--axi-surface-raised);
+  color: var(--axi-text);
+  border-bottom: 1px solid var(--axi-rule);
+}
+body.axi-design .revive-table__columns {
+  background: var(--axi-surface-raised);
+  color: var(--axi-text);
+  border-bottom: var(--axi-border-control) solid var(--axi-ink-line);
+}
+body.axi-design .revive-table__row { border-bottom: 1px solid var(--axi-rule); }
+body.axi-design .revive-table__row:last-child { border-bottom: none; }
+body.axi-design .revive-table__rows > .revive-table__row:nth-child(odd),
+body.axi-design .revive-table > .revive-table__row:nth-of-type(odd) { background: var(--axi-ground); }
+body.axi-design .revive-table__row:hover { background: var(--axi-surface-raised); }
+/* A utility opened onto its casters is a well cut into the row, the same cut
+   the log card's drawer takes. */
+body.axi-design .revive-casters {
+  background: var(--axi-ground);
+  border-top: 1px solid var(--axi-rule);
+}
+
+/* The Illusion of Life card is an object on the panel, and its stacked bar is
+   a measured length, so it gets the outlined well every other bar in the app
+   now has rather than a soft-capped pill. */
+body.axi-design .revive-iol {
+  background: var(--axi-surface);
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius);
+}
+body.axi-design .revive-iol__bar {
+  height: 10px;
+  background: var(--axi-surface-raised);
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius-sm);
+}
+body.axi-design .revive-iol__hist-bar {
+  border: 1px solid var(--axi-ink-line);
+  border-radius: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   THE TIMELINE GRIDS
+   CC Timeline and Strip Timeline are one shared grid: players down, 5s
+   buckets across, each cell shaded against the fight's peak. It arrived here
+   untreated - no frame, hairline dividers, and a fill drawn as the accent at
+   an arbitrary alpha over the ground, which rule 2 does not allow and which
+   at low intensity left a digit sitting on a muddy wash.
+
+   The heatmap stays a heatmap - across a whole squad and a whole fight, a
+   matrix of intensities is the form, and length has nowhere to run. What
+   changes is that intensity now steps: four opaque bands mixed against the
+   surface rather than a continuous fade, so every occupied cell reads as a
+   deliberate step and the digit sits on a flat fill. Past the halfway band
+   the fill carries the accent, so the digit flips to the accent's ink. */
+body.axi-design .bucket-grid {
+  background: var(--axi-surface);
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius);
+  /* The control step, not the panel step: this is a framed field standing on a
+     panel, not a panel of its own, and the heavier block would put it at the
+     same depth as the card it sits in. */
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  /* Reserve the block's own footprint. The grid is the last thing in its
+     section and scrolls horizontally, so without this the offset is clipped by
+     the section's floor on one side and lost under the next section on the
+     other. */
+  margin-bottom: var(--axi-offset-control);
+  margin-right: var(--axi-offset-control);
+}
+body.axi-design .bucket-grid__empty {
+  background: var(--axi-ground);
+  border: var(--axi-border-control) dashed var(--axi-well-line);
+  border-radius: var(--axi-radius-sm);
+  color: var(--axi-text-dim);
+}
+/* The time ruler is a header bar like every other table's, cut off the grid
+   at the control step. */
+body.axi-design .stats-view .bucket-grid thead th {
+  background: var(--axi-surface-raised);
+  color: var(--axi-text);
+  padding-top: 4px;
+  border-bottom: var(--axi-border-control) solid var(--axi-ink-line);
+}
+/* The pinned name column is not depth, it is an edge: the shadow it used to
+   cast against the ruler is the one soft thing left in the section. */
+body.axi-design .stats-view .bucket-grid__pin {
+  background: var(--axi-surface);
+  box-shadow: none;
+  border-right: var(--axi-border-control) solid var(--axi-ink-line);
+  padding-left: 8px;
+}
+body.axi-design .stats-view .bucket-grid thead th.bucket-grid__pin,
+body.axi-design .stats-view .bucket-grid__pin.bucket-grid__head {
+  background: var(--axi-surface-raised);
+}
+body.axi-design .bucket-grid td[data-bucket-cell] {
+  border-radius: 0;
+}
+body.axi-design .bucket-grid td[data-heat='1'] {
+  background-color: color-mix(in srgb, var(--axi-accent) 18%, var(--axi-surface)) !important;
+}
+body.axi-design .bucket-grid td[data-heat='2'] {
+  background-color: color-mix(in srgb, var(--axi-accent) 42%, var(--axi-surface)) !important;
+}
+body.axi-design .bucket-grid td[data-heat='3'] {
+  background-color: color-mix(in srgb, var(--axi-accent) 70%, var(--axi-surface)) !important;
+  color: var(--axi-accent-ink);
+}
+body.axi-design .bucket-grid td[data-heat='4'] {
+  background-color: var(--axi-accent) !important;
+  color: var(--axi-accent-ink);
+}
+/* The row hover is a white wash in the markup, under the bracket-syntax hole
+   the utility bridge leaves; an occupied cell keeps its band. */
+body.axi-design .bucket-grid tbody tr:hover td[data-bucket-cell]:not([data-heat]) {
+  background-color: var(--axi-surface-raised);
+}
+/* Everything between the frame and the bands was still the markup's own
+   white-alpha hairlines: a row divider at 3%, a 30s tick at 10%, a subgroup
+   cut at 10%. Rule 2 rules those out, and over the axi ground they were close
+   to invisible anyway - the grid had an axi frame around a field that still
+   looked like the old one. Redrawn in the vocabulary DenseStatsTable and
+   .stats-table already share, so this reads as the third member of that family
+   rather than as a heatmap that happens to live nearby: zebra in two opaque
+   fills, row dividers on the rule, the subgroup cut in ink at the hairline
+   step because a change of party is a heavier statement than a change of row.
+
+   The zebra runs under the heat bands rather than beside them - an occupied
+   cell's fill is !important and keeps its step, so the banding stays the
+   figure and the zebra is only what the empty field does. */
+body.axi-design .stats-view .bucket-grid tbody tr > * {
+  border-bottom: 1px solid var(--axi-rule);
+  background-color: var(--axi-surface);
+}
+body.axi-design .stats-view .bucket-grid tbody tr:nth-of-type(odd) > * {
+  background-color: var(--axi-ground);
+}
+body.axi-design .stats-view .bucket-grid tbody tr:last-child > * {
+  border-bottom: none;
+}
+/* The 30s ticks are the ruler continued down the field, so they are the rule,
+   the same line that parts the rows. */
+body.axi-design .stats-view .bucket-grid [data-tick] {
+  border-left: 1px solid var(--axi-rule);
+}
+body.axi-design .stats-view .bucket-grid tbody tr[data-group-start] > * {
+  border-top: var(--axi-border-hairline) solid var(--axi-ink-line);
+}
+/* Hover is the next surface up for the whole row, spacer column included, so
+   the band a reader is tracking runs the full width of the frame. The name
+   cell also takes the accent edge every other pinned column takes on hover -
+   it is the one place the language spends gold on a row. */
+body.axi-design .stats-view .bucket-grid tbody tr:hover > *:not([data-heat]) {
+  background-color: var(--axi-surface-raised);
+}
+body.axi-design .stats-view .bucket-grid tbody tr:hover > .bucket-grid__pin {
+  box-shadow: inset var(--axi-border-control) 0 0 var(--axi-accent);
+}
+
+/* ---------------------------------------------------------------------------
+   THE SEARCH PALETTE
+   A panel that floats over everything, so it takes the panel step and the
+   offset block - nothing else on screen is above it to cast onto it. The
+   frame, the border and the shadow are written inline on the element, so the
+   overrides have to be !important to reach them.
+
+   The gold rectangle around the whole top row was the global focus ring
+   landing on an input that fills the row. An input is a well, so the focus
+   goes on the well's own edge instead of a ring around the bar it sits in. */
+body.axi-design .axi-search-panel {
+  background: var(--axi-surface) !important;
+  border: var(--axi-border-panel) solid var(--axi-ink-line) !important;
+  border-radius: var(--axi-radius) !important;
+  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line) !important;
+}
+body.axi-design .axi-search-bar {
+  background: var(--axi-surface-raised);
+  border-bottom: var(--axi-border-control) solid var(--axi-ink-line) !important;
+  padding: 8px 10px;
+}
+/* The field is the whole well, magnifier included, the way .axi-search draws
+   it on the site: the glyph is inside the outline and takes the accent, so the
+   bar is one object with a mark in it rather than an icon next to a box. */
+body.axi-design .axi-search-field {
+  background: var(--axi-ground);
+  border: var(--axi-border-control) solid var(--axi-well-line);
+  border-radius: var(--axi-radius-sm);
+}
+body.axi-design .axi-search-icon { color: var(--axi-accent) !important; }
+body.axi-design .axi-search-bar input {
+  background: transparent;
+  border: 0;
+  padding: 6px 8px 6px 32px;
+  color: var(--axi-text);
+}
+body.axi-design .axi-search-bar input::placeholder { color: var(--axi-text-faint); }
+/* No accent on focus here. The palette exists only to be typed into and opens
+   with the caret already in this field, so an always-on gold rectangle is not
+   telling you anything - and it would be arguing with the gold on the row the
+   cursor is sitting on, which is the one mark that means something. */
+body.axi-design .axi-search-bar input:focus-visible { outline: none; }
+/* The Esc hint is a key, so it is drawn as one: a small control with the ink
+   edge, not a hairline box. */
+body.axi-design .axi-search-bar kbd {
+  background: var(--axi-surface);
+  border: var(--axi-border-control) solid var(--axi-ink-line) !important;
+  border-radius: var(--axi-radius-sm);
+  color: var(--axi-text-dim);
+  padding: 2px 5px;
+  font: 700 10px/1 var(--axi-sans);
+}
+/* The trigger is the same well as .axi-search-field, so the button in the
+   header and the field it opens are visibly one object. It stands for
+   somewhere to type rather than something to press, so it keeps the ground
+   fill - but it now spans its whole column instead of a 186px sliver, and at
+   that size the hairline outline and the floating glyph both read as timid.
+
+   So: the ink edge the rest of the language uses, and the magnifier promoted
+   out of the fill into a gold cap at the head of the well. The cap is the one
+   loud mark on the row; everything to the right of it stays quiet. */
+body.axi-design .axi-search-trigger {
+  background: var(--axi-ground);
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: var(--axi-radius-sm);
+  color: var(--axi-text-dim);
+  gap: 0;
+  padding-left: 0;
+  overflow: hidden;
+  font-weight: 600;
+  transition: transform .1s, box-shadow .1s, color .1s;
+}
+body.axi-design .axi-search-trigger__mark {
+  background: var(--axi-accent);
+  border-right: var(--axi-border-control) solid var(--axi-ink-line);
+  margin-right: 10px;
+  padding: 0 8px;
+}
+body.axi-design .axi-search-trigger__mark svg { color: var(--axi-accent-ink) !important; }
+/* It lifts like every other control here. The well is what you press to get
+   the panel, so it should answer the cursor the way a control does - the
+   resting form already says field, and that is the part that has to carry. */
+body.axi-design .axi-search-trigger:hover {
+  color: var(--axi-text);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  transform: translate(-2px, -2px);
+}
+/* Same key form as the panel's Esc, scaled to the smaller row. */
+body.axi-design .axi-search-trigger kbd {
+  background: var(--axi-surface);
+  border: 2px solid var(--axi-ink-line);
+  border-radius: 3px;
+  color: var(--axi-text-faint);
+  font: 700 10px/1 var(--axi-sans);
+  padding: 2px 5px;
+}
+
+/* The filter row is the toolbar form: outlined controls on the raised bar,
+   with the count sitting at the end as meta rather than as another control. */
+body.axi-design [data-search-pill] {
+  background: var(--axi-ground) !important;
+  border: var(--axi-border-control) solid var(--axi-ink-line) !important;
+  border-radius: var(--axi-radius-sm);
+  color: var(--axi-text-dim) !important;
+  padding: 4px 7px;
+  transition: transform .1s, box-shadow .1s;
+}
+body.axi-design [data-search-pill]:hover {
+  color: var(--axi-text) !important;
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  transform: translate(-2px, -2px);
+}
+/* A pressed pill keeps its fill under the cursor and lifts rather than slides -
+   spelled out because the pressed and hover rules have equal specificity. */
+body.axi-design [data-search-pill][aria-pressed="true"],
+body.axi-design [data-search-pill][aria-pressed="true"]:hover {
+  background: var(--axi-accent) !important;
+  color: var(--axi-accent-ink) !important;
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+body.axi-design [data-search-count] { color: var(--axi-text-faint) !important; }
+body.axi-design .axi-search-results { scrollbar-width: none; }
+body.axi-design .axi-search-results::-webkit-scrollbar { width: 0; height: 0; }
+/* Groups are parted by a rule, the way rows are everywhere else, rather than
+   by the gap the padding was leaving. */
+body.axi-design .axi-search-group {
+  color: var(--axi-text-faint);
+  padding: 8px 10px 4px;
+}
+body.axi-design .axi-search-results > div + div .axi-search-group {
+  border-top: 1px solid var(--axi-rule);
+  margin-top: 4px;
+}
+body.axi-design .axi-search-empty { color: var(--axi-text-faint); }
+body.axi-design [data-search-row] {
+  color: var(--axi-text-dim) !important;
+  padding: 7px 10px;
+}
+body.axi-design [data-search-row]:hover { background: var(--axi-surface-raised) !important; }
+/* The cursor row takes the fill outright. It shares the gold with a pressed
+   filter pill now, but the two sit in different zones and answer different
+   questions - the pill is what you asked for, the row is where Enter goes -
+   and the row is the larger mark, so the hierarchy still reads. */
+body.axi-design [data-search-row][data-active] {
+  background: var(--axi-accent) !important;
+  color: var(--axi-accent-ink) !important;
+}
+body.axi-design [data-search-row][data-active] svg,
+body.axi-design [data-search-row][data-active] span { color: var(--axi-accent-ink) !important; }
+
+/* ---------------------------------------------------------------------------
+   THE PUBLISHED REPORT'S BACK LINK
+   The rest of the report's frame is drawn under THE WEB REPORT'S LEFT NAV
+   above, and the report's body is the stats view, so it arrives in the
+   language already. This is the one piece of chrome that was left: the link
+   back to the report index, which is the frame's only action. It takes the
+   button form outright - nothing else in the nav claims gold except the
+   category you are reading, and the two never sit on screen together. */
+body.axi-design .report-back-link {
+  background: var(--axi-accent) !important;
+  color: var(--axi-accent-ink) !important;
+  border-radius: var(--axi-radius-sm);
+}
+body.axi-design .report-back-link:hover { background: var(--axi-accent) !important; filter: brightness(1.08); }
+/* The arrow inside it is drawn in the brand colour, which in this language is
+   the accent - so on the gold button it was gold on gold and the ring around it
+   was the only thing you could see. Everything on an accent fill is ink. */
+body.axi-design .report-back-link > span {
+  color: var(--axi-accent-ink);
+  border-color: var(--axi-accent-ink);
+}
+
+/* ---------------------------------------------------------------------------
+   THE FILE PICKER'S CONFIRM
+   Green at 20% behind green text inside a green edge: rule 2 twice and rule
+   5's annotation chip standing in for a button again. It is also the one
+   primary action in that modal, which is the thing the language marks with
+   colour - so it gets the accent outright, and the count rides on it as an
+   ink chip rather than a second tint. Cancel beside it is already the plain
+   raised control every secondary button became. */
+body.axi-design .file-picker-confirm {
+  background-color: var(--axi-accent);
+  color: var(--axi-accent-ink);
+  border-color: var(--axi-ink-line);
+  border-width: var(--axi-border-control);
+  border-radius: var(--axi-radius-sm);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+body.axi-design .file-picker-confirm:hover:not(:disabled) { background-color: var(--axi-accent); filter: brightness(1.08); }
+/* Disabled is the control with no claim on you: the fill goes back to the
+   surface and the label goes faint, rather than the accent at half strength. */
+body.axi-design .file-picker-confirm:disabled {
+  background-color: var(--axi-surface);
+  color: var(--axi-text-faint);
+  box-shadow: none;
+  opacity: 1;
+}
+body.axi-design .file-picker-confirm__count {
+  background-color: var(--axi-accent-ink);
+  color: var(--axi-accent);
+  border-radius: var(--axi-radius-sm);
+}
+
+/* ---------------------------------------------------------------------------
+   THE CHECKBOX
+   Left to the browser, these were the one native widget the language never
+   touched: a rounded platform box in platform blue, sitting inside panels that
+   had been redrawn down to the last hairline. `accent-color` alone only
+   repaints the fill and still leaves the platform's shape.
+
+   So it is built as a plate. Square corners rather than the control radius,
+   because at this size a 6px round is most of the box and the thing stops
+   reading as a plate; the ink edge and the block carry it instead. It is
+   raised whether or not it is ticked - an empty box is still a control you can
+   press, and dropping the block when off made the off state look disabled next
+   to a row of on ones.
+
+   Checking it is a colour claim, not a brightness one: the plate goes from
+   surface to gold and takes a stamped ink tick that runs corner to corner. The
+   label it sits in stops being one of the dim ones in the row at the same time,
+   so a setting that is on reads as on from across the panel. Colour only, not
+   weight: these labels sit in a row beside each other, and reflowing one of
+   them on every click makes the whole row twitch.
+
+   The tick is a background image because ::after does not render on an input
+   outside Chromium, and this sheet also ships inside the published report. Its
+   stroke is the literal ink line - the one place in the file a token is spelled
+   out, because a data URI cannot read one. */
+body.axi-design input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  /* Sized against the text it labels rather than in fixed pixels. A 22px plate
+     is right beside 14px text and looks like a misplaced button beside the 12px
+     rows the webhook list and the settings toggles are built from; 1.5em is the
+     same plate everywhere and lands at 18px there. The floor keeps it a plate
+     in the few places the type goes smaller still. */
+  width: 1.5em;
+  height: 1.5em;
+  min-width: 16px;
+  min-height: 16px;
+  /* The block sits bottom-right, so the box reserves that much room and keeps
+     its optical centre on the label's baseline instead of riding high. */
+  margin: 0 var(--axi-offset-control) var(--axi-offset-control) 0;
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  border-radius: 3px;
+  background-color: var(--axi-surface-raised);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 68% 68%;
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  cursor: pointer;
+}
+
+body.axi-design input[type='checkbox']:checked {
+  background-color: var(--axi-accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M1.5 6.1 L4.6 9.4 L10.6 2.4' fill='none' stroke='%230c0e12' stroke-width='3.4' stroke-linecap='butt'/%3E%3C/svg%3E");
+}
+
+/* Hover lifts the plate rather than tinting it - the same move the buttons
+   make, at the size a 22px control can carry. */
+body.axi-design input[type='checkbox']:hover:not(:disabled) { filter: brightness(1.12); }
+
+body.axi-design input[type='checkbox']:focus-visible {
+  outline: 2px solid var(--axi-accent);
+  outline-offset: 3px;
+}
+
+/* A setting that is on is a setting you chose, so its label stops being one of
+   the dim ones in the row. Marked !important because most of these labels carry
+   their colour inline. Only a label holding the box itself answers to this - a
+   row that merely contains one somewhere deeper is not making the claim. */
+body.axi-design label:has(> input[type='checkbox']:checked) {
+  color: var(--axi-text) !important;
+}
+
+/* A plate you cannot press is not a dimmed gold one: it loses the block and
+   sits flat in the surface, the edge drops to the rule, and a locked tick sits
+   on faint rather than on the accent at half strength. */
+body.axi-design input[type='checkbox']:disabled {
+  border-color: var(--axi-rule);
+  box-shadow: none;
+  cursor: default;
+}
+body.axi-design input[type='checkbox']:disabled:checked { background-color: var(--axi-text-faint); }
+
+/* The fight slice card puts a full-bleed transparent checkbox over the whole
+   card and draws the state as a badge beside the label. That input is a hit
+   target, not a plate, so the rules above have to let go of it. */
+body.axi-design .slice-card > input[type='checkbox'] {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: var(--axi-radius);
+  background-color: transparent;
+  background-image: none;
+  box-shadow: none;
+}
+
+/* ---------------------------------------------------------------------------
+   THE PUBLISHED REPORT ON A PHONE
+   The report's desktop frame came into the language with the left nav, but a
+   narrow viewport swaps that frame for two pieces of floating glass that the
+   sweep never reached: a scrolling row of "Jump to" capsules above the stats,
+   and a fixed bar of four actions along the bottom. Both were built out of
+   the idiom this language replaces - a gradient from white at 10% through
+   white at 5% to nothing, a 25-50px soft drop shadow, backdrop-blur-xl, and a
+   capsule radius - and on a phone they are the whole chrome, so the report
+   read as the old app the moment it left the desktop breakpoint.
+
+   The blur is the part that actively hurt: it is already switched off above,
+   and a translucent slate panel with nothing frosting the page behind it is
+   just see-through. Both become opaque objects instead.
+
+   A jump chip is the same claim as a category in the left nav - where you are
+   in the report - so it is drawn the same way: quiet until it is the section
+   you are reading, then filled with the accent and standing on its block. */
+body.axi-design .mobile-jump-chips > button {
+  background-image: none;
+  background-color: var(--axi-surface);
+  border-width: var(--axi-border-control);
+  border-style: solid;
+  border-color: var(--axi-ink-line);
+  border-radius: var(--axi-radius-sm);
+  box-shadow: none;
+  color: var(--axi-text-dim);
+}
+body.axi-design .mobile-jump-chips > button[data-on] {
+  background-color: var(--axi-accent);
+  color: var(--axi-accent-ink);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+/* The well around the chip's icon is a second outlined box inside an outlined
+   box at 24px across, which at that size is just a thick ring. It keeps the
+   shape and loses the edge. */
+body.axi-design .mobile-jump-chip-icon {
+  background-color: transparent;
+  border-color: transparent;
+  border-radius: var(--axi-radius-sm);
+}
+/* The icon is drawn in the brand colour, which here is the accent, so on the
+   filled chip it was gold on gold. Everything on an accent fill is ink. */
+body.axi-design .mobile-jump-chips > button[data-on] .mobile-jump-chip-icon svg { color: var(--axi-accent-ink); }
+body.axi-design .mobile-jump-chips > button:not([data-on]) .mobile-jump-chip-icon svg { color: var(--axi-text-faint); }
+
+/* The bottom bar is one panel carrying four actions, so the panel step goes on
+   the bar and the actions inside it are wells at ground level - the same
+   grammar as a stat row inside a section, and the reason none of the four
+   claims the accent: they are all the same size of action. */
+body.axi-design .mobile-action-bar > div {
+  background-color: var(--axi-surface);
+  border-width: var(--axi-border-panel);
+  border-style: solid;
+  border-color: var(--axi-ink-line);
+  border-radius: var(--axi-radius);
+  /* The bar is four labelled actions across 393px and every label is one
+     unbreakable word, so the edges this language adds have to come out of the
+     padding or "Contents" truncates. */
+  padding-left: .5rem;
+  padding-right: .5rem;
+  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+}
+body.axi-design .mobile-action-bar > div > a,
+body.axi-design .mobile-action-bar > div > button {
+  background-color: var(--axi-ground);
+  border-width: var(--axi-border-hairline);
+  border-style: solid;
+  border-color: var(--axi-well-line);
+  border-radius: var(--axi-radius-sm);
+  color: var(--axi-text-dim);
+}
+body.axi-design .mobile-action-bar > div > a svg,
+body.axi-design .mobile-action-bar > div > button svg { color: var(--axi-text-faint); }
+
+/* The two step spinners, redrawn. Nothing in this language sweeps, blurs or
+   eases, so a spinner here cannot be a rotating arc with a fading tail - it
+   has to count. Both forms keep their base markup and take the ink edge:
+
+   - the cell march is a sunken well with four cells, the accent occupying one
+     at a time, which is the shape of a queue draining;
+   - the quarter snap is one accent mark with an ink notch, turning 90 degrees
+     a beat.
+
+   The cell march is what the log picker uses; the snap is here as the other
+   option for a spot too narrow for four cells. */
+body.axi-design .axi-step-spinner {
+  /* Off cells sit on the ground, and --border-default is the ink line here -
+     black on black. The rule is the line a well gets, so it is the one that
+     reads. */
+  --step-off: var(--axi-rule);
+  background: var(--axi-ground);
+  border: var(--axi-border-hairline) solid var(--axi-ink-line);
+  border-radius: 2px;
+}
+body.axi-design .axi-step-spinner > i,
+body.axi-design .axi-step-spinner::after { border-radius: 0; }
+
+body.axi-design .axi-snap-spinner {
+  border: var(--axi-border-hairline) solid var(--axi-ink-line);
+  border-radius: 2px;
+}
+/* The notch is cut in ink rather than in the surface behind it, so the mark
+   keeps its shape wherever it is placed. */
+body.axi-design .axi-snap-spinner::after { background: var(--axi-ink-line); }
+
+/* ---------------------------------------------------------------------------
+   CHARTS
+   The one region the language never reached. Every recharts call site draws
+   its own furniture from literals - the grid at white 8% dashed, the axis at
+   white 10%, ticks in #94a3b8, and a tooltip filled #1e293b with a 0.5rem
+   radius. That tooltip is slate-800: a colour from a different palette
+   entirely, which is most of why a chart reads as a window onto another app.
+
+   None of it needs a component edit. recharts spreads stroke and fill onto its
+   SVG elements as presentation attributes, and a stylesheet outranks those;
+   the tooltip is the one exception, an inline style, so it takes !important.
+   That keeps all fifteen chart sections untouched and every other theme
+   exactly as it was.
+
+   The grammar is the one the rest of the app already follows. Furniture is
+   drawn in the neutral ramp and recedes; the series keep their own colours,
+   because those are meaning - green is the squad, red is the enemy - and the
+   language never had an opinion about those. What it has an opinion about is
+   everything drawn around them. */
+
+body.axi-design {
+  /* A grid line is quieter than a rule: a rule divides two things, a grid is
+     scaffolding you read values against and should sit barely above the
+     ground it is drawn on. */
+  --axi-grid: #262c36;
+}
+
+/* Solid, not dashed. A dash is decoration, and fifteen charts of dashes is a
+   texture rather than a scale. */
+body.axi-design .recharts-cartesian-grid line {
+  stroke: var(--axi-grid);
+  stroke-dasharray: none;
+  stroke-width: 1;
+}
+/* Stripes are a second background inside a chart that already has one. */
+body.axi-design .recharts-cartesian-grid-bg,
+body.axi-design .recharts-cartesian-gridstripes-horizontal,
+body.axi-design .recharts-cartesian-gridstripes-vertical { display: none; }
+
+/* The axis is the chart's own edge, so it is a rule at the hairline weight -
+   the same line the app draws inside a panel. */
+body.axi-design .recharts-cartesian-axis-line {
+  stroke: var(--axi-rule);
+  stroke-width: var(--axi-border-hairline);
+}
+body.axi-design .recharts-cartesian-axis-tick-line { stroke: var(--axi-rule); }
+
+/* Ticks are labels, so they take label colour and tabular figures - a y-axis
+   whose digits change width is a column that will not hold still. */
+body.axi-design .recharts-cartesian-axis-tick-value {
+  fill: var(--axi-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+body.axi-design .recharts-label,
+body.axi-design .recharts-legend-item-text { fill: var(--axi-text-dim); color: var(--axi-text-dim); }
+
+/* The tooltip is a panel that happens to follow the cursor, so it is drawn
+   like every other panel: surface, ink edge at the control weight, the small
+   radius, and no shadow - this language does not float things. */
+body.axi-design .recharts-default-tooltip,
+body.axi-design .recharts-tooltip-wrapper > div {
+  background: var(--axi-surface) !important;
+  border: var(--axi-border-control) solid var(--axi-ink-line) !important;
+  border-radius: var(--axi-radius-sm) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  color: var(--axi-text) !important;
+  padding: 8px 10px !important;
+}
+body.axi-design .recharts-tooltip-label {
+  color: var(--axi-text-dim) !important;
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+body.axi-design .recharts-tooltip-item { color: var(--axi-text) !important; }
+body.axi-design .recharts-tooltip-item-value { font-variant-numeric: tabular-nums; }
+
+/* Rule 2 again: the hover band was white at a few percent over the ground.
+   Here it is the next surface up, which is a fill change rather than a wash. */
+body.axi-design .recharts-tooltip-cursor {
+  fill: var(--axi-surface-raised);
+  fill-opacity: 1;
+  stroke: var(--axi-rule);
+}
+/* A line chart's cursor is a crosshair, not a band, so it stays a line. */
+body.axi-design .recharts-curve.recharts-tooltip-cursor {
+  fill: none;
+  stroke: var(--axi-rule);
+  stroke-dasharray: none;
+}
+
+/* A point on a line is a small object standing on the series, so it gets the
+   ink edge that every other object in this language gets. It keeps its own
+   fill, because the fill is which series it belongs to. */
+body.axi-design .recharts-line-dot,
+body.axi-design .recharts-scatter-symbol > path {
+  stroke: var(--axi-ink-line);
+  stroke-width: var(--axi-border-hairline);
+}
+body.axi-design .recharts-active-dot > * {
+  stroke: var(--axi-ink-line);
+  stroke-width: var(--axi-border-control);
+}
+
+/* Slices are objects on the ground, so an ink edge separates them; without it
+   two adjacent slices of similar colour merge into one shape. */
+body.axi-design .recharts-pie-sector > path {
+  stroke: var(--axi-ink-line);
+  stroke-width: var(--axi-border-hairline);
+}
+
+/* A threshold is a claim, so it is drawn at the hairline weight and solid -
+   it is one of the few lines in a chart that is supposed to be read. */
+body.axi-design .recharts-reference-line-line {
+  stroke-width: var(--axi-border-hairline);
+  stroke-dasharray: none;
+}
+
+/* The brush is a range control sitting under the chart, so it is a well with
+   travellers standing in it, not a pale slab. */
+body.axi-design .recharts-brush > rect:first-of-type {
+  fill: var(--axi-ground);
+  stroke: var(--axi-well-line);
+  stroke-width: var(--axi-border-control);
+}
+body.axi-design .recharts-brush-slide {
+  fill: var(--axi-surface);
+  fill-opacity: 1;
+}
+body.axi-design .recharts-brush-traveller > rect {
+  fill: var(--axi-surface-raised);
+  stroke: var(--axi-ink-line);
+  stroke-width: var(--axi-border-hairline);
+}
+body.axi-design .recharts-brush-traveller > line { stroke: var(--axi-text-faint); }
+body.axi-design .recharts-brush-texts { fill: var(--axi-text-faint); }
+
+/* The preview curve inside the brush is context, not data you read off, so it
+   drops to furniture weight. */
+body.axi-design .recharts-brush .recharts-curve {
+  stroke: var(--axi-text-faint);
+  fill: none;
+}
+
+/* A bar is an object on the ground and takes the same ink edge as the rest.
+   Its corner radius is a path recharts computes in JS, so the one thing this
+   block cannot flatten from CSS is a rounded bar - the call sites that want
+   square corners have to drop their own radius prop. */
+body.axi-design .recharts-bar-rectangle > path {
+  stroke: var(--axi-ink-line);
+  stroke-width: var(--axi-border-hairline);
+}
+body.axi-design .recharts-bar-background-rectangle { fill: var(--axi-ground); }
+
+/* The legend is a key, so it reads as labels rather than as chips. */
+body.axi-design .recharts-legend-wrapper { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
+
+/* The report header's trophy. The component draws the accent fill and the ink
+   glyph on its own; what makes it a *raised* thing rather than a coloured
+   square - the ink outline and the hard offset - is the language's, at the
+   control weight (rule 3), same as every other small drawn object. The header
+   rule under it steps up from the app's near-invisible hairline to the axi
+   rule, which is the line a well is outlined with. */
+body.axi-design .report-head-mark {
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  border-radius: var(--axi-radius-sm);
+}
+
+body.axi-design .report-head { border-bottom-color: var(--axi-rule); }

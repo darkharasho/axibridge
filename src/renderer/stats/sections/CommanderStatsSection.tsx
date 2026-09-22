@@ -199,7 +199,7 @@ export const CommanderTargetConversionSection = ({
             ) : (
                 <div className="space-y-4 min-w-0">
                     <div className="w-full max-w-full overflow-x-auto pb-1">
-                        <table className="w-full min-w-[700px] text-xs table-auto">
+                        <table className="stats-table w-full min-w-[700px] text-xs table-auto">
                             <thead>
                                 <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                     <th className="text-left py-2 px-3">Commander</th>
@@ -238,7 +238,7 @@ export const CommanderTargetConversionSection = ({
 
                     {selectedCommander && (
                         <div className="overflow-x-auto min-w-0">
-                            <table className="w-full min-w-[620px] text-xs table-auto">
+                            <table className="stats-table w-full min-w-[620px] text-xs table-auto">
                                 <thead>
                                     <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                         <th className="text-left py-2 px-3">Fight</th>
@@ -326,7 +326,7 @@ export const CommanderTagMovementSection = ({
                         </div>
                     ) : null}
                     <div className="w-full max-w-full overflow-x-auto pb-1">
-                        <table className="w-full min-w-[700px] text-xs table-auto">
+                        <table className="stats-table w-full min-w-[700px] text-xs table-auto">
                             <thead>
                                 <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                     <th className="text-left py-2 px-3">Commander</th>
@@ -358,7 +358,7 @@ export const CommanderTagMovementSection = ({
 
                     {selectedCommander && (
                         <div className="overflow-x-auto min-w-0">
-                            <table className="w-full min-w-[620px] text-xs table-auto">
+                            <table className="stats-table w-full min-w-[620px] text-xs table-auto">
                                 <thead>
                                     <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                         <th className="text-left py-2 px-3">Fight</th>
@@ -446,7 +446,7 @@ export const CommanderTagDeathResponseSection = ({
                         </div>
                     ) : null}
                     <div className="w-full max-w-full overflow-x-auto pb-1">
-                        <table className="w-full min-w-[760px] text-xs table-auto">
+                        <table className="stats-table w-full min-w-[760px] text-xs table-auto">
                             <thead>
                                 <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                     <th className="text-left py-2 px-3">Commander</th>
@@ -483,7 +483,7 @@ export const CommanderTagDeathResponseSection = ({
                             <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">This commander has no fights with a recorded tag death.</div>
                         ) : (
                             <div className="overflow-x-auto min-w-0">
-                                <table className="w-full min-w-[700px] text-xs table-auto">
+                                <table className="stats-table w-full min-w-[700px] text-xs table-auto">
                                     <thead>
                                         <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                             <th className="text-left py-2 px-3">Fight</th>
@@ -586,7 +586,7 @@ export const CommanderPushTimingSection = ({
                         </div>
                     ) : null}
                     <div className="w-full max-w-full overflow-x-auto pb-1">
-                        <table className="w-full min-w-[640px] text-xs table-auto">
+                        <table className="stats-table w-full min-w-[640px] text-xs table-auto">
                             <thead>
                                 <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                     <th className="text-left py-2 px-3">Commander</th>
@@ -620,7 +620,7 @@ export const CommanderPushTimingSection = ({
 
                     {selectedCommander && (
                         <div className="overflow-x-auto min-w-0">
-                            <table className="w-full min-w-[560px] text-xs table-auto">
+                            <table className="stats-table w-full min-w-[560px] text-xs table-auto">
                                 <thead>
                                     <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                         <th className="text-left py-2 px-3">Fight</th>
@@ -773,7 +773,7 @@ export const CommanderStatsSection = ({
             ) : (
                 <div className="space-y-5 min-w-0">
                     <div className="w-full max-w-full overflow-x-auto pb-1">
-                        <table className="w-full min-w-[900px] text-xs table-auto">
+                        <table className="stats-table w-full min-w-[900px] text-xs table-auto">
                             <thead>
                                 <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                     <th className="text-left py-2 px-3">Commander</th>
@@ -864,7 +864,7 @@ export const CommanderStatsSection = ({
                             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 min-w-0">
                                 <div className="rounded-[var(--radius-md)] p-3 min-w-0 overflow-x-auto">
                                     <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Incoming Damage By Skill</div>
-                                    <table className="w-full min-w-[440px] text-xs table-auto">
+                                    <table className="stats-table w-full min-w-[440px] text-xs table-auto">
                                         <thead>
                                             <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                                 <th className="text-left py-2 px-3">Skill</th>
@@ -886,7 +886,7 @@ export const CommanderStatsSection = ({
 
                                 <div className="rounded-[var(--radius-md)] p-3 min-w-0 overflow-x-auto">
                                     <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Incoming Boons ({avgLabel(singleFight, 'Average Uptime', 'Uptime')})</div>
-                                    <table className="w-full min-w-[440px] text-xs table-auto">
+                                    <table className="stats-table w-full min-w-[440px] text-xs table-auto">
                                         <thead>
                                             <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                                 <th className="text-left py-2 px-3">Boon</th>
@@ -989,7 +989,7 @@ export const CommanderStatsSection = ({
                                             {selectedBucketIndex !== null ? ` • ${selectedBucketIndex * 5}-${selectedBucketIndex * 5 + 5}s` : ' • Full Fight'}
                                         </div>
                                         {timelineMode === 'incomingDamage' ? (
-                                            <table className="w-full min-w-[420px] text-xs table-auto">
+                                            <table className="stats-table w-full min-w-[420px] text-xs table-auto">
                                                 <thead>
                                                     <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                                         <th className="text-left py-2 px-3">Skill</th>
@@ -1008,7 +1008,7 @@ export const CommanderStatsSection = ({
                                                 </tbody>
                                             </table>
                                         ) : (
-                                            <table className="w-full min-w-[420px] text-xs table-auto">
+                                            <table className="stats-table w-full min-w-[420px] text-xs table-auto">
                                                 <thead>
                                                     <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
                                                         <th className="text-left py-2 px-3">Boon</th>

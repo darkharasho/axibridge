@@ -63,7 +63,7 @@ export const CcTimelineSection: React.FC<CcTimelineSectionProps> = ({
     return (
         <div
             className={isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 p-4 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}
-            style={isExpanded ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
+            style={isExpanded ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
         >
             {/* Title row, subtitle, controls — the same shape every other stats
                 section uses, so this reads as one of them rather than as a bare

@@ -167,7 +167,7 @@ export const SquadCompByFightSection = ({
                                                                 {player.isCommander ? (
                                                                     <span
                                                                         className="inline-flex items-center justify-center w-3 h-3 rounded-full flex-shrink-0 text-[8px] leading-none text-[color:var(--status-warning)]"
-                                                                        style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.4)' }}
+                                                                        style={{ background: 'var(--status-warning-bg)', border: 'var(--panel-border-w, 1px) solid var(--status-warning-border)' }}
                                                                         title="Commander"
                                                                     >★</span>
                                                                 ) : null}

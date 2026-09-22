@@ -93,11 +93,15 @@ export function buildSearchIndex(input: SearchIndexInput = {}): SearchEntry[] {
 
 const TYPE_ORDER: Record<SearchEntryType, number> = { section: 0, metric: 1, player: 2 };
 
-export function matchSearchIndex(index: SearchEntry[], query: string, limit = 12): SearchEntry[] {
+// `type` narrows before the limit is applied, not after: filtering an already
+// capped list would show nothing for a query whose top matches are all of some
+// other type, which is exactly what a filter is there to dig past.
+export function matchSearchIndex(index: SearchEntry[], query: string, limit = 12, type?: SearchEntryType | null): SearchEntry[] {
     const q = query.trim().toLowerCase();
     if (!q) return [];
     const scored: Array<{ entry: SearchEntry; score: number }> = [];
     for (const entry of index) {
+        if (type && entry.type !== type) continue;
         let score = Infinity;
         if (entry.label.toLowerCase().startsWith(q)) score = 0;
         else if (entry.haystack.some((h) => h.startsWith(q))) score = 1;

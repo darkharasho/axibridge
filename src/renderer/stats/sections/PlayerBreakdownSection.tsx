@@ -117,7 +117,7 @@ export const PlayerBreakdownSection = ({
     return (
         <div
             className={`${expandedSection === 'player-breakdown' ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
-            style={expandedSection === 'player-breakdown' ? { background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-card)' } : undefined}
+            style={expandedSection === 'player-breakdown' ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
         >
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <ListTree className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />
@@ -450,7 +450,7 @@ export const PlayerBreakdownSection = ({
                                                                         type="button"
                                                                         onClick={() => setSelectedSkillIds((prev) => prev.filter((entry) => entry !== id))}
                                                                         className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
+                                                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
                                                                     >
                                                                         <span>{label}</span>
                                                                         <span className="text-[color:var(--text-secondary)]">×</span>
@@ -465,7 +465,7 @@ export const PlayerBreakdownSection = ({
                                                                         type="button"
                                                                         onClick={() => setSelectedPlayers((prev) => prev.filter((entry) => entry !== id))}
                                                                         className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
+                                                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
                                                                     >
                                                                         <span>{label}</span>
                                                                         <span className="text-[color:var(--text-secondary)]">×</span>
@@ -708,7 +708,7 @@ export const PlayerBreakdownSection = ({
                                                                         type="button"
                                                                         onClick={() => setSelectedSkillIds((prev) => prev.filter((entry) => entry !== id))}
                                                                         className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
+                                                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
                                                                     >
                                                                         <span>{label}</span>
                                                                         <span className="text-[color:var(--text-secondary)]">×</span>
@@ -723,7 +723,7 @@ export const PlayerBreakdownSection = ({
                                                                         type="button"
                                                                         onClick={() => setSelectedPlayers((prev) => prev.filter((entry) => entry !== id))}
                                                                         className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--brand-primary)' }}
+                                                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
                                                                     >
                                                                         <span>{label}</span>
                                                                         <span className="text-[color:var(--text-secondary)]">×</span>
