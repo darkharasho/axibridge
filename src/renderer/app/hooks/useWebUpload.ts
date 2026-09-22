@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { DEFAULT_WEB_UPLOAD_STATE, type IWebUploadState } from '../../global.d';
+import { DEFAULT_WEB_UPLOAD_STATE, type IWebUploadState, type WebUploadPostStatus } from '../../global.d';
 import type { SliceSidecar } from '../../stats/slice/sliceTypes';
 
 export type LogEntry = { elapsed: string; text: string; isError: boolean; isWarn: boolean };
@@ -20,6 +20,7 @@ export function useWebUpload(opts?: {
             setWebUploadState((prev) => ({
                 ...prev,
                 stage: data.stage || 'Uploading',
+                postStatus: nextPostStatus(prev.postStatus, data.stage),
                 progress: typeof data.progress === 'number' ? data.progress : prev.progress,
                 detail: prev.stage === 'Upload failed' ? prev.detail : (data.message || prev.detail)
             }));
@@ -123,6 +124,17 @@ export function useWebUpload(opts?: {
         }, 2500);
     }, [webUploadState.stage]);
 
+    // Dismiss the overlay once the whole flow has settled. The Discord post runs
+    // detached from the upload, so a 'pending' post keeps the overlay up (as a
+    // visible trailing step) even though `uploading` has already cleared.
+    useEffect(() => {
+        if (webUploadState.uploading) return;
+        const stage = webUploadState.stage ?? '';
+        if (!stage || stage.toLowerCase().includes('fail')) return;
+        if (webUploadState.postStatus === 'pending') return;
+        scheduleWebUploadClear();
+    }, [webUploadState.uploading, webUploadState.stage, webUploadState.postStatus, scheduleWebUploadClear]);
+
     const handleWebUpload = useCallback(async (payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; logIds?: string[]; reportWebhookIds?: string[]; sliceSidecar?: SliceSidecar }) => {
         if (!window.electronAPI?.uploadWebReport) {
             setWebUploadState((prev) => ({
@@ -146,6 +158,7 @@ export function useWebUpload(opts?: {
         setWebUploadState((prev) => ({
                 ...prev,
                 uploading: true,
+                postStatus: 'idle',
                 message: repoLabel ? `Preparing report for ${repoLabel}...` : 'Preparing report...',
                 stage: 'Preparing report',
                 progress: 0,
@@ -154,12 +167,10 @@ export function useWebUpload(opts?: {
                 buildStatus: 'idle',
                 buildStatusRepo: repoLabel || null
             }));
-        let uploadSucceeded = false;
         try {
             const { logIds, ...ipcPayload } = payload;
             const result = await window.electronAPI.uploadWebReport(ipcPayload);
             if (result?.success) {
-                uploadSucceeded = true;
                 const url = result.url || '';
                 if (result.replayDataUrl && logIds && logIds.length > 0) {
                     opts?.onLogReplayUrl?.(logIds, result.replayDataUrl as string);
@@ -203,11 +214,8 @@ export function useWebUpload(opts?: {
             }));
         } finally {
             setWebUploadState((prev) => ({ ...prev, uploading: false }));
-            if (uploadSucceeded) {
-                scheduleWebUploadClear();
-            }
         }
-    }, [scheduleWebUploadClear]);
+    }, []);
 
     return {
         webUploadState,
@@ -215,4 +223,19 @@ export function useWebUpload(opts?: {
         handleWebUpload,
         logEntries,
     };
+}
+
+/**
+ * Folds an incoming status stage into the trailing Discord step's state.
+ *
+ * 'Posting' only ever comes from the detached post, so it opens the step. A
+ * 'Warning' before that (CORS, R2, replay) belongs to the upload and is ignored
+ * here; one during the post settles the step as degraded. 'Complete' closes it.
+ */
+export function nextPostStatus(prev: WebUploadPostStatus, stage?: string | null): WebUploadPostStatus {
+    if (stage === 'Posting') return prev === 'idle' ? 'pending' : prev;
+    if (prev === 'idle') return prev;
+    if (stage === 'Warning') return 'warn';
+    if (stage === 'Complete' && prev === 'pending') return 'done';
+    return prev;
 }
