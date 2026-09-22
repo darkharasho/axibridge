@@ -46,11 +46,15 @@ import {
 } from '../cloudflare/session';
 import {
     REPLAY_PARTS_MANIFEST_FILENAME,
+    REPORT_JSON_FILENAME,
+    REPORT_PARTS_BASENAME,
+    buildReportPartFiles,
     readLocalReport,
     writeLocalReportCopy,
     writeReplayParts,
     writeReportParts
 } from '../webReportParts';
+import { readPartsManifest } from '../../shared/chunkedGzip';
 import { resolvePartsJson } from '../partsReader';
 import { PARSER_SETTINGS_STORE_KEY, resolveParserSettings, type ParserSettings } from '../parserSettings';
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -257,6 +261,48 @@ const getGithubBlob = async (owner: string, repo: string, blobSha: string, token
         throw new Error(`GitHub API error (${resp.status}) loading blob ${blobSha}`);
     }
     return resp.data;
+};
+
+/**
+ * A blob as raw bytes, rather than the base64-in-JSON getGithubBlob returns.
+ *
+ * Used for compaction, where the blobs are whole uncompressed reports: the
+ * base64 representation is a third larger again and has to be materialised as
+ * one JS string before it can be decoded.
+ */
+const getGithubBlobRaw = (owner: string, repo: string, blobSha: string, token: string): Promise<Buffer> => {
+    const apiPath = `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}/git/blobs/${encodeGitPath(blobSha)}`;
+    return new Promise((resolve, reject) => {
+        const req = https.request(
+            {
+                method: 'GET',
+                hostname: 'api.github.com',
+                path: apiPath,
+                headers: {
+                    'User-Agent': 'AxiBridge',
+                    'Accept': 'application/vnd.github.raw',
+                    'Authorization': `Bearer ${token}`
+                }
+            },
+            (res) => {
+                const chunks: Buffer[] = [];
+                res.on('data', (chunk: Buffer) => chunks.push(chunk));
+                res.on('end', () => {
+                    const status = res.statusCode || 0;
+                    if (status >= 300) {
+                        reject(new Error(`GitHub API error (${status}) loading blob ${blobSha}`));
+                        return;
+                    }
+                    resolve(Buffer.concat(chunks));
+                });
+            }
+        );
+        req.on('error', (err) => reject(err));
+        req.setTimeout(GITHUB_API_IDLE_TIMEOUT_MS, () => {
+            req.destroy(new Error(`GitHub API request timed out after ${GITHUB_API_IDLE_TIMEOUT_MS}ms of inactivity: GET ${apiPath}`));
+        });
+        req.end();
+    });
 };
 
 const getGithubTree = async (owner: string, repo: string, treeSha: string, token: string) => {
@@ -1092,6 +1138,124 @@ const hasWebReportContent = (payload: { meta?: any; stats?: any } | null | undef
 
 // ─── Web template helpers ──────────────────────────────────────────────────────
 
+/**
+ * GitHub Pages pushes every branch-hosted site through Jekyll unless this file
+ * is present. The viewer is a prebuilt Vite bundle, so that pass is pure added
+ * latency (8-19s of the publish, measured) and is actively hostile besides:
+ * Jekyll silently drops paths beginning with an underscore.
+ *
+ * It has to be queued by hand — `collectFiles` skips dotfiles, so dropping a
+ * `.nojekyll` into dist-web would never reach the repo.
+ */
+const NOJEKYLL_FILENAME = '.nojekyll';
+const NOJEKYLL_CONTENT = Buffer.alloc(0);
+
+/**
+ * Picks the published `assets/` files that the current viewer bundle no longer
+ * includes, so a publish can sweep them.
+ *
+ * Vite fingerprints every chunk, so each viewer rebuild publishes a new
+ * `assets/index-<hash>.js` and orphans the previous one. Nothing ever deleted
+ * them, and Pages re-checks-out and re-deploys the whole site on every publish
+ * — so dead bundles are paid for on every later publish, forever.
+ *
+ * `publishedAssetPaths` must be the entire `assets/` directory being published,
+ * NOT the files index.html names: Vite code-splits, so live chunks (the stats
+ * worker, for one) are reachable only through dynamic imports the HTML never
+ * mentions, and keying off the HTML would delete them.
+ *
+ * An empty keep-set returns nothing rather than sweeping everything — a missing
+ * or half-built dist-web must not be able to blank the live site.
+ */
+export const selectStaleAssetPaths = (
+    repoPaths: Iterable<string>,
+    publishedAssetPaths: ReadonlySet<string>,
+    pagesPath: string
+): string[] => {
+    if (publishedAssetPaths.size === 0) return [];
+    const assetsPrefix = withPagesPath(pagesPath, 'assets/');
+    const stale: string[] = [];
+    for (const repoPath of repoPaths) {
+        if (!repoPath.startsWith(assetsPrefix)) continue;
+        if (publishedAssetPaths.has(repoPath)) continue;
+        stale.push(repoPath);
+    }
+    return stale;
+};
+
+/**
+ * Source bytes of legacy reports one publish is allowed to rewrite.
+ *
+ * Sites that predate the chunked-gzip format carry hundreds of uncompressed
+ * report.json files — 1346 MB of a 1535 MB tree on one real repo — and Pages
+ * re-checks-out and re-deploys the whole tree on every commit, so that weight
+ * is a tax on every future publish rather than a one-time cost. Converting
+ * them all in one publish would mean downloading a gigabyte mid-upload, so
+ * each publish takes a bite instead. Largest-first, so the worst offenders go
+ * first and the curve is front-loaded.
+ */
+const COMPACT_BUDGET_BYTES = 60 * 1024 * 1024;
+
+interface PublishedTreeEntry {
+    path?: string;
+    type?: string;
+    size?: number;
+}
+
+export interface LegacyReportTarget {
+    id: string;
+    path: string;
+    size: number;
+}
+
+/**
+ * Published reports still in the pre-3.10 plain-JSON format, largest first.
+ *
+ * Reads only the tree listing the publish already fetches: a report is legacy
+ * when it has a `report.json` and no `report.json.gz.*` sibling. That makes the
+ * migration idempotent and self-terminating — once a report is converted it is
+ * invisible here forever, and on an already-converted site this costs nothing.
+ */
+export const selectReportsToCompact = (
+    entries: Iterable<PublishedTreeEntry>,
+    pagesPath: string,
+    budgetBytes: number = COMPACT_BUDGET_BYTES,
+    excludeIds: ReadonlySet<string> = new Set()
+): LegacyReportTarget[] => {
+    const reportsPrefix = withPagesPath(pagesPath, 'reports/');
+    const candidates: LegacyReportTarget[] = [];
+    const converted = new Set<string>();
+
+    for (const entry of entries) {
+        if (!entry?.path || entry.type !== 'blob') continue;
+        if (!entry.path.startsWith(reportsPrefix)) continue;
+        // Exactly `<id>/<file>`; anything else is reports/index.json or deeper.
+        const segments = entry.path.slice(reportsPrefix.length).split('/');
+        if (segments.length !== 2) continue;
+        const [id, filename] = segments;
+        if (filename.startsWith(`${REPORT_PARTS_BASENAME}.`)) {
+            converted.add(id);
+        } else if (filename === REPORT_JSON_FILENAME) {
+            candidates.push({ id, path: entry.path, size: entry.size ?? 0 });
+        }
+    }
+
+    const pending = candidates
+        .filter((target) => !converted.has(target.id) && !excludeIds.has(target.id))
+        .sort((a, b) => b.size - a.size);
+
+    const selected: LegacyReportTarget[] = [];
+    let spent = 0;
+    for (const target of pending) {
+        // The first is taken unconditionally: a site whose every report is
+        // bigger than the budget still has to make progress.
+        if (selected.length > 0 && spent + target.size > budgetBytes) break;
+        selected.push(target);
+        spent += target.size;
+    }
+    return selected;
+};
+
 const collectFiles = (dir: string) => {
     const result: Array<{ absPath: string; relPath: string }> = [];
     const walk = (current: string) => {
@@ -1761,6 +1925,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             if (rootIndexBuffer) {
                 queueFile(withPagesPath(pagesPath, 'index.html'), rootIndexBuffer);
             }
+            queueFile(withPagesPath(pagesPath, NOJEKYLL_FILENAME), NOJEKYLL_CONTENT);
 
             if (pendingEntries.length === 0) {
                 return { success: true, updated: false };
@@ -1894,8 +2059,20 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
         };
     });
 
-    ipcMain.handle('upload-web-report', async (_event, payload: { meta: any; stats: any; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecar?: any }) => {
+    ipcMain.handle('upload-web-report', async (_event, rawPayload: { meta: any; statsJson: string; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecarJson?: string; sliceSidecarMeta?: { frameCount?: number; settingsHash?: string } }) => {
         try {
+            // `stats` arrives pre-serialized: handing the live object graph to the
+            // preload bridge made contextBridge deep-copy every node into its world
+            // and ipcRenderer.invoke serialize it a second time, blocking the
+            // renderer for tens of seconds on a full night. See useWebUpload.
+            const payload = {
+                ...rawPayload,
+                // Falls back to `{}` rather than parsing a non-string so a missing body
+                // still reaches the empty-report guard below with its actionable message.
+                stats: (typeof rawPayload?.statsJson === 'string'
+                    ? JSON.parse(rawPayload.statsJson)
+                    : {}) as Record<string, any>
+            };
             if (!hasWebReportContent(payload)) {
                 return { success: false, error: 'Cannot upload an empty web report. Add at least one fight before publishing.' };
             }
@@ -2087,9 +2264,13 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
 
             // Slice sidecar — R2 only. With no R2 the report publishes exactly as
             // it always has and the published viewer simply has no slicer.
-            const sliceSidecar = (payload as any)?.sliceSidecar;
-            if (sliceSidecar && Array.isArray(sliceSidecar.frames) && sliceSidecar.frames.length > 0) {
-                const sliceBuffer = gzipSync(Buffer.from(JSON.stringify(sliceSidecar), 'utf8'), { level: 9 });
+            // The sidecar stays a string end to end — it is only ever gzipped and
+            // shipped, so parsing it here just to stringify it again is pure cost.
+            // Everything main needs about it rides along in `sliceSidecarMeta`.
+            const sliceSidecarJson = rawPayload?.sliceSidecarJson;
+            const sliceSidecarMeta = rawPayload?.sliceSidecarMeta;
+            if (sliceSidecarJson && Number(sliceSidecarMeta?.frameCount) > 0) {
+                const sliceBuffer = gzipSync(Buffer.from(sliceSidecarJson, 'utf8'), { level: 9 });
                 let sliceR2Url: string | null = null;
                 // Distinguishes "R2 is not configured" from "R2 is configured and
                 // the upload failed" — the two need different advice, and telling a
@@ -2123,7 +2304,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                     // The viewer compares this against the sidecar's own hash and
                     // disables slicing on a mismatch rather than rendering numbers
                     // computed under different settings.
-                    (builtReport.payload.stats as any).sliceSettingsHash = sliceSidecar.settingsHash;
+                    (builtReport.payload.stats as any).sliceSettingsHash = sliceSidecarMeta?.settingsHash;
                 } else {
                     delete (builtReport.payload.stats as any).sliceDataUrl;
                     delete (builtReport.payload.stats as any).sliceSettingsHash;
@@ -2287,15 +2468,21 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             ensureWebRootIndex(templateDir);
             const rootIndexBuffer = getWebRootIndexBuffer(templateDir);
             const rootFiles = collectFiles(templateDir);
+            // Recorded even when queueFile dedupes the file away: an unchanged
+            // asset is still a live one, and must not be swept below.
+            const publishedAssetPaths = new Set<string>();
             for (const file of rootFiles) {
                 const repoPath = file.relPath;
                 const rawContent = fs.readFileSync(file.absPath);
                 const content = patchLegacyCustomIconUrls(file.relPath, rawContent);
-                queueFile(withPagesPath(pagesPath, repoPath), content);
+                const fullPath = withPagesPath(pagesPath, repoPath);
+                if (repoPath.startsWith('assets/')) publishedAssetPaths.add(fullPath);
+                queueFile(fullPath, content);
             }
             if (rootIndexBuffer) {
                 queueFile(withPagesPath(pagesPath, 'index.html'), rootIndexBuffer);
             }
+            queueFile(withPagesPath(pagesPath, NOJEKYLL_FILENAME), NOJEKYLL_CONTENT);
 
             const reportFiles = collectFiles(stagingRoot);
             for (const file of reportFiles) {
@@ -2377,7 +2564,61 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 log.warn('[Main] Failed to build attendance history (non-blocking):', err);
             }
 
+            // Convert a slice of the reports published before the chunked-gzip
+            // format, riding the commit this publish is already making — no
+            // extra commit, so no extra Pages build. See selectReportsToCompact
+            // for why this is amortized rather than done in one pass.
+            // Best-effort throughout: compaction must never fail a publish.
+            try {
+                const toCompact = selectReportsToCompact(
+                    treeEntries,
+                    pagesPath,
+                    COMPACT_BUDGET_BYTES,
+                    new Set([reportMeta.id])
+                );
+                if (toCompact.length > 0) {
+                    sendWebUploadStatus('Preparing', `Compacting ${toCompact.length} older report(s)...`, 70);
+                }
+                let compacted = 0;
+                let sourceBytes = 0;
+                for (const target of toCompact) {
+                    try {
+                        const blobSha = treeMap.get(target.path);
+                        if (!blobSha) continue;
+                        const raw = await getGithubBlobRaw(owner, repo, blobSha, token);
+                        const payload = JSON.parse(raw.toString('utf8'));
+                        // Both are cheap guards against rewriting something that
+                        // is not a report payload — the site is live, and a bad
+                        // stub would blank a report for everyone who opens it.
+                        if (readPartsManifest(payload)) continue;
+                        if (!payload?.meta || !payload?.stats) continue;
+                        const { files } = buildReportPartFiles(raw, payload);
+                        for (const file of files) {
+                            queueFile(withPagesPath(pagesPath, `reports/${target.id}/${file.name}`), file.data);
+                        }
+                        compacted += 1;
+                        sourceBytes += raw.length;
+                    } catch (err) {
+                        log.warn(`[Main] Could not compact published report ${target.id} (non-blocking):`, err);
+                    }
+                }
+                if (compacted > 0) {
+                    log.info(`[Main] Compacted ${compacted} legacy report(s), ${(sourceBytes / 1048576).toFixed(1)} MB of source.`);
+                }
+            } catch (err) {
+                log.warn('[Main] Legacy report compaction failed (non-blocking):', err);
+            }
+
             const deleteEntries: Array<{ path: string; sha: null }> = [];
+
+            // Sweep viewer bundles the current dist-web has superseded; see
+            // selectStaleAssetPaths. 156 MB / 212 files on one real report repo.
+            const staleAssets = selectStaleAssetPaths(treeMap.keys(), publishedAssetPaths, pagesPath);
+            staleAssets.forEach((repoPath) => deleteEntries.push({ path: repoPath, sha: null }));
+            if (staleAssets.length > 0) {
+                log.info(`[Main] Removing ${staleAssets.length} orphaned viewer asset(s) superseded by the current bundle.`);
+            }
+
             ['theme.json', 'ui-theme.json'].forEach((legacyFile) => {
                 const repoPath = withPagesPath(pagesPath, legacyFile);
                 if (treeMap.has(repoPath)) {

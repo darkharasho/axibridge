@@ -49,9 +49,48 @@ export const buildReportStub = (payload: { meta: any; stats: any }, manifest: Pa
     };
 };
 
+export interface ReportPartFile {
+    /** Name within the report's directory, e.g. `report.json.gz.000`. */
+    name: string;
+    data: Buffer;
+}
+
+/**
+ * The parts + stub for a report, as buffers rather than files on disk.
+ *
+ * Exists for the publish-time compaction of reports published before this
+ * format, which streams the old `report.json` straight from GitHub into the
+ * next commit and never has a staging directory to write into.
+ */
+export const buildReportPartFiles = (
+    jsonBuffer: Buffer,
+    payload: { meta: any; stats: any }
+): { files: ReportPartFile[]; manifest: PartsManifest } => {
+    const gzip = gzipSync(jsonBuffer, { level: 9 });
+    const sha256 = createHash('sha256').update(gzip).digest('hex');
+    const { parts, manifest } = splitIntoParts(
+        new Uint8Array(gzip.buffer, gzip.byteOffset, gzip.length),
+        REPORT_PARTS_BASENAME,
+        sha256
+    );
+    const files: ReportPartFile[] = parts.map((part) => ({
+        name: part.path,
+        // A view over the gzip buffer, not a copy: reports run to tens of MB.
+        data: Buffer.from(part.data.buffer, part.data.byteOffset, part.data.length)
+    }));
+    files.push({
+        name: REPORT_JSON_FILENAME,
+        data: Buffer.from(JSON.stringify(buildReportStub(payload, manifest)))
+    });
+    return { files, manifest };
+};
+
 export const writeReportParts = (stagingDir: string, jsonBuffer: Buffer, payload: { meta: any; stats: any }): PartsManifest => {
-    const manifest = writeParts(stagingDir, gzipSync(jsonBuffer, { level: 9 }), REPORT_PARTS_BASENAME);
-    fs.writeFileSync(path.join(stagingDir, REPORT_JSON_FILENAME), JSON.stringify(buildReportStub(payload, manifest)));
+    const { files, manifest } = buildReportPartFiles(jsonBuffer, payload);
+    fs.mkdirSync(stagingDir, { recursive: true });
+    for (const file of files) {
+        fs.writeFileSync(path.join(stagingDir, file.name), file.data);
+    }
     return manifest;
 };
 
