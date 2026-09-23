@@ -197,12 +197,36 @@ body.axi-design .app-shell {
   border: var(--axi-border-panel) solid var(--axi-ink-line);
 }
 
+/* The content field is the page, and it was not: AppLayout paints .app-content
+   inline with --bg-elevated, which lands it on the surface - the lightest
+   neutral in the ramp - and since that div is flex-1 and fills everything under
+   the titlebar, it WAS the background of the window, sitting a rung ABOVE the
+   panels it holds. That one div is why this app read lighter than the rest of
+   the suite; the palette was never the difference.
+
+   Ground rather than the ink line, which is the tempting answer and the wrong
+   one. An ink outline reads because it is darker than the panel inside it AND
+   the field outside it - a dark gap between two lighter fills, which is exactly
+   how axisite draws its panels (site.css: surface fill, ink border, ground
+   page). Drop the field to ink and every outline in the window has nothing left
+   to be darker than, and the boxes lose their edges. Ground keeps the gap.
+   !important because the paint is an inline style and nothing else beats one. */
+body.axi-design .app-content {
+  background: var(--axi-ground) !important;
+}
+
 /* The titlebar is the outline widened into a strip, which is what makes the
    app's content read as sitting inside the outline rather than under a second
-   toolbar. */
+   toolbar.
+
+   !important on both, same reason as .app-content and .dashboard-rail: the
+   titlebar's fill and border are painted inline, so until now it rendered at
+   ground with a --border-subtle rule under it and the strip was never a
+   strip. It is the frame rather than a field, which is why ink is right here
+   and wrong for .app-content - nothing bordered sits on the titlebar. */
 body.axi-design .app-titlebar {
-  background: var(--axi-ink-line);
-  border-bottom-color: var(--axi-ink-line);
+  background: var(--axi-ink-line) !important;
+  border-bottom-color: var(--axi-ink-line) !important;
 }
 
 /* Focus is accent-coloured and thick enough to read against a near-black
@@ -1128,12 +1152,17 @@ body.axi-design .dashboard-rail {
      one and the panel in the other are already objects standing on it. A rule
      between two identical fields separates nothing - it just ran a second
      vertical line beside the activity panel's own edge. */
-  border-right: none;
+  border-right: none !important;
   /* The rail was the same surface as the cards standing on it, so five panels
      and the strip behind them were all one colour and the only thing telling
      them apart was a near-black line. A panel sits on the ground, not on
-     another panel. */
-  background: var(--axi-ground);
+     another panel.
+
+     !important on both because AppLayout paints the rail's fill AND its right
+     border inline, the same way it paints .app-content, and nothing but
+     !important beats an inline style - which is why these two rules were
+     written long ago and have never once been on screen. */
+  background: var(--axi-ground) !important;
   padding: 8px;
 }
 body.axi-design .dashboard-rail .rail-stack { gap: 8px; }
@@ -1722,7 +1751,10 @@ body.axi-design .app-dropdown,
 body.axi-design .stats-popover {
   --panel-border-w: var(--axi-border-control);
   border-radius: var(--axi-radius-sm);
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  /* !important because the webhook dropdown paints --shadow-dropdown inline,
+     and that token is the panel-sized block - so the one dropdown that sets
+     its own shadow was the one dropdown not taking the control step. */
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line) !important;
 }
 
 /* The one exception: a tooltip is not a surface you act in, it is a label that
@@ -2057,11 +2089,16 @@ body.axi-design .axi-search-bar kbd {
    header and the field it opens are visibly one object. It stands for
    somewhere to type rather than something to press, so it keeps the ground
    fill - but it now spans its whole column instead of a 186px sliver, and at
-   that size the hairline outline and the floating glyph both read as timid.
+   that size the hairline outline it used to have read as timid.
 
-   So: the ink edge the rest of the language uses, and the magnifier promoted
-   out of the fill into a gold cap at the head of the well. The cap is the one
-   loud mark on the row; everything to the right of it stays quiet. */
+   So: the ink edge the rest of the language uses, and a magnifier at the head
+   of the well carrying the accent on its own.
+
+   It was a solid gold block the full height of the row, which at 30px tall is
+   a lot of the loudest colour in the palette spent on a control you are not
+   meant to look at until you want it. The glyph alone says the same thing -
+   this is where you search - at a fraction of the volume, and the well keeps
+   its shape from the ink edge rather than from a cap. */
 body.axi-design .axi-search-trigger {
   background: var(--axi-ground);
   border: var(--axi-border-control) solid var(--axi-ink-line);
@@ -2074,12 +2111,11 @@ body.axi-design .axi-search-trigger {
   transition: transform .1s, box-shadow .1s, color .1s;
 }
 body.axi-design .axi-search-trigger__mark {
-  background: var(--axi-accent);
-  border-right: var(--axi-border-control) solid var(--axi-ink-line);
   margin-right: 10px;
-  padding: 0 8px;
+  padding: 0 8px 0 10px;
 }
-body.axi-design .axi-search-trigger__mark svg { color: var(--axi-accent-ink) !important; }
+/* !important because StatsHeader paints the glyph --brand-primary inline. */
+body.axi-design .axi-search-trigger__mark svg { color: var(--axi-accent) !important; }
 /* It lifts like every other control here. The well is what you press to get
    the panel, so it should answer the cursor the way a control does - the
    resting form already says field, and that is the part that has to carry. */
@@ -2565,19 +2601,40 @@ body.axi-design .recharts-bar-background-rectangle { fill: var(--axi-ground); }
 /* The legend is a key, so it reads as labels rather than as chips. */
 body.axi-design .recharts-legend-wrapper { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
 
-/* The report header's trophy. The component draws the accent fill and the ink
-   glyph on its own; what makes it a *raised* thing rather than a coloured
-   square - the ink outline and the hard offset - is the language's, at the
-   control weight (rule 3), same as every other small drawn object. The header
-   rule under it steps up from the app's near-invisible hairline to the axi
-   rule, which is the line a well is outlined with. */
+/* The published report's field. `.min-h-screen` in index.css is a blanket
+   utility painted --bg-elevated, which under this language is the surface - so
+   .stats-view, which carries that utility, painted the whole report page a rung
+   ABOVE the panels standing on it. Same defect as .app-content on the desktop
+   side, and the same fix: the page is ground, and a panel is the thing raised
+   off it. Without this the header band, the page and every card are one colour
+   and only the header's rule separates anything. */
+body.axi-design .stats-view.min-h-screen { background-color: var(--axi-ground); }
+
+/* The report header's trophy. What makes it a *raised* thing rather than a
+   coloured square - the ink outline and the hard offset - is the language's, at
+   the control weight (rule 3), same as every other small drawn object.
+
+   The fill is the language's too now. A 36px block of the palette's loudest
+   colour was the first thing the eye landed on in a report whose subject is the
+   numbers below it, so it steps down to the raised neutral and the accent
+   shrinks to the trophy itself - the same move the search trigger's cap made.
+   !important on the fill and the radius because the component writes both
+   inline, and --radius-md is a rung wider than the small radius this size of
+   object takes. */
 body.axi-design .report-head-mark {
   border: var(--axi-border-control) solid var(--axi-ink-line);
   box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
-  border-radius: var(--axi-radius-sm);
+  background: var(--axi-surface-raised) !important;
+  border-radius: var(--axi-radius-sm) !important;
 }
+body.axi-design .report-head-mark svg { color: var(--axi-accent) !important; }
 
 body.axi-design .report-head { border-bottom-color: var(--axi-rule); }
+/* In the published report the header opens a ground page that the first panel
+   is visibly raised off, so the rule is a second horizontal line saying what
+   the ground/surface step already says. The desktop header has no such step
+   under it and keeps its rule. */
+body.web-report.axi-design .report-head { border-bottom: none !important; padding-bottom: 0 !important; }
 
 /* The single-fight report's hero. The utility bridge above already carries its
    card, its tiles and its text across; what it cannot reach is the three
