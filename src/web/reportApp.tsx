@@ -745,10 +745,13 @@ export function ReportApp({ injectedSource, assetBase }: {
         // multi-log view. On a share link the fight header already names the
         // subject, so the heading below it only needs to say which category the
         // reader is currently in.
-        () => (singleFight
-            ? (activeGroupDef?.label || 'Overview')
-            : `Statistics Dashboard - ${activeGroupDef?.label || 'Overview'}`),
-        [activeGroupDef, singleFight]
+        //
+        // StatsHeader already prints that name as the eyebrow above this
+        // heading whenever a title is passed, so prefixing it here set the
+        // words "Statistics Dashboard" twice, three lines apart. The eyebrow
+        // says what the page is; the heading says which part of it you are in.
+        () => activeGroupDef?.label || 'Overview',
+        [activeGroupDef]
     );
     const excludedFightKeys = useStatsStore((s) => s.excludedFightKeys);
     const mergeFightRoster = useStatsStore((s) => s.mergeFightRoster);
