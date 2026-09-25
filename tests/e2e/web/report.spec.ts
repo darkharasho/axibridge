@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { dashboardReady } from './dashboardReady';
 
 const fixturePath = path.resolve(process.cwd(), 'tests/fixtures/report.json');
 
@@ -23,7 +24,7 @@ test.describe('Web Report Loading (WRPT-001–004)', () => {
     test('WRPT-001: report loads from URL parameter', async ({ page }) => {
         await page.goto('/web/index.html?report=test-report');
         await expect(
-            page.getByRole('heading', { name: /Statistics Dashboard/i })
+            dashboardReady(page)
         ).toBeVisible({ timeout: 15_000 });
     });
 
@@ -40,7 +41,7 @@ test.describe('Web Report Loading (WRPT-001–004)', () => {
         await page.goto('/web/index.html?report=test-report');
         // Eventually loads successfully
         await expect(
-            page.getByRole('heading', { name: /Statistics Dashboard/i })
+            dashboardReady(page)
         ).toBeVisible({ timeout: 20_000 });
     });
 
@@ -51,7 +52,7 @@ test.describe('Web Report Loading (WRPT-001–004)', () => {
         await page.goto('/web/index.html?report=nonexistent');
         await page.waitForTimeout(3000);
         // Should show error state — not the stats dashboard
-        const hasStats = await page.getByRole('heading', { name: /Statistics Dashboard/i })
+        const hasStats = await dashboardReady(page)
             .isVisible().catch(() => false);
         const hasError = await page.getByText(/error|not found|failed|no report/i)
             .isVisible().catch(() => false);
@@ -61,7 +62,7 @@ test.describe('Web Report Loading (WRPT-001–004)', () => {
     test('WRPT-004: report renders stats from embedded data', async ({ page }) => {
         await page.goto('/web/index.html?report=test-report');
         await expect(
-            page.getByRole('heading', { name: /Statistics Dashboard/i })
+            dashboardReady(page)
         ).toBeVisible({ timeout: 15_000 });
         // Verify actual content from fixture (commander name)
         await expect(page.getByText('Guardian Kamoidra').first()).toBeVisible();

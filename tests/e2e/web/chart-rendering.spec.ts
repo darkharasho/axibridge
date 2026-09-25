@@ -11,6 +11,7 @@
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { dashboardReady } from './dashboardReady';
 
 const fixturePath = path.resolve(process.cwd(), 'tests/fixtures/report.json');
 
@@ -33,7 +34,7 @@ test.describe('Chart Rendering Stability (CHRT-001–004)', () => {
     test('CHRT-001: report loads and renders chart SVG elements', async ({ page }) => {
         await page.goto('/web/index.html?report=test-report');
         await expect(
-            page.getByRole('heading', { name: /Statistics Dashboard/i })
+            dashboardReady(page)
         ).toBeVisible({ timeout: 15_000 });
 
         // Wait for recharts to render SVG content inside ResponsiveContainer.
@@ -45,7 +46,7 @@ test.describe('Chart Rendering Stability (CHRT-001–004)', () => {
     test('CHRT-002: spike damage chart renders visible paths', async ({ page }) => {
         await page.goto('/web/index.html?report=test-report');
         await expect(
-            page.getByRole('heading', { name: /Statistics Dashboard/i })
+            dashboardReady(page)
         ).toBeVisible({ timeout: 15_000 });
 
         // Navigate to the spike damage section if it exists
@@ -63,7 +64,7 @@ test.describe('Chart Rendering Stability (CHRT-001–004)', () => {
     test('CHRT-003: boon timeline chart renders bars or lines', async ({ page }) => {
         await page.goto('/web/index.html?report=test-report');
         await expect(
-            page.getByRole('heading', { name: /Statistics Dashboard/i })
+            dashboardReady(page)
         ).toBeVisible({ timeout: 15_000 });
 
         const boonSection = page.locator('[id="section-boon-timeline"]');
@@ -79,7 +80,7 @@ test.describe('Chart Rendering Stability (CHRT-001–004)', () => {
     test('CHRT-004: charts are not permanently empty after load', async ({ page }) => {
         await page.goto('/web/index.html?report=test-report');
         await expect(
-            page.getByRole('heading', { name: /Statistics Dashboard/i })
+            dashboardReady(page)
         ).toBeVisible({ timeout: 15_000 });
 
         // Wait a moment for any animations to complete
