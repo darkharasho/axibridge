@@ -110,6 +110,42 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
+      # GitHub Pages is behind Cloudflare on bridge.axi.link, and GitHub serves
+      # its 404s with `cache-control: max-age=14400`. A deploy that replaces a
+      # previously-missing asset therefore stays invisible at the edge for four
+      # hours — which reads exactly like the deploy did nothing and sends you
+      # hunting a render bug that does not exist (it did, on 2026-09-24:
+      # /view/viewer.js 404'd and every share link rendered a white page).
+      #
+      # Purging here is the only leg of the deploy the pipeline used to leave
+      # to a human. Fail-soft: a release must not be blocked by the CDN, but
+      # the warning has to be loud enough to act on.
+      - name: Purge Cloudflare cache for bridge.axi.link
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # axi.link. Not a secret — a zone id is useless without the token.
+          ZONE_ID: 1b78a62a76bc7797fc56d661a11f3b57
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::warning::CLOUDFLARE_API_TOKEN is not set — skipping the edge-cache purge. bridge.axi.link may serve stale assets (or a cached 404) for up to 4 hours."
+            exit 0
+          fi
+
+          response=$(curl -sS -X POST \
+            "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/purge_cache" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}')
+
+          if printf '%s' "$response" | grep -q '"success":[[:space:]]*true'; then
+            echo "Purged the Cloudflare cache for axi.link."
+          else
+            # The deploy token's template ("Edit Cloudflare Workers") does not
+            # include Cache Purge; add Zone → Cache Purge → Purge on axi.link
+            # if this starts failing with a permission error.
+            echo "::warning::Cloudflare purge failed — bridge.axi.link may serve stale assets for up to 4 hours. Response: $response"
+          fi
+
   # The share Worker ships on the same tag as the app that talks to it.
   #
   # Until this existed the Worker moved only when someone deployed it by hand,
