@@ -59852,7 +59852,7 @@ const Mpe = ({ fights: e, style: t }) => {
                 children: n ? "Fight Statistics" : "Statistics Dashboard"
               }
             ),
-            /* @__PURE__ */ s.jsx("h1", { className: "text-xl sm:text-2xl font-bold text-white", children: t || (n ? "Fight Statistics" : "Statistics Dashboard") }),
+            /* @__PURE__ */ s.jsx("h1", { "data-testid": "stats-header-title", className: "text-xl sm:text-2xl font-bold text-white", children: t || (n ? "Fight Statistics" : "Statistics Dashboard") }),
             !n && /* @__PURE__ */ s.jsxs("p", { className: "text-gray-400 text-[11px] sm:text-xs", children: [
               "Performance across ",
               r,
