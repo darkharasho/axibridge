@@ -7,8 +7,9 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
+  # Read-only: the site is a branch-based Pages site rebuilt by GitHub on push
+  # to main. This workflow only polls the build's status (see purge-cache).
+  pages: read
 
 jobs:
   test:
@@ -74,52 +75,48 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder ${{ matrix.args }} --publish always
 
-  deploy-pages:
-    needs: [build]
+  # There is deliberately no Pages *deploy* job here.
+  #
+  # bridge.axi.link is a legacy, branch-based Pages site served from
+  # `main:/docs` — the landing page, CNAME, the docs pages and the share
+  # viewer under /view all live there, committed, and GitHub rebuilds the site
+  # on every push to main. A release does not need to publish it.
+  #
+  # This job used to exist and uploaded `dist-web` as a Pages artifact, which
+  # broke the site on every tag: `vite.web.config.ts` builds a single entry at
+  # `web/index.html`, so dist-web has no root index.html and no `view/` at all.
+  # Deploying it replaced the whole site with a tree that 404s on `/`,
+  # `/view/viewer.js` and `/reports/*`. Cloudflare then served the old cached
+  # copies for four hours, so the outage only surfaced once the edge expired —
+  # which is what made the 2026-09-24 white-page hunt so confusing.
+  #
+  # What a release *does* still owe the site is the cache purge below.
+  purge-cache:
+    needs: [test]
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build web report
-        run: npm run build:web
+      # The release commit is already on main, so GitHub has a docs/ build in
+      # flight. Purging ahead of it would just re-cache the old content.
+      - name: Wait for the GitHub Pages build
         env:
-          NODE_OPTIONS: --max-old-space-size=6144
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for _ in $(seq 1 40); do
+            status=$(gh api repos/${{ github.repository }}/pages/builds/latest -q .status)
+            echo "pages build: $status"
+            case "$status" in
+              queued|building) sleep 15 ;;
+              *) exit 0 ;;
+            esac
+          done
+          echo "::warning::Pages build did not settle within 10 minutes; purging anyway."
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist-web
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-      # GitHub Pages is behind Cloudflare on bridge.axi.link, and GitHub serves
-      # its 404s with `cache-control: max-age=14400`. A deploy that replaces a
-      # previously-missing asset therefore stays invisible at the edge for four
-      # hours — which reads exactly like the deploy did nothing and sends you
-      # hunting a render bug that does not exist (it did, on 2026-09-24:
-      # /view/viewer.js 404'd and every share link rendered a white page).
+      # GitHub serves its 404s with `cache-control: max-age=14400`, so a deploy
+      # that replaces a previously-missing asset stays invisible at the edge for
+      # four hours — which reads exactly like the deploy did nothing.
       #
-      # Purging here is the only leg of the deploy the pipeline used to leave
-      # to a human. Fail-soft: a release must not be blocked by the CDN, but
-      # the warning has to be loud enough to act on.
+      # Fail-soft: the CDN must not be able to fail a release, but the warning
+      # names the consequence so it is actionable.
       - name: Purge Cloudflare cache for bridge.axi.link
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -141,8 +138,8 @@ jobs:
             echo "Purged the Cloudflare cache for axi.link."
           else
             # The deploy token's template ("Edit Cloudflare Workers") does not
-            # include Cache Purge; add Zone → Cache Purge → Purge on axi.link
-            # if this starts failing with a permission error.
+            # include Cache Purge; add Zone -> Cache Purge -> Purge on axi.link
+            # if this fails with an authentication error.
             echo "::warning::Cloudflare purge failed — bridge.axi.link may serve stale assets for up to 4 hours. Response: $response"
           fi
 
