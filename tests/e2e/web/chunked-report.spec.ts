@@ -4,6 +4,7 @@ import path from 'path';
 import { createHash } from 'crypto';
 import { gzipSync } from 'zlib';
 import { splitIntoParts } from '../../../src/shared/chunkedGzip';
+import { dashboardReady } from './dashboardReady';
 
 const fixture = fs.readFileSync(path.resolve(process.cwd(), 'tests/fixtures/report.json'));
 
@@ -28,6 +29,6 @@ test('CHUNK-001: a stub + parts report renders the real dashboard', async ({ pag
     }
 
     await page.goto('/web/index.html?report=chunked-report');
-    await expect(page.getByRole('heading', { name: /Statistics Dashboard/i })).toBeVisible({ timeout: 15_000 });
+    await expect(dashboardReady(page)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(/open with AxiBridge 3\.10 or newer/)).toHaveCount(0);
 });

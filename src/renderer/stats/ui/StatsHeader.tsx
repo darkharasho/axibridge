@@ -157,7 +157,12 @@ export const StatsHeader = ({
                         {singleFight ? 'Fight Statistics' : 'Statistics Dashboard'}
                     </div>
                 )}
-                <h1 className="text-xl sm:text-2xl font-bold text-white">
+                {/* The e2e suites wait on this to decide the report has
+                    rendered. It is a testid rather than the heading's text
+                    because that text is now the category the reader is in, and
+                    was the page label before that - a ready-signal pinned to
+                    wording breaks every time the wording is improved. */}
+                <h1 data-testid="stats-header-title" className="text-xl sm:text-2xl font-bold text-white">
                     {dashboardTitle || (singleFight ? 'Fight Statistics' : 'Statistics Dashboard')}
                 </h1>
                 {!singleFight && (
