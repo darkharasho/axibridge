@@ -8,6 +8,7 @@ import ReactDOM from 'react-dom/client';
 import indexCss from '../renderer/index.css?inline';
 import axiCss from '../renderer/axi-design.css?inline';
 import { ReportApp } from './reportApp';
+import { ReportErrorBoundary } from './ReportErrorBoundary';
 import { setPublicAssetBase } from '../renderer/ui/resolvePublicAssetPath';
 import { parseShareBootPayload, ShareBootPayloadError } from './share/shareBootPayload';
 import { loadShareReportJson, ShareLoadError } from './share/loadShareReport';
@@ -211,6 +212,8 @@ const resolveRootElement = (): HTMLElement => {
 
 ReactDOM.createRoot(resolveRootElement()).render(
     <React.StrictMode>
-        <ViewerRoot />
+        <ReportErrorBoundary>
+            <ViewerRoot />
+        </ReportErrorBoundary>
     </React.StrictMode>
 );
