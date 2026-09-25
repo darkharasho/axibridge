@@ -2678,3 +2678,46 @@ body.axi-design .fight-hero-fill[data-side='friendly'] { background: var(--axi-m
 body.axi-design .fight-hero-fill[data-side='enemy'] { background: var(--axi-danger) !important; }
 
 body.axi-design .fight-hero-rule { border-top-color: var(--axi-rule); }
+
+/* ---------------------------------------------------------------------------
+   THE REPORT SHELL
+   The web report's non-report screens - loading, tombstone, load failure,
+   render failure - are drawn in src/web/reportShell.css through the app's own
+   variables, so the remap above already gives them the axi surface, the ink
+   outline and the hard block with no rule here. Two things it cannot reach:
+   --------------------------------------------------------------------------- */
+
+/* A shell card is the only thing on the screen, which makes it a panel rather
+   than a control. --panel-border-w is set to the control step globally, so it
+   is raised here the same way .app-modal-card raises it. */
+body.axi-design .report-shell-card,
+body.axi-design .report-shell-banner {
+  --panel-border-w: var(--axi-border-panel);
+}
+
+/* The language's headings are heavier and tighter than the app's, and a font
+   shorthand is not something a variable remap can express. */
+body.axi-design .report-shell-title {
+  font: var(--axi-t-h2);
+  letter-spacing: var(--axi-ls-h2);
+}
+
+body.axi-design .report-shell-eyebrow {
+  font: var(--axi-t-eyebrow);
+  letter-spacing: var(--axi-ls-eyebrow);
+}
+
+/* A control has no resting block; it draws one as it lifts. */
+body.axi-design .report-shell-btn {
+  box-shadow: none;
+  transition: transform .08s, box-shadow .08s;
+}
+
+body.axi-design .report-shell-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.axi-design .report-shell-btn:hover { transform: none; }
+}
