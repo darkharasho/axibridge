@@ -5,13 +5,20 @@ import '../renderer/index.css';
 // wearing; `reportApp` sets the body class from the report's own axiDesign
 // flag, so these rules have to be in the bundle either way.
 import '../renderer/axi-design.css';
+// The shell screens (error boundary here, plus loading/tombstone in the share
+// viewer) draw through the app's variables, so they follow the report's own
+// design language instead of hardcoding one.
+import './reportShell.css';
 import { ReportApp } from './reportApp';
+import { ReportErrorBoundary } from './ReportErrorBoundary';
 
 document.documentElement.classList.add('web-report');
 document.body.classList.add('web-report');
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ReportApp />
+    <ReportErrorBoundary>
+      <ReportApp />
+    </ReportErrorBoundary>
   </React.StrictMode>
 );

@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import viewerAssets from '../viewer-assets.json';
@@ -35,5 +35,31 @@ describe('copy-viewer-assets', () => {
             expect(relativePath.startsWith('/')).toBe(false);
             expect(relativePath.includes('\\')).toBe(false);
         });
+    });
+});
+
+/**
+ * The other direction, and the one that actually broke: the list above was
+ * derived by hand from the bundle once, so an asset added to the viewer later
+ * is simply absent from it — no build error, no failing test, just a 404 on
+ * every live share page. `svg/axibridge-glyph.svg` went that way when the
+ * report header switched from the wordmark to the glyph.
+ *
+ * `docs/view/viewer.js` is committed, so it is always here to read. The paths
+ * survive minification as string literals because they are template-joined
+ * onto the asset base at runtime rather than resolved by Vite.
+ */
+describe('viewer bundle asset references', () => {
+    const BUNDLE = path.resolve(process.cwd(), 'docs', 'view', 'viewer.js');
+
+    it('references no asset the copy list is missing', () => {
+        const bundle = readFileSync(BUNDLE, 'utf8');
+        // `assets/` is excluded: those are Vite's own emitted chunks (the stats
+        // worker), which the build writes next to the bundle itself.
+        const referenced = new Set(
+            Array.from(bundle.matchAll(/"((?:svg|img|icons)\/[A-Za-z0-9_./-]+)"/g), (m) => m[1])
+        );
+        const listed = new Set<string>(viewerAssets.assets);
+        expect([...referenced].filter((asset) => !listed.has(asset))).toEqual([]);
     });
 });
