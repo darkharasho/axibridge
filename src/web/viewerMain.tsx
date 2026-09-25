@@ -7,7 +7,9 @@ import ReactDOM from 'react-dom/client';
 // JS module and gets applied via a manually-appended `<style>` tag below.
 import indexCss from '../renderer/index.css?inline';
 import axiCss from '../renderer/axi-design.css?inline';
+import shellCss from './reportShell.css?inline';
 import { ReportApp } from './reportApp';
+import { ReportErrorBoundary } from './ReportErrorBoundary';
 import { setPublicAssetBase } from '../renderer/ui/resolvePublicAssetPath';
 import { parseShareBootPayload, ShareBootPayloadError } from './share/shareBootPayload';
 import { loadShareReportJson, ShareLoadError } from './share/loadShareReport';
@@ -18,7 +20,7 @@ import type { ReportPayload } from '../shared/reportTypes';
 const styleTag = document.createElement('style');
 // Order matters the same way it does in the renderer's entry: the axi rules
 // are written to win on source order where they contest index.css.
-styleTag.textContent = `${indexCss}\n${axiCss}`;
+styleTag.textContent = `${indexCss}\n${axiCss}\n${shellCss}`;
 document.head.appendChild(styleTag);
 
 document.documentElement.classList.add('web-report');
@@ -50,42 +52,51 @@ type ViewerState =
     | { kind: 'error'; message: string }
     | { kind: 'ready'; report: ReportPayload; demoted: boolean };
 
-const cardWrapperStyle: React.CSSProperties = {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    background: '#0b1120',
-    color: '#e2e8f0',
-    fontFamily: 'system-ui, -apple-system, sans-serif'
-};
-
-const cardStyle: React.CSSProperties = {
-    maxWidth: 480,
-    padding: 32,
-    borderRadius: 16,
-    border: '1px solid rgba(255,255,255,0.12)',
-    background: 'rgba(15,23,42,0.92)',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.4)'
-};
-
-function InfoCard({ title, message }: { title: string; message: string }) {
+function InfoCard({
+    tone,
+    eyebrow,
+    title,
+    message
+}: {
+    tone: 'error' | 'warning';
+    eyebrow: string;
+    title: string;
+    message: string;
+}) {
     return (
-        <div style={cardWrapperStyle}>
-            <div style={cardStyle}>
-                <h1 style={{ fontSize: 20, marginBottom: 12, fontWeight: 600 }}>{title}</h1>
-                <p style={{ color: '#94a3b8', lineHeight: 1.5, margin: 0 }}>{message}</p>
+        <div className="report-shell">
+            <div className="report-shell-card">
+                <div className={`report-shell-cap report-shell-cap--${tone}`} />
+                <div className="report-shell-body">
+                    <p className={`report-shell-eyebrow report-shell-eyebrow--${tone}`}>{eyebrow}</p>
+                    <h1 className="report-shell-title">{title}</h1>
+                    <p className="report-shell-text">{message}</p>
+                </div>
             </div>
         </div>
     );
 }
 
+/**
+ * No status cap and no progress bar: a cap is a verdict about the thing and
+ * "still working" is not one, and the viewer fetches a single opaque blob with
+ * no progress events, so a bar that filled would be inventing the number.
+ */
 function LoadingCard() {
     return (
-        <div style={cardWrapperStyle}>
-            <div style={cardStyle}>
-                <p style={{ margin: 0 }}>Loading report…</p>
+        <div className="report-shell">
+            <div className="report-shell-card">
+                <div className="report-shell-body">
+                    <div className="report-shell-loading">
+                        <span className="report-shell-mark" aria-hidden="true" />
+                        <div>
+                            <p className="report-shell-eyebrow report-shell-eyebrow--info">AxiBridge</p>
+                            <h1 className="report-shell-title" style={{ margin: 0 }}>
+                                Loading report…
+                            </h1>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -101,19 +112,7 @@ function LoadingCard() {
  */
 function DemotedBanner() {
     return (
-        <div
-            style={{
-                position: 'sticky',
-                top: 0,
-                zIndex: 50,
-                padding: '8px 16px',
-                background: '#7c2d12',
-                color: '#fed7aa',
-                fontSize: 13,
-                textAlign: 'center'
-            }}
-            role="status"
-        >
+        <div className="report-shell-banner" role="status">
             This report was demoted to save storage space, so map replay data may be unavailable.
         </div>
     );
@@ -182,12 +181,21 @@ function ViewerRoot() {
         case 'tombstone':
             return (
                 <InfoCard
+                    tone="warning"
+                    eyebrow="Unavailable"
                     title="This report is no longer available"
                     message="The person who shared this link removed the underlying report, or it aged out of storage."
                 />
             );
         case 'error':
-            return <InfoCard title="Couldn't load this report" message={state.message} />;
+            return (
+                <InfoCard
+                    tone="error"
+                    eyebrow="Couldn't load"
+                    title="Couldn't load this report"
+                    message={state.message}
+                />
+            );
         case 'ready':
             return (
                 <>
@@ -211,6 +219,8 @@ const resolveRootElement = (): HTMLElement => {
 
 ReactDOM.createRoot(resolveRootElement()).render(
     <React.StrictMode>
-        <ViewerRoot />
+        <ReportErrorBoundary>
+            <ViewerRoot />
+        </ReportErrorBoundary>
     </React.StrictMode>
 );

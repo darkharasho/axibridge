@@ -1,0 +1,175 @@
+/* The report shell: every screen the web report shows that is NOT the report.
+   Loading, tombstone, load failure, render failure, and the demoted banner.
+
+   These used to be inline styles with hardcoded hex - #0b1120 grounds,
+   rgba(15,23,42,.92) cards, 60px-blur shadows - which is a look the app stopped
+   having. Nothing in a literal can follow a theme, so an axi-design report
+   dropped into a slate-blue card the moment anything went wrong.
+
+   So they are drawn here through the app's own variables instead, the same way
+   every other surface in AxiBridge is. That is the whole port: with axi-design
+   off these read as the classic app, and with it on the remap in axi-design.css
+   turns --bg-card into the axi surface, --shadow-card into the hard offset
+   block and --border-default into the near-black ink line, with no rule here
+   knowing either language exists. Deliberately no --axi-* token is read from
+   this file; axi-design.css says not to, and doing so would resolve to nothing
+   with the theme off.
+
+   Border WIDTH is the one thing a variable remap cannot reach, because the app
+   declares no width variable - hence var(--panel-border-w, 1px), which is the
+   documented opt-in a surface uses to step up to the axi panel weight. */
+
+.report-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: var(--bg-base);
+    color: var(--text-primary);
+}
+
+.report-shell-card {
+    width: 100%;
+    max-width: 640px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: var(--panel-border-w, 1px) solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    /* The status cap below is flush to the card's edges, so the padding lives
+       on the body rather than here. */
+    padding: 0;
+    overflow: hidden;
+}
+
+/* Rule 5 of the axi language: status colour caps the thing it judges - a short
+   bar across the head of the card, above the value - rather than running down
+   its side. A cap is only drawn where there is real status to report, which is
+   why the loading card has none: "still working" is not a verdict. */
+.report-shell-cap {
+    height: var(--panel-border-w, 3px);
+    min-height: 3px;
+    width: 100%;
+}
+
+.report-shell-cap--error { background: var(--status-error); }
+.report-shell-cap--warning { background: var(--status-warning); }
+
+.report-shell-body { padding: 24px 28px 26px; }
+
+.report-shell-eyebrow {
+    margin: 0 0 8px;
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.report-shell-eyebrow--error { color: var(--status-error); }
+.report-shell-eyebrow--warning { color: var(--status-warning); }
+.report-shell-eyebrow--info { color: var(--status-info); }
+
+.report-shell-title {
+    margin: 0 0 10px;
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+}
+
+.report-shell-text {
+    margin: 0;
+    font-size: var(--font-size-base);
+    line-height: 1.55;
+    color: var(--text-secondary);
+}
+
+/* A well sits back down at page level, so it is outlined by the internal rule
+   rather than the ink line - see the --axi-well-line note in axi-design.css for
+   why an ink outline on a ground-coloured element is invisible. */
+.report-shell-well {
+    margin-top: 18px;
+    padding: 12px 14px;
+    background: var(--bg-card-inner);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+}
+
+.report-shell-message {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    color: var(--text-primary);
+    word-break: break-word;
+}
+
+.report-shell-stack {
+    margin: 10px 0 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: var(--font-size-xs);
+    line-height: 1.45;
+    color: var(--text-muted);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 160px;
+    overflow: auto;
+}
+
+.report-shell-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+}
+
+.report-shell-btn {
+    font-family: inherit;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 9px 16px;
+    border-radius: var(--radius-md, 6px);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border: var(--panel-border-w, 1px) solid var(--border-default);
+    box-shadow: var(--shadow-button);
+    cursor: pointer;
+}
+
+.report-shell-btn:hover { background: var(--bg-hover); }
+
+/* Indeterminate on purpose: the viewer is fetching a single opaque blob from
+   R2 and gets no progress events, so a bar that filled would be a lie. This is
+   a static mark plus a label, which is also why nothing here pulses - the axi
+   language does not animate to say "working". */
+.report-shell-loading {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.report-shell-mark {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    background: var(--brand-primary);
+    border: var(--panel-border-w, 1px) solid var(--border-default);
+    transform: rotate(45deg);
+}
+
+/* Filled means status. The banner carries the warning ink at full strength
+   with dark text on it, rather than the old muted-brown-on-brown pair. */
+.report-shell-banner {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    padding: 10px 16px;
+    background: var(--status-warning);
+    color: var(--bg-base);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-align: center;
+    border-bottom: var(--panel-border-w, 1px) solid var(--border-default);
+}
