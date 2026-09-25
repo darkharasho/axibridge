@@ -9,6 +9,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { dashboardReady } from './dashboardReady';
 
 const fixturePath = path.resolve(process.cwd(), 'tests/fixtures/report.json');
 
@@ -27,7 +28,7 @@ async function gotoReport(page: Page, payload: unknown, hash = '') {
     });
     await page.goto(`/web/index.html?report=test-report${hash}`);
     await expect(
-        page.getByRole('heading', { name: /Statistics Dashboard/i })
+        dashboardReady(page)
     ).toBeVisible({ timeout: 15_000 });
 }
 

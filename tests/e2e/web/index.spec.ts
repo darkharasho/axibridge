@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { dashboardReady } from './dashboardReady';
 
 const fixturePath = path.resolve(process.cwd(), 'tests/fixtures/report.json');
 
@@ -71,7 +72,7 @@ test.describe('Web Report Index (WRPT-030–032)', () => {
         await expect(page.getByText('Commander Alpha')).toBeVisible({ timeout: 10_000 });
         await page.getByText('Commander Alpha').first().click();
         await expect(
-            page.getByRole('heading', { name: /Statistics Dashboard/i })
+            dashboardReady(page)
         ).toBeVisible({ timeout: 15_000 });
     });
 

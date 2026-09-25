@@ -8,6 +8,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { dashboardReady } from './dashboardReady';
 
 const VIEWPORT = { width: 393, height: 852 };
 const fixturePath = path.resolve(process.cwd(), 'tests/fixtures/report.json');
@@ -184,7 +185,7 @@ test.describe('Mobile Layout (MOBL-001–009)', () => {
         });
         await page.goto('/web/index.html?report=test-report');
         await expect(
-            page.getByRole('heading', { name: /Statistics Dashboard/i })
+            dashboardReady(page)
         ).toBeVisible({ timeout: 15_000 });
         // Wait for section load animations
         await page.waitForTimeout(2000);

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { dashboardReady } from './dashboardReady';
 
 const fixturePath = path.resolve(process.cwd(), 'tests/fixtures/report.json');
 
@@ -29,7 +30,7 @@ test.describe('Web Report Themes (WRPT-020–022)', () => {
         });
         await page.goto('/web/index.html?report=test-report');
         await expect(
-            page.getByRole('heading', { name: /Statistics Dashboard/i })
+            dashboardReady(page)
         ).toBeVisible({ timeout: 15_000 });
         await expect(page.locator('body')).toHaveClass(/web-report/);
     });
@@ -50,7 +51,7 @@ test.describe('Web Report Themes (WRPT-020–022)', () => {
             });
             await page.goto('/web/index.html?report=theme-test');
             await expect(
-                page.getByRole('heading', { name: /Statistics Dashboard/i })
+                dashboardReady(page)
             ).toBeVisible({ timeout: 15_000 });
         }
         expect(errors).toHaveLength(0);
@@ -67,7 +68,7 @@ test.describe('Web Report Themes (WRPT-020–022)', () => {
         });
         await page.goto('/web/index.html?report=cyan-test');
         await expect(
-            page.getByRole('heading', { name: /Statistics Dashboard/i })
+            dashboardReady(page)
         ).toBeVisible({ timeout: 15_000 });
         const bodyClasses = await page.locator('body').getAttribute('class');
         expect(bodyClasses).toMatch(/palette-|theme-|refined-cyan/);
