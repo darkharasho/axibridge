@@ -744,9 +744,10 @@ const runLogFile = async (filePath: string, fileId: string, options?: { retry?: 
         });
 
         // Start dps.report upload in parallel (for permalink only) — don't await yet.
-        // Skipped entirely once share links have somewhere to write: the share
-        // link replaces the permalink, so uploading to a third party as well
-        // would be pure waste. See `shouldUploadToDpsReport`.
+        // Runs even when share links have somewhere to write: the permalink backs
+        // the always-on dps.report alt link on every fight row, so skipping it
+        // would leave that column blank. Only `dpsReportEnabled: false` stops it.
+        // See `shouldUploadToDpsReport`.
         const permalinkPromise = uploader && shouldUploadToDpsReport(store)
             ? uploader.upload(filePath).catch((err: any) => {
                 console.warn(`[Main] dps.report parallel upload failed for ${filePath}:`, err?.message || err);
@@ -965,11 +966,11 @@ const runLogFile = async (filePath: string, fileId: string, options?: { retry?: 
                 win?.webContents.send('upload-status', { id: fileId, filePath, status: 'uploading' });
                 result = await uploader.upload(filePath);
             } else {
-                // Share links have somewhere to write, so dps.report is skipped
-                // outright — the same rule the local-parse path applies to its
+                // The user opted out of dps.report entirely, so nothing is
+                // uploaded — the same rule the local-parse path applies to its
                 // parallel upload. This branch used to call `uploader.upload`
-                // unconditionally, which is why `dpsReportEnabled: false` and a
-                // fully configured R2 bucket still produced dps.report traffic.
+                // unconditionally, which is why `dpsReportEnabled: false` still
+                // produced dps.report traffic.
                 //
                 // Nothing downstream tolerates a null result, so synthesise the
                 // record it reads; the share link below supplies the log's URL.

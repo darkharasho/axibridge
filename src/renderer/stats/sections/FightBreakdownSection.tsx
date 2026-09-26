@@ -96,6 +96,34 @@ export const FightBreakdownSection = ({
         );
     };
 
+    // The always-on alt destination. Every row offers dps.report next to our own
+    // share link, so nobody has to choose one in settings — empty only for logs
+    // that were never uploaded there (share-era logs, or an explicit opt-out).
+    const renderDpsReportCell = (fight: any): ReactNode => {
+        const url = typeof fight?.dpsReportUrl === 'string' ? fight.dpsReportUrl.trim() : '';
+        if (!url) {
+            return (
+                <span className="text-[color:var(--text-muted)]" title="Not uploaded to dps.report">--</span>
+            );
+        }
+        return (
+            <button
+                onClick={() => {
+                    if (window.electronAPI?.openExternal) {
+                        window.electronAPI.openExternal(url);
+                    } else {
+                        window.open(url, '_blank');
+                    }
+                }}
+                title="Open on dps.report"
+                aria-label="Open on dps.report"
+                className="text-cyan-300 hover:text-cyan-200 underline underline-offset-2 whitespace-nowrap"
+            >
+                Open
+            </button>
+        );
+    };
+
     const denseColumns = useMemo(() => {
         const base = [
             { id: 'duration', label: 'Duration', align: 'left' as const, minWidth: 72 },
@@ -120,7 +148,8 @@ export const FightBreakdownSection = ({
             { id: 'damageDelta', label: 'Damage Delta', align: 'right' as const, minWidth: 98 },
             { id: 'barrierIn', label: 'Barrier Absorbed', align: 'right' as const, minWidth: 110 },
             { id: 'barrierOut', label: 'Barrier Generated', align: 'right' as const, minWidth: 146 },
-            { id: 'barrierDelta', label: 'Barrier Unused', align: 'right' as const, minWidth: 98 }
+            { id: 'barrierDelta', label: 'Barrier Unused', align: 'right' as const, minWidth: 98 },
+            { id: 'dpsReport', label: 'dps.report', align: 'left' as const, minWidth: 88 }
         ];
         return base;
     }, [teamColorColumns]);
@@ -182,7 +211,8 @@ export const FightBreakdownSection = ({
                     <span className={barrierDelta < 0 ? 'text-emerald-300' : 'text-red-300'}>
                         {barrierDelta.toLocaleString()}
                     </span>
-                )
+                ),
+                dpsReport: renderDpsReportCell(fight)
             };
 
             teamColorColumns.forEach((color) => {
@@ -318,6 +348,7 @@ export const FightBreakdownSection = ({
                                                 </th>
                                             </>
                                         )}
+                                        <th className="text-left py-2 px-3 w-20">dps.report</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -419,6 +450,7 @@ export const FightBreakdownSection = ({
                                                     })()}
                                                 </>
                                             )}
+                                            <td className="py-2 px-3 w-20">{renderDpsReportCell(fight)}</td>
                                         </tr>
                                     ))}
                                 </tbody>

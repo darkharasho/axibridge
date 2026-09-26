@@ -45,18 +45,22 @@ export const shareTargetConfigured = (store: any, hasR2: boolean): boolean => {
 /**
  * Whether to keep uploading this log to dps.report for a permalink.
  *
- * Share links supersede dps.report, so the upload is skipped as soon as sharing
- * has somewhere to write — that is the whole point of the replacement, and it
- * also stops sending every log to a third party the user no longer depends on.
+ * Always, unless the user says otherwise. Share links are the primary
+ * destination, but every fight row also carries an always-on dps.report alt
+ * link (the Fight Breakdown table's far-right column, desktop and published
+ * report alike) — and that column can only point somewhere if the upload ran.
+ * Skipping it once sharing was configured, as this used to, left the alt link
+ * blank for exactly the users who have sharing set up.
  *
- * It is NOT removed outright, for two reasons. A user with neither R2 nor
- * GitHub would otherwise go from "has a link" to "has no link at all". And the
- * share worker rate-limits per account, so a bulk import can exhaust its quota
- * mid-session; `shareIdentity` falls back to the permalink when that happens,
- * but only if a permalink exists. `dpsReportEnabled: false` is the explicit
- * opt-out for users who want it gone regardless, and it wins over everything.
+ * Two older reasons to keep uploading still hold: a user with neither R2 nor
+ * GitHub would otherwise have no link at all, and the share worker rate-limits
+ * per account, so a bulk import can exhaust its quota mid-session —
+ * `shareIdentity` falls back to the permalink when that happens, but only if a
+ * permalink exists.
+ *
+ * `dpsReportEnabled: false` is now the ONLY thing that stops these uploads: the
+ * explicit opt-out for users who do not want their logs going to a third party.
+ * Their alt-link column renders empty, which is the trade they chose.
  */
-export const shouldUploadToDpsReport = (store: any, hasR2: boolean): boolean => {
-    if (store?.get?.('dpsReportEnabled') === false) return false;
-    return !shareTargetConfigured(store, hasR2);
-};
+export const shouldUploadToDpsReport = (store: any, _hasR2: boolean): boolean =>
+    store?.get?.('dpsReportEnabled') !== false;
