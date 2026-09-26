@@ -110,8 +110,28 @@ function buildFightLabelFromDetails(details: any): string | undefined {
     return buildFightLabelV2({ zone, avgPosition: computeFightAvgPosition(details) });
 }
 
-// Increase V8 heap for packaged and dev builds to avoid OOM on large datasets.
-app.commandLine.appendSwitch('js-flags', '--max-old-space-size=6144');
+// Give the renderer a live heap reading. `performance.memory` defaults to a
+// bucketized MemoryInfo: a value rounded to 100,000 bytes and refreshed every
+// twenty minutes, i.e. frozen for a session's purposes. Measured here on
+// 2026-09-25 — 600 MB of live arrays took the renderer to 789 MB of RSS while
+// `usedJSHeapSize` did not budge from 10,000,000 across nine seconds, and the
+// reported limit was 3,760,000,000 against a true 4,395,630,592. The stats
+// worker's payload retention sizes itself from that reading
+// (`logPayloadRetention.ts`), so a frozen reading pinned it at its largest
+// budget and let a 33-log session OOM the renderer. This switch makes the
+// reading track allocation; the module independently refuses to trust a
+// bucketized one, so dropping this degrades retention to a safe fixed budget
+// rather than reintroducing the crash.
+app.commandLine.appendSwitch('enable-precise-memory-info');
+
+// NB: there is deliberately no `--max-old-space-size` here. It used to be set
+// to 6144, which did nothing for the renderer: the switch reaches the renderer
+// process' command line but Chromium sizes a renderer's V8 heap itself from
+// physical memory. Asking for 512 instead produced a byte-identical limit, so
+// the flag was purely decorative while several comments sized caches against
+// the 6144 MB ceiling it implied. The real renderer ceiling on a 32 GB machine
+// measured 4192 MiB, and it varies with installed RAM — which is why retention
+// has to be bounded by a live reading rather than a compile-time constant.
 if (process.platform === 'linux') {
     app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
 }
