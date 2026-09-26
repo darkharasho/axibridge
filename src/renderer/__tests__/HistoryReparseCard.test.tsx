@@ -11,12 +11,14 @@ import { HistoryReparseCard } from '../settings/HistoryReparseCard';
 
 const setApi = (over: Record<string, unknown> = {}) => {
     (window as any).electronAPI = {
-        getLogs: vi.fn().mockResolvedValue([]),
         reparseLogAxilog: vi.fn().mockResolvedValue({ success: true, details: { native: {} } }),
         ...over,
     };
     return (window as any).electronAPI;
 };
+
+/** The card reads the session's logs from the renderer, never over IPC. */
+const stored = (...logs: unknown[]) => () => logs as any[];
 
 const log = (over: Record<string, unknown> = {}) => ({
     id: 'log-1',
@@ -31,20 +33,18 @@ describe('HistoryReparseCard', () => {
     });
 
     it('counts only the logs a re-parse could actually change', async () => {
-        setApi({
-            getLogs: vi.fn().mockResolvedValue([
-                log({ id: 'a', filePath: '/logs/a.zevtc' }),
-                log({ id: 'b', filePath: '/logs/b.evtc', parseSource: 'elite-insights' }),
-                // Already Axilog — nothing to gain.
-                log({ id: 'c', filePath: '/logs/c.zevtc', parseSource: 'axilog' }),
-                // A hand-imported EI JSON: Axilog cannot read it.
-                log({ id: 'd', filePath: '/logs/d.json', parseSource: 'json-import' }),
-                // Source file no longer named at all.
-                log({ id: 'e', filePath: '' }),
-            ]),
-        });
+        setApi();
 
-        render(<HistoryReparseCard />);
+        render(<HistoryReparseCard getStoredLogs={stored(
+            log({ id: 'a', filePath: '/logs/a.zevtc' }),
+            log({ id: 'b', filePath: '/logs/b.evtc', parseSource: 'elite-insights' }),
+            // Already Axilog — nothing to gain.
+            log({ id: 'c', filePath: '/logs/c.zevtc', parseSource: 'axilog' }),
+            // A hand-imported EI JSON: Axilog cannot read it.
+            log({ id: 'd', filePath: '/logs/d.json', parseSource: 'json-import' }),
+            // Source file no longer named at all.
+            log({ id: 'e', filePath: '' }),
+        )} />);
         fireEvent.click(screen.getByTestId('history-reparse-scan'));
 
         await waitFor(() => {
@@ -54,11 +54,9 @@ describe('HistoryReparseCard', () => {
     });
 
     it('says so plainly when there is nothing to re-parse', async () => {
-        setApi({
-            getLogs: vi.fn().mockResolvedValue([log({ parseSource: 'axilog' })]),
-        });
+        setApi();
 
-        render(<HistoryReparseCard />);
+        render(<HistoryReparseCard getStoredLogs={stored(log({ parseSource: 'axilog' }))} />);
         fireEvent.click(screen.getByTestId('history-reparse-scan'));
 
         await waitFor(() => {
@@ -71,16 +69,18 @@ describe('HistoryReparseCard', () => {
         const reparse = vi.fn()
             .mockResolvedValueOnce({ success: true, details: { native: {} } })
             .mockResolvedValueOnce({ success: false, reason: 'source-missing', error: 'File is gone.' });
-        const api = setApi({
-            getLogs: vi.fn().mockResolvedValue([
-                log({ id: 'a', filePath: '/logs/a.zevtc', fightLabel: 'Alpha' }),
-                log({ id: 'b', filePath: '/logs/b.zevtc', fightLabel: 'Bravo' }),
-            ]),
-            reparseLogAxilog: reparse,
-        });
+        const api = setApi({ reparseLogAxilog: reparse });
         const onLogsHealed = vi.fn();
 
-        render(<HistoryReparseCard onLogsHealed={onLogsHealed} />);
+        render(
+            <HistoryReparseCard
+                onLogsHealed={onLogsHealed}
+                getStoredLogs={stored(
+                    log({ id: 'a', filePath: '/logs/a.zevtc', fightLabel: 'Alpha' }),
+                    log({ id: 'b', filePath: '/logs/b.zevtc', fightLabel: 'Bravo' }),
+                )}
+            />
+        );
         fireEvent.click(screen.getByTestId('history-reparse-scan'));
         await waitFor(() => screen.getByTestId('history-reparse-run'));
         fireEvent.click(screen.getByTestId('history-reparse-run'));
@@ -93,6 +93,28 @@ describe('HistoryReparseCard', () => {
             .toEqual(['/logs/a.zevtc', '/logs/b.zevtc']);
         expect(onLogsHealed).toHaveBeenCalledWith(['/logs/a.zevtc']);
         expect(screen.getByText(/Bravo — File is gone\./)).toBeTruthy();
+    });
+
+    it('scans the in-memory list, not the removed get-logs IPC', async () => {
+        // Regression: log persistence was deleted, taking main's `get-logs`
+        // handler with it, so the invoke this card used to await simply
+        // rejected. It sat in a try/finally with no catch, so `setTargets`
+        // never ran and "Check history" was permanently dead. The card now
+        // reads the live renderer list it is rendered beside.
+        setApi();
+        expect((window as any).electronAPI.getLogs).toBeUndefined();
+
+        render(
+            <HistoryReparseCard
+                getStoredLogs={() => [log({ id: 'a', filePath: '/logs/a.zevtc' })]}
+            />
+        );
+        fireEvent.click(screen.getByTestId('history-reparse-scan'));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('history-reparse-run').textContent).toContain('Re-parse 1 log');
+        });
+        expect(screen.getByTestId('history-reparse-scan-result').textContent).toContain('1 of 1');
     });
 
 });
