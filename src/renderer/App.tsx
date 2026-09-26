@@ -31,6 +31,8 @@ import { DetailsCache } from './cache/DetailsCache';
 import { DetailsCacheProvider } from './cache/DetailsCacheContext';
 import { resolveWebhookSaveIntent, reconcileEnabledWebhookIds, toggleEnabledWebhookId, summarizeEnabledDestinations, enabledDestinationsNeedingRelink, describeRelinkWarning } from './app/webhookSaveIntent';
 import type { Webhook } from './WebhookModal';
+import { CrashRecoveryBanner, type CrashRecoveryNotice } from './app/CrashRecoveryBanner';
+import { toCrashSnapshot, restoreFromCrashSnapshot } from './app/crashRecovery';
 
 /** Strip details from log entries — logsForStats is metadata-only. */
 const stripDetailsFromEntries = (entries: ILogData[]): ILogData[] =>
@@ -40,6 +42,10 @@ const stripDetailsFromEntries = (entries: ILogData[]): ILogData[] =>
 
 function App() {
     const [logs, setLogs] = useState<ILogData[]>([]);
+    /** Set when this renderer replaced one that died; drives the recovery notice. */
+    const [crashNotice, setCrashNotice] = useState<CrashRecoveryNotice | null>(null);
+    /** Holds aggregation off restored logs until the user asks for it. */
+    const [statsPausedAfterCrash, setStatsPausedAfterCrash] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
     const canceledLogsRef = useRef<Set<string>>(new Set());
@@ -244,7 +250,62 @@ function App() {
         logsForStats,
         setLogsForStats,
         logsRef,
-    } = useLogsForStats({ logs });
+    } = useLogsForStats({ logs, paused: statsPausedAfterCrash });
+
+    // Claim the session a crashed renderer left behind. Main holds the slim log
+    // list in memory across the reload it performs on `render-process-gone`, so
+    // an OOM no longer looks like the list clearing itself. Consuming read —
+    // main returns it once, so a later manual reload starts clean.
+    useEffect(() => {
+        let cancelled = false;
+        void (async () => {
+            try {
+                const recovery = await window.electronAPI?.takeCrashRecovery?.();
+                if (cancelled || !recovery) return;
+                const restored = restoreFromCrashSnapshot(recovery.logs);
+                // Pause before the list lands: publishing restored logs to
+                // aggregation re-streams every one of them and can exhaust the
+                // heap all over again. Both updates batch into one render, so the
+                // publish effect never observes the logs unpaused.
+                setStatsPausedAfterCrash(restored.length > 0);
+                setLogs(restored);
+                setCrashNotice({ reason: recovery.reason, logCount: restored.length });
+            } catch {
+                // No recovery available, or main is not offering one. A normal boot.
+            }
+        })();
+        return () => { cancelled = true; };
+    }, []);
+
+    // Keep main's in-memory copy current. Debounced because status churn during
+    // bulk ingestion changes `logs` constantly and every push is a structured
+    // clone across IPC — slim, but not free.
+    const snapshotTimerRef = useRef<number | null>(null);
+    useEffect(() => {
+        if (!window.electronAPI?.rememberSessionLogs) return;
+        if (snapshotTimerRef.current !== null) window.clearTimeout(snapshotTimerRef.current);
+        snapshotTimerRef.current = window.setTimeout(() => {
+            snapshotTimerRef.current = null;
+            try {
+                window.electronAPI?.rememberSessionLogs?.(toCrashSnapshot(logs));
+            } catch { /* main gone; nothing to recover into anyway */ }
+        }, 1000);
+        return () => {
+            if (snapshotTimerRef.current !== null) {
+                window.clearTimeout(snapshotTimerRef.current);
+                snapshotTimerRef.current = null;
+            }
+        };
+    }, [logs]);
+
+    const handleCrashRecompute = useCallback(() => {
+        setStatsPausedAfterCrash(false);
+        setCrashNotice(null);
+    }, []);
+
+    const handleCrashDismiss = useCallback(() => {
+        setCrashNotice(null);
+    }, []);
 
     const excludedFightKeys = useStatsStore((s) => s.excludedFightKeys);
     // The aggregation input, after the ephemeral fight slice. Filtering *after*
@@ -1037,6 +1098,11 @@ function App() {
                 }
             }}
         >
+            <CrashRecoveryBanner
+                notice={crashNotice}
+                onRecompute={handleCrashRecompute}
+                onDismiss={handleCrashDismiss}
+            />
             <div className="flex items-center justify-between mb-3 pb-2 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
                 <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                     <FileText className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />

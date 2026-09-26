@@ -350,6 +350,23 @@ let autoUpdateRetryAttempts = 0;
 let autoUpdateRetryTimer: NodeJS.Timeout | null = null;
 let resolvedRetryCount = 0;
 const activeUploads = new Set<string>();
+
+/**
+ * Latest slim log list pushed by the renderer, held in memory so it can outlive
+ * a renderer crash. Deliberately never written to disk: logs are intentionally
+ * non-persistent (see the boot-time `store.delete('logs')` below), and this
+ * exists only so an OOM reload does not look to the user like the list wiping
+ * itself. A normal quit takes it with the process. Shape is owned by
+ * `src/renderer/app/crashRecovery.ts`; main treats it as opaque.
+ */
+let sessionLogSnapshot: unknown[] = [];
+
+/**
+ * Set when the renderer dies abnormally and cleared by the first
+ * `take-crash-recovery` call from the replacement renderer, so a recovery is
+ * offered exactly once per crash.
+ */
+let pendingCrashRecovery: { reason: string; exitCode: number; at: number } | null = null;
 const recentDiscordSends = new Map<string, number>();
 const DISCORD_DEDUPE_TTL_MS = 2 * 60 * 1000;
 let discordNoWebhookLogAt = 0;
@@ -1516,6 +1533,13 @@ function createWindow() {
         console.error(msg1);
         console.error(msg2);
         console.error(msg3);
+        // A reload from here brings the window back with an empty log list. Flag
+        // the crash so the replacement renderer can restore the session and say
+        // what happened, instead of the list appearing to clear itself.
+        // 'clean-exit' reaches this event during shutdown and is not a crash.
+        if (details.reason !== 'clean-exit') {
+            pendingCrashRecovery = { reason: details.reason, exitCode: details.exitCode, at: Date.now() };
+        }
         if (!app.isPackaged) {
             win?.loadURL(VITE_DEV_SERVER_URL);
         } else {
@@ -1757,7 +1781,27 @@ if (!gotTheLock) {
             resolvedRetryCount = 0;
         }
 
-        // Removed get-logs and save-logs handlers
+        // Removed get-logs and save-logs handlers.
+        //
+        // Crash recovery is not persistence and does not reinstate them: the
+        // snapshot lives in this process' memory only, so it survives a renderer
+        // OOM (a different process) and dies with a normal quit.
+        ipcMain.on('remember-session-logs', (_event, snapshot: unknown[]) => {
+            sessionLogSnapshot = Array.isArray(snapshot) ? snapshot : [];
+        });
+
+        // Consuming read: returns the snapshot once per crash, so a later reload
+        // or a manual refresh does not resurrect a list the user has moved on
+        // from. Returns null on a normal boot, which is the overwhelming case.
+        ipcMain.handle('take-crash-recovery', () => {
+            if (!pendingCrashRecovery) return null;
+            const recovery = { ...pendingCrashRecovery, logs: sessionLogSnapshot };
+            pendingCrashRecovery = null;
+            const msg = `[Main] Handing ${recovery.logs.length} logs back to the renderer after a ${recovery.reason} crash.`;
+            log.info(msg);
+            console.log(msg);
+            return recovery;
+        });
 
         // Renderer error reporting — catches errors from AppErrorBoundary and
         // unhandled exceptions/rejections in the renderer process so they appear

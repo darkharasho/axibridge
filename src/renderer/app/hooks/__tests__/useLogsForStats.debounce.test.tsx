@@ -165,3 +165,55 @@ describe('useLogsForStats adaptive debounce', () => {
         expect(result.current.logsForStats).toHaveLength(3);
     });
 });
+
+describe('useLogsForStats crash-recovery pause', () => {
+    beforeEach(() => { vi.useFakeTimers(); });
+    afterEach(() => { vi.useRealTimers(); });
+
+    /**
+     * Restoring a recovered log list republishes it to aggregation, which
+     * re-streams every log through the worker and rebuilds the payload set that
+     * just exhausted the renderer's heap. Unpaused, recovery re-triggers the
+     * crash it recovered from, and the user watches the list appear and vanish
+     * on a loop.
+     */
+    it('does not publish restored logs while paused', () => {
+        const restored = ['a', 'b', 'c'].map((id) => makeLog(id, 'success', 'idle'));
+        const { result, rerender } = renderHook(
+            ({ logs, paused }) => useLogsForStats({ logs, paused }),
+            { initialProps: { logs: [] as any[], paused: true } }
+        );
+        rerender({ logs: restored, paused: true });
+        act(() => { vi.advanceTimersByTime(5000); });
+        expect(result.current.logsForStats).toHaveLength(0);
+    });
+
+    it('publishes once the pause is lifted, without needing the list to change', () => {
+        const restored = ['a', 'b', 'c'].map((id) => makeLog(id, 'success', 'loaded'));
+        const { result, rerender } = renderHook(
+            ({ logs, paused }) => useLogsForStats({ logs, paused }),
+            { initialProps: { logs: [] as any[], paused: true } }
+        );
+        rerender({ logs: restored, paused: true });
+        act(() => { vi.advanceTimersByTime(5000); });
+        expect(result.current.logsForStats).toHaveLength(0);
+
+        rerender({ logs: restored, paused: false });
+        act(() => { vi.advanceTimersByTime(450); });
+        expect(result.current.logsForStats).toHaveLength(3);
+    });
+
+    /** A publish scheduled just before the pause began must not still land. */
+    it('cancels a publish already in flight when the pause begins', () => {
+        const logs = [makeLog('a', 'success', 'loaded')];
+        const { result, rerender } = renderHook(
+            ({ logs, paused }) => useLogsForStats({ logs, paused }),
+            { initialProps: { logs: [] as any[], paused: false } }
+        );
+        rerender({ logs, paused: false });
+        act(() => { vi.advanceTimersByTime(200); });   // mid-debounce
+        rerender({ logs, paused: true });
+        act(() => { vi.advanceTimersByTime(5000); });
+        expect(result.current.logsForStats).toHaveLength(0);
+    });
+});

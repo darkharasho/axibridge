@@ -6,9 +6,20 @@ import { shareIdentity } from '../../../shared/shareIdentity';
 
 interface UseLogsForStatsOptions {
     logs: ILogData[];
+    /**
+     * Hold publishing to aggregation while true.
+     *
+     * Used after a renderer crash is recovered. Restoring the log list
+     * republishes it here, which re-streams every log through the worker and
+     * rebuilds the same multi-megabyte payload set that just exhausted the
+     * renderer's heap — i.e. the recovery would re-trigger the crash it is
+     * recovering from, in a loop. The list comes back immediately; aggregation
+     * waits for the user to ask.
+     */
+    paused?: boolean;
 }
 
-export function useLogsForStats({ logs }: UseLogsForStatsOptions) {
+export function useLogsForStats({ logs, paused = false }: UseLogsForStatsOptions) {
     const detailsCache = useContext(DetailsCacheContext);
 
     const [logsForStats, setLogsForStats] = useState<ILogData[]>(logs);
@@ -126,7 +137,11 @@ export function useLogsForStats({ logs }: UseLogsForStatsOptions) {
     useEffect(() => {
         if (publishTimerRef.current !== null) {
             window.clearTimeout(publishTimerRef.current);
+            publishTimerRef.current = null;
         }
+        // Clearing the timer above matters as much as not setting a new one: a
+        // publish already scheduled when the pause began must not land.
+        if (paused) return;
         const pendingCount = logs.reduce(
             (count, log) => (isLogPendingIngestion(log) ? count + 1 : count),
             0
@@ -136,7 +151,7 @@ export function useLogsForStats({ logs }: UseLogsForStatsOptions) {
             publishTimerRef.current = null;
             publishLogsForStats(logsRef.current);
         }, debounceMs);
-    }, [logs, publishLogsForStats]);
+    }, [logs, publishLogsForStats, paused]);
 
     useEffect(() => {
         return () => {
