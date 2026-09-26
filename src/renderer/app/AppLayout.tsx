@@ -59,6 +59,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
         aggregationDiagnostics,
         axilogCoverage,
         handleLogsHealed,
+        getStoredLogs,
         statsDataProgress,
         setStatsViewSettings,
         setColorPalette,
@@ -478,6 +479,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 howToTrigger={howToTrigger}
                                 onHowToConsumed={handleHowToConsumed}
                                 onLogsHealed={handleLogsHealed}
+                                getStoredLogs={getStoredLogs}
                                 onOpenWalkthrough={() => setWalkthroughOpen(true)}
                                 onOpenWhatsNew={() => setWhatsNewOpen(true)}
                                 isBulkUploadActive={isBulkUploadActive}
