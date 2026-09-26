@@ -451,8 +451,16 @@ export interface IElectronAPI {
         error?: string;
     }>;
     onDetailsPrewarm?: (callback: (data: any) => void) => (() => void);
-    getLogs: () => Promise<ILogData[]>;
-    saveLogs: (logs: ILogData[]) => void;
+    /** Hand main the slim log list to hold in memory for crash recovery.
+     *  In-memory only — logs remain non-persistent across a quit. */
+    rememberSessionLogs?: (snapshot: import('./app/crashRecovery').SlimLogRecord[]) => void;
+    /** Claim the session left behind by a crashed renderer; null on a normal boot. */
+    takeCrashRecovery?: () => Promise<{
+        reason: string;
+        exitCode: number;
+        at: number;
+        logs: unknown[];
+    } | null>;
     // Auto Updater
     checkForUpdates: () => void;
     restartApp: () => void;

@@ -7,8 +7,11 @@
  * detail graphs. Two perf caches used to defeat that: the hook memoised one
  * pruned payload per log (growing to `logs.length`) and the worker retained a
  * structured-clone of each. At roughly 55 MB of V8 heap per pruned log, a
- * 66-log set held ~7 GB across the two copies and blew the renderer's 6144 MB
- * ceiling — the OOM crash reported for large WvW sessions.
+ * 66-log set held ~7 GB across the two copies and blew the renderer's heap
+ * ceiling — the OOM crash reported for large WvW sessions. That ceiling is
+ * Chromium's own, sized from installed RAM (4192 MiB on a 32 GB machine) and
+ * *not* settable by `--max-old-space-size`; earlier revisions of this comment
+ * cited a 6144 MB limit that never existed.
  *
  * Why pressure and not a count: the fast path matters. During bulk ingestion
  * every publish restarts the worker and re-streams every log (see the debounce
@@ -46,21 +49,54 @@ export const RETENTION_TIERS = {
     min: 8,
     /** Used when no heap reading is available (non-Chromium, or API removed). */
     fallback: 24,
-    // Thresholds are deliberately low. `performance.memory` is per-isolate, so a
-    // reading taken on the renderer's main thread does NOT include the stats
-    // worker's isolate — which holds a comparable set of cloned payloads in the
-    // same process, against the same ceiling. Treat the reading as roughly half
-    // of the true footprint and start trimming early: by the time the main
-    // isolate alone reports 40% of its limit, the process is near 80%.
+    // Thresholds are deliberately low. `performance.memory` is per-isolate: the
+    // ratio is an honest reading of the main thread's own heap against its own
+    // limit, but it says nothing about the stats worker's isolate, which holds a
+    // comparable set of cloned payloads. Trimming early covers both the worker
+    // running out of its own heap unseen and the two isolates together
+    // exhausting physical memory, neither of which this reading can show.
     softPressure: 0.25,
     highPressure: 0.40,
 } as const;
 
 /**
+ * Bucket size Blink rounds every field of a *bucketized* `MemoryInfo` to.
+ *
+ * Chromium serves `performance.memory` at one of two precisions. Precise
+ * readings are live and unrounded. Bucketized readings — the default — are a
+ * cached value rounded to this bucket and refreshed only every twenty minutes,
+ * which for our purposes means never: measured in a real renderer, allocating
+ * 600 MB of live arrays took the process to 789 MB of RSS while
+ * `usedJSHeapSize` sat unchanged at 10,000,000 for nine seconds. The reported
+ * limit is rounded too, and wrongly — 3,760,000,000 against a true
+ * 4,395,630,592 — so a bucketized reading is off in both numerator and
+ * denominator.
+ */
+const MEMORY_INFO_BUCKET_BYTES = 100_000;
+
+/**
+ * Whether a reading carries the bucketized fingerprint, i.e. is a stale cache
+ * entry rather than a measurement.
+ *
+ * Both fields must be bucket-aligned. A precise reading hitting one boundary by
+ * chance is a 1-in-100,000 event that self-corrects on the next sample; hitting
+ * both at once is not worth defending against, and a real V8 heap limit is a
+ * multiple of a mebibyte, which is only bucket-aligned at implausible sizes.
+ */
+const isBucketizedReading = (used: number, limit: number): boolean =>
+    used % MEMORY_INFO_BUCKET_BYTES === 0 && limit % MEMORY_INFO_BUCKET_BYTES === 0;
+
+/**
  * Renderer heap utilisation as a 0..1 ratio, or `null` when unavailable.
  *
- * `performance.memory` is a non-standard Chromium API and its values are
- * quantised for security, which is immaterial at the GB scale we act on.
+ * A bucketized reading counts as unavailable. It has to: it is a finite number,
+ * so without this check `budget()` skips its `fallback` branch *and* every
+ * pressure branch and returns `max` unconditionally — the failure that let a
+ * 33-log session OOM a renderer despite this module being in place. Callers
+ * that want the real signal must run with `--enable-precise-memory-info`
+ * (AxiBridge sets it in `src/main/index.ts`); everything else gets the
+ * conservative fallback budget, which is the correct answer when the only
+ * available reading cannot be trusted.
  */
 export const readHeapPressure = (
     perf: Performance | undefined = typeof performance !== 'undefined' ? performance : undefined
@@ -69,6 +105,7 @@ export const readHeapPressure = (
     const used = Number(memory?.usedJSHeapSize);
     const limit = Number(memory?.jsHeapSizeLimit);
     if (!Number.isFinite(used) || !Number.isFinite(limit) || limit <= 0) return null;
+    if (isBucketizedReading(used, limit)) return null;
     return used / limit;
 };
 

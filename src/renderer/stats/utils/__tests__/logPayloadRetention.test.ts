@@ -24,8 +24,10 @@ describe('readHeapPressure', () => {
     });
 
     it('reports used/limit utilisation', () => {
+        // Deliberately not bucket-aligned: a reading rounded to a 100,000-byte
+        // bucket is Blink's stale cached value and reads as unavailable.
         const pressure = readHeapPressure({
-            memory: { usedJSHeapSize: 3_000_000_000, jsHeapSizeLimit: 6_000_000_000 },
+            memory: { usedJSHeapSize: 2_197_815_296, jsHeapSizeLimit: 4_395_630_592 },
         } as any);
         expect(pressure).toBeCloseTo(0.5, 5);
     });
@@ -126,7 +128,8 @@ describe('regression: bulk ingestion retention ceiling', () => {
      * payload per log on the main thread (prunedLogCacheRef grew to logs.length)
      * plus a structured-clone per log in the worker, defeating the 15-entry
      * DetailsCache LRU. At ~55 MB of V8 heap per pruned log, 66 logs x 2 copies
-     * exceeded the 6144 MB renderer ceiling.
+     * exceeded the renderer's heap ceiling (Chromium's own, measured at
+     * 4192 MiB on a 32 GB machine).
      */
     it('never retains more than the high-pressure budget while heap is stressed', () => {
         const cache = cacheAt(0.85);
@@ -137,5 +140,46 @@ describe('regression: bulk ingestion retention ceiling', () => {
         expect(cache.size).toBeLessThanOrEqual(RETENTION_TIERS.min);
         // Everything trimmed was reported, so the worker store shrinks in step.
         expect(forgotten.length).toBe(66 - RETENTION_TIERS.min);
+    });
+});
+
+describe('regression: inert bucketized heap reading', () => {
+    /**
+     * Measured in a real Electron renderer (2026-09-25): without
+     * `--enable-precise-memory-info`, Blink serves a cached, bucketized
+     * MemoryInfo. 600 MB of live arrays took the renderer's OS RSS to 789 MB
+     * while `usedJSHeapSize` stayed pinned at 10,000,000 for nine seconds.
+     *
+     * Because that reading is a finite number, `budget()` skipped both the
+     * `fallback` branch and every pressure branch and returned `max` (80)
+     * unconditionally — the valve this module exists to provide had never once
+     * closed, and the renderer OOMed at ~33 logs.
+     *
+     * Bucketized readings are detectable: every field is rounded to a
+     * 100,000-byte bucket, and the reported limit is wrong too
+     * (3,760,000,000 against a true 4,395,630,592). A bucketed reading is a
+     * stale cache entry, not a measurement, so it must read as unavailable.
+     */
+    const BUCKETIZED = { memory: { usedJSHeapSize: 10_000_000, jsHeapSizeLimit: 3_760_000_000 } };
+
+    it('treats a bucket-rounded reading as unavailable', () => {
+        expect(readHeapPressure(BUCKETIZED as any)).toBeNull();
+    });
+
+    it('still reads a precise, unrounded reading', () => {
+        // Real precise-mode sample from the same probe run.
+        const pressure = readHeapPressure({
+            memory: { usedJSHeapSize: 22_850_855, jsHeapSizeLimit: 4_395_630_592 },
+        } as any);
+        expect(pressure).toBeCloseTo(22_850_855 / 4_395_630_592, 6);
+    });
+
+    it('never grants the max budget on a bucketized reading', () => {
+        const cache = new LogPayloadCache({
+            readPressure: () => readHeapPressure(BUCKETIZED as any),
+        });
+        for (let i = 0; i < 200; i++) cache.set(`log-${i}`, makeEntry(`log-${i}`));
+        expect(cache.size).toBe(RETENTION_TIERS.fallback);
+        expect(cache.size).toBeLessThan(RETENTION_TIERS.max);
     });
 });

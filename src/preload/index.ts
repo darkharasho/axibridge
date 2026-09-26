@@ -68,8 +68,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return () => ipcRenderer.removeAllListeners('upload-retry-queue-updated')
     },
     saveSettings: (settings: any) => ipcRenderer.send('save-settings', settings),
-    getLogs: () => ipcRenderer.invoke('get-logs'),
-    saveLogs: (logs: any[]) => ipcRenderer.send('save-logs', logs),
+    // No getLogs/saveLogs: logs are deliberately not persisted, and main has
+    // had no 'get-logs'/'save-logs' handler since that was removed. Keeping the
+    // bridge methods around left callers awaiting an invoke that only ever
+    // rejects, which is exactly how the history re-parse scan went dead.
+    /** Hand main the slim log list to hold in memory for crash recovery. */
+    rememberSessionLogs: (snapshot: any[]) => ipcRenderer.send('remember-session-logs', snapshot),
+    /** Claim the session left behind by a crashed renderer. Null on a normal boot. */
+    takeCrashRecovery: () => ipcRenderer.invoke('take-crash-recovery'),
     openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
     openMobilePreview: (url: string) => ipcRenderer.invoke('open-mobile-preview', url),
     fetchImageAsDataUrl: (url: string) => ipcRenderer.invoke('fetch-image-data-url', url),

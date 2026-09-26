@@ -4,7 +4,7 @@
  *
  * The banner can only offer what the current stats selection contains. A user
  * whose old fights never enter a stats view has no way to reach them from
- * there, so the full-history entry point lives here, in Settings, next to the
+ * there, so the full-session entry point lives here, in Settings, next to the
  * engine picker that created the gap.
  *
  * It stays a two-step action on purpose: scan, then confirm against a real
@@ -36,8 +36,15 @@ const needsReparse = (log: any): boolean => {
 
 export function HistoryReparseCard({
     onLogsHealed,
+    getStoredLogs,
 }: {
     onLogsHealed?: (filePaths: string[]) => void;
+    /**
+     * Reads the renderer's current log list. A getter rather than a prop value
+     * so Settings does not re-render on every log change, and so a scan always
+     * sees the list as it is at the moment the button is pressed.
+     */
+    getStoredLogs?: () => any[];
 }) {
     const detailsCache = useContext(DetailsCacheContext);
     const { healState, heal } = useAxilogHeal({ detailsCache, onLogsHealed });
@@ -48,16 +55,22 @@ export function HistoryReparseCard({
     const scan = useCallback(async () => {
         setScanning(true);
         try {
-            // The persisted list, not the in-memory selection — "history" here
-            // means everything the app has kept, which is the whole point of
-            // this card existing alongside the banner.
-            const logs = (await window.electronAPI?.getLogs?.()) || [];
+            // The whole session's logs, not the current stats selection —
+            // "history" here means everything the app is holding, which is the
+            // point of this card existing alongside the banner.
+            //
+            // This used to await `electronAPI.getLogs()`. Log persistence was
+            // removed and took main's `get-logs` handler with it, so that
+            // invoke rejected — inside a try/finally with no catch, which left
+            // this button silently dead. Logs now live only in the renderer, so
+            // that is where the list is read from.
+            const logs = getStoredLogs?.() || [];
             setScanned(logs.length);
             setTargets(logs.filter(needsReparse).map(toCoverageLog));
         } finally {
             setScanning(false);
         }
-    }, []);
+    }, [getStoredLogs]);
 
     const busy = healState.running;
 
