@@ -220,3 +220,58 @@ describe('ingestLogFightBreakdown report link', () => {
         expect(fb.permalink).toBe('https://dps.report/legacy');
     });
 });
+
+describe('ingestLogFightBreakdown dps.report alt link', () => {
+    // The Fight Breakdown table's far-right column links out to dps.report
+    // alongside our own share link, so the row needs BOTH URLs baked onto it —
+    // `permalink` (identity, via shareIdentity) and a dps.report-only field that
+    // never picks up a share link.
+    const mkLinkLog = (link: Record<string, unknown>, details: Record<string, unknown> = {}) => ({
+        filePath: 'f1',
+        ...link,
+        details: {
+            durationMS: 10000,
+            players: [{ notInSquad: false, teamID: 50, dpsAll: [{ damage: 0 }], defenses: [{}], statsAll: [{}] }],
+            targets: [],
+            ...details,
+        },
+    });
+
+    it('carries the dps.report permalink next to the share link', () => {
+        const fb = ingestLogFightBreakdown(mkLinkLog({
+            shareUrl: 'https://bridge.axi.link/r/abc123',
+            permalink: 'https://dps.report/legacy',
+        }), 0);
+        expect(fb.permalink).toBe('https://bridge.axi.link/r/abc123');
+        expect(fb.dpsReportUrl).toBe('https://dps.report/legacy');
+    });
+
+    // Otherwise the row would render the same URL twice — once as the report
+    // link and once as the alt link.
+    it('is empty when the primary link already IS the dps.report permalink', () => {
+        const fb = ingestLogFightBreakdown(mkLinkLog({ permalink: 'https://dps.report/legacy' }), 0);
+        expect(fb.permalink).toBe('https://dps.report/legacy');
+        expect(fb.dpsReportUrl).toBe('');
+    });
+
+    it('is empty for a share-era log that was never uploaded to dps.report', () => {
+        const fb = ingestLogFightBreakdown(mkLinkLog({ shareUrl: 'https://bridge.axi.link/r/abc123' }), 0);
+        expect(fb.dpsReportUrl).toBe('');
+    });
+
+    it('never reports the share link as a dps.report link', () => {
+        const fb = ingestLogFightBreakdown(mkLinkLog(
+            { shareUrl: 'https://bridge.axi.link/r/abc123' },
+            { permalink: 'https://bridge.axi.link/r/abc123' }
+        ), 0);
+        expect(fb.dpsReportUrl).toBe('');
+    });
+
+    it('falls back to uploadLinks when the permalink never landed on the log', () => {
+        const fb = ingestLogFightBreakdown(mkLinkLog(
+            { shareUrl: 'https://bridge.axi.link/r/abc123' },
+            { uploadLinks: [{ permalink: 'https://dps.report/from-upload' }] }
+        ), 0);
+        expect(fb.dpsReportUrl).toBe('https://dps.report/from-upload');
+    });
+});

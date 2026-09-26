@@ -55,9 +55,12 @@ describe('shareTargetConfigured', () => {
 describe('shouldUploadToDpsReport', () => {
     const shareable = { githubToken: 'ghp_x', githubRepoName: 'wvw-reports' };
 
-    it('stops uploading once sharing has somewhere to write', () => {
-        expect(shouldUploadToDpsReport(storeOf(shareable), false)).toBe(false);
-        expect(shouldUploadToDpsReport(storeOf({}), true)).toBe(false);
+    // Every fight row carries an always-on dps.report alt link, so the upload has
+    // to keep running even once sharing has somewhere to write — otherwise there
+    // is no permalink for that column to point at.
+    it('keeps uploading even when sharing has somewhere to write', () => {
+        expect(shouldUploadToDpsReport(storeOf(shareable), false)).toBe(true);
+        expect(shouldUploadToDpsReport(storeOf({}), true)).toBe(true);
     });
 
     // The regression this guards: a user with neither R2 nor GitHub must not go
@@ -70,8 +73,10 @@ describe('shouldUploadToDpsReport', () => {
         expect(shouldUploadToDpsReport(storeOf({}), false)).toBe(true);
     });
 
-    it('honours an explicit opt-out even with no share target', () => {
+    // The toggle is now the ONLY thing that stops these uploads.
+    it('honours an explicit opt-out, share target or not', () => {
         expect(shouldUploadToDpsReport(storeOf({ dpsReportEnabled: false }), false)).toBe(false);
+        expect(shouldUploadToDpsReport(storeOf({ ...shareable, dpsReportEnabled: false }), true)).toBe(false);
     });
 
     it('only treats a literal false as opting out, not any falsy value', () => {

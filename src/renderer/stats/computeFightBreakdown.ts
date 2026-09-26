@@ -8,15 +8,7 @@ import { computeSquadBarrier } from '../../shared/combatMetrics';
 import { shareIdentity } from '../../shared/shareIdentity';
 import { getEncounterDurationMs, parseEncounterDurationMs } from '@axiapps/bridge-metrics';
 
-// Which link this fight row opens. `shareIdentity` prefers our own share link
-// and falls back to the dps.report permalink, the same order the log card and
-// the Discord embed use. It has to be asked FIRST: since share links shipped,
-// the dps.report upload is skipped whenever sharing has somewhere to write, so
-// a freshly-parsed log has a `shareUrl` and no `permalink` at all — and a row
-// that only looked at `permalink` rendered every fight as "Pending".
-const resolvePermalink = (details: any, log: any): string => {
-    const direct = shareIdentity(log) || shareIdentity(details);
-    if (typeof direct === 'string' && direct.trim().length > 0) return direct.trim();
+const firstUploadLink = (details: any): string => {
     const uploadLinks = details?.uploadLinks;
     if (!Array.isArray(uploadLinks)) return '';
     for (const entry of uploadLinks) {
@@ -27,6 +19,29 @@ const resolvePermalink = (details: any, log: any): string => {
         }
     }
     return '';
+};
+
+// Which link this fight row opens. `shareIdentity` prefers our own share link
+// and falls back to the dps.report permalink, the same order the log card and
+// the Discord embed use. It has to be asked FIRST: since share links shipped,
+// the dps.report upload is skipped whenever sharing has somewhere to write, so
+// a freshly-parsed log has a `shareUrl` and no `permalink` at all — and a row
+// that only looked at `permalink` rendered every fight as "Pending".
+const resolvePermalink = (details: any, log: any): string => {
+    const direct = shareIdentity(log) || shareIdentity(details);
+    if (typeof direct === 'string' && direct.trim().length > 0) return direct.trim();
+    return firstUploadLink(details);
+};
+
+// The far-right "dps.report" column's link. Deliberately NOT `shareIdentity`:
+// this one only ever reports a dps.report permalink, so the row can offer both
+// destinations at once. Left empty when the primary link is already that same
+// permalink (a pre-share-era log), so the row never shows one URL twice.
+const resolveDpsReportUrl = (details: any, log: any, primary: string): string => {
+    const own = typeof log?.permalink === 'string' ? log.permalink.trim() : '';
+    const nested = typeof details?.permalink === 'string' ? details.permalink.trim() : '';
+    const url = own || nested || firstUploadLink(details);
+    return url && url !== primary ? url : '';
 };
 
 const resolveFightDurationLabel = (details: any, log: any): string => {
@@ -131,11 +146,14 @@ export function ingestLogFightBreakdown(log: any, fightIndex: number) {
         avgPosition: computeFightAvgPosition(details),
     });
 
+    const permalink = resolvePermalink(details, log);
+
     return {
         id: log.filePath || `fight-${fightIndex}`,
         label: log.encounterName || `Fight ${fightIndex + 1}`,
         fullLabel,
-        permalink: resolvePermalink(details, log),
+        permalink,
+        dpsReportUrl: resolveDpsReportUrl(details, log, permalink),
         timestamp,
         mapName,
         duration: resolveFightDurationLabel(details, log),

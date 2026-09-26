@@ -2920,7 +2920,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 enabled={dpsReportEnabled}
                                 onChange={setDpsReportEnabled}
                                 label="Also upload to dps.report"
-                                description="AxiBridge share links have replaced dps.report, and uploads stop automatically once sharing has somewhere to store reports. Leave this on to keep a dps.report permalink as a fallback for logs that cannot be shared; turn it off to stop sending logs to dps.report entirely."
+                                description="AxiBridge share links are the primary report link, but every fight row also gets a dps.report link in the Fight Breakdown table, so logs keep uploading there for the permalink. Turn this off to stop sending logs to dps.report entirely — those fights will have no dps.report link."
                             />
                         </div>
                         <p className="text-sm text-gray-400 mb-4">

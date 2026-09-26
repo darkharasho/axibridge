@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect } from 'vitest';
 import { FightBreakdownSection } from '../stats/sections/FightBreakdownSection';
 import { StatsSharedContext } from '../stats/StatsViewContext';
@@ -81,5 +82,51 @@ describe('FightBreakdownSection', () => {
         );
 
         expect(screen.getByText(/^Unknown$/i)).toBeInTheDocument();
+    });
+
+    // The alt link is always on: every fight row offers dps.report alongside our
+    // own share link, so a reader who prefers dps.report never needs a setting.
+    const renderFight = (fight: Record<string, unknown>) => render(
+        <StatsSharedContext.Provider value={makeContextValue({ fightBreakdown: [fight] })}>
+            <FightBreakdownSection
+                fightBreakdownTab="sizes"
+                setFightBreakdownTab={() => {}}
+            />
+        </StatsSharedContext.Provider>
+    );
+
+    it('opens the dps.report permalink from its own column', async () => {
+        const opened: string[] = [];
+        // In Electron the link goes through openExternal, not a renderer tab.
+        (window as any).electronAPI = { openExternal: (url: string) => { opened.push(url); } };
+        renderFight({
+            id: 'fight-alt',
+            label: 'Fight Alt',
+            permalink: 'https://bridge.axi.link/r/abc123',
+            dpsReportUrl: 'https://dps.report/alt-link',
+            timestamp: 1700000020,
+            mapName: 'Red Desert Borderlands',
+            duration: '02:00',
+            isWin: true
+        });
+
+        await userEvent.click(screen.getByRole('button', { name: /open on dps\.report/i }));
+        expect(opened).toEqual(['https://dps.report/alt-link']);
+    });
+
+    it('shows a placeholder when the fight was never uploaded to dps.report', () => {
+        renderFight({
+            id: 'fight-noalt',
+            label: 'Fight No Alt',
+            permalink: 'https://bridge.axi.link/r/abc123',
+            dpsReportUrl: '',
+            timestamp: 1700000030,
+            mapName: 'Red Desert Borderlands',
+            duration: '02:00',
+            isWin: true
+        });
+
+        expect(screen.queryByRole('button', { name: /open on dps\.report/i })).toBeNull();
+        expect(screen.getByTitle('Not uploaded to dps.report')).toBeInTheDocument();
     });
 });
