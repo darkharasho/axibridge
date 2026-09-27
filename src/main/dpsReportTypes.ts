@@ -63,7 +63,18 @@ export interface Player {
     dpsTargets?: StatsTarget[][];
     defenses: Defenses[];
     support: Support[];
-    rotation?: Array<{ id: number; skills?: number[] }>;
+    rotation?: Array<{
+        id: number;
+        skills?: Array<{
+            /** ms from fight start. Negative when the cast began before the log did. */
+            castTime: number;
+            duration: number;
+            /** `-duration` exactly when the cast was interrupted or cancelled. */
+            timeGained: number;
+            /** Not stored in reports — see computeRotationTimeline.ts. */
+            quickness?: number;
+        }>;
+    }>;
     extHealingStats?: {
         outgoingHealingAllies?: { healing: number; downedHealing?: number }[][];
     };

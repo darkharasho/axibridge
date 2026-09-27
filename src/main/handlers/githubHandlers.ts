@@ -1068,6 +1068,11 @@ const buildWebReportPayload = (
         { label: 'boonTimeline', apply: () => clearArray(stats, 'boonTimeline') },
         { label: 'boonUptimeTimeline', apply: () => clearArray(stats, 'boonUptimeTimeline') },
         { label: 'controlTimelineDrilldown', apply: () => clearArray((stats as any).controlTimelineDrilldown, 'fights') },
+        // Deliberately here and not near the front: replayFights leads because
+        // it is ~66% of report.json, while rotation is ~200 KB gzipped for a
+        // session — dropping it early would cost the feature to save almost
+        // nothing.
+        { label: 'rotationTimelineDrilldown', apply: () => clearArray((stats as any).rotationTimelineDrilldown, 'fights') },
         { label: 'specialTables', apply: () => clearArray(stats, 'specialTables') },
         { label: 'fightDiffMode', apply: () => clearArray(stats, 'fightDiffMode') },
         { label: 'outgoingConditionPlayers', apply: () => clearArray(stats, 'outgoingConditionPlayers') },
