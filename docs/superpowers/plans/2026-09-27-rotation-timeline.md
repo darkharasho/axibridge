@@ -18,9 +18,17 @@
 - Test fixtures are read with `readFileSync` + `JSON.parse`, NEVER a static `import` — a static import of a large fixture OOMs `tsc --noEmit` at 8 GB and breaks `validate`.
 - A skill id is NEVER shown to the user as a raw id. Curated names only.
 - `src/shared/metrics-spec.md` is the metrics source of truth; after editing it run `npm run sync:metrics-spec`.
-- Encoded size budget: **≤ 14 bytes per cast**, asserted by a test.
+- Encoded size budget: **≤ 14 bytes per cast for the per-cast columnar arrays**
+  (`skill`, `dt`, `dur`, `interrupted`), asserted by a test. The per-fight palette and
+  player metadata are fixed costs that do not scale with cast count and are NOT part of
+  this per-cast budget; the whole fight object gets its own absolute cap instead
+  (≤ 150 KB for the fixture below, measured ~123 KB). Controller ruling, 2026-09-27 —
+  see the SDD ledger.
 - `quickness` is dropped and must not be stored anywhere.
-- Fixture used throughout: `test-fixtures/ei/20260130-193742.json` (23 MB, 53 players, 51 with rotation, 5,781 casts, `durationMS` 198522).
+- Fixture used throughout: `test-fixtures/ei/20260130-193742.json` (23 MB, 53 players,
+  7 of them `notInSquad`. Whole-file total is 5,781 casts; the **squad-only** total this
+  feature encodes is **5,758 casts across 46 players** — non-squad players are out of
+  scope per the spec. `durationMS` 198522.)
 
 ## Review Focus
 
@@ -245,10 +253,27 @@ describe('ingestLogRotationTimeline + decodeRotation', () => {
         ingestLogRotationTimeline(makeLog(details), acc);
         const fight = acc.fights[0];
         const casts = fight.players.reduce((n, p) => n + p.skill.length, 0);
-        const bytes = JSON.stringify(fight).length;
+        // The budget is PER CAST, so it is measured against the per-cast
+        // columnar arrays only. The palette and the player metadata are
+        // per-fight fixed costs that do not grow with cast count; folding them
+        // into a per-cast average makes the number meaningless on a short
+        // fight and unreachable on a wide one. Measured here: ~11.6 B/cast.
+        const castBytes = fight.players.reduce((n, p) => n
+            + JSON.stringify(p.skill).length
+            + JSON.stringify(p.dt).length
+            + JSON.stringify(p.dur).length
+            + JSON.stringify(p.interrupted).length, 0);
         // Verbatim EI rotation is ~70 bytes/cast. Blowing this budget is how
         // the feature turns into a failed report upload months from now.
-        expect(bytes / casts).toBeLessThan(14);
+        expect(castBytes / casts).toBeLessThan(14);
+
+        // What actually threatens the ~38 MB GitHub blob ceiling is the whole
+        // fight object, and the palette's share of it does not shrink with a
+        // per-cast average. Cap it absolutely. This fixture is the widest one
+        // we have (46 squad players, 3m18s) and measures ~123 KB; in a
+        // published report the icon-index pass replaces each palette icon URL
+        // with an integer, so the shipped figure is smaller still.
+        expect(JSON.stringify(fight).length).toBeLessThan(150_000);
     });
 
     it('preserves a cast that began before the log started', () => {
