@@ -718,6 +718,23 @@ counts across the group.
 
 Implementation: `src/renderer/stats/hooks/useApmStats.ts`.
 
+## Rotation: casts/min
+
+Per-player cast rate within one fight, shown in the Rotation section.
+
+`casts / (activeMs / 60000)`, where `casts` is the number of entries in that
+player's rotation for the fight and `activeMs` is `activeTimes[0]`.
+
+Active time, not fight duration: a player who joined halfway would otherwise
+read as half as busy as they were. Shown as `—` when `activeMs` is 0.
+
+Not comparable to the APM Breakdown section, which measures across the whole
+session and splits autos and procs out. This one counts every cast in one
+fight.
+
+Implementation: `src/renderer/stats/computeRotationTimeline.ts`,
+`src/renderer/stats/sections/RotationSection.tsx`.
+
 ## Player Skill Breakdown (Damage / Down Contribution / DPS)
 
 Per-player skill damage breakdown is built from the same damage distribution
