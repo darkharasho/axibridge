@@ -13,8 +13,14 @@ import type { FightRosterEntry } from '../statsStore';
  *
  *  v4: the revive accumulator's Illusion of Life outcomes gained
  *  `diedUnderIol`. A v3 frame merged by a v4 viewer would add undefined and
- *  render NaN. */
-export const SLICE_SIDECAR_VERSION = 4;
+ *  render NaN.
+ *
+ *  v5: frames carry a `rotationTimeline` section. A v4 sidecar merged by a
+ *  v5 viewer would leave the rotation accumulator empty, and `finalize()`
+ *  would then emit `rotationTimelineDrilldown = { fights: [], recorded: false }`
+ *  — which the Rotation section renders as "needs a re-parse", even though
+ *  those logs do have rotation data; only the sidecar predates the feature. */
+export const SLICE_SIDECAR_VERSION = 5;
 
 /** The tray's view of a fight. Deliberately the Phase A roster shape, so
  *  `FightSliceTray` renders sidecar fights with no changes at all. */
