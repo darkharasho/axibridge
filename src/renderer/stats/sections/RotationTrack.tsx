@@ -30,6 +30,10 @@ export interface RotationTrackProps {
 interface CastBox {
     key: string;
     name: string;
+    /** A URL string once icon-index expansion has run; a bare number if the
+     *  report trimmed `iconIndex` out from under it. Only the string form is
+     *  ever rendered — see the `typeof` guard at the `<img>` below. */
+    icon?: string | number;
     duration: number;
     castTime: number;
     interrupted: boolean;
@@ -69,6 +73,7 @@ const buildRows = (fight: RotationFightData, player: RotationPlayerData, wrapMs:
             rows[row].push({
                 key: `${castIndex}-${row}`,
                 name: cast.name,
+                icon: cast.icon,
                 duration: cast.duration,
                 castTime: cast.castTime,
                 interrupted: cast.interrupted,
@@ -82,37 +87,96 @@ const buildRows = (fight: RotationFightData, player: RotationPlayerData, wrapMs:
     return rows;
 };
 
+/**
+ * Border/legend for the three box states a cast can render in. Kept as one
+ * source so the track and the legend can never drift apart.
+ */
+const boxBorder = (box: CastBox): string => {
+    if (box.interrupted) return '1px solid var(--status-error)';
+    // Dashed, not solid: a solid brand-primary border reads as "selected" —
+    // see spec `docs/superpowers/specs/2026-09-27-rotation-timeline-design.md:226-228`.
+    if (box.prelog) return '1px dashed var(--brand-primary)';
+    return '1px solid var(--border-default)';
+};
+
+/**
+ * Explains the three border states inline, mirroring the descriptive-text
+ * convention `CcTimelineSection` uses under its header (piped, muted
+ * captions) rather than introducing a new legend widget for one section.
+ */
+const RotationLegend: React.FC = () => (
+    <div className="flex flex-wrap items-center gap-3 text-[10px] mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+        <span className="flex items-center gap-1">
+            <span
+                className="inline-block w-3 h-2.5 rounded-sm"
+                style={{ border: '1px solid var(--border-default)', background: 'var(--bg-hover)' }}
+            />
+            Cast
+        </span>
+        <span className="flex items-center gap-1">
+            <span
+                className="inline-block w-3 h-2.5 rounded-sm"
+                style={{ border: '1px solid var(--status-error)', background: 'var(--bg-hover)' }}
+            />
+            Interrupted / cancelled
+        </span>
+        <span className="flex items-center gap-1">
+            <span
+                className="inline-block w-3 h-2.5 rounded-sm"
+                style={{ border: '1px dashed var(--brand-primary)', background: 'var(--bg-hover)' }}
+            />
+            Began before the log started
+        </span>
+    </div>
+);
+
 export const RotationTrack: React.FC<RotationTrackProps> = ({ fight, player, wrapMs }) => {
     const rows = useMemo(() => buildRows(fight, player, wrapMs), [fight, player, wrapMs]);
 
     return (
         <div className="flex flex-col gap-1.5">
+            <RotationLegend />
             {rows.map((row, rowIndex) => (
                 <div
                     key={rowIndex}
                     className="relative h-6 w-full overflow-hidden"
                     style={{ background: 'var(--bg-card-inner)', borderRadius: 'var(--radius-md)' }}
                 >
-                    {row.map((box) => (
-                        <div
-                            key={box.key}
-                            data-cast=""
-                            data-interrupted={box.interrupted ? 'true' : undefined}
-                            data-prelog={box.prelog ? 'true' : undefined}
-                            className="absolute top-0.5 bottom-0.5 flex items-center overflow-hidden px-0.5 text-[9px] leading-none"
-                            title={`${box.name} · ${mmssMillis(box.castTime)} · ${box.duration}ms`}
-                            style={{
-                                left: `${box.leftPct}%`,
-                                width: `${box.widthPct}%`,
-                                background: 'var(--bg-hover)',
-                                border: `1px solid ${box.interrupted ? 'var(--status-error)' : box.prelog ? 'var(--brand-primary)' : 'var(--border-default)'}`,
-                                borderRadius: 'var(--radius-md)',
-                                color: 'var(--text-primary)',
-                            }}
-                        >
-                            <span className="truncate">{box.name}</span>
-                        </div>
-                    ))}
+                    {row.map((box) => {
+                        // A published report hands `icon` over already expanded to a
+                        // URL; a report whose `iconIndex` itself got trimmed leaves the
+                        // bare integer behind (`githubHandlers.ts` trim steps). Only the
+                        // string form is ever safe to hand to `<img src>`.
+                        const iconSrc = typeof box.icon === 'string' && box.icon.length > 0 ? box.icon : null;
+                        return (
+                            <div
+                                key={box.key}
+                                data-cast=""
+                                data-interrupted={box.interrupted ? 'true' : undefined}
+                                data-prelog={box.prelog ? 'true' : undefined}
+                                className="absolute top-0.5 bottom-0.5 flex items-center gap-0.5 overflow-hidden px-0.5 text-[9px] leading-none"
+                                title={`${box.name} · ${mmssMillis(box.castTime)} · ${box.duration}ms`}
+                                style={{
+                                    left: `${box.leftPct}%`,
+                                    width: `${box.widthPct}%`,
+                                    background: 'var(--bg-hover)',
+                                    border: boxBorder(box),
+                                    borderRadius: 'var(--radius-md)',
+                                    color: 'var(--text-primary)',
+                                }}
+                            >
+                                {/* The icon is the thing that must survive a narrow box —
+                                    a 700ms cast at a 30s row is ~12px wide, nowhere near
+                                    enough for a name. `shrink-0` on the icon and
+                                    `min-w-0 truncate` on the name mean the name is what
+                                    disappears first as the box narrows, never the icon. */}
+                                {iconSrc && (
+                                    <img src={iconSrc} alt="" className="h-3 w-3 object-contain shrink-0" />
+                                )}
+                                <span className="truncate min-w-0">{box.name}</span>
+                            </div>
+                        );
+                    })}
                 </div>
             ))}
         </div>

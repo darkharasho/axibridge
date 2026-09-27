@@ -5,7 +5,10 @@ import type { RotationFightData } from '../computeRotationTimeline';
 
 const fight: RotationFightData = {
     id: 'f1', label: 'Eternal: Bay (0:10)', durationMs: 10000,
-    palette: [{ id: 1, name: 'Symbol of Blades' }, { id: 99, name: 'Unknown Skill' }],
+    palette: [
+        { id: 1, name: 'Symbol of Blades', icon: 'https://example.com/symbol-of-blades.png' },
+        { id: 99, name: 'Unknown Skill' },
+    ],
     players: [{
         key: 'a.1234|Guardian', displayName: 'Tester', profession: 'Guardian', group: 1,
         activeMs: 9000,
@@ -50,5 +53,31 @@ describe('RotationSection', () => {
         const { container } = render(
             <RotationSection fights={[fight]} recorded selectedFightId="f1" />);
         expect(container.innerHTML).not.toMatch(/Skill \d+/);
+    });
+
+    it('renders the palette icon in the two casts that have one, and no <img> for the one that does not', () => {
+        const { container } = render(
+            <RotationSection fights={[fight]} recorded selectedFightId="f1" />);
+        const casts = container.querySelectorAll('[data-cast]');
+        expect(casts).toHaveLength(3);
+        // skill sequence is [0, 1, 0] against the palette above: slots 0 and 2
+        // resolve to the icon-bearing "Symbol of Blades", slot 1 to the
+        // icon-less "Unknown Skill".
+        expect(casts[0].querySelector('img')?.getAttribute('src')).toBe('https://example.com/symbol-of-blades.png');
+        expect(casts[1].querySelector('img')).toBeNull();
+        expect(casts[2].querySelector('img')?.getAttribute('src')).toBe('https://example.com/symbol-of-blades.png');
+    });
+
+    it('never emits an <img> for a bare numeric icon index (an unexpanded iconIndex reference)', () => {
+        const numericIconFight: RotationFightData = {
+            ...fight,
+            palette: [{ id: 1, name: 'Symbol of Blades', icon: 3 }, { id: 99, name: 'Unknown Skill' }],
+        };
+        const { container } = render(
+            <RotationSection fights={[numericIconFight]} recorded selectedFightId="f1" />);
+        // Scoped to the cast boxes themselves — the player sidebar renders its
+        // own profession `<img>`, unrelated to this guard.
+        const casts = container.querySelectorAll('[data-cast]');
+        casts.forEach((cast) => expect(cast.querySelector('img')).toBeNull());
     });
 });
