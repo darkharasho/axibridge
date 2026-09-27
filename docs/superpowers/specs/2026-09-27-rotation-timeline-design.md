@@ -143,6 +143,19 @@ shared 5s buckets, so its merge does arithmetic. Rotation is strictly per-fight 
 one log in, one `RotationFightData` out. `merge` is a concat with dedupe by fight
 id.
 
+The same module exports the reader side, so the encoding has exactly one
+implementation and exactly one inverse:
+
+```ts
+/** Expands one player's delta arrays back into absolute casts, in time order. */
+decodeRotation(fight: RotationFightData, player: RotationPlayerData): Array<{
+    skillId: number; name: string; castTime: number; duration: number; interrupted: boolean;
+}>
+```
+
+Desktop and web both render from `decodeRotation`. Nothing outside this module
+touches `dt`/`skill`/`interrupted` directly.
+
 `finalize` returns `{ fights, recorded }`. `recorded` is true if any ingested log
 carried rotation data, which distinguishes three states rather than two:
 
