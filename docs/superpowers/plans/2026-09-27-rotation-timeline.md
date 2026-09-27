@@ -229,7 +229,7 @@ describe('ingestLogRotationTimeline + decodeRotation', () => {
                     want.push({
                         castTime: s.castTime,
                         duration: s.duration,
-                        interrupted: s.timeGained === -s.duration,
+                        interrupted: s.timeGained === -s.duration && s.duration > 0,
                     });
                 }
             }
