@@ -240,8 +240,8 @@ describe('rotation frames', () => {
     });
 });
 
-describe('rotation timeline worker round-trip', () => {
-    it('survives extract on a worker, structuredClone over postMessage, and merge+finalize on the main thread', () => {
+describe('rotation timeline slice-sidecar round-trip', () => {
+    it('survives extract at publish time, a plain-data clone in transit, and merge+finalize in the viewer worker', () => {
         const details = loadFixture();
 
         // Baseline: ingest directly into a single accumulator, the way the
@@ -251,18 +251,24 @@ describe('rotation timeline worker round-trip', () => {
         const directFight = direct.fights[0];
         const directCasts = directFight.players.reduce((n, p) => n + p.skill.length, 0);
 
-        // Worker side: a fresh accumulator ingests the log, then extracts a
-        // frame the way statsWorker.ts does before posting it back.
+        // Publish time, main thread: buildSliceSidecar.ts ingests each fight
+        // into its own solo accumulator and calls exportFrame on it to build
+        // the published report's slice sidecar.
         const workerAcc = createRotationTimelineAccumulator();
         ingestLogRotationTimeline(makeLog(details), workerAcc);
         const frame = extractRotationTimelineFrame(workerAcc);
 
-        // structuredClone is what postMessage actually does to the frame in
-        // transit; prove the frame survives it losslessly.
+        // The frame is plain data (strings, numbers, arrays, objects; no
+        // Map/Set/Date/class instances), so structuredClone here is
+        // equivalent to a plain deep copy and cannot prove anything a deep
+        // copy wouldn't. It is kept anyway because it is what postMessage
+        // actually does to the sidecar frames in transit to the viewer's
+        // worker, and it guards against a future field that isn't plain data.
         const cloned = structuredClone(frame);
 
-        // Main thread side: a separate accumulator receives the cloned frame
-        // and finalizes it, the way useStatsAggregationWorker does.
+        // View time, inside the published viewer's worker: the 'mergeFrames'
+        // handler in statsWorker.ts merges each sidecar frame into a fresh
+        // accumulator and finalizes it to serve a sliced view.
         const mainAcc = createRotationTimelineAccumulator();
         mergeRotationTimelineFrame(mainAcc, cloned);
         const finalized = finalizeRotationTimeline(mainAcc);
@@ -271,10 +277,21 @@ describe('rotation timeline worker round-trip', () => {
         expect(finalized.fights).toHaveLength(1);
         const mergedFight = finalized.fights[0];
         expect(mergedFight.id).toBe(directFight.id);
-        expect(mergedFight.players.length).toBeGreaterThan(0);
+        expect(mergedFight.players.length).toBe(directFight.players.length);
 
         const mergedCasts = mergedFight.players.reduce((n, p) => n + p.skill.length, 0);
         expect(mergedCasts).toBe(directCasts);
+
+        // A bare count survives even if merge corrupts content while
+        // preserving array lengths (e.g. zeroing dt/dur/skill). Pin actual
+        // decoded content for the player with the most casts, deterministically
+        // chosen rather than an arbitrary index.
+        const busiestKey = directFight.players
+            .reduce((best, p) => (p.skill.length > best.skill.length ? p : best), directFight.players[0]).key;
+        const directPlayer = directFight.players.find((p) => p.key === busiestKey)!;
+        const mergedPlayer = mergedFight.players.find((p) => p.key === busiestKey)!;
+        expect(mergedPlayer).toBeDefined();
+        expect(decodeRotation(mergedFight, mergedPlayer)).toEqual(decodeRotation(directFight, directPlayer));
     });
 });
 
