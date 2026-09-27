@@ -88,16 +88,26 @@ const buildRows = (fight: RotationFightData, player: RotationPlayerData, wrapMs:
 };
 
 /**
- * Border/legend for the three box states a cast can render in. Kept as one
- * source so the track and the legend can never drift apart.
+ * Border for the three box states a cast can render in. The legend derives its
+ * swatches from this same function (see `LEGEND_STATES`), so the track and the
+ * legend cannot drift apart.
  */
-const boxBorder = (box: CastBox): string => {
+const boxBorder = (box: { interrupted: boolean; prelog: boolean }): string => {
     if (box.interrupted) return '1px solid var(--status-error)';
     // Dashed, not solid: a solid brand-primary border reads as "selected" —
     // see spec `docs/superpowers/specs/2026-09-27-rotation-timeline-design.md:226-228`.
     if (box.prelog) return '1px dashed var(--brand-primary)';
     return '1px solid var(--border-default)';
 };
+
+/** The legend's rows, as the state flags `boxBorder` switches on. Adding a
+ *  fourth state to `boxBorder` without adding it here leaves it unexplained,
+ *  but it can no longer be explained *wrongly*. */
+const LEGEND_STATES: { label: string; state: { interrupted: boolean; prelog: boolean } }[] = [
+    { label: 'Cast', state: { interrupted: false, prelog: false } },
+    { label: 'Interrupted / cancelled', state: { interrupted: true, prelog: false } },
+    { label: 'Began before the log started', state: { interrupted: false, prelog: true } },
+];
 
 /**
  * Explains the three border states inline, mirroring the descriptive-text
@@ -106,27 +116,15 @@ const boxBorder = (box: CastBox): string => {
  */
 const RotationLegend: React.FC = () => (
     <div className="flex flex-wrap items-center gap-3 text-[10px] mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-        <span className="flex items-center gap-1">
-            <span
-                className="inline-block w-3 h-2.5 rounded-sm"
-                style={{ border: '1px solid var(--border-default)', background: 'var(--bg-hover)' }}
-            />
-            Cast
-        </span>
-        <span className="flex items-center gap-1">
-            <span
-                className="inline-block w-3 h-2.5 rounded-sm"
-                style={{ border: '1px solid var(--status-error)', background: 'var(--bg-hover)' }}
-            />
-            Interrupted / cancelled
-        </span>
-        <span className="flex items-center gap-1">
-            <span
-                className="inline-block w-3 h-2.5 rounded-sm"
-                style={{ border: '1px dashed var(--brand-primary)', background: 'var(--bg-hover)' }}
-            />
-            Began before the log started
-        </span>
+        {LEGEND_STATES.map(({ label, state }) => (
+            <span key={label} className="flex items-center gap-1">
+                <span
+                    className="inline-block w-3 h-2.5 rounded-sm"
+                    style={{ border: boxBorder(state), background: 'var(--bg-hover)' }}
+                />
+                {label}
+            </span>
+        ))}
     </div>
 );
 
