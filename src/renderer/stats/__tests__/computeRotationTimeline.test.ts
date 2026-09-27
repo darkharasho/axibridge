@@ -5,6 +5,7 @@ import {
     createRotationTimelineAccumulator, ingestLogRotationTimeline, decodeRotation,
     extractRotationTimelineFrame, mergeRotationTimelineFrame, finalizeRotationTimeline,
 } from '../computeRotationTimeline';
+import { computeStatsSync } from '../incrementalAggregation';
 
 describe('createRotationTimelineAccumulator', () => {
     it('starts empty and unrecorded', () => {
@@ -236,5 +237,16 @@ describe('rotation frames', () => {
         const out = finalizeRotationTimeline(acc);
         expect(out.fights.map((f) => f.id)).toEqual(['early', 'mid', 'late']);
         expect(out.recorded).toBe(true);
+    });
+});
+
+describe('rotation in the aggregator', () => {
+    it('publishes rotationTimelineDrilldown from a real log', () => {
+        const details = loadFixture();
+        const { stats } = computeStatsSync({ logs: [makeLog(details)] });
+        const drilldown = (stats as any).rotationTimelineDrilldown;
+        expect(drilldown?.recorded).toBe(true);
+        expect(drilldown.fights).toHaveLength(1);
+        expect(drilldown.fights[0].players.length).toBeGreaterThan(40);
     });
 });

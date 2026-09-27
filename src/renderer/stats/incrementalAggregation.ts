@@ -44,6 +44,7 @@ import { createBoonTimelineAccumulator, ingestLogBoonTimeline, finalizeBoonTimel
 import { createBoonUptimeTimelineAccumulator, ingestLogBoonUptimeTimeline, finalizeBoonUptimeTimeline, extractBoonUptimeFrame, mergeBoonUptimeFrame } from './computeBoonUptimeTimeline';
 import { createStabPerformanceAccumulator, ingestLogStabPerformance, finalizeStabPerformance, extractStabPerformanceFrame, mergeStabPerformanceFrame } from './computeStabPerformance';
 import { createControlTimelineAccumulator, ingestLogControlTimeline, extractControlTimelineFrame, mergeControlTimelineFrame, finalizeControlTimeline } from './computeControlTimeline';
+import { createRotationTimelineAccumulator, ingestLogRotationTimeline, extractRotationTimelineFrame, mergeRotationTimelineFrame, finalizeRotationTimeline } from './computeRotationTimeline';
 
 import { encodeState, decodeState } from './slice/stateCodec';
 import { applyLabel, buildFrameLabelSeed, resolveFrameFightLabels, type FrameLabelSeed } from './slice/frameLabels';
@@ -698,6 +699,7 @@ export class IncrementalAggregator {
     private boonUptimeAcc;
     private stabPerfAcc;
     private controlTimelineAcc;
+    private rotationTimelineAcc;
 
     // Map counts
     private mapCounts: Record<string, number> = {};
@@ -751,6 +753,7 @@ export class IncrementalAggregator {
         this.boonUptimeAcc = createBoonUptimeTimelineAccumulator(boonIntervalSettings);
         this.stabPerfAcc = createStabPerformanceAccumulator();
         this.controlTimelineAcc = createControlTimelineAccumulator();
+        this.rotationTimelineAcc = createRotationTimelineAccumulator();
     }
 
     /** Process a single log and accumulate results. The log is NOT stored. */
@@ -904,6 +907,7 @@ export class IncrementalAggregator {
         ingestLogBoonUptimeTimeline(log, this.boonUptimeAcc);
         ingestLogStabPerformance(log, this.stabPerfAcc);
         ingestLogControlTimeline(log, this.controlTimelineAcc);
+        ingestLogRotationTimeline(log, this.rotationTimelineAcc);
 
         // 6. incomingDamagePerSecond
         this.processIncomingDamagePerSecond(log, idx);
@@ -1034,6 +1038,7 @@ export class IncrementalAggregator {
                 boonUptime: extractBoonUptimeFrame(this.boonUptimeAcc),
                 stabPerformance: extractStabPerformanceFrame(this.stabPerfAcc),
                 controlTimeline: extractControlTimelineFrame(this.controlTimelineAcc),
+                rotationTimeline: extractRotationTimelineFrame(this.rotationTimelineAcc),
                 playerAcc: this.playerAcc,
                 commanderStatsAcc: this.commanderStatsAcc,
             }
@@ -1142,6 +1147,7 @@ export class IncrementalAggregator {
         if (frame.boonUptime) mergeBoonUptimeFrame(this.boonUptimeAcc, frame.boonUptime, labels);
         if (frame.stabPerformance) mergeStabPerformanceFrame(this.stabPerfAcc, frame.stabPerformance);
         if (frame.controlTimeline) mergeControlTimelineFrame(this.controlTimelineAcc, frame.controlTimeline);
+        if (frame.rotationTimeline) mergeRotationTimelineFrame(this.rotationTimelineAcc, frame.rotationTimeline);
     }
 
     /** Finalize aggregation and return the result. */
@@ -1182,6 +1188,7 @@ export class IncrementalAggregator {
         const boonUptimeTimeline = finalizeBoonUptimeTimeline(this.boonUptimeAcc);
         const stabPerformanceDrilldown = finalizeStabPerformance(this.stabPerfAcc);
         const controlTimelineDrilldown = finalizeControlTimeline(this.controlTimelineAcc);
+        const rotationTimelineDrilldown = finalizeRotationTimeline(this.rotationTimelineAcc);
 
         // 4. Build boon tables from stored log data
         const { boonTables } = buildBoonTables(this.boonTableLogs, this.splitPlayersByClass);
@@ -1836,7 +1843,7 @@ export class IncrementalAggregator {
             playerSkillBreakdowns,
             healingBreakdownPlayers,
             topSkillsMetric: this.topSkillsMetric,
-            mapData, timelineData, boonTables, boonLeaderboards, boonTimeline, boonUptimeTimeline, stabPerformanceDrilldown, controlTimelineDrilldown, incomingDamagePerSecondByFightId,
+            mapData, timelineData, boonTables, boonLeaderboards, boonTimeline, boonUptimeTimeline, stabPerformanceDrilldown, controlTimelineDrilldown, rotationTimelineDrilldown, incomingDamagePerSecondByFightId,
             offensePlayers: Array.from(playerStats.values()).map(s => ({
                 account: s.account, profession: s.profession, professionList: s.professionList,
                 offenseTotals: s.offenseTotals, offenseRateWeights: s.offenseRateWeights, totalFightMs: s.totalFightMs
@@ -1988,6 +1995,9 @@ export class IncrementalAggregator {
         // null when the log named a real zone (the baked label is already
         // ordinal-free), the re-numbered `Fight ${n} (m:ss)` when it did not.
         (frame.controlTimeline?.fights || []).forEach((fight: any) => {
+            applyLabel(fight, 'label', labels.fullLabel);
+        });
+        (frame.rotationTimeline?.fights || []).forEach((fight: any) => {
             applyLabel(fight, 'label', labels.fullLabel);
         });
     }
