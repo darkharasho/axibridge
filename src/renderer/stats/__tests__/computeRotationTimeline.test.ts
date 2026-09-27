@@ -254,9 +254,9 @@ describe('rotation timeline slice-sidecar round-trip', () => {
         // Publish time, main thread: buildSliceSidecar.ts ingests each fight
         // into its own solo accumulator and calls exportFrame on it to build
         // the published report's slice sidecar.
-        const workerAcc = createRotationTimelineAccumulator();
-        ingestLogRotationTimeline(makeLog(details), workerAcc);
-        const frame = extractRotationTimelineFrame(workerAcc);
+        const publishAcc = createRotationTimelineAccumulator();
+        ingestLogRotationTimeline(makeLog(details), publishAcc);
+        const frame = extractRotationTimelineFrame(publishAcc);
 
         // The frame is plain data (strings, numbers, arrays, objects; no
         // Map/Set/Date/class instances), so structuredClone here is
@@ -269,9 +269,9 @@ describe('rotation timeline slice-sidecar round-trip', () => {
         // View time, inside the published viewer's worker: the 'mergeFrames'
         // handler in statsWorker.ts merges each sidecar frame into a fresh
         // accumulator and finalizes it to serve a sliced view.
-        const mainAcc = createRotationTimelineAccumulator();
-        mergeRotationTimelineFrame(mainAcc, cloned);
-        const finalized = finalizeRotationTimeline(mainAcc);
+        const viewerAcc = createRotationTimelineAccumulator();
+        mergeRotationTimelineFrame(viewerAcc, cloned);
+        const finalized = finalizeRotationTimeline(viewerAcc);
 
         expect(finalized.recorded).toBe(true);
         expect(finalized.fights).toHaveLength(1);
