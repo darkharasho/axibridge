@@ -1063,16 +1063,17 @@ const buildWebReportPayload = (
         { label: 'replayFights', apply: () => clearArray(stats, 'replayFights') },
         // Icons become orphaned once fights are dropped.
         { label: 'replayIcons', apply: () => deleteKey(stats, 'replayIcons') },
+        // Rotation is the newest and least-established section on this list,
+        // so it is the first live step to give something up — see
+        // `replayFights`/`replayIcons` above, which are dead no-ops on the
+        // production publish path (`replayFights` is already deleted from
+        // `sourceStats` before this runs whenever replay isn't published).
+        { label: 'rotationTimelineDrilldown', apply: () => clearArray((stats as any).rotationTimelineDrilldown, 'fights') },
         { label: 'skillUsageData.logRecords', apply: () => clearArray(stats.skillUsageData, 'logRecords') },
         { label: 'playerSkillBreakdowns', apply: () => clearArray(stats, 'playerSkillBreakdowns') },
         { label: 'boonTimeline', apply: () => clearArray(stats, 'boonTimeline') },
         { label: 'boonUptimeTimeline', apply: () => clearArray(stats, 'boonUptimeTimeline') },
         { label: 'controlTimelineDrilldown', apply: () => clearArray((stats as any).controlTimelineDrilldown, 'fights') },
-        // Deliberately here and not near the front: replayFights leads because
-        // it is ~66% of report.json, while rotation is ~200 KB gzipped for a
-        // session — dropping it early would cost the feature to save almost
-        // nothing.
-        { label: 'rotationTimelineDrilldown', apply: () => clearArray((stats as any).rotationTimelineDrilldown, 'fights') },
         { label: 'specialTables', apply: () => clearArray(stats, 'specialTables') },
         { label: 'fightDiffMode', apply: () => clearArray(stats, 'fightDiffMode') },
         { label: 'outgoingConditionPlayers', apply: () => clearArray(stats, 'outgoingConditionPlayers') },
