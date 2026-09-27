@@ -240,6 +240,44 @@ describe('rotation frames', () => {
     });
 });
 
+describe('rotation timeline worker round-trip', () => {
+    it('survives extract on a worker, structuredClone over postMessage, and merge+finalize on the main thread', () => {
+        const details = loadFixture();
+
+        // Baseline: ingest directly into a single accumulator, the way the
+        // inline (<=8 logs) path does.
+        const direct = createRotationTimelineAccumulator();
+        ingestLogRotationTimeline(makeLog(details), direct);
+        const directFight = direct.fights[0];
+        const directCasts = directFight.players.reduce((n, p) => n + p.skill.length, 0);
+
+        // Worker side: a fresh accumulator ingests the log, then extracts a
+        // frame the way statsWorker.ts does before posting it back.
+        const workerAcc = createRotationTimelineAccumulator();
+        ingestLogRotationTimeline(makeLog(details), workerAcc);
+        const frame = extractRotationTimelineFrame(workerAcc);
+
+        // structuredClone is what postMessage actually does to the frame in
+        // transit; prove the frame survives it losslessly.
+        const cloned = structuredClone(frame);
+
+        // Main thread side: a separate accumulator receives the cloned frame
+        // and finalizes it, the way useStatsAggregationWorker does.
+        const mainAcc = createRotationTimelineAccumulator();
+        mergeRotationTimelineFrame(mainAcc, cloned);
+        const finalized = finalizeRotationTimeline(mainAcc);
+
+        expect(finalized.recorded).toBe(true);
+        expect(finalized.fights).toHaveLength(1);
+        const mergedFight = finalized.fights[0];
+        expect(mergedFight.id).toBe(directFight.id);
+        expect(mergedFight.players.length).toBeGreaterThan(0);
+
+        const mergedCasts = mergedFight.players.reduce((n, p) => n + p.skill.length, 0);
+        expect(mergedCasts).toBe(directCasts);
+    });
+});
+
 describe('rotation in the aggregator', () => {
     it('publishes rotationTimelineDrilldown from a real log', () => {
         const details = loadFixture();
