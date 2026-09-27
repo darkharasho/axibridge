@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
     createRotationTimelineAccumulator, ingestLogRotationTimeline, decodeRotation,
+    extractRotationTimelineFrame, mergeRotationTimelineFrame, finalizeRotationTimeline,
 } from '../computeRotationTimeline';
 
 describe('createRotationTimelineAccumulator', () => {
@@ -198,5 +199,42 @@ describe('ingestLogRotationTimeline + decodeRotation', () => {
         ingestLogRotationTimeline(makeLog(details), acc);
         expect(acc.fights).toEqual([]);
         expect(acc.recorded).toBe(false);
+    });
+});
+
+const fightStub = (id: string, timestampMs: number): any => ({
+    id, label: id, durationMs: 1000, palette: [], players: [], timestampMs,
+});
+
+describe('rotation frames', () => {
+    it('rejects a frame carrying more than one fight', () => {
+        const acc = createRotationTimelineAccumulator();
+        acc.fights.push(fightStub('a', 1), fightStub('b', 2));
+        expect(() => extractRotationTimelineFrame(acc)).toThrow(/at most one fight/);
+    });
+
+    it('merges frames without duplicating a fight id', () => {
+        const target = createRotationTimelineAccumulator();
+        mergeRotationTimelineFrame(target, { fights: [fightStub('a', 1)], recorded: true });
+        mergeRotationTimelineFrame(target, { fights: [fightStub('a', 1)], recorded: true });
+        mergeRotationTimelineFrame(target, { fights: [fightStub('b', 2)], recorded: true });
+        expect(target.fights.map((f) => f.id)).toEqual(['a', 'b']);
+        expect(target.recorded).toBe(true);
+    });
+
+    it('ignores a null frame and keeps recorded false', () => {
+        const target = createRotationTimelineAccumulator();
+        mergeRotationTimelineFrame(target, null as any);
+        expect(target.fights).toEqual([]);
+        expect(target.recorded).toBe(false);
+    });
+
+    it('finalizes in chronological order', () => {
+        const acc = createRotationTimelineAccumulator();
+        acc.fights.push(fightStub('late', 300), fightStub('early', 100), fightStub('mid', 200));
+        acc.recorded = true;
+        const out = finalizeRotationTimeline(acc);
+        expect(out.fights.map((f) => f.id)).toEqual(['early', 'mid', 'late']);
+        expect(out.recorded).toBe(true);
     });
 });

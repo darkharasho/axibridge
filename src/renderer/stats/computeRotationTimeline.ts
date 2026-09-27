@@ -231,3 +231,62 @@ export function decodeRotation(
     }
     return out;
 }
+
+/**
+ * Extract frame from a per-log accumulator. A per-log accumulator holds at
+ * most one fight; reuse across logs is an error.
+ */
+export function extractRotationTimelineFrame(
+    acc: RotationTimelineAccumulator,
+): RotationTimelineFrame {
+    if (acc.fights.length > 1) {
+        throw new Error(`extractRotationTimelineFrame expects at most one fight, got ${acc.fights.length}`);
+    }
+    return { fights: acc.fights, recorded: acc.recorded };
+}
+
+/**
+ * Merge a frame into the target accumulator. Worker frames can be replayed
+ * (a re-flush resends a log), so merge is idempotent per fight id rather than
+ * a blind concat.
+ */
+export function mergeRotationTimelineFrame(
+    target: RotationTimelineAccumulator,
+    frame: RotationTimelineFrame,
+): void {
+    if (!frame) return;
+    // Dedup by fight id, first-write-wins.
+    const seen = new Set(target.fights.map((f) => f.id));
+    for (const fight of frame.fights || []) {
+        if (seen.has(fight.id)) continue;
+        seen.add(fight.id);
+        target.fights.push(fight);
+    }
+    // Only set recorded to true if frame has it; do not turn it off.
+    if (frame.recorded) target.recorded = true;
+}
+
+/**
+ * Finalize the accumulator. Sort fights chronologically by timestampMs
+ * (ascending), treating missing timestampMs as sort-last. Maintain stable
+ * sort for equal values.
+ */
+export function finalizeRotationTimeline(
+    acc: RotationTimelineAccumulator,
+): { fights: RotationFightData[]; recorded: boolean } {
+    // Stable sort: fights without timestampMs sort last, keeping their
+    // relative order.
+    const fights = [...acc.fights].sort((a, b) => {
+        const aTs = Number(a.timestampMs) || 0;
+        const bTs = Number(b.timestampMs) || 0;
+        // Both have a timestamp: sort by it ascending.
+        if (aTs > 0 && bTs > 0) return aTs - bTs;
+        // Only a has a timestamp: it comes first.
+        if (aTs > 0) return -1;
+        // Only b has a timestamp: it comes first.
+        if (bTs > 0) return 1;
+        // Neither has a timestamp: keep stable order (return 0).
+        return 0;
+    });
+    return { fights, recorded: acc.recorded };
+}
