@@ -89,9 +89,21 @@ export interface RotationFightData {
     label: string;         // buildFightLabelV2 — built HERE, because the web
                            // report has lost the zone/average-position it needs
     durationMs: number;
-    palette: number[];     // canonical skill ids; a cast stores its index here
-    names: string[];       // curated names, parallel to palette
+    palette: RotationSkill[]; // a cast stores its index into this array
     players: RotationPlayerData[];
+}
+
+/**
+ * One palette entry. `icon` is spelled exactly that, on an object, because
+ * the published-report build indexes icon URLs by walking `stats` for keys
+ * literally named `icon` (githubHandlers.ts) and `expandIconIndex` reverses
+ * it the same way. A parallel `icons: string[]` array would silently miss
+ * both passes and ship ~84 raw CDN chars per palette entry per fight.
+ */
+export interface RotationSkill {
+    id: number;            // canonical skill id
+    name: string;          // curated name, never "Skill <id>"
+    icon?: string;         // becomes a number in a published report
 }
 
 export interface RotationPlayerData {
@@ -112,7 +124,7 @@ Decisions:
 - **Casts are sorted by `castTime` ascending before encoding**, flattening EI's
   group-by-skill nesting. Delta encoding requires monotonicity and a timeline
   reads in time order. `dt[0]` stays absolute and may be negative.
-- **`palette`/`names` are per-fight, not per-report.** Per-report dedupes better
+- **`palette` is per-fight, not per-report.** Per-report dedupes better
   but couples every fight to a shared table the trimmer cannot drop
   independently. Per-fight costs ~2 KB each and keeps a fight self-contained.
 - **`interrupted` is a sparse index list**, derived from
@@ -214,8 +226,10 @@ Layout:
 - **Two borders carry the two edge cases**: red for interrupted/cancelled, dashed
   blue for began-before-log-start. Both in the legend — an unexplained red box
   reads as an error.
-- Skill icons come from `iconIndex` in `report.json`, the catalog Top Skills and
-  Skill Usage already use. No new icon plumbing.
+- Skill icons come from `details.skillMap[\`s${id}\`].icon`, captured into the
+  palette at ingest — the same source Skill Usage uses. In a published report
+  they are indexed to integers by the existing `iconIndex` pass and expanded by
+  `expandIconIndex`. No new icon plumbing.
 - Header chips (casts, active time, casts/min, interrupted, distinct skills) are
   all derivable from the stored arrays.
 
