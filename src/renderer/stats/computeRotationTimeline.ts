@@ -151,8 +151,10 @@ export function ingestLogRotationTimeline(log: any, acc: RotationTimelineAccumul
                 flat.push({
                     slot, castTime, duration,
                     // EI marks an interrupted/cancelled cast by giving back
-                    // exactly the time it would have taken.
-                    interrupted: Number(s?.timeGained) === -duration,
+                    // exactly the time it would have taken. `duration > 0`
+                    // excludes instant casts (duration 0, timeGained 0),
+                    // where `0 === -0` would otherwise false-positive.
+                    interrupted: Number(s?.timeGained) === -duration && duration > 0,
                 });
             });
         });
