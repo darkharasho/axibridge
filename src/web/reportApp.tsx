@@ -4,6 +4,7 @@ import { STATS_TOC_GROUPS } from '../renderer/stats/hooks/useStatsNavigation';
 import { resolveSectionTarget } from '../renderer/stats/statsTaxonomy';
 import { PALETTES, type ColorPalette } from '../shared/webThemes';
 import { readPaletteFromReport } from './paletteReader';
+import { resolveMapAccentFromStats, MAP_ACCENT_CSS_VARS, type MapAccent } from '../shared/mapAccent';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
@@ -368,6 +369,7 @@ export function ReportApp({ injectedSource, assetBase }: {
     const [glassSurfaces, setGlassSurfaces] = useState(false);
     const [glassmorphic, setGlassmorphic] = useState(false);
     const [axiDesign, setAxiDesign] = useState(false);
+    const [mapAccent, setMapAccent] = useState<MapAccent | null>(null);
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [logoIsDefault, setLogoIsDefault] = useState(false);
     const [tocOpen, setTocOpen] = useState(false);
@@ -538,7 +540,15 @@ export function ReportApp({ injectedSource, assetBase }: {
         body.classList.toggle('glass-surfaces', glassSurfaces && !axiDesign);
         body.classList.toggle('glassmorphic', glassmorphic && !axiDesign);
         body.classList.toggle('axi-design', axiDesign);
-    }, [colorPalette, glassSurfaces, glassmorphic, axiDesign]);
+        // A share link's accent comes from the map it was fought on, not from a
+        // palette class. Inline properties beat every `palette-*` rule without
+        // needing a class per map, and `axi-design.css` reads the accent through
+        // `--axi-accent: var(--brand-primary)`, so the whole language follows.
+        for (const [cssVar, key] of MAP_ACCENT_CSS_VARS) {
+            if (mapAccent) body.style.setProperty(cssVar, mapAccent[key]);
+            else body.style.removeProperty(cssVar);
+        }
+    }, [colorPalette, glassSurfaces, glassmorphic, axiDesign, mapAccent]);
 
     useEffect(() => {
         setAssetBasePath(assetBasePathCandidates[0] || '/');
@@ -1021,11 +1031,16 @@ export function ReportApp({ injectedSource, assetBase }: {
             setRollupLoading(false);
             setRollupRequestedCount(0);
             setReportPathHint(null);
-            const { palette, glass, glassmorphic: gm, axi } = readPaletteFromReport(injectedSource.report.stats);
+            // Share links have a look of their own: always the axi language,
+            // accented by the WvW map the fights were on. The publisher's own
+            // palette and surface toggles don't reach `/r/<code>` — only
+            // published Pages reports (the branch below) follow those.
+            const { palette } = readPaletteFromReport(injectedSource.report.stats);
             setColorPalette(palette);
-            setGlassSurfaces(glass);
-            setGlassmorphic(gm);
-            setAxiDesign(axi);
+            setGlassSurfaces(false);
+            setGlassmorphic(false);
+            setAxiDesign(true);
+            setMapAccent(resolveMapAccentFromStats(injectedSource.report.stats));
             setReport(injectedSource.report);
             return () => {
                 isMounted = false;
