@@ -303,6 +303,29 @@ describe('ingestLogRotationTimeline + decodeRotation', () => {
         expect(names.every((n) => /^Unknown Skill$/.test(n) || !/^Skill \d+$/.test(n))).toBe(true);
     });
 
+    it('skips rotation entries with no id or no casts', () => {
+        const details = {
+            durationMS: 10000, fightName: 'Test', skillMap: { s1: { name: 'Real' } },
+            players: [{
+                account: 'a.1234', name: 'A', profession: 'Guardian', group: 1, activeTimes: [9000],
+                rotation: [
+                    { id: 0, skills: [{ castTime: 10, duration: 5, timeGained: 0 }] }, // falsy id
+                    { id: 5, skills: [] },                                             // no casts
+                    { id: 5 },                                                         // no skills array
+                    { id: 1, skills: [{ castTime: 100, duration: 50, timeGained: 0 }] },
+                ],
+            }],
+        };
+        const acc = createRotationTimelineAccumulator();
+        ingestLogRotationTimeline(makeLog(details), acc);
+        const fight = acc.fights[0];
+        // Only the one real cast survives, and the skipped entries claimed no
+        // palette slots.
+        expect(decodeRotation(fight, fight.players[0])).toHaveLength(1);
+        expect(fight.palette).toHaveLength(1);
+        expect(fight.palette[0].name).toBe('Real');
+    });
+
     it('skips non-squad players and fights with no rotation at all', () => {
         const details = {
             durationMS: 10000, fightName: 'Test', skillMap: { s1: { name: 'Cast' } },
@@ -488,7 +511,7 @@ export function decodeRotation(
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run src/renderer/stats/__tests__/computeRotationTimeline.test.ts --maxWorkers=2`
-Expected: PASS (7 tests). If the size guard fails, do NOT raise the threshold — reduce what is stored.
+Expected: PASS (8 tests). If the size guard fails, do NOT raise the threshold — reduce what is stored.
 
 - [ ] **Step 5: Run validate**
 
@@ -616,7 +639,7 @@ export function finalizeRotationTimeline(
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run src/renderer/stats/__tests__/computeRotationTimeline.test.ts --maxWorkers=2`
-Expected: PASS (11 tests)
+Expected: PASS (12 tests)
 
 - [ ] **Step 5: Commit**
 
@@ -648,7 +671,7 @@ import { computeStatsSync } from '../incrementalAggregation';
 describe('rotation in the aggregator', () => {
     it('publishes rotationTimelineDrilldown from a real log', () => {
         const details = loadFixture();
-        const { stats } = computeStatsSync([makeLog(details)] as any);
+        const { stats } = computeStatsSync({ logs: [makeLog(details)] });
         const drilldown = (stats as any).rotationTimelineDrilldown;
         expect(drilldown?.recorded).toBe(true);
         expect(drilldown.fights).toHaveLength(1);
@@ -657,7 +680,7 @@ describe('rotation in the aggregator', () => {
 });
 ```
 
-Note: check `computeStatsSync`'s exact signature before writing the call — if it takes an options object, pass the logs array in the shape its other tests in `src/renderer/stats/__tests__/incrementalAggregation.test.ts` use, and match that file's style.
+`computeStatsSync` takes a single options object — `computeStatsSync({ logs })`, as declared at `src/renderer/stats/incrementalAggregation.ts:2246` and called throughout `src/renderer/stats/__tests__/incrementalAggregation.test.ts`. It returns `{ stats, skillUsageData }`.
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -723,7 +746,7 @@ import { createRotationTimelineAccumulator, ingestLogRotationTimeline, extractRo
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run src/renderer/stats/__tests__/computeRotationTimeline.test.ts --maxWorkers=2`
-Expected: PASS (12 tests)
+Expected: PASS (13 tests)
 
 - [ ] **Step 5: Run the neighbouring aggregation suites for regressions**
 
@@ -749,7 +772,7 @@ git commit -m "feat(rotation): wire rotation timeline into the aggregator"
 **Files:**
 - Modify: `src/main/handlers/githubHandlers.ts` (trim list, after the `controlTimelineDrilldown` entry at ~line 1070)
 - Modify: `src/main/dpsReportTypes.ts:66`
-- Test: `src/main/__tests__/` — match the directory the other `githubHandlers` tests live in; if none exists, add the assertion to `src/renderer/stats/__tests__/computeRotationTimeline.test.ts` instead and say so in the commit message.
+- Test: none. `trimSteps` has no existing unit test in either `src/main/__tests__/` or `src/main/handlers/__tests__/` (both directories exist and hold sibling tests such as `compactPublishedReports.test.ts` and `blobUploadRetry.test.ts`, but none covers the trim list). Building a harness for one array entry is not worth it; the entry is verified by the manual publish check at the end of this plan. The type fix in this task is covered by `npm run validate`.
 
 **Interfaces:**
 - Consumes: `stats.rotationTimelineDrilldown` from Task 4.
@@ -913,7 +936,9 @@ export interface RotationTrackProps {
 }
 ```
 
-Style it with the app's existing CSS variables the way the other sections do — read `BucketGridTable.tsx` for which variables this codebase uses and follow it. Do not introduce colour literals beyond the interrupted (danger) and pre-log (meta) accents, and take those from the same variables the neighbouring sections use.
+Style with Tailwind classes plus this codebase's CSS variables, as every sibling section does. The ones in use across `src/renderer/stats/sections/` — verified by frequency — are `--text-primary`, `--text-secondary`, `--text-muted`, `--radius-md`, `--border-default`, `--border-subtle`, `--border-hover`, `--bg-hover`, `--bg-elevated`, `--bg-card-inner`, `--bg-input`, `--brand-primary`, `--accent-bg`, `--accent-bg-strong`, `--accent-border`, `--shadow-card`, `--status-error`, `--status-success`, `--status-warning`.
+
+Use `--bg-card-inner` for the track, `--border-default` for a cast box, `--text-primary` for its label, `--status-error` for the interrupted outline and `--brand-primary` for the pre-log outline. Introduce NO colour literals — `npm run lint` is `--max-warnings 0` and the codebase resolves colour through these variables.
 
 - [ ] **Step 4: Implement `RotationSection.tsx`**
 
@@ -948,13 +973,15 @@ Three edits in `src/renderer/StatsView.tsx`:
 1. Import `RotationSection` beside the `SkillUsageSection` import (~line 38).
 2. Read the drilldown beside the `controlTimelineDrilldown` reads (~3362):
 
+The section's "older report" branch keys on `fights` not being an array, so do NOT coerce to `EMPTY_ANY_ARRAY` the way `controlTimelineFights` does — that would turn an absent drilldown into a visible empty section. Read it as:
+
 ```tsx
     const rotationTimelineDrilldown = (safeStats as any)?.rotationTimelineDrilldown;
-    const rotationFights: any[] = Array.isArray(rotationTimelineDrilldown?.fights) ? rotationTimelineDrilldown.fights : EMPTY_ANY_ARRAY;
+    const rotationFights: any = rotationTimelineDrilldown?.fights;
     const rotationRecorded: boolean = Boolean(rotationTimelineDrilldown?.recorded);
 ```
 
-Note: when `rotationTimelineDrilldown` is entirely absent the section must still receive a non-array so its `return null` branch fires. Pass `rotationTimelineDrilldown ? rotationFights : undefined` — or, cleaner, pass `rotationTimelineDrilldown?.fights` straight through and let the section do the `Array.isArray` check. Pick one and use it in both mount sites.
+and pass `rotationFights` straight through at both mount sites.
 
 3. Mount in BOTH places the `SkillUsageSection` appears — the paged render at ~4946 and the section registry entry at ~5531 (`{ id: 'rotation', element: <RotationSection … /> }`). Missing the second one means the search palette can find the section but cannot jump to it.
 
