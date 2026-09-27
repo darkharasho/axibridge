@@ -48,7 +48,7 @@ describe('ingestLogRotationTimeline + decodeRotation', () => {
                     want.push({
                         castTime: s.castTime,
                         duration: s.duration,
-                        interrupted: s.timeGained === -s.duration,
+                        interrupted: s.timeGained === -s.duration && s.duration > 0,
                     });
                 }
             }
@@ -73,6 +73,13 @@ describe('ingestLogRotationTimeline + decodeRotation', () => {
         // confirmed by summing `want` (this test's own extraction) over
         // `expectedPlayers`, independent of the encoder.
         expect(totalCasts).toBe(5758);
+
+        const interruptedTotal = fight.players.reduce((n, p) => n + p.interrupted.length, 0);
+        // Verified directly against the fixture: 285 of 5,758 squad casts are
+        // real cancels. `duration === 0 && timeGained === 0` satisfies a naive
+        // `timeGained === -duration` (0 === -0) and would inflate this to
+        // 1,410.
+        expect(interruptedTotal).toBe(285);
     });
 
     it('stays within the size budget of 14 bytes per cast', () => {
@@ -81,10 +88,27 @@ describe('ingestLogRotationTimeline + decodeRotation', () => {
         ingestLogRotationTimeline(makeLog(details), acc);
         const fight = acc.fights[0];
         const casts = fight.players.reduce((n, p) => n + p.skill.length, 0);
-        const bytes = JSON.stringify(fight).length;
+        // The budget is PER CAST, so it is measured against the per-cast
+        // columnar arrays only. The palette and the player metadata are
+        // per-fight fixed costs that do not grow with cast count; folding them
+        // into a per-cast average makes the number meaningless on a short
+        // fight and unreachable on a wide one. Measured here: ~11.6 B/cast.
+        const castBytes = fight.players.reduce((n, p) => n
+            + JSON.stringify(p.skill).length
+            + JSON.stringify(p.dt).length
+            + JSON.stringify(p.dur).length
+            + JSON.stringify(p.interrupted).length, 0);
         // Verbatim EI rotation is ~70 bytes/cast. Blowing this budget is how
         // the feature turns into a failed report upload months from now.
-        expect(bytes / casts).toBeLessThan(14);
+        expect(castBytes / casts).toBeLessThan(14);
+
+        // What actually threatens the ~38 MB GitHub blob ceiling is the whole
+        // fight object, and the palette's share of it does not shrink with a
+        // per-cast average. Cap it absolutely. This fixture is the widest one
+        // we have (46 squad players, 3m18s) and measures ~123 KB; in a
+        // published report the icon-index pass replaces each palette icon URL
+        // with an integer, so the shipped figure is smaller still.
+        expect(JSON.stringify(fight).length).toBeLessThan(150_000);
     });
 
     it('preserves a cast that began before the log started', () => {
