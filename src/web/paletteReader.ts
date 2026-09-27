@@ -10,7 +10,9 @@ import { PALETTES, type ColorPalette, DEFAULT_PALETTE_ID, LEGACY_THEME_TO_PALETT
  *
  * `axi` mirrors the publisher's own toggle: a report published from an app
  * running the axi language renders in it, one published without it doesn't.
- * No legacy format can carry it, so it is false everywhere below.
+ * No legacy format can carry it, so it is false everywhere below. Share links
+ * (`/r/<code>`) ignore it and force the axi language on — see `reportApp`'s
+ * injected-source branch.
  */
 export function readPaletteFromReport(stats: any): { palette: ColorPalette; glass: boolean; glassmorphic: boolean; axi: boolean } {
     // New format: stats.colorPalette
