@@ -36,6 +36,7 @@ import { useAxilogHeal } from './stats/hooks/useAxilogHeal';
 import { EMPTY_AXILOG_COVERAGE, type AxilogCoverage } from './stats/utils/axilogCoverage';
 
 import { SkillUsageSection } from './stats/sections/SkillUsageSection';
+import { RotationSection } from './stats/sections/RotationSection';
 import { ApmSection } from './stats/sections/ApmSection';
 import { PlayerBreakdownSection } from './stats/sections/PlayerBreakdownSection';
 import { DamageBreakdownSection } from './stats/sections/DamageBreakdownSection';
@@ -3362,6 +3363,13 @@ type SpikeFight = {
     const controlTimelineDrilldown = (safeStats as any)?.controlTimelineDrilldown;
     const controlTimelineFights: any[] = Array.isArray(controlTimelineDrilldown?.fights) ? controlTimelineDrilldown.fights : EMPTY_ANY_ARRAY;
     const controlTimelineRecorded: boolean = Boolean(controlTimelineDrilldown?.recorded);
+    // Deliberately NOT coerced to `EMPTY_ANY_ARRAY` the way `controlTimelineFights`
+    // is above: `RotationSection` keys its "older report, no drilldown at all"
+    // branch on `fights` not being an array, and coercing here would turn an
+    // absent drilldown into a visible empty section.
+    const rotationTimelineDrilldown = (safeStats as any)?.rotationTimelineDrilldown;
+    const rotationFights: any = rotationTimelineDrilldown?.fights;
+    const rotationRecorded: boolean = Boolean(rotationTimelineDrilldown?.recorded);
     /**
      * Fight ids reach us as raw log paths, and the same fight can be spelled
      * with either separator depending on which producer wrote it — so match on
@@ -4977,6 +4985,12 @@ type SpikeFight = {
                                 formatSkillUsageValue={formatSkillUsageValue}
                             />)}
 
+                            {renderSectionWrap(<RotationSection
+                                fights={rotationFights}
+                                recorded={rotationRecorded}
+                                selectedFightId={null}
+                            />)}
+
                             {renderSectionWrap(<ApmSection
                                 apmSpecAvailable={apmSpecAvailable}
                                 skillUsageAvailable={skillUsageAvailable}
@@ -5560,6 +5574,11 @@ type SpikeFight = {
                                 getLineStrokeColor={getLineStrokeColor}
                                 getLineDashForPlayer={getLineDashForPlayer}
                                 formatSkillUsageValue={formatSkillUsageValue}
+                            /> },
+                            { id: 'rotation', element: <RotationSection
+                                fights={rotationFights}
+                                recorded={rotationRecorded}
+                                selectedFightId={null}
                             /> },
                             { id: 'sigil-relic-uptime', element: <SigilRelicUptimeSection
                                 hasSigilRelicTables={sigilRelicTables.length > 0}

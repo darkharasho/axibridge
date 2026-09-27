@@ -33,7 +33,7 @@ const EXPECTED_SECTION_IDS = [
     'commander-stats', 'commander-push-timing', 'commander-target-conversion',
     'commander-tag-movement', 'commander-tag-death-response', 'commander-pin-pressure',
     // players
-    'player-breakdown', 'player-comparison', 'apm-stats', 'skill-usage',
+    'player-breakdown', 'player-comparison', 'apm-stats', 'skill-usage', 'rotation',
     'sigil-relic-uptime', 'special-buffs',
     // roster
     'attendance-ledger', 'squad-composition', 'squad-comp-fight', 'fight-comp',

@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { Trophy, Shield, ShieldAlert, ShieldOff, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target, Route, Waves, Flame, Crosshair, ArrowUpDown, Eraser, Play, LayoutGrid, Hand, HelpingHand } from 'lucide-react';
+import { Trophy, Shield, ShieldAlert, ShieldOff, Zap, Map as MapIcon, Users, Skull, Star, HeartPulse, Keyboard, ListTree, BarChart3, ArrowBigUp, FileText, Swords, GitCompareArrows, Clock3, Target, Route, Waves, Flame, Crosshair, ArrowUpDown, Eraser, Play, LayoutGrid, Hand, HelpingHand, ListOrdered } from 'lucide-react';
 import { CommanderTagIcon } from '../ui/CommanderTagIcon';
 import { SupportPlusIcon } from '../ui/SupportPlusIcon';
 import { Gw2ApmIcon } from '../ui/Gw2ApmIcon';
@@ -144,6 +144,7 @@ export const STATS_CATEGORIES: readonly StatsCategory[] = [
             { id: 'player-comparison', label: 'Player Comparison', icon: Users, description: 'Compare two players side by side.', keywords: ['compare players', 'versus'] },
             { id: 'apm-stats', label: 'APM Breakdown', icon: Gw2ApmIcon, description: 'Actions per minute with and without autos/procs.', keywords: ['actions per minute', 'casts', 'apm'] },
             { id: 'skill-usage', label: 'Skill Usage', icon: Keyboard, description: 'Cast counts per skill per player.', keywords: ['rotations', 'casts', 'skill counts'] },
+            { id: 'rotation', label: 'Rotation', icon: ListOrdered, description: 'Per-cast timeline for one player.', keywords: ['rotation', 'casts', 'timeline', 'skill order', 'what did they press'] },
             { id: 'sigil-relic-uptime', label: 'Sigil/Relic Uptime', icon: Gw2SigilIcon, description: 'Gear proc and sigil/relic uptimes.', keywords: ['gear', 'sigils', 'relics'] },
             { id: 'special-buffs', label: 'Special Buffs', icon: Star, description: 'Food, utilities, and special buff coverage.', keywords: ['food', 'utility', 'consumables'] },
         ],
