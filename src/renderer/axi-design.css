@@ -188,7 +188,15 @@
   --scrollbar-thumb: var(--axi-rule);
   --scrollbar-thumb-hover: var(--axi-text-faint);
 
-  background: var(--axi-ground);
+  /* Longhand, not the shorthand. This selector is (0,1,1) against upstream's
+     bare `body` at (0,0,1), so it always wins the cascade for whatever
+     properties it declares. `background:` declares all of them, including
+     background-image — which resets it to `none` and discards
+     --axi-ground-image, axi.css:158-166's own three radial gradients that
+     ARE the glass theme's headline visual. background-color leaves
+     background-image (and background-attachment: fixed) to cascade from
+     upstream's body rule untouched. */
+  background-color: var(--axi-ground);
   color: var(--axi-text);
 }
 
@@ -196,6 +204,12 @@
    outline and no block - a block is an element's shadow on the surface behind
    it, and there is nothing behind a window we are entitled to draw on. */
 [data-axi-accent] body .app-shell {
+  /* Shorthand is fine here, unlike on body above: .app-shell isn't an
+     element upstream paints a background-image onto, so there is nothing
+     for `background:` to clobber. Under glass this loses anyway to the
+     higher-specificity transparency rule in index.css's floating-surfaces
+     block ([data-axi-accent][data-axi-theme="glass"] .app-shell), which is
+     what lets the ground's glass light show through the window frame. */
   background: var(--axi-ground);
   border: var(--axi-border-panel) solid var(--axi-ink-line);
 }
@@ -392,9 +406,12 @@
 [data-axi-accent] body .bg-violet-500\/15,
 [data-axi-accent] body .bg-white\/10,
 [data-axi-accent] body .bg-white\/20,
-[data-axi-accent] body .bg-white\/\[0\.10\] { background-color: var(--axi-surface-raised); }
+/* Shorthand: --axi-surface-raised is a gradient under glass, invalid at
+   computed-value time as background-color for every literal above. */
+[data-axi-accent] body .bg-white\/\[0\.10\] { background: var(--axi-surface-raised); }
 
-[data-axi-accent] body .bg-slate-900 { background-color: var(--axi-surface); }
+/* Shorthand, same reason: --axi-surface is a gradient under glass. */
+[data-axi-accent] body .bg-slate-900 { background: var(--axi-surface); }
 
 [data-axi-accent] body .bg-slate-200\/70,
 [data-axi-accent] body .bg-white { background-color: var(--axi-text); }
@@ -747,7 +764,8 @@
   border-width: var(--axi-border-control);
   border-color: var(--axi-ink-line);
   border-radius: 3px;
-  background-color: var(--axi-surface-raised);
+  /* Shorthand: --axi-surface-raised is a gradient under glass. */
+  background: var(--axi-surface-raised);
   box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
 }
 [data-axi-accent] body .menu-checkbox[data-on] { background-color: var(--axi-accent); }
@@ -1992,7 +2010,8 @@
 /* The row hover is a white wash in the markup, under the bracket-syntax hole
    the utility bridge leaves; an occupied cell keeps its band. */
 [data-axi-accent] body .bucket-grid tbody tr:hover td[data-bucket-cell]:not([data-heat]) {
-  background-color: var(--axi-surface-raised);
+  /* Shorthand: --axi-surface-raised is a gradient under glass. */
+  background: var(--axi-surface-raised);
 }
 /* Everything between the frame and the bands was still the markup's own
    white-alpha hairlines: a row divider at 3%, a 30s tick at 10%, a subgroup
@@ -2009,7 +2028,12 @@
    figure and the zebra is only what the empty field does. */
 [data-axi-accent] body .stats-view .bucket-grid tbody tr > * {
   border-bottom: 1px solid var(--axi-rule);
-  background-color: var(--axi-surface);
+  /* Shorthand: --axi-surface is a gradient under glass — without this, this
+     even-row fill was invalid at computed-value time and dropped to
+     transparent, which is why the pinned column's zebra previously read as
+     two tones instead of the intended two opaque fills (see the .bucket-grid__pin
+     cascade note in the Fix round 1 report). Fixed as a side effect here. */
+  background: var(--axi-surface);
 }
 [data-axi-accent] body .stats-view .bucket-grid tbody tr:nth-of-type(odd) > * {
   background-color: var(--axi-ground);
@@ -2030,7 +2054,8 @@
    cell also takes the accent edge every other pinned column takes on hover -
    it is the one place the language spends gold on a row. */
 [data-axi-accent] body .stats-view .bucket-grid tbody tr:hover > *:not([data-heat]) {
-  background-color: var(--axi-surface-raised);
+  /* Shorthand: --axi-surface-raised is a gradient under glass. */
+  background: var(--axi-surface-raised);
 }
 [data-axi-accent] body .stats-view .bucket-grid tbody tr:hover > .bucket-grid__pin {
   box-shadow: inset var(--axi-border-control) 0 0 var(--axi-accent);
@@ -2232,7 +2257,8 @@
 /* Disabled is the control with no claim on you: the fill goes back to the
    surface and the label goes faint, rather than the accent at half strength. */
 [data-axi-accent] body .file-picker-confirm:disabled {
-  background-color: var(--axi-surface);
+  /* Shorthand: --axi-surface is a gradient under glass. */
+  background: var(--axi-surface);
   color: var(--axi-text-faint);
   box-shadow: none;
   opacity: 1;
@@ -2286,7 +2312,13 @@
   margin: 0 var(--axi-offset-control) var(--axi-offset-control) 0;
   border: var(--axi-border-control) solid var(--axi-ink-line);
   border-radius: 3px;
-  background-color: var(--axi-surface-raised);
+  /* Shorthand: --axi-surface-raised is a gradient under glass. Safe against
+     the repeat/position/size lines right below — `background:` would reset
+     them too, but they are declared AFTER it in this same rule, so they
+     reassert their own values regardless. The separate `:checked` rule below
+     sets its own background-color/background-image and never touches
+     repeat/position/size, so it is unaffected either way. */
+  background: var(--axi-surface-raised);
   background-repeat: no-repeat;
   background-position: center;
   background-size: 68% 68%;
@@ -2359,8 +2391,11 @@
    in the report - so it is drawn the same way: quiet until it is the section
    you are reading, then filled with the accent and standing on its block. */
 [data-axi-accent] body .mobile-jump-chips > button {
-  background-image: none;
-  background-color: var(--axi-surface);
+  /* Shorthand replaces the color+image pair: --axi-surface is a gradient
+     under glass, and `background:` sets background-image to `none` on its
+     own (the same value the explicit longhand asked for), so nothing is
+     lost by folding them into one declaration. */
+  background: var(--axi-surface);
   border-width: var(--axi-border-control);
   border-style: solid;
   border-color: var(--axi-ink-line);
@@ -2391,7 +2426,8 @@
    grammar as a stat row inside a section, and the reason none of the four
    claims the accent: they are all the same size of action. */
 [data-axi-accent] body .mobile-action-bar > div {
-  background-color: var(--axi-surface);
+  /* Shorthand: --axi-surface is a gradient under glass. */
+  background: var(--axi-surface);
   border-width: var(--axi-border-panel);
   border-style: solid;
   border-color: var(--axi-ink-line);
