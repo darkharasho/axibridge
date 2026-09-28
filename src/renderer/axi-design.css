@@ -134,12 +134,23 @@
   --glow-secondary: transparent;
 
   /* --- remap: shadows --- */
-  /* The hard offset block, at the step each surface sits at: a card and a
-     dropdown are panels, a button is a control. Every soft shadow in the app
-     resolves to one of these two, so no component has to know. */
-  --shadow-card: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
-  --shadow-button: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
-  --shadow-dropdown: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+  /* Raising, at the step each surface sits at: a card and a dropdown are
+     panels, a button is a control. Every soft shadow in the app resolves to
+     one of these two, so no component has to know.
+
+     Always the composed --axi-shadow-* token, never a block assembled here out
+     of --axi-offset-* and --axi-ink-line. Those two spellings are identical
+     under the default theme, which is why the assembled form survived
+     everywhere in this file for a while. They are not identical under glass:
+     glass restates --axi-shadow-panel / --axi-shadow-control as a soft blurred
+     drop plus an inset top highlight, and leaves the offsets alone. Assembling
+     the block by hand therefore pinned the default theme's sharp 6px/3px
+     bottom-right block onto every surface under glass and made glass's own
+     shadow unreachable - which is what "raising a thing" is supposed to mean
+     in exactly one place per theme. */
+  --shadow-card: var(--axi-shadow-panel);
+  --shadow-button: var(--axi-shadow-control);
+  --shadow-dropdown: var(--axi-shadow-panel);
 
   /* --- remap: radius --- */
   --radius-sm: var(--axi-radius-sm);
@@ -651,12 +662,12 @@
 [data-axi-accent] body .shadow,
 [data-axi-accent] body .shadow-sm,
 [data-axi-accent] body .shadow-md {
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
 }
 [data-axi-accent] body .shadow-lg,
 [data-axi-accent] body .shadow-xl,
 [data-axi-accent] body .shadow-2xl {
-  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-panel);
 }
 /* An inner shadow is a lit edge, which is the one thing a flat surface cannot
    have. Depth here is the ground colour, and that is already handled. */
@@ -727,10 +738,16 @@
    and all you could see was the knob floating. A slot has to be visible whether
    or not anything is in it, so it takes the surface and a full ink edge.
 
-   The slug is ink in both states, which leaves the track as the only thing that
-   changes. That is the point: on and off differ in what colour is in the slot,
-   not in how bright the part that moves is. No block - the block belongs to
-   things you press, and this is a slot with something sitting in it. */
+   The slug is dark in both states, which leaves the track as the only thing
+   that changes. That is the point: on and off differ in what colour is in the
+   slot, not in how bright the part that moves is. No block - the block belongs
+   to things you press, and this is a slot with something sitting in it.
+
+   It takes --axi-ground-deep, the same fill upstream gives .axi-switch__knob.
+   An earlier revision read this rule's own word "ink" as --axi-ink-line, which
+   is the hairline border token at .16 alpha - so the slug was invisible on the
+   accent track and a ghost on the surface track, and every switch in the app
+   read as a bare pill. */
 [data-axi-accent] body .toggle-track {
   border-width: var(--axi-border-control);
   border-radius: var(--axi-radius-sm);
@@ -748,7 +765,7 @@
 [data-axi-accent] body .toggle-knob {
   border-radius: 2px;
   box-shadow: none;
-  background: var(--axi-ink-line);
+  background: var(--axi-ground-deep);
 }
 /* The Distance to Tag switch is half the size of the other two - it sits in a
    section header beside 11px type - and the control edge on a 14px track leaves
@@ -766,7 +783,7 @@
   border-radius: 3px;
   /* Shorthand: --axi-surface-raised is a gradient under glass. */
   background: var(--axi-surface-raised);
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
 }
 [data-axi-accent] body .menu-checkbox[data-on] { background-color: var(--axi-accent); }
 
@@ -846,7 +863,7 @@
   background: var(--axi-accent);
   color: var(--axi-accent-ink);
   border-color: var(--axi-ink-line);
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
 }
 
 /* ---------------------------------------------------------------------------
@@ -878,7 +895,7 @@
   background: var(--axi-surface);
   border: var(--axi-border-panel) solid var(--axi-ink-line);
   border-radius: var(--axi-radius);
-  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-panel);
 }
 [data-axi-accent] body .bridge-rail__nav { display: flex; flex-direction: column; gap: 2px; }
 [data-axi-accent] body .bridge-rail__item {
@@ -903,7 +920,7 @@
   background: var(--axi-accent);
   color: var(--axi-accent-ink);
   border-color: var(--axi-ink-line);
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
 }
 /* The sections inside the open category. No well and no fill: the gold
    category answers "where am I"; a section is where the page happens to be
@@ -1028,7 +1045,7 @@
   border-width: var(--axi-border-control);
   border-color: var(--axi-ink-line);
   border-radius: var(--axi-radius);
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
 }
 /* First place is said with weight, not with hue. The accent was the obvious
    choice and it was wrong twice over: there are two MVP groups on screen, so
@@ -1064,7 +1081,7 @@
   border-radius: var(--axi-radius);
 }
 [data-axi-accent] body .commander-panel {
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
 }
 /* The severity verdict is a judgement about the number on the card, so it is
    drawn where Overview draws it: as a cap across the top edge, directly over
@@ -1113,15 +1130,15 @@
   border-width: var(--axi-border-control);
   border-color: var(--axi-ink-line);
   border-radius: var(--axi-radius);
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
 }
 [data-axi-accent] body .leader-card:hover {
-  box-shadow: var(--axi-offset-control-hover) var(--axi-offset-control-hover) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control-hover);
 }
 /* The open tile is the one you picked: accent outline, no ring. */
 [data-axi-accent] body .leader-card--active {
   border-color: var(--axi-accent);
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
   --tw-ring-color: transparent;
 }
 
@@ -1217,7 +1234,7 @@
      globally and raised to the panel step on the modal itself. */
   --panel-border-w: var(--axi-border-panel);
   border-radius: var(--axi-radius);
-  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-panel);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1373,7 +1390,7 @@
   background: var(--axi-accent);
   color: var(--axi-accent-ink);
   border-color: var(--axi-ink-line);
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
 }
 [data-axi-accent] body .report-nav-sidebar .report-nav-group-btn[data-on] .report-nav-group-icon,
 [data-axi-accent] body .report-nav-sidebar .report-nav-group-btn[data-on] .report-nav-chevron { color: var(--axi-accent-ink); }
@@ -1664,7 +1681,7 @@
   --panel-border-w: var(--axi-border-control);
   background: var(--axi-surface);
   border-radius: var(--axi-radius-sm);
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
 }
 
 /* recharts' own tooltip, for the charts that did not hand-roll one. */
@@ -1677,7 +1694,7 @@
      0.5rem corner and its hardcoded white text while its border moved. */
   border-radius: var(--axi-radius-sm) !important;
   color: var(--axi-text) !important;
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
 }
 
 /* A reference line is an annotation on the plot - the zero line a diverging
@@ -1712,7 +1729,7 @@
    inline var() in place, which is the only way in. */
 [data-axi-accent] body .history-card {
   --history-edge-w: var(--axi-border-panel);
-  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-panel);
 }
 
 /* The map split is a quantity read as length, so it keeps its proportions and
@@ -1733,7 +1750,7 @@
 /* The source bar's fill already lands on the surface through --bg-card, so it
    only needs the block that separates chrome from ground. */
 [data-axi-accent] body .history-source-bar {
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
 }
 
 /* The strip's own cut goes to the control step so the tabs sit on something.
@@ -1789,7 +1806,7 @@
   /* !important because the webhook dropdown paints --shadow-dropdown inline,
      and that token is the panel-sized block - so the one dropdown that sets
      its own shadow was the one dropdown not taking the control step. */
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line) !important;
+  box-shadow: var(--axi-shadow-control) !important;
 }
 
 /* The one exception: a tooltip is not a surface you act in, it is a label that
@@ -1821,7 +1838,7 @@
   border-radius: var(--axi-radius-sm);
 }
 [data-axi-accent] body .replay-picker-card.is-active {
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
 }
 [data-axi-accent] body .replay-member-tooltip { box-shadow: none; }
 
@@ -1845,7 +1862,7 @@
 [data-axi-accent] body .settings-section {
   --panel-border-w: var(--axi-border-panel);
   border-radius: var(--axi-radius);
-  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-panel);
 }
 
 /* The section's icon sat in a tinted blue box with a coloured edge, which is
@@ -1871,7 +1888,7 @@
   --share-btn-bg: var(--axi-surface-raised);
   --share-btn-edge: var(--axi-ink-line);
   --panel-border-w: var(--axi-border-control);
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1970,7 +1987,7 @@
   /* The control step, not the panel step: this is a framed field standing on a
      panel, not a panel of its own, and the heavier block would put it at the
      same depth as the card it sits in. */
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
   /* Reserve the block's own footprint. The grid is the last thing in its
      section and scrolls horizontally, so without this the offset is clipped by
      the section's floor on one side and lost under the next section on the
@@ -2095,7 +2112,7 @@
   background: var(--axi-surface) !important;
   border: var(--axi-border-panel) solid var(--axi-ink-line) !important;
   border-radius: var(--axi-radius) !important;
-  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line) !important;
+  box-shadow: var(--axi-shadow-panel) !important;
 }
 [data-axi-accent] body .bridge-search-bar {
   background: var(--axi-surface-raised);
@@ -2169,7 +2186,7 @@
    resting form already says field, and that is the part that has to carry. */
 [data-axi-accent] body .bridge-search-trigger:hover {
   color: var(--axi-text);
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
   transform: translate(-2px, -2px);
 }
 /* Same key form as the panel's Esc, scaled to the smaller row. */
@@ -2194,7 +2211,7 @@
 }
 [data-axi-accent] body [data-search-pill]:hover {
   color: var(--axi-text) !important;
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
   transform: translate(-2px, -2px);
 }
 /* A pressed pill keeps its fill under the cursor and lifts rather than slides -
@@ -2203,7 +2220,7 @@
 [data-axi-accent] body [data-search-pill][aria-pressed="true"]:hover {
   background: var(--axi-accent) !important;
   color: var(--axi-accent-ink) !important;
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
 }
 [data-axi-accent] body [data-search-count] { color: var(--axi-text-faint) !important; }
 [data-axi-accent] body .bridge-search-results { scrollbar-width: none; }
@@ -2271,7 +2288,7 @@
   border-color: var(--axi-ink-line);
   border-width: var(--axi-border-control);
   border-radius: var(--axi-radius-sm);
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
 }
 [data-axi-accent] body .file-picker-confirm:hover:not(:disabled) { background-color: var(--axi-accent); filter: brightness(1.08); }
 /* Disabled is the control with no claim on you: the fill goes back to the
@@ -2342,7 +2359,7 @@
   background-repeat: no-repeat;
   background-position: center;
   background-size: 68% 68%;
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
   cursor: pointer;
 }
 
@@ -2426,7 +2443,7 @@
 [data-axi-accent] body .mobile-jump-chips > button[data-on] {
   background-color: var(--axi-accent);
   color: var(--axi-accent-ink);
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
 }
 /* The well around the chip's icon is a second outlined box inside an outlined
    box at 24px across, which at that size is just a thick ring. It keeps the
@@ -2457,7 +2474,7 @@
      padding or "Contents" truncates. */
   padding-left: .5rem;
   padding-right: .5rem;
-  box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-panel);
 }
 [data-axi-accent] body .mobile-action-bar > div > a,
 [data-axi-accent] body .mobile-action-bar > div > button {
@@ -2682,7 +2699,7 @@
    object takes. */
 [data-axi-accent] body .report-head-mark {
   border: var(--axi-border-control) solid var(--axi-ink-line);
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
   background: var(--axi-surface-raised) !important;
   border-radius: var(--axi-radius-sm) !important;
 }
@@ -2719,7 +2736,7 @@
   background: var(--outcome-fill) !important;
   color: var(--axi-accent-ink) !important;
   border: var(--axi-border-control) solid var(--axi-ink-line) !important;
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
 }
 
 /* Except when there is no verdict. An undecided fight has no status to report,
@@ -2781,7 +2798,7 @@
 
 [data-axi-accent] body .report-shell-btn:hover {
   transform: translate(-2px, -2px);
-  box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
+  box-shadow: var(--axi-shadow-control);
 }
 
 @media (prefers-reduced-motion: reduce) {
