@@ -1741,38 +1741,48 @@ body.web-report {
        (29.86,34.63,45.99) at alpha .44; + rgb(10,12,16) x .56 = (5.60,6.72,8.96)
        => rgb(35.46,41.35,54.95) => #232937
 
-   What is genuinely lost is the ground light showing through the translucent
-   surface. The flat value composites over the flat ground colour, not over
-   whichever of the three radial gradients happens to sit behind the element. The
-   alternative was losing the fill entirely.
+   The values below are those means UN-premultiplied, so each token keeps the
+   gradient's average colour AND its alpha: (21.83,25.63,34.96)/.485 =>
+   rgba(45,53,72,.485), and (29.86,34.63,45.99)/.44 => rgba(68,79,105,.44). They
+   composite over the glass ground to exactly the #1b202b / #232937 above, so the
+   average appearance is unchanged - but because they stay translucent, the three
+   radial gradients of --axi-ground-image still show through. An earlier revision
+   of this block used the composited hex directly. That was a mistake: the tokens
+   feed `background:` shorthand sites too, not only the colour-only ones that
+   forced this block to exist, so opaque values stripped the tint off every
+   surface in the app and left glass reading as a flat dark theme.
+
+   What is lost is only the 145deg direction of the gradient; a single colour
+   cannot carry it. Floating surfaces are unaffected either way - the block below
+   gives each of them its own opaque fill with !important.
 
    src/renderer/__tests__/themeCssContract.test.ts enumerates the remapped tokens
    out of axi-design.css and fails if any of them is missing here. --- */
 [data-axi-accent][data-axi-theme="glass"] body {
     /* surfaces */
-    --bg-elevated: #1b202b;
-    --bg-card: #1b202b;
-    --bg-hover: #232937;
+    --bg-elevated: rgba(45, 53, 72, 0.485);
+    --bg-card: rgba(45, 53, 72, 0.485);
+    --bg-hover: rgba(68, 79, 105, 0.44);
     /* accent washes turned neutral by the remap */
-    --accent-bg: #1b202b;
-    --accent-bg-strong: #232937;
+    --accent-bg: rgba(45, 53, 72, 0.485);
+    --accent-bg-strong: rgba(68, 79, 105, 0.44);
     /* status washes: --status-success-bg and --status-error-bg are read as
        `background-color` by the two upload-row rules above, the rest by inline
        `background:` shorthands. They all resolve to --axi-surface-raised, so one
        value covers the set. */
-    --status-success-bg: #232937;
-    --status-error-bg: #232937;
-    --status-warning-bg: #232937;
-    --status-info-bg: #232937;
+    --status-success-bg: rgba(68, 79, 105, 0.44);
+    --status-error-bg: rgba(68, 79, 105, 0.44);
+    --status-warning-bg: rgba(68, 79, 105, 0.44);
+    --status-info-bg: rgba(68, 79, 105, 0.44);
     /* the stats-group mark's ground, declared body-level so it lands here too. */
-    --stats-group-mark-bg: #232937;
+    --stats-group-mark-bg: rgba(68, 79, 105, 0.44);
     /* section washes: same target token, same flat value. */
-    --section-offense-bg: #232937;
-    --section-defense-bg: #232937;
-    --section-mitigation-bg: #232937;
-    --section-support-bg: #232937;
-    --section-healing-bg: #232937;
-    --section-boon-bg: #232937;
+    --section-offense-bg: rgba(68, 79, 105, 0.44);
+    --section-defense-bg: rgba(68, 79, 105, 0.44);
+    --section-mitigation-bg: rgba(68, 79, 105, 0.44);
+    --section-support-bg: rgba(68, 79, 105, 0.44);
+    --section-healing-bg: rgba(68, 79, 105, 0.44);
+    --section-boon-bg: rgba(68, 79, 105, 0.44);
 }
 
 /* ---------------------------------------------------------------------------

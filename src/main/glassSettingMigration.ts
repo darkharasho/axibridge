@@ -31,7 +31,8 @@ export function migrateGlassSetting(store: GlassMigrationStore): void {
     if (legacyUiTheme) {
         const mapping = LEGACY_THEME_TO_PALETTE[legacyUiTheme] ?? { palette: 'electric-blue', glass: false };
         store.set('colorPalette', mapping.palette);
-        if (mapping.glass) store.set('glassSurfaces', true);
+        // Only the palette carries over. `mapping.glass` records which legacy
+        // themes were glassy, but glass is opt-in now, so it is not replayed.
         store.delete('uiTheme');
         store.delete('githubWebTheme');
         store.delete('kineticFontStyle');
@@ -39,10 +40,13 @@ export function migrateGlassSetting(store: GlassMigrationStore): void {
         store.delete('dashboardLayout');
     }
 
+    // Glass is opt-in, never inherited. Deriving it from the legacy
+    // `glassSurfaces` / `glassmorphic` keys made glass the effective default for
+    // everyone who had ever switched the old theme on, which is the opposite of
+    // "default is axi-design with a single toggle for glass for those who want
+    // it". Everyone lands on the default theme and opts in from Settings.
     if (!store.has('glass')) {
-        const glassSurfaces = store.get('glassSurfaces', false) === true;
-        const glassmorphic = store.get('glassmorphic', false) === true;
-        store.set('glass', glassSurfaces || glassmorphic);
+        store.set('glass', false);
     }
 
     store.delete('glassSurfaces');
