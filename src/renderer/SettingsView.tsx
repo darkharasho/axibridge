@@ -77,9 +77,7 @@ const IMPORT_SETTING_META: Array<{ key: string; label: string; description: stri
     { key: 'selectedWebhookId', label: 'Selected Webhook', description: 'Active webhook entry.', section: 'Discord' },
     { key: 'closeBehavior', label: 'Close Behavior', description: 'Minimize vs quit on close.', section: 'Application' },
     { key: 'colorPalette', label: 'Color Palette', description: 'Accent color palette for the UI.', section: 'Application' },
-    { key: 'glassSurfaces', label: 'Glass Surfaces', description: 'Enable frosted-glass card surfaces.', section: 'Application' },
-    { key: 'glassmorphic', label: 'Lillifox Mode', description: 'Aurora background with rounded glass cards (legacy look).', section: 'Application' },
-    { key: 'axiDesign', label: 'Axi Design', description: 'Flat, outlined surfaces with hard offset blocks and a left rail.', section: 'Application' },
+    { key: 'glass', label: 'Glass', description: 'Translucent, backlit surfaces instead of flat opaque ones.', section: 'Application' },
     { key: 'particlesEnabled', label: 'Particle Effects', description: 'Enable particle animations and effects.', section: 'Application' },
     { key: 'embedStatSettings', label: 'Discord Stat Toggles', description: 'Discord summary sections and top stat lists.', section: 'Stats' },
     { key: 'mvpWeightProfiles', label: 'MVP Weights', description: 'Score weighting for MVP.', section: 'Stats' },
@@ -115,9 +113,7 @@ interface SettingsViewProps {
     onStatsViewSettingsSaved?: (settings: IStatsViewSettings) => void;
     onDisruptionMethodSaved?: (method: DisruptionMethod) => void;
     onColorPaletteSaved?: (palette: ColorPalette) => void;
-    onGlassSurfacesSaved?: (glass: boolean) => void;
-    onGlassmorphicSaved?: (glass: boolean) => void;
-    onAxiDesignSaved?: (enabled: boolean) => void;
+    onGlassSaved?: (glass: boolean) => void;
     onParticlesEnabledSaved?: (enabled: boolean) => void;
     onAllowLocalJsonSaved?: (enabled: boolean) => void;
     /** Keeps App's copy (the dashboard Quick Settings card) in sync with edits made here. */
@@ -128,9 +124,7 @@ interface SettingsViewProps {
     /** Fired when a Cloudflare connect or disconnect changes whether R2 is usable. */
     onR2CredentialsChanged?: () => void;
     colorPalette?: ColorPalette;
-    glassSurfaces?: boolean;
-    glassmorphic?: boolean;
-    axiDesign?: boolean;
+    glass?: boolean;
     particlesEnabled?: boolean;
     developerSettingsTrigger?: number;
     isBulkUploadActive?: boolean;
@@ -231,7 +225,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSurfacesSaved, onGlassmorphicSaved, onAxiDesignSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onParserSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2SliceEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, glassSurfaces: glassSurfacesProp, glassmorphic: glassmorphicProp, axiDesign: axiDesignProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed, getStoredLogs, webhooks, enabledWebhookIds, onSaveWebhooks, onSetDestinationEnabled, logDirectory, onChangeLogDirectory }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onParserSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2SliceEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, glass: glassProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed, getStoredLogs, webhooks, enabledWebhookIds, onSaveWebhooks, onSetDestinationEnabled, logDirectory, onChangeLogDirectory }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [dpsReportEnabled, setDpsReportEnabled] = useState<boolean>(true);
@@ -245,11 +239,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
     const [commanderThresholds, setCommanderThresholds] = useState<CommanderThresholds>(DEFAULT_COMMANDER_THRESHOLDS);
     const [colorPalette, setColorPalette] = useState<ColorPalette>(colorPaletteProp ?? DEFAULT_PALETTE_ID);
-    const [glassSurfaces, setGlassSurfaces] = useState(glassSurfacesProp ?? false);
-    const [glassmorphic, setGlassmorphic] = useState(glassmorphicProp ?? false);
-    const [axiDesign, setAxiDesign] = useState(axiDesignProp ?? false);
-    // Mirrors useSettings: axi and glass are mutually exclusive on the body, and axi wins.
-    const paletteLocked = glassmorphic && !axiDesign;
+    const [glass, setGlass] = useState(glassProp ?? false);
     const [particlesEnabled, setParticlesEnabled] = useState(particlesEnabledProp ?? true);
     const [allowLocalJson, setAllowLocalJson] = useState(false);
     const [parserSettings, setParserSettings] = useState<IParserSettings | null>(null);
@@ -567,17 +557,13 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             ...(settings.statsViewSettings || {}),
             enabledTopStats: normalizeEnabledTopStats(settings.statsViewSettings?.enabledTopStats),
         });
-        if (settings.colorPalette && settings.colorPalette in PALETTES) {
+        // hasOwnProperty, not `in`: `in` walks the prototype chain, so a settings
+        // blob carrying colorPalette: "constructor" would be accepted as an accent id.
+        if (settings.colorPalette && Object.prototype.hasOwnProperty.call(PALETTES, settings.colorPalette)) {
             setColorPalette(settings.colorPalette);
         }
-        if (typeof settings.glassSurfaces === 'boolean') {
-            setGlassSurfaces(settings.glassSurfaces);
-        }
-        if (typeof settings.axiDesign === 'boolean') {
-            setAxiDesign(settings.axiDesign);
-        }
-        if (typeof settings.glassmorphic === 'boolean') {
-            setGlassmorphic(settings.glassmorphic);
+        if (typeof settings.glass === 'boolean') {
+            setGlass(settings.glass);
         }
         if (typeof settings.particlesEnabled === 'boolean') {
             setParticlesEnabled(settings.particlesEnabled);
@@ -854,9 +840,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         disruptionMethod,
         commanderThresholds,
         colorPalette,
-        glassSurfaces,
-        glassmorphic,
-        axiDesign,
+        glass,
         githubRepoOwner,
         githubRepoName,
         githubToken,
@@ -1027,9 +1011,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             disruptionMethod: disruptionMethod,
             commanderThresholds: commanderThresholds,
             colorPalette,
-            glassSurfaces,
-            glassmorphic,
-            axiDesign,
+            glass,
             particlesEnabled,
             githubRepoName: githubRepoName || null,
             githubRepoOwner: githubRepoOwner || null,
@@ -1051,9 +1033,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         onStatsViewSettingsSaved?.(statsViewSettings);
         onDisruptionMethodSaved?.(disruptionMethod);
         onColorPaletteSaved?.(colorPalette);
-        onGlassSurfacesSaved?.(glassSurfaces);
-        onGlassmorphicSaved?.(glassmorphic);
-        onAxiDesignSaved?.(axiDesign);
+        onGlassSaved?.(glass);
         onParticlesEnabledSaved?.(particlesEnabled);
         onAllowLocalJsonSaved?.(allowLocalJson);
 
@@ -1081,9 +1061,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         disruptionMethod,
         commanderThresholds,
         colorPalette,
-        glassSurfaces,
-        glassmorphic,
-        axiDesign,
+        glass,
         particlesEnabled,
         githubRepoName,
         githubRepoOwner,
@@ -2983,21 +2961,19 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         <p className="text-sm text-gray-400 mb-4">
                             Choose a color palette for the interface accent colors.
                         </p>
-                        {/* Lillifox paints its own accents, so the picker is dead under it — but
-                            axi suppresses Lillifox (useSettings refuses both classes at once), and
-                            the picker drives axi. So the grid is only dead when Lillifox is the one
-                            actually applied. */}
+                        {/* The picker is never locked now. It used to be, because Lillifox
+                            Mode painted its own accents; that mode is gone, and the accent
+                            drives the language in both surface treatments. */}
                         <div className="text-[11px] uppercase tracking-[0.2em] text-gray-500 mb-2">
-                            Color Palette {paletteLocked ? <span className="ml-2 normal-case tracking-normal text-gray-500">(disabled in Lillifox Mode)</span> : null}
+                            Color Palette
                         </div>
-                        <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 ${paletteLocked ? 'opacity-40 pointer-events-none' : ''}`} aria-disabled={paletteLocked}>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             {(Object.values(PALETTES) as import('../shared/webThemes').PaletteDefinition[]).map((palette) => {
                                 const isActive = colorPalette === palette.id;
                                 return (
                                     <button
                                         key={palette.id}
                                         type="button"
-                                        disabled={paletteLocked}
                                         onClick={() => { setColorPalette(palette.id); onColorPaletteSaved?.(palette.id); }}
                                         className={`rounded-[4px] border px-3 py-3 text-left transition-colors ${isActive
                                             ? 'border-white/40 bg-white/10'
@@ -3015,26 +2991,10 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         </div>
                         <div className="mt-4">
                             <Toggle
-                                enabled={glassSurfaces}
-                                onChange={(v) => { setGlassSurfaces(v); onGlassSurfacesSaved?.(v); }}
-                                label="Glass Surfaces"
-                                description="Enable frosted-glass card backgrounds with backdrop blur"
-                                disabled={axiDesign}
-                                disabledNote="(disabled in Axi Design)"
-                            />
-                            <Toggle
-                                enabled={glassmorphic}
-                                onChange={(v) => { setGlassmorphic(v); onGlassmorphicSaved?.(v); }}
-                                label="Lillifox Mode"
-                                description="Aurora background, rounded translucent cards — the original AxiBridge look"
-                                disabled={axiDesign}
-                                disabledNote="(disabled in Axi Design)"
-                            />
-                            <Toggle
-                                enabled={axiDesign}
-                                onChange={(v) => { setAxiDesign(v); onAxiDesignSaved?.(v); }}
-                                label="Axi Design"
-                                description="Flat outlined surfaces, hard offset blocks, and a left rail instead of the top tab strip"
+                                enabled={glass}
+                                onChange={(v) => { setGlass(v); onGlassSaved?.(v); }}
+                                label="Glass"
+                                description="Translucent, backlit surfaces and rounded corners instead of flat opaque ones"
                             />
                             <Toggle
                                 enabled={particlesEnabled}

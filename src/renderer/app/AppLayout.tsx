@@ -63,10 +63,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
         statsDataProgress,
         setStatsViewSettings,
         setColorPalette,
-        setGlassSurfaces,
-        setGlassmorphic,
-        axiDesign,
-        setAxiDesign,
+        glass,
+        setGlass,
         particlesEnabled,
         setParticlesEnabled,
         handleWebUpload,
@@ -117,6 +115,14 @@ export function AppLayout({ ctx }: { ctx: any }) {
         logDirectory,
         handleSelectDirectory,
     } = ctx;
+
+    // TRANSITIONAL, removed in the CSS switchover (Task 5): axiDesign is no
+    // longer a setting (useSettings applies it unconditionally), but the JSX
+    // below still branches on it for the nav-tab accent styling and the
+    // AxiRail/CategoryBar choice. Hardcoding it true here keeps that branching
+    // compiling and pointed at the now-permanent state without reaching into
+    // Task 5's scope.
+    const axiDesign = true;
 
     const [activeNavView, setActiveNavView] = useState(view);
 
@@ -453,10 +459,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 onStatsViewSettingsSaved={stableSetStatsViewSettings}
                                 onDisruptionMethodSaved={stableSetDisruptionMethod}
                                 onColorPaletteSaved={setColorPalette}
-                                onGlassSurfacesSaved={setGlassSurfaces}
-                                onGlassmorphicSaved={setGlassmorphic}
-                                onAxiDesignSaved={setAxiDesign}
-                                axiDesign={axiDesign}
+                                onGlassSaved={setGlass}
+                                glass={glass}
                                 onParticlesEnabledSaved={setParticlesEnabled}
                                 onAllowLocalJsonSaved={setAllowLocalJson}
                                 onParserSettingsSaved={setParserSettings}

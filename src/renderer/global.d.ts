@@ -296,11 +296,10 @@ export const DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS: IDiscordEnemySplitSettings = 
     tiled: false
 };
 
-export const DEFAULT_GLASS_SURFACES = false;
-export const DEFAULT_GLASSMORPHIC = false;
-/* The axi design language: flat, outlined, hard offset blocks. Off by default
-   while it lives alongside the existing look. */
-export const DEFAULT_AXI_DESIGN = false;
+/* The axi design language is unconditional now, so there is no boolean for it.
+   Glass is the one appearance choice beyond the accent: upstream's
+   [data-axi-theme="glass"] token override, off by default. */
+export const DEFAULT_GLASS = false;
 export const DEFAULT_PARTICLES_ENABLED = true;
 
 export interface CloudflareStatus {
@@ -355,9 +354,7 @@ export interface IElectronAPI {
         disruptionMethod: DisruptionMethod;
         commanderThresholds?: Partial<import('../shared/commanderThresholds').CommanderThresholds>;
         colorPalette?: ColorPalette;
-        glassSurfaces?: boolean;
-        glassmorphic?: boolean;
-        axiDesign?: boolean;
+        glass?: boolean;
         particlesEnabled?: boolean;
         autoUpdateSupported?: boolean;
         autoUpdateDisabledReason?: string | null;
@@ -409,9 +406,7 @@ export interface IElectronAPI {
         disruptionMethod?: DisruptionMethod;
         commanderThresholds?: Partial<import('../shared/commanderThresholds').CommanderThresholds>;
         colorPalette?: ColorPalette;
-        glassSurfaces?: boolean;
-        glassmorphic?: boolean;
-        axiDesign?: boolean;
+        glass?: boolean;
         particlesEnabled?: boolean;
         githubRepoOwner?: string | null;
         githubRepoName?: string | null;

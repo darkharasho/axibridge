@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS,
-    DEFAULT_AXI_DESIGN, DEFAULT_GLASS_SURFACES, DEFAULT_GLASSMORPHIC, DEFAULT_PARTICLES_ENABLED, DEFAULT_MVP_WEIGHT_PROFILES,
+    DEFAULT_GLASS, DEFAULT_PARTICLES_ENABLED, DEFAULT_MVP_WEIGHT_PROFILES,
     DEFAULT_STATS_VIEW_SETTINGS, DisruptionMethod, IEmbedStatSettings, IMvpWeightProfiles,
     IStatsViewSettings,
 } from '../../global.d';
 import { normalizeMvpWeightProfiles } from '../../stats/mvpWeightProfiles';
 import { Webhook } from '../../WebhookModal';
-import { PALETTES, type ColorPalette } from '../../../shared/webThemes';
+import { type ColorPalette } from '../../../shared/webThemes';
+import { applyAxiTheme } from '../../../shared/applyAxiTheme';
 
 interface UseSettingsOptions {
     onAutoUpdateSettings?: (supported: boolean, reason: string | null) => void;
@@ -25,9 +26,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     const [r2HostingEnabled, setR2HostingEnabled] = useState(true);
     const [r2SliceEnabled, setR2SliceEnabled] = useState(true);
     const [colorPalette, setColorPalette] = useState<ColorPalette>('electric-blue');
-    const [glassSurfaces, setGlassSurfaces] = useState(DEFAULT_GLASS_SURFACES);
-    const [glassmorphic, setGlassmorphic] = useState(DEFAULT_GLASSMORPHIC);
-    const [axiDesign, setAxiDesign] = useState(DEFAULT_AXI_DESIGN);
+    const [glass, setGlass] = useState(DEFAULT_GLASS);
     const [particlesEnabled, setParticlesEnabled] = useState(DEFAULT_PARTICLES_ENABLED);
     const [webhooks, setWebhooks] = useState<Webhook[]>([]);
     const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
@@ -96,14 +95,8 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
             if (settings.colorPalette) {
                 setColorPalette(settings.colorPalette);
             }
-            if (typeof settings.glassSurfaces === 'boolean') {
-                setGlassSurfaces(settings.glassSurfaces);
-            }
-            if (typeof settings.glassmorphic === 'boolean') {
-                setGlassmorphic(settings.glassmorphic);
-            }
-            if (typeof settings.axiDesign === 'boolean') {
-                setAxiDesign(settings.axiDesign);
+            if (typeof settings.glass === 'boolean') {
+                setGlass(settings.glass);
             }
             if (typeof settings.particlesEnabled === 'boolean') {
                 setParticlesEnabled(settings.particlesEnabled);
@@ -168,22 +161,16 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     }, []);
 
     useEffect(() => {
-        const body = document.body;
-        for (const id of Object.keys(PALETTES)) body.classList.remove(`palette-${id}`);
-        if (colorPalette !== 'electric-blue') {
-            body.classList.add(`palette-${colorPalette}`);
-        }
-        // Glass and axi are opposite claims about what a surface is: glass is
-        // translucent and lit from behind, axi is opaque with a hard block. The
-        // glass rules are written with !important (they have to be, to beat the
-        // inline styles they override), so with both on the glass wins every
-        // contested property and the result is neither language. axi-design
-        // suppresses them rather than trying to out-specify them.
-        body.classList.toggle('glass-surfaces', glassSurfaces && !axiDesign);
-        body.classList.toggle('glassmorphic', glassmorphic && !axiDesign);
-        body.classList.toggle('axi-design', axiDesign);
-        body.classList.toggle('particles-disabled', !particlesEnabled);
-    }, [colorPalette, glassSurfaces, glassmorphic, axiDesign, particlesEnabled]);
+        // Two data attributes on <html> are the whole appearance API — see
+        // applyAxiTheme for why the document element rather than the body.
+        applyAxiTheme(document.documentElement, { accent: colorPalette, glass });
+        // TRANSITIONAL, removed in the CSS switchover: axi is unconditional from
+        // here on, but the stylesheets are still keyed on this class. Glass is
+        // inert for now, which is what it already was under axi.
+        document.body.classList.add('axi-design');
+        // Not part of the design language — app behaviour, so it stays a body class.
+        document.body.classList.toggle('particles-disabled', !particlesEnabled);
+    }, [colorPalette, glass, particlesEnabled]);
 
     return useMemo(() => ({
         logDirectory, setLogDirectory,
@@ -197,9 +184,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         r2HostingEnabled, setR2HostingEnabled,
         r2SliceEnabled, setR2SliceEnabled,
         colorPalette, setColorPalette,
-        glassSurfaces, setGlassSurfaces,
-        glassmorphic, setGlassmorphic,
-        axiDesign, setAxiDesign,
+        glass, setGlass,
         particlesEnabled, setParticlesEnabled,
         webhooks, setWebhooks,
         selectedWebhookId, setSelectedWebhookId,
@@ -214,7 +199,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         shouldOpenWhatsNew,
     }), [
         logDirectory, notificationType, embedStatSettings, mvpWeights,
-        statsViewSettings, disruptionMethod, allowLocalJson, r2PreciseReplay, r2HostingEnabled, r2SliceEnabled, colorPalette, glassSurfaces, glassmorphic, axiDesign, particlesEnabled,
+        statsViewSettings, disruptionMethod, allowLocalJson, r2PreciseReplay, r2HostingEnabled, r2SliceEnabled, colorPalette, glass, particlesEnabled,
         webhooks, selectedWebhookId, enabledWebhookIds, discordDestinationStatus, handleUpdateSettings, handleSelectDirectory,
         settingsLoaded, whatsNewVersion, whatsNewNotes, walkthroughSeen,
         shouldOpenWhatsNew,

@@ -65,7 +65,7 @@ function renderSettings(
         onStatsViewSettingsSaved: vi.fn(),
         onDisruptionMethodSaved: vi.fn(),
         onColorPaletteSaved: vi.fn(),
-        onGlassSurfacesSaved: vi.fn(),
+        onGlassSaved: vi.fn(),
         onOpenWhatsNew: vi.fn(),
         onOpenWalkthrough: vi.fn(),
         webhooks: [],
@@ -356,51 +356,41 @@ describe('SettingsView', () => {
             expect(amberBtn.className).toMatch(/white\/40/);
         });
 
-        it('shows the Glass Surfaces toggle', async () => {
+        it('shows exactly one surface toggle, labelled Glass', async () => {
             renderSettings();
             selectSettingsCategory('Application');
             await screen.findByRole('heading', { name: 'Appearance' });
 
-            expect(screen.getByText('Glass Surfaces')).toBeInTheDocument();
+            expect(screen.getByText('Glass')).toBeInTheDocument();
+            expect(screen.queryByText('Glass Surfaces')).toBeNull();
+            expect(screen.queryByText('Lillifox Mode')).toBeNull();
+            expect(screen.queryByText('Axi Design')).toBeNull();
         });
 
-        it('fires onGlassSurfacesSaved after toggling glass surfaces', async () => {
+        it('fires onGlassSaved after toggling glass', async () => {
             const { mock, callbacks } = renderSettings();
             await waitForLoad(mock);
-            callbacks.onGlassSurfacesSaved.mockClear();
+            callbacks.onGlassSaved.mockClear();
             selectSettingsCategory('Application');
 
-            fireEvent.click(screen.getByText('Glass Surfaces'));
+            fireEvent.click(screen.getByText('Glass'));
 
             await waitFor(() => {
-                expect(callbacks.onGlassSurfacesSaved).toHaveBeenCalledWith(true);
+                expect(callbacks.onGlassSaved).toHaveBeenCalledWith(true);
             }, { timeout: 1000 });
         });
 
-        it('locks the glass toggles while Axi Design is on', async () => {
-            const { mock, callbacks } = renderSettings({}, { axiDesign: true });
-            await waitForLoad(mock);
-            callbacks.onGlassSurfacesSaved.mockClear();
-            selectSettingsCategory('Application');
-            await screen.findByRole('heading', { name: 'Appearance' });
-
-            expect(screen.getAllByText('(disabled in Axi Design)')).toHaveLength(2);
-
-            fireEvent.click(screen.getByText('Glass Surfaces'));
-
-            await new Promise((resolve) => setTimeout(resolve, 400));
-            expect(callbacks.onGlassSurfacesSaved).not.toHaveBeenCalledWith(true);
-        });
-
-        it('leaves the palette grid live when Axi Design overrides Lillifox', async () => {
-            const { mock } = renderSettings({}, { glassmorphic: true, axiDesign: true });
+        // paletteLocked is gone: it existed because Lillifox Mode painted its own
+        // accents and pinned the picker. Nothing pins it now.
+        it('never disables the palette grid', async () => {
+            const { mock } = renderSettings({}, { glass: true });
             await waitForLoad(mock);
             selectSettingsCategory('Application');
             await screen.findByRole('heading', { name: 'Appearance' });
 
-            const amberBtn = await screen.findByRole('button', { name: 'Amber Warm' });
-            expect(amberBtn).not.toBeDisabled();
+            expect(await screen.findByRole('button', { name: 'Amber Warm' })).not.toBeDisabled();
             expect(screen.queryByText('(disabled in Lillifox Mode)')).toBeNull();
+            expect(screen.queryByText('(disabled in Axi Design)')).toBeNull();
         });
     });
 
@@ -929,8 +919,7 @@ const defaultProps = {
     onStatsViewSettingsSaved: vi.fn(),
     onDisruptionMethodSaved: vi.fn(),
     onColorPaletteSaved: vi.fn(),
-    onGlassSurfacesSaved: vi.fn(),
-    onGlassmorphicSaved: vi.fn(),
+    onGlassSaved: vi.fn(),
     onParticlesEnabledSaved: vi.fn(),
     onAllowLocalJsonSaved: vi.fn(),
     onParserSettingsSaved: vi.fn(),
