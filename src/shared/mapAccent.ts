@@ -18,7 +18,7 @@ import { resolveMapFromZone } from './mapUtils';
  * (`incrementalAggregation.ts`), so the accent agrees with the chart.
  */
 export interface MapAccent {
-    /** `--brand-primary` */
+    /** `--axi-accent` and `--brand-primary` */
     primary: string;
     /** `--brand-secondary` */
     secondary: string;
@@ -51,8 +51,9 @@ const toRgb = (hex: string): [number, number, number] => [
 
 /**
  * Expand one hex into the full accent variable set, using the same alpha ladder
- * every palette in `index.css` uses (.10 wash, .18 strong wash, .35 border and
- * glow) and the single-hue gradient the glassmorphic white accent already ships.
+ * every accent palette in upstream's `accents.css` uses (.10 wash, .18 strong
+ * wash, .35 border and glow) and the same single-hue gradient shape those
+ * palettes ship.
  */
 const buildAccent = (hex: string): MapAccent => {
     const [r, g, b] = toRgb(hex);
@@ -106,8 +107,19 @@ export function resolveMapAccentFromStats(stats: any): MapAccent | null {
     return resolveMapAccentFromName(name);
 }
 
-/** The accent as inline custom properties, ready for `element.style.setProperty`. */
+/**
+ * The accent as inline custom properties, ready for `element.style.setProperty`.
+ *
+ * `--axi-accent` leads the list and is not redundant with `--brand-primary`: the
+ * accent direction runs from the design language outwards now
+ * (`--brand-primary: var(--axi-accent)` at `:root`), so setting only the brand
+ * variable would leave every axi remap and every upstream component on the
+ * palette accent and the map colour would never arrive. The brand variables stay
+ * because components that read them directly need a concrete value, not one that
+ * resolves back through the token being overridden.
+ */
 export const MAP_ACCENT_CSS_VARS: Array<[string, keyof MapAccent]> = [
+    ['--axi-accent', 'primary'],
     ['--brand-primary', 'primary'],
     ['--brand-secondary', 'secondary'],
     ['--brand-gradient', 'gradient'],

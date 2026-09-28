@@ -1,9 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import '../renderer/index.css';
-// The published report renders in whatever language the publisher's app was
-// wearing; `reportApp` sets the body class from the report's own axiDesign
-// flag, so these rules have to be in the bundle either way.
+// The axi design language is unconditional now, so this is always loaded
+// rather than switched on by a report-carried flag; `reportApp` applies the
+// report's own accent and glass choice via `applyAxiTheme`.
 import '../renderer/axi-design.css';
 // The shell screens (error boundary here, plus loading/tombstone in the share
 // viewer) draw through the app's variables, so they follow the report's own

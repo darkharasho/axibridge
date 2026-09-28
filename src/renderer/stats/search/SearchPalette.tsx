@@ -39,7 +39,7 @@ const FLASH_STYLE = `
   0% { box-shadow: 0 0 0 3px var(--brand-primary); }
   100% { box-shadow: 0 0 0 3px transparent; }
 }
-.axi-search-flash { animation: axiSearchFlash 1.6s ease-out 2; border-radius: 4px; }
+.bridge-search-flash { animation: axiSearchFlash 1.6s ease-out 2; border-radius: 4px; }
 `;
 
 const rowKey = (entry: SearchEntry): string =>
@@ -131,13 +131,13 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
     let body: ReactNode;
     if (query.trim() === '') {
         body = (
-            <div className="axi-search-empty px-3 py-6 text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <div className="bridge-search-empty px-3 py-6 text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
                 Type to search sections, metrics, and players.
             </div>
         );
     } else if (results.length === 0) {
         body = (
-            <div className="axi-search-empty px-3 py-6 text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <div className="bridge-search-empty px-3 py-6 text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
                 No results for &ldquo;{query}&rdquo;{typeFilter ? ` in ${GROUP_LABELS[typeFilter].toLowerCase()}` : ''}.
             </div>
         );
@@ -148,7 +148,7 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
             return (
                 <div key={type}>
                     <div
-                        className="axi-search-group px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+                        className="bridge-search-group px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
                         style={{ color: 'var(--text-secondary)' }}
                     >
                         {GROUP_LABELS[type]}
@@ -192,19 +192,19 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
         >
             {flashStyle}
             <div
-                className="axi-search-panel w-full max-w-lg flex flex-col rounded-[4px] overflow-hidden"
+                className="bridge-search-panel w-full max-w-lg flex flex-col rounded-[4px] overflow-hidden"
                 style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)', maxHeight: '70vh' }}
                 role="dialog"
                 aria-modal="true"
                 aria-label="Search"
             >
-                <div className="axi-search-bar px-3 py-2.5 shrink-0" style={{ borderBottom: '1px solid var(--border-default)' }}>
+                <div className="bridge-search-bar px-3 py-2.5 shrink-0" style={{ borderBottom: '1px solid var(--border-default)' }}>
                     <div className="flex items-center gap-2">
                         {/* The glyph sits in the well rather than beside it, so the
                             field reads as one object the way it does on the site. */}
-                        <div className="axi-search-field relative flex-1 min-w-0">
+                        <div className="bridge-search-field relative flex-1 min-w-0">
                             <Search
-                                className="axi-search-icon absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                                className="bridge-search-icon absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
                                 style={{ color: 'var(--brand-primary)' }}
                                 aria-hidden="true"
                             />
@@ -226,7 +226,7 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
                             Esc
                         </kbd>
                     </div>
-                    <div className="axi-search-filters flex items-center gap-1.5 mt-2">
+                    <div className="bridge-search-filters flex items-center gap-1.5 mt-2">
                         {GROUP_ORDER.map((type) => {
                             const pressed = typeFilter === type;
                             return (
@@ -257,7 +257,7 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
                         </span>
                     </div>
                 </div>
-                <div className="axi-search-results overflow-y-auto py-1">
+                <div className="bridge-search-results overflow-y-auto py-1">
                     {body}
                 </div>
             </div>

@@ -3,7 +3,28 @@ export type ColorPalette = 'electric-blue' | 'refined-cyan' | 'amber-warm' | 'em
 export interface PaletteDefinition {
     id: ColorPalette;
     label: string;
+    /**
+     * Documentation of the accent, not the live value. `--axi-accent` is set by
+     * `@axiapps/axi-design/accents.css` from `[data-axi-accent]`, and every
+     * brand variable in the app derives from it. The one live reader is the
+     * Settings accent swatch grid (`SettingsView.tsx`), which paints each chip
+     * flat from this field so the picker shows the colour the app actually
+     * renders. (`mapAccent.ts` does NOT read this table - it carries its own
+     * `MAP_ACCENT_HEX` for the four WvW map colours, which are not accents.)
+     * Pinned to upstream by `src/shared/__tests__/accentParity.test.ts`.
+     */
     primary: string;
+    /**
+     * The four fields below fed the deleted `body.palette-*` CSS blocks. Nothing
+     * reads them now: `--brand-secondary` and `--brand-gradient` resolve to the
+     * flat `var(--axi-accent)` in `axi-design.css`, and the accent washes come
+     * from the surface ramp. They are kept only as a record of the palette, so
+     * `accentParity.test.ts` asserts each one still follows `primary` - a stale
+     * hex here is documentation that lies, which is worse than no documentation.
+     * `secondary` is the exception: it is an independent second hue with no
+     * upstream counterpart and nothing to derive it from, so only its appearance
+     * inside `gradient` is checkable.
+     */
     secondary: string;
     gradient: string;
     accentBg: string;

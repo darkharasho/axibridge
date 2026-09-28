@@ -911,7 +911,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                 <>
                                                     {/* Adding a few hundred logs takes long enough that the
                                                         click looked ignored. The cells count the queue down. */}
-                                                    <span className="axi-step-spinner" aria-hidden="true"><i /><i /><i /><i /></span>
+                                                    <span className="bridge-step-spinner" aria-hidden="true"><i /><i /><i /><i /></span>
                                                     Adding {filePickerSelected.size} log{filePickerSelected.size === 1 ? '' : 's'}
                                                 </>
                                             ) : (

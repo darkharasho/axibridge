@@ -93,8 +93,35 @@ describe('resolveMapAccentFromStats', () => {
 
 describe('MAP_ACCENT_CSS_VARS', () => {
     it('covers every field of the accent', () => {
+        // --axi-accent duplicates the `primary` key deliberately (see the export's
+        // doc comment), so the key set alone can't be a plain array-equality check
+        // against Object.keys(accent). But Set equality on its own is too weak: it
+        // drops cardinality, so it would miss two *different* keys colliding onto
+        // the same CSS var as long as the resulting key-set size still matched by
+        // coincidence. Assert both: the unique key set covers every field, and the
+        // duplicate is exactly the one deliberate case (primary, twice).
         const accent = resolveMapAccentFromName('EBG');
-        expect(MAP_ACCENT_CSS_VARS.map(([, key]) => key).sort())
-            .toEqual(Object.keys(accent).sort());
+        const keys = MAP_ACCENT_CSS_VARS.map(([, key]) => key);
+        expect(new Set(keys)).toEqual(new Set(Object.keys(accent)));
+        expect(keys).toHaveLength(Object.keys(accent).length + 1);
+        expect(keys.filter(key => key === 'primary')).toHaveLength(2);
+    });
+
+    it('leads with --axi-accent so the map colour reaches the design language', () => {
+        expect(MAP_ACCENT_CSS_VARS[0]).toEqual(['--axi-accent', 'primary']);
+    });
+
+    it('still carries every brand and glow variable a component may read directly', () => {
+        expect(MAP_ACCENT_CSS_VARS.map(([cssVar]) => cssVar)).toEqual([
+            '--axi-accent',
+            '--brand-primary',
+            '--brand-secondary',
+            '--brand-gradient',
+            '--accent-bg',
+            '--accent-bg-strong',
+            '--accent-border',
+            '--glow-primary',
+            '--glow-secondary',
+        ]);
     });
 });
