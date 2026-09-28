@@ -34,6 +34,15 @@ describe('applyAxiTheme', () => {
         expect(root.getAttribute('data-axi-accent')).toBe('electric-blue');
     });
 
+    // `in` would return true for these — every one is an Object.prototype key.
+    it.each(['constructor', 'toString', 'hasOwnProperty', 'valueOf'])(
+        'clamps the prototype key %s to the default palette',
+        (key) => {
+            applyAxiTheme(root, { accent: key, glass: false });
+            expect(root.getAttribute('data-axi-accent')).toBe('electric-blue');
+        },
+    );
+
     it('clamps a missing accent to the default palette', () => {
         applyAxiTheme(root, { accent: null, glass: false });
         expect(root.getAttribute('data-axi-accent')).toBe('electric-blue');

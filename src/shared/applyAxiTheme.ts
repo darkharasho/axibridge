@@ -22,8 +22,13 @@ export function applyAxiTheme(
     root: HTMLElement,
     opts: { accent: ColorPalette | string | null | undefined; glass: boolean },
 ): void {
+    // hasOwnProperty, not `in`: `in` walks the prototype chain, so
+    // `'constructor' in PALETTES` is true and an accent of "constructor" — which a
+    // malformed settings blob or a hand-edited report.json can carry — would sail
+    // through unclamped and land in the attribute, where upstream's accents.css has
+    // no rule for it and --axi-accent silently falls back to upstream's gold.
     const accent: ColorPalette =
-        typeof opts.accent === 'string' && opts.accent in PALETTES
+        typeof opts.accent === 'string' && Object.prototype.hasOwnProperty.call(PALETTES, opts.accent)
             ? (opts.accent as ColorPalette)
             : DEFAULT_PALETTE_ID;
 
