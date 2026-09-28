@@ -3,6 +3,13 @@ export type ColorPalette = 'electric-blue' | 'refined-cyan' | 'amber-warm' | 'em
 export interface PaletteDefinition {
     id: ColorPalette;
     label: string;
+    /**
+     * Documentation of the accent, not the live value. `--axi-accent` is set by
+     * `@axiapps/axi-design/accents.css` from `[data-axi-accent]`, and every
+     * brand variable in the app derives from it. Kept because `mapAccent.ts`
+     * and the Settings swatch grid read it; pinned to upstream by
+     * `src/shared/__tests__/accentParity.test.ts`.
+     */
     primary: string;
     secondary: string;
     gradient: string;
