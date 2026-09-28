@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, act } from '@testing-library/react';
 import { RotationSection } from '../sections/RotationSection';
 import type { RotationFightData } from '../computeRotationTimeline';
 
@@ -98,5 +98,42 @@ describe('RotationSection', () => {
         const box = container.querySelector('[data-cast]') as HTMLElement;
         expect(box).toBeTruthy();
         expect(box.style.minWidth).toBe('26px');
+    });
+
+    /** jsdom reports every width as 0, so a test that wants a measured track
+     *  must stub the row's rect and then drive the ResizeObserver stub with a
+     *  window resize event — see the comment in src/renderer/test/setup.ts. */
+    const measureTrack = (container: HTMLElement, width: number) => {
+        const row = container.querySelector('[data-track-row]') as HTMLElement;
+        vi.spyOn(row, 'getBoundingClientRect').mockReturnValue({ width } as DOMRect);
+        act(() => { window.dispatchEvent(new Event('resize')); });
+    };
+
+    it('shows the skill name once the track is wide enough for it', () => {
+        const { container } = render(
+            <RotationSection fights={[fight]} recorded selectedFightId="f1" />);
+        // 4000px, not 2000: at the new 15s default the first cast is 502ms
+        // wide = 3.35% of the row, which is only ~67px at 2000 and would take
+        // the icon-only branch. 4000 puts it at ~134px, clear of NAME_MIN_PX.
+        measureTrack(container, 4000);
+        const box = container.querySelectorAll('[data-cast]')[0] as HTMLElement;
+        expect(box.textContent).toContain('Symbol of Blades');
+    });
+
+    it('falls back to the icon alone when the box is too narrow for a name', () => {
+        const { container } = render(
+            <RotationSection fights={[fight]} recorded selectedFightId="f1" />);
+        measureTrack(container, 120);
+        const box = container.querySelectorAll('[data-cast]')[0] as HTMLElement;
+        expect(box.textContent).not.toContain('Symbol of Blades');
+        expect(box.querySelector('img')).toBeTruthy();
+    });
+
+    it('renders the icon alone when the track has never been measured', () => {
+        const { container } = render(
+            <RotationSection fights={[fight]} recorded selectedFightId="f1" />);
+        const box = container.querySelectorAll('[data-cast]')[0] as HTMLElement;
+        expect(box.textContent).not.toContain('Symbol of Blades');
+        expect(box.querySelector('img')).toBeTruthy();
     });
 });

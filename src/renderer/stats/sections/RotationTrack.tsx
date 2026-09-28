@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { decodeRotation, type RotationFightData, type RotationPlayerData } from '../computeRotationTimeline';
 
 /**
@@ -25,6 +25,13 @@ const mmssMillis = (ms: number): string => {
  * at every row width.
  */
 const MIN_BOX_PX = 26;
+
+/**
+ * Below this many pixels a box shows its icon alone, centred. Tuned against
+ * the 11px label in the app's font stack — it is a chosen constant, not a
+ * derived one, so adjust it by looking at the result rather than by algebra.
+ */
+const NAME_MIN_PX = 78;
 
 export interface RotationTrackProps {
     fight: RotationFightData;
@@ -137,12 +144,30 @@ const RotationLegend: React.FC = () => (
 export const RotationTrack: React.FC<RotationTrackProps> = ({ fight, player, wrapMs }) => {
     const rows = useMemo(() => buildRows(fight, player, wrapMs), [fight, player, wrapMs]);
 
+    // Rows are all the same width, so measuring the first one measures them
+    // all. `measure()` runs directly here rather than waiting on `observe()`:
+    // the test stub's `observe()` is a deliberate no-op, and in the browser a
+    // layout-effect read is the earliest correct measurement anyway.
+    const rowRef = useRef<HTMLDivElement | null>(null);
+    const [trackPx, setTrackPx] = useState(0);
+    useLayoutEffect(() => {
+        const el = rowRef.current;
+        if (!el) return;
+        const measure = () => setTrackPx(el.getBoundingClientRect().width);
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [wrapMs, rows.length]);
+
     return (
         <div className="flex flex-col gap-1.5">
             <RotationLegend />
             {rows.map((row, rowIndex) => (
                 <div
                     key={rowIndex}
+                    ref={rowIndex === 0 ? rowRef : undefined}
+                    data-track-row=""
                     className="relative h-9 w-full overflow-hidden"
                     style={{ background: 'var(--bg-card-inner)', borderRadius: 'var(--radius-md)' }}
                 >
@@ -152,13 +177,18 @@ export const RotationTrack: React.FC<RotationTrackProps> = ({ fight, player, wra
                         // bare integer behind (`githubHandlers.ts` trim steps). Only the
                         // string form is ever safe to hand to `<img src>`.
                         const iconSrc = typeof box.icon === 'string' && box.icon.length > 0 ? box.icon : null;
+                        // An unmeasured track (first paint, and jsdom, which has no
+                        // layout engine) reports 0 and takes the icon-only branch.
+                        // An icon with no name is always correct; a name clipped to
+                        // three characters is not.
+                        const showName = trackPx > 0 && (box.widthPct / 100) * trackPx >= NAME_MIN_PX;
                         return (
                             <div
                                 key={box.key}
                                 data-cast=""
                                 data-interrupted={box.interrupted ? 'true' : undefined}
                                 data-prelog={box.prelog ? 'true' : undefined}
-                                className="absolute top-[3px] bottom-[3px] flex items-center gap-1 overflow-hidden px-1 text-[11px] leading-none"
+                                className={`absolute top-[3px] bottom-[3px] flex items-center gap-1 overflow-hidden px-1 text-[11px] leading-none ${showName ? 'justify-start' : 'justify-center'}`}
                                 title={`${box.name} · ${mmssMillis(box.castTime)} · ${box.duration}ms`}
                                 style={{
                                     left: `${box.leftPct}%`,
@@ -178,7 +208,7 @@ export const RotationTrack: React.FC<RotationTrackProps> = ({ fight, player, wra
                                 {iconSrc && (
                                     <img src={iconSrc} alt="" className="h-5 w-5 object-contain shrink-0" />
                                 )}
-                                <span className="truncate min-w-0">{box.name}</span>
+                                {showName && <span className="truncate min-w-0">{box.name}</span>}
                             </div>
                         );
                     })}
