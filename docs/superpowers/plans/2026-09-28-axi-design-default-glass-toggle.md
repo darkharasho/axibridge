@@ -192,7 +192,7 @@ export interface PaletteDefinition {
 
 Run: `npm run validate`
 
-Expected: PASS. (1.13.0 is not loaded by any stylesheet yet — `axi-design.css` still imports only `tokens.css`, whose token *names* are all still present. The three tokens AxiBridge adds itself, `--axi-grid`, `--axi-rail-w` and `--axi-well-line`, are declared locally and unaffected.)
+Expected: PASS. (1.13.0 is not loaded by any stylesheet yet — `axi-design.css` still imports only `tokens.css`, whose token *names* are all still present. The tokens AxiBridge adds itself are unaffected: `--axi-grid` and `--axi-well-line` are declared locally, and `--axi-rail-w` is only ever read, with an inline `208px` fallback and no declaration at all.)
 
 - [ ] **Step 8: Commit**
 
@@ -479,11 +479,12 @@ src/renderer/stats/search/__tests__/SearchPalette.test.tsx"
 for f in $FILES; do
   sed -i -e 's/axi-search-/bridge-search-/g' \
          -e 's/axi-step-spinner/bridge-step-spinner/g' \
+         -e 's/axi-rail__/bridge-rail__/g' \
          -e 's/\baxi-rail\b/bridge-rail/g' "$f"
 done
 ```
 
-`axi-design` (the body class), `axi-gold` (a palette id) and `--axi-accent` / `--axi-warn` (token references) are deliberately untouched — the first is deleted outright in Task 5, and the rest are token or accent-id references, not component classes.
+`axi-design` (the body class), `axi-gold` (a palette id), `axi-step-march` (a `@keyframes` name, not a class) and every `--axi-*` CUSTOM PROPERTY — including `--axi-rail-w`, which a `\baxi-rail\b` pattern will otherwise rewrite, since `-` is not a word character — are deliberately untouched — the first is deleted outright in Task 5, and the rest are token or accent-id references, not component classes.
 
 - [ ] **Step 5: Verify the rename is complete and conserved**
 
@@ -1479,10 +1480,19 @@ describe('axi-design.css', () => {
         expect(css).not.toContain('--axi-accent: var(--brand-primary');
     });
 
-    it('still declares the three tokens upstream does not ship', () => {
-        for (const token of ['--axi-well-line:', '--axi-grid:', '--axi-rail-w:']) {
+    it('still declares the two tokens upstream does not ship', () => {
+        for (const token of ['--axi-well-line:', '--axi-grid:']) {
             expect(css, token).toContain(token);
         }
+    });
+
+    // --axi-rail-w is the third local token, but it is only ever READ, with an
+    // inline fallback and no declaration anywhere — so it is asserted as a usage.
+    // It is a custom property, not a component class, which is why Task 3's
+    // bridge-* rename deliberately leaves it alone.
+    it('reads the rail width token under its axi name', () => {
+        expect(css).toContain('var(--axi-rail-w, 208px)');
+        expect(css).not.toContain('--bridge-rail-w');
     });
 });
 ```
