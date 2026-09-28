@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { LEGACY_THEME_TO_PALETTE } from '../../shared/webThemes';
 import { collapseGlassKeys, migrateGlassSetting } from '../glassSettingMigration';
+import { normalizeImportedSettings } from '../handlers/settingsHandlers';
 
 /** Minimal stand-in for the electron-store surface the migration uses. */
 const makeStore = (initial: Record<string, unknown> = {}) => {
@@ -125,6 +126,46 @@ describe('collapseGlassKeys', () => {
     it('writes glass: false for a file that carries neither', () => {
         const settings: Record<string, any> = { colorPalette: 'slate-silver' };
         collapseGlassKeys(settings);
+        expect(settings.glass).toBe(false);
+    });
+});
+
+// Fix round 1: normalizeImportedSettings is what select-settings-file must run on
+// `parsed` before returning it — that handler is the live import path (SettingsView.tsx
+// calls selectSettingsFile(), not the dead import-settings IPC). These tests exercise
+// it directly against the shape select-settings-file hands the renderer.
+describe('normalizeImportedSettings', () => {
+    it('collapses glassSurfaces on a file with no glass and no uiTheme', () => {
+        const settings: Record<string, any> = { colorPalette: 'rose-pink', glassSurfaces: true };
+        normalizeImportedSettings(settings);
+        expect(settings.glass).toBe(true);
+        expect(settings.glassSurfaces).toBeUndefined();
+        expect(settings.glassmorphic).toBeUndefined();
+        expect(settings.axiDesign).toBeUndefined();
+    });
+
+    it('collapses glassmorphic alone', () => {
+        const settings: Record<string, any> = { glassmorphic: true };
+        normalizeImportedSettings(settings);
+        expect(settings.glass).toBe(true);
+    });
+
+    it('maps a legacy uiTheme to its palette and glass value', () => {
+        // dark-glass is the one legacy theme LEGACY_THEME_TO_PALETTE marks glass: true.
+        const settings: Record<string, any> = { uiTheme: 'dark-glass' };
+        normalizeImportedSettings(settings);
+        expect(settings.colorPalette).toBe('electric-blue');
+        expect(settings.glass).toBe(true);
+        expect(settings.uiTheme).toBeUndefined();
+    });
+
+    // Review Focus 2, restated: collapseGlassKeys already fabricates glass: false
+    // when neither legacy boolean is true and no glass key is present — this is
+    // existing behaviour (see 'writes glass: false for a file that carries
+    // neither' above), not something normalizeImportedSettings changes or fixes.
+    it('leaves glass false (collapseGlassKeys default) for a file with none of the legacy keys', () => {
+        const settings: Record<string, any> = { colorPalette: 'slate-silver' };
+        normalizeImportedSettings(settings);
         expect(settings.glass).toBe(false);
     });
 });
