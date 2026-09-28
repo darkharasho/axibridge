@@ -445,7 +445,11 @@ button:focus-visible,
     animation-timing-function: var(--ease-out-expo);
     animation-fill-mode: both;
     will-change: transform, opacity;
-    background-color: var(--bg-elevated);
+    /* Shorthand: under glass --bg-elevated is --axi-surface, a gradient, which
+       is invalid at computed-value time as background-color and falls to
+       transparent. `background:` accepts a gradient as background-image. No
+       neighbouring background-image/position/repeat/size to clobber here. */
+    background: var(--bg-elevated);
     backdrop-filter: none;
     border: 1px solid var(--border-default);
     border-radius: var(--radius-md);
@@ -946,7 +950,8 @@ body.web-report .stats-view .fight-comp-class-icon--squad {
 
 .stats-view .fight-comp-result-badge--unknown {
     border-color: var(--border-hover);
-    background-color: var(--bg-hover);
+    /* Shorthand: --bg-hover is --axi-surface-raised, a gradient, under glass. */
+    background: var(--bg-hover);
     color: var(--text-secondary);
 }
 
@@ -1346,10 +1351,16 @@ body.bulk-uploading .stats-particle-spinner__particle {
    every `.rounded-*` literal to its own radius scale, and `rounded-full` was
    never overridden here. */
 
-/* --- Backgrounds: glass → solid layered --- */
-.bg-white\/4 { background-color: var(--bg-card) !important; }
-.bg-white\/3 { background-color: var(--bg-card) !important; }
-.bg-black\/25 { background-color: var(--bg-card) !important; }
+/* --- Backgrounds: glass → solid layered ---
+   Shorthand on the three --bg-card sites: it is --axi-surface, a gradient,
+   under glass, invalid at computed-value time as background-color. The
+   --bg-card-inner and --bg-input sites are untouched: both map to
+   --axi-ground, a plain colour even under glass, so background-color is
+   already correct there and shorthand would only reset properties nothing
+   else in these single-property rules sets. */
+.bg-white\/4 { background: var(--bg-card) !important; }
+.bg-white\/3 { background: var(--bg-card) !important; }
+.bg-black\/25 { background: var(--bg-card) !important; }
 .bg-black\/30 { background-color: var(--bg-card-inner) !important; }
 .bg-black\/40 { background-color: var(--bg-card-inner) !important; }
 .bg-black\/50 { background-color: var(--bg-input) !important; }
@@ -1416,13 +1427,17 @@ select option {
 .app-native-select:focus-visible { border-color: var(--accent-border); outline: none; }
 
 .app-native-select option {
-  background-color: var(--bg-elevated);
+  /* Shorthand: --bg-elevated is --axi-surface, a gradient, under glass. */
+  background: var(--bg-elevated);
   color: var(--text-primary);
 }
 
-/* --- Hover states --- */
-.hover\:bg-white\/10:hover { background-color: var(--bg-hover) !important; }
-.hover\:bg-white\/5:hover { background-color: var(--bg-hover) !important; }
+/* --- Hover states ---
+   Shorthand: --bg-hover is --axi-surface-raised, a gradient, under glass;
+   background-color alone is invalid at computed-value time and drops to
+   transparent, so every Tailwind hover fill in the app would paint nothing. */
+.hover\:bg-white\/10:hover { background: var(--bg-hover) !important; }
+.hover\:bg-white\/5:hover { background: var(--bg-hover) !important; }
 .hover\:border-white\/20:hover { border-color: var(--border-hover) !important; }
 .hover\:border-white\/30:hover { border-color: var(--border-hover) !important; }
 
@@ -1454,10 +1469,13 @@ select option {
 .recharts-wrapper .shadow-xl,
 .recharts-wrapper .shadow-lg { box-shadow: revert !important; }
 
-/* --- Gradients: map to brand gradient --- */
+/* --- Gradients: map to brand gradient ---
+   Shorthand, not two longhands: `background:` implicitly resets
+   background-image to `none` on its own, so the explicit longhand is
+   redundant once --bg-card needs the shorthand to survive as a gradient
+   under glass (--axi-surface). */
 .bg-gradient-to-br.from-gray-900.to-gray-950 {
-  background-image: none !important;
-  background-color: var(--bg-card) !important;
+  background: var(--bg-card) !important;
 }
 
 /* --- Body base background --- */
@@ -1465,9 +1483,10 @@ body.web-report {
   background-color: var(--bg-base);
 }
 
-/* App shell elevated background */
+/* App shell elevated background
+   Shorthand: --bg-elevated is --axi-surface, a gradient, under glass. */
 .app-shell, .min-h-screen {
-  background-color: var(--bg-elevated);
+  background: var(--bg-elevated);
 }
 
 /* ── Terminal ──────────────────────────────────────────────────────────── */
@@ -1719,15 +1738,19 @@ body.web-report {
 }
 
 /* The web report's nav strip is the same object as .stats-dashboard-nav-panel
-   on the desktop side: fixed, with the report scrolling behind it. */
+   on the desktop side: fixed, with the report scrolling behind it.
+   0.9, not 0.95: the two deleted homegrown glass themes left three conflicting
+   alphas between them (the first theme: 0.85 then 0.9, the second winning by
+   source order at equal specificity; the second theme: 0.7). 0.9 is what
+   actually rendered before this migration, so this is a restoration, not a
+   new decision. */
 [data-axi-accent][data-axi-theme="glass"] .report-nav-sidebar {
-  background: rgba(15, 18, 25, 0.95) !important;
+  background: rgba(15, 18, 25, 0.9) !important;
 }
 
 /* Sticky table headers: rows scroll under them, and --bg-card is a glass tint,
    so the tint is layered over a solid dark base rather than used alone. */
-[data-axi-accent][data-axi-theme="glass"] .stats-table thead th,
-[data-axi-accent][data-axi-theme="glass"] .rollup-table thead th {
+[data-axi-accent][data-axi-theme="glass"] .stats-table thead th {
   background-color: #0c0f16;
   background-image: linear-gradient(var(--bg-card), var(--bg-card));
 }

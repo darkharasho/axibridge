@@ -53,13 +53,20 @@ describe('index.css', () => {
     // Blur is a no-op on Linux, so a translucent floating surface over content is
     // just see-through. These overrides were inside the deleted glass block and
     // have to be re-expressed, not dropped.
-    it('re-expresses the opaque floating surfaces under the glass theme', () => {
+    //
+    // The full two-attribute prefix, not just `[data-axi-theme="glass"]`: axi-design.css
+    // styles several of these same surfaces at `[data-axi-accent] body .foo`, some with
+    // `!important` (e.g. .bridge-search-panel), which is (0,2,1) or deeper. A single-attribute
+    // `[data-axi-theme="glass"] .foo` rule is (0,2,0) — it would sit in the bundle, satisfy a
+    // substring check on the bare selector, and still lose the cascade and never paint. Pinning
+    // the full `[data-axi-accent][data-axi-theme="glass"]` prefix is what actually catches that.
+    it('re-expresses the opaque floating surfaces under the glass theme, at the specificity that wins', () => {
         for (const selector of [
-            '[data-axi-theme="glass"] .app-dropdown',
-            '[data-axi-theme="glass"] .app-sticky-bar',
-            '[data-axi-theme="glass"] .app-modal-card',
-            '[data-axi-theme="glass"] .bridge-search-panel',
-            '[data-axi-theme="glass"] .stats-dashboard-nav-panel',
+            '[data-axi-accent][data-axi-theme="glass"] .app-dropdown',
+            '[data-axi-accent][data-axi-theme="glass"] .app-sticky-bar',
+            '[data-axi-accent][data-axi-theme="glass"] .app-modal-card',
+            '[data-axi-accent][data-axi-theme="glass"] .bridge-search-panel',
+            '[data-axi-accent][data-axi-theme="glass"] .stats-dashboard-nav-panel',
         ]) {
             expect(css, selector).toContain(selector);
         }
@@ -69,7 +76,7 @@ describe('index.css', () => {
     // `background: transparent` on body, or an opaque #root over it, hides it.
     it('lets body carry the ground so the glass light can reach it', () => {
         expect(css).not.toMatch(/html,\s*\n?body\s*\{[^}]*background:\s*transparent/);
-        expect(css).toContain('[data-axi-theme="glass"] #root');
+        expect(css).toContain('[data-axi-accent][data-axi-theme="glass"] #root');
     });
 });
 
@@ -98,6 +105,25 @@ describe('axi-design.css', () => {
     it('derives brand-primary from the accent rather than the reverse', () => {
         expect(css).toContain('--brand-primary: var(--axi-accent)');
         expect(css).not.toContain('--axi-accent: var(--brand-primary');
+    });
+
+    // The body rule paints the ground with the background-color LONGHAND, not the
+    // `background:` shorthand. This selector is (0,1,1) against upstream's bare
+    // `body` at (0,0,1) in an earlier stylesheet, so it always wins for whatever
+    // properties it declares — and the shorthand declares them all, resetting
+    // background-image to `none` and discarding upstream's --axi-ground-image (the
+    // three radial gradients that ARE the glass theme's visual). A positive
+    // assertion on the winning form, scoped to the token block itself (not a
+    // negative regex over the whole file, which nearby rules like .app-shell's own
+    // `background: var(--axi-ground)` — a different element, safe to leave as
+    // shorthand — would trip): robust to whitespace/comment reflow elsewhere in the
+    // file, and it is the thing that actually has to stay true.
+    it('paints the ground on body with background-color, so background-image survives', () => {
+        const bodyTokenBlock = css.match(/\[data-axi-accent\] body \{[^}]*\}/);
+        expect(bodyTokenBlock, 'the [data-axi-accent] body token block').not.toBeNull();
+        const block = bodyTokenBlock![0];
+        expect(block).toContain('background-color: var(--axi-ground);');
+        expect(block).not.toMatch(/(?<!-)background:\s*var\(--axi-ground\)/);
     });
 
     it('still declares the two tokens upstream does not ship', () => {
