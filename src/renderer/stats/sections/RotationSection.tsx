@@ -182,8 +182,31 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
             <div className="text-[10px] mb-3 ml-6" style={{ color: 'var(--text-secondary)' }}>
                 Per-cast timeline for one player
             </div>
+            {/* Below `sm` the 208px rail would leave the track ~350px — about six
+                pixels per cast. The chips give the track the full width and stay
+                reachable by thumb. Pure CSS, so it cannot desync from the width. */}
+            <div data-player-chips="" className="sm:hidden flex gap-1.5 overflow-x-auto pb-1.5 mb-2">
+                {sortedPlayers.map(p => (
+                    <button
+                        key={p.key}
+                        type="button"
+                        onClick={() => setSelectedPlayerKey(p.key)}
+                        aria-pressed={selectedPlayer?.key === p.key}
+                        className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5 text-[11px] whitespace-nowrap rounded-full"
+                        style={{
+                            background: selectedPlayer?.key === p.key ? 'var(--bg-hover)' : 'var(--bg-input)',
+                            color: 'var(--text-primary)',
+                            border: `1px solid ${selectedPlayer?.key === p.key ? 'var(--brand-primary)' : 'var(--border-default)'}`,
+                        }}
+                    >
+                        {renderProfessionIcon(p.profession, undefined, 'w-3.5 h-3.5 shrink-0')}
+                        {p.displayName}
+                        <span style={{ color: 'var(--text-muted)' }}>{p.skill.length}</span>
+                    </button>
+                ))}
+            </div>
             <div className="flex gap-3">
-                <div className="w-52 shrink-0 flex flex-col gap-1">
+                <div data-player-rail="" className="hidden sm:flex w-52 shrink-0 flex-col gap-1">
                     <input
                         type="text"
                         value={playerFilter}
