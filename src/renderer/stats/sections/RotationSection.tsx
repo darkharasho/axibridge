@@ -119,7 +119,15 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
     useEffect(() => {
         if (selectedCastIndex === null) return;
         const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') setSelectedCastIndex(null);
+            if (event.key !== 'Escape') return;
+            // `StatsView` closes the expanded pane on a `window` Escape. This
+            // listener is on `document` and so runs first; without stopping it
+            // here, one Escape closes the sheet AND collapses the whole pane,
+            // losing the fight, player, and scroll position. The listener only
+            // exists while a cast is selected, so it never shadows the pane's
+            // own Escape handling otherwise.
+            event.stopPropagation();
+            setSelectedCastIndex(null);
         };
         document.addEventListener('keydown', onKeyDown);
         return () => document.removeEventListener('keydown', onKeyDown);

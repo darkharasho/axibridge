@@ -26,6 +26,14 @@ const mmssMillis = (ms: number): string => {
  */
 const MIN_BOX_PX = 26;
 
+/** `m:ss` for a row's start time. Raw seconds would read `1080s` at 60s rows on
+ *  a long fight — wider than the 30px label column below `sm`, and harder to
+ *  relate to the fight clock the rest of the section speaks in. */
+const mmssLabel = (ms: number): string => {
+    const totalSeconds = Math.floor(ms / 1000);
+    return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, '0')}`;
+};
+
 /**
  * Below this many pixels a box shows its icon alone, centred. Tuned against
  * the 11px label in the app's font stack — it is a chosen constant, not a
@@ -178,10 +186,11 @@ export const RotationTrack: React.FC<RotationTrackProps> = ({
                     {/* Once the track is the full width of a phone, a reader has
                         nothing to anchor a row to without this. */}
                     <span
+                        data-row-label=""
                         className="shrink-0 text-right w-[30px] sm:w-[38px] text-[10px] sm:text-[11px] pt-2.5 tabular-nums"
                         style={{ color: 'var(--text-muted)' }}
                     >
-                        {Math.floor((rowIndex * wrapMs) / 1000)}s
+                        {mmssLabel(rowIndex * wrapMs)}
                     </span>
                     <div
                         ref={rowIndex === 0 ? rowRef : undefined}
@@ -211,7 +220,7 @@ export const RotationTrack: React.FC<RotationTrackProps> = ({
                                 data-cast=""
                                 data-interrupted={box.interrupted ? 'true' : undefined}
                                 data-prelog={box.prelog ? 'true' : undefined}
-                                className={`absolute top-[3px] bottom-[3px] flex items-center gap-1 overflow-hidden px-1 text-[11px] leading-none appearance-none text-left ${showName ? 'justify-start' : 'justify-center'}`}
+                                className={`absolute top-[3px] bottom-[3px] flex items-center gap-1 overflow-hidden px-1 text-[11px] leading-none appearance-none text-left rotation-cast ${showName ? 'justify-start' : 'justify-center'}`}
                                 title={`${box.name} · ${mmssMillis(box.castTime)} · ${box.duration}ms`}
                                 style={{
                                     left: `${box.leftPct}%`,

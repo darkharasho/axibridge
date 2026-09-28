@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { RotationSection } from '../sections/RotationSection';
@@ -261,5 +263,46 @@ describe('RotationSection', () => {
             .find(b => b.textContent?.includes('Other')) as HTMLElement;
         act(() => { chip.click(); });
         expect(chip.getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('does not let the sheet Escape also close the expanded section', () => {
+        // `StatsView` closes the expanded pane on a `window` Escape while a
+        // section is expanded. The sheet's own `document` listener fires first,
+        // so without stopPropagation one Escape collapses the whole pane and
+        // loses the fight, player, and scroll position.
+        const outer = vi.fn();
+        window.addEventListener('keydown', outer);
+        try {
+            const { container } = render(
+                <RotationSection fights={[fight]} recorded selectedFightId="f1" />);
+            openCast(container, 1);
+            act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+            expect(screen.queryByTestId('rotation-cast-sheet')).toBeNull();
+            expect(outer).not.toHaveBeenCalled();
+        } finally {
+            window.removeEventListener('keydown', outer);
+        }
+    });
+
+    it('gives cast buttons a focus-visible outline the global reset does not strip', () => {
+        // src/renderer/index.css sets `outline: none` on every `button:focus`
+        // and `button:focus-visible`, and an inline style cannot express
+        // `:focus-visible` — so keyboard focus on a cast is invisible without a
+        // dedicated class. The class and the rule have to travel together.
+        const { container } = render(
+            <RotationSection fights={[fight]} recorded selectedFightId="f1" />);
+        const box = container.querySelector('[data-cast]') as HTMLElement;
+        expect(box.className).toContain('rotation-cast');
+        const css = readFileSync(resolve(__dirname, '../../index.css'), 'utf8');
+        expect(css).toMatch(/\.rotation-cast:focus-visible\s*\{[^}]*outline:/);
+    });
+
+    it('labels each row with the fight clock, not a raw second count', () => {
+        const longFight: RotationFightData = { ...fight, durationMs: 40000 };
+        const { container } = render(
+            <RotationSection fights={[longFight]} recorded selectedFightId="f1" />);
+        const labels = Array.from(container.querySelectorAll('[data-row-label]'))
+            .map(el => el.textContent);
+        expect(labels).toEqual(['0:00', '0:15', '0:30']);
     });
 });

@@ -857,6 +857,15 @@ button:focus-visible,
     box-shadow: none;
 }
 
+/* The reset above strips every button's focus ring, and an inline style cannot
+   express `:focus-visible` — so the rotation track's cast buttons, which exist
+   to be keyboard-reachable, would show nothing on tab. See
+   `RotationTrack.tsx`. */
+.rotation-cast:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: -1px;
+}
+
 @keyframes modal-pane-grow {
     from {
         opacity: 0;
