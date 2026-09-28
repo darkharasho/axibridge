@@ -726,54 +726,6 @@
 }
 [data-axi-accent] body *::-webkit-scrollbar-corner { background: var(--axi-ground); }
 
-/* ---------------------------------------------------------------------------
-   THE TOGGLES
-   A switch is the smallest possible "this one is on", so it is said the same
-   way everything else on is said: accent fill, ink slug.
-
-   Off is a slot cut in the surface, not in the ground. Ground-on-ground was the
-   first answer and it only worked on a panel: the webhook rows and the quick
-   settings card are themselves ground, so an off switch there was a ground
-   rectangle with a hairline round it on a ground card - the track disappeared
-   and all you could see was the knob floating. A slot has to be visible whether
-   or not anything is in it, so it takes the surface and a full ink edge.
-
-   The slug is dark in both states, which leaves the track as the only thing
-   that changes. That is the point: on and off differ in what colour is in the
-   slot, not in how bright the part that moves is. No block - the block belongs
-   to things you press, and this is a slot with something sitting in it.
-
-   It takes --axi-ground-deep, the same fill upstream gives .axi-switch__knob.
-   An earlier revision read this rule's own word "ink" as --axi-ink-line, which
-   is the hairline border token at .16 alpha - so the slug was invisible on the
-   accent track and a ghost on the surface track, and every switch in the app
-   read as a bare pill. */
-[data-axi-accent] body .toggle-track {
-  border-width: var(--axi-border-control);
-  border-radius: var(--axi-radius-sm);
-}
-/* !important: both switches set the off background inline, which no selector
-   can outrank. */
-[data-axi-accent] body .toggle-track--off {
-  background: var(--axi-surface-raised) !important;
-  border-color: var(--axi-ink-line);
-}
-[data-axi-accent] body .toggle-track--on {
-  background: var(--axi-accent);
-  border-color: var(--axi-ink-line);
-}
-[data-axi-accent] body .toggle-knob {
-  border-radius: 2px;
-  box-shadow: none;
-  background: var(--axi-ground-deep);
-}
-/* The Distance to Tag switch is half the size of the other two - it sits in a
-   section header beside 11px type - and the control edge on a 14px track leaves
-   no slot to put anything in. It keeps the form at a weight its size can hold. */
-[data-axi-accent] body .toggle-track--sm { border-width: 2px; }
-[data-axi-accent] body .toggle-track--sm .toggle-knob { top: 1px; bottom: 1px; left: 1px; }
-[data-axi-accent] body .toggle-track--sm.toggle-track--on .toggle-knob { left: auto; right: 1px; }
-
 /* The publish popover builds its checkboxes out of a span and a tick icon
    rather than an <input>, so the plate rules cannot reach them. Same plate,
    said in the one place it has to be said twice. */
@@ -1161,21 +1113,6 @@
   border-color: var(--axi-rule);
   border-radius: var(--axi-radius-sm);
 }
-
-/* The knob. Its position comes from Tailwind translate utilities measured
-   against a 1px track; at the control weight those numbers put it through the
-   right-hand edge. Pinning it to the track's insets instead means the knob is
-   correct at any border weight, and it stops being a transform, which is one
-   fewer thing animating for no reason. */
-[data-axi-accent] body .toggle-knob {
-  top: 2px;
-  bottom: 2px;
-  left: 2px;
-  right: auto;
-  height: auto;
-  transform: none;
-}
-[data-axi-accent] body .toggle-track--on .toggle-knob { left: auto; right: 2px; }
 
 /* Four stats categories - Overview, Commander, Roster, Replay - have no hue of
    their own and borrowed the brand colour, which in this language is the

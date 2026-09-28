@@ -248,15 +248,13 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                                                 aria-checked={isEnabled}
                                                 aria-label={webhook.name}
                                                 onClick={() => onSetEnabled(webhook.id, !isEnabled)}
-                                                /* Same switch as the one in SettingsView, so it wears the same
-                                                   hooks: drawn inline it had none, and a language that redraws
-                                                   switches could not see it. */
-                                                className={`toggle-track relative inline-flex h-5 w-9 items-center rounded-full border border-transparent transition-colors shrink-0 ${isEnabled ? 'toggle-track--on' : 'toggle-track--off'}`}
-                                                style={{ background: isEnabled ? 'var(--brand-primary)' : 'var(--bg-input)' }}
+                                                /* Upstream's switch, sized down for a list row. Only the three
+                                                   --axi-switch-* tokens are ours; the frame, the fill and the
+                                                   slug's travel all come from axi.css. */
+                                                className="axi-switch"
+                                                style={{ '--axi-switch-w': '36px', '--axi-switch-h': '20px', '--axi-switch-knob': '14px' } as React.CSSProperties}
                                             >
-                                                <span
-                                                    className={`toggle-knob absolute top-[3px] left-0 h-3.5 w-3.5 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-5' : 'translate-x-1'}`}
-                                                />
+                                                <span className="axi-switch__knob" />
                                             </button>
                                             {!isBridge && (
                                                 <button

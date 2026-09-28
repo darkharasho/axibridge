@@ -104,24 +104,22 @@ export const SquadDistanceToTagSection = (props: Props) => {
                             role="switch"
                             aria-checked={filterEnabled}
                             onClick={() => setFilterEnabled(v => !v)}
-                            /* The app's third switch. Drawn entirely inline it had none of the
-                               hooks the other two carry, so it stayed a capsule while they became
-                               slots. Frame moves to classes; only the sizes stay inline. */
-                            className={`toggle-track toggle-track--sm relative inline-flex items-center shrink-0 rounded-full border border-[color:var(--border-subtle)] ${filterEnabled ? 'toggle-track--on' : 'toggle-track--off'}`}
+                            /* Upstream's switch at the smallest size this header can hold: it
+                               sits beside 11px type. The default theme's 3px control edge would
+                               leave a 14px track with a 4px slot, so this one instance drops to
+                               2px. That is a token, not a redraw - axi.css spells the slug's
+                               travel as a calc over --axi-border-control precisely so the switch
+                               stays correct at any weight. */
+                            className="axi-switch"
                             style={{
-                                width: 26,
-                                height: 14,
-                                background: filterEnabled ? 'var(--brand-primary)' : 'var(--bg-card-inner)',
-                                transition: 'background 120ms',
-                                cursor: 'pointer',
-                            }}
+                                '--axi-switch-w': '26px',
+                                '--axi-switch-h': '14px',
+                                '--axi-switch-knob': '8px',
+                                '--axi-border-control': '2px',
+                            } as React.CSSProperties}
                             title={filterEnabled ? 'Min-fights filter on' : 'Min-fights filter off'}
                         >
-                            <span
-                                aria-hidden
-                                className={`toggle-knob absolute top-px h-2.5 w-2.5 rounded-full bg-[color:var(--text-primary)] ${filterEnabled ? 'left-[13px]' : 'left-px'}`}
-                                style={{ transition: 'left 120ms' }}
-                            />
+                            <span aria-hidden className="axi-switch__knob" />
                         </button>
                         <span className="shrink-0">Min</span>
                         <input

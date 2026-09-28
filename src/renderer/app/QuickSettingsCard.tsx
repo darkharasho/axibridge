@@ -5,8 +5,8 @@ import { QUICK_SETTINGS, type QuickSettingsContext } from './quickSettings';
  * Compact switch sized for the dashboard sidebar.
  *
  * Deliberately not SettingsView's `Toggle`: that one carries a description
- * block and a 44x24 track, which is roughly double the row height these cards
- * use. Same visual language (rounded-[4px] track, sliding knob), tighter box.
+ * block and upstream's native 46x26 track, roughly double the row height these
+ * cards use. Same component - .axi-switch - shrunk through its own size tokens.
  */
 const QuickToggle = memo(function QuickToggle({ enabled, disabled, label, onChange }: {
     enabled: boolean;
@@ -22,16 +22,10 @@ const QuickToggle = memo(function QuickToggle({ enabled, disabled, label, onChan
             aria-label={label}
             disabled={disabled}
             onClick={() => onChange(!enabled)}
-            className={`relative w-8 h-[18px] shrink-0 rounded-[4px] border transition-colors toggle-track ${
-                enabled ? 'bg-blue-500/30 border-blue-500/40 toggle-track--on' : 'border-white/10 toggle-track--off'
-            } ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
-            style={!enabled ? { background: 'var(--bg-input)' } : undefined}
+            className={`axi-switch ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+            style={{ '--axi-switch-w': '32px', '--axi-switch-h': '18px', '--axi-switch-knob': '12px' } as React.CSSProperties}
         >
-            <span
-                className={`absolute top-[2px] left-0 w-3 h-3 rounded-[3px] bg-white shadow-md transition-transform toggle-knob ${
-                    enabled ? 'translate-x-[16px]' : 'translate-x-[2px]'
-                }`}
-            />
+            <span className="axi-switch__knob" />
         </button>
     );
 });
