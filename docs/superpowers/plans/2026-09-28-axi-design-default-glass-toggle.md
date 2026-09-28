@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - `@axiapps/axi-design` pinned at `^1.13.0`. Import paths are exactly `@axiapps/axi-design/axi.css`, `@axiapps/axi-design/accents.css`, `@axiapps/axi-design/themes/glass.css`, `@axiapps/axi-design/accents.json`. `tokens.css` is NOT imported separately — `axi.css` already carries the token block in its `:root`.
-- Run vitest with limited parallelism: `npx vitest run <file> --pool=forks --poolOptions.forks.maxForks=2`. This machine has 32 GB but runs heavy apps alongside dev work.
+- Run vitest as `npx vitest run <file>` — nothing more. `vitest.config.ts` already pins `pool: 'forks'`, `maxWorkers: 2`, which is the memory cap this machine needs (it has 32 GB but runs heavy apps alongside dev work). Do NOT pass `--pool=forks --poolOptions.forks.maxForks=2`: vitest 4 removed `test.poolOptions`, and that flag makes the run die with `CACError: Unknown option --poolOptions` rather than capping anything.
 - `npm run validate` is `typecheck + lint` at `--max-warnings 0`. It must pass at the end of every task that touches TS/TSX.
 - All 11 `ColorPalette` ids survive: `electric-blue refined-cyan amber-warm emerald-mint rose-pink violet-purple crimson-red slate-silver teal-ocean gold-bronze axi-gold`. `DEFAULT_PALETTE_ID` stays `electric-blue`.
 - `PALETTES` in `src/shared/webThemes.ts` stays. `LEGACY_THEME_TO_PALETTE` stays, for *settings* migration only.
@@ -113,7 +113,7 @@ describe('accent parity with @axiapps/axi-design', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run src/shared/__tests__/accentParity.test.ts --pool=forks --poolOptions.forks.maxForks=2`
+Run: `npx vitest run src/shared/__tests__/accentParity.test.ts`
 
 Expected: FAIL — Vite cannot resolve `@axiapps/axi-design/accents.json`, because 1.6.0's exports map does not list it.
 
@@ -154,7 +154,7 @@ Expected: all four listed, no errors.
 
 - [ ] **Step 5: Run the test to verify it passes**
 
-Run: `npx vitest run src/shared/__tests__/accentParity.test.ts --pool=forks --poolOptions.forks.maxForks=2`
+Run: `npx vitest run src/shared/__tests__/accentParity.test.ts`
 
 Expected: PASS, 12 tests (1 id-set test + 11 per-id).
 
@@ -289,7 +289,7 @@ describe('applyAxiTheme', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run src/shared/__tests__/applyAxiTheme.test.ts --pool=forks --poolOptions.forks.maxForks=2`
+Run: `npx vitest run src/shared/__tests__/applyAxiTheme.test.ts`
 
 Expected: FAIL — `Failed to resolve import "../applyAxiTheme"`.
 
@@ -336,7 +336,7 @@ export function applyAxiTheme(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx vitest run src/shared/__tests__/applyAxiTheme.test.ts --pool=forks --poolOptions.forks.maxForks=2`
+Run: `npx vitest run src/shared/__tests__/applyAxiTheme.test.ts`
 
 Expected: PASS, 6 tests.
 
@@ -441,7 +441,7 @@ Add to `src/renderer/stats/search/__tests__/SearchPalette.test.tsx`, inside the 
 
 - [ ] **Step 3: Run test to verify it fails**
 
-Run: `npx vitest run src/renderer/stats/search/__tests__/SearchPalette.test.tsx --pool=forks --poolOptions.forks.maxForks=2`
+Run: `npx vitest run src/renderer/stats/search/__tests__/SearchPalette.test.tsx`
 
 Expected: FAIL on the new test — `expect(container.querySelector('.bridge-search-panel')).toBeTruthy()` receives `null`.
 
@@ -499,8 +499,8 @@ Expected: `no upstream-owned selectors declared locally`.
 Run:
 
 ```bash
-npx vitest run src/renderer/stats/search --pool=forks --poolOptions.forks.maxForks=2
-npx vitest run src/renderer/stats/__tests__/statsHeaderSlicePill.test.tsx --pool=forks --poolOptions.forks.maxForks=2
+npx vitest run src/renderer/stats/search
+npx vitest run src/renderer/stats/__tests__/statsHeaderSlicePill.test.tsx
 ```
 
 Expected: both PASS. (`statsHeaderSlicePill.test.tsx` contains no `axi-search-*` reference despite the spec's test table listing it — it is run here only to confirm `StatsHeader.tsx` still renders.)
@@ -692,7 +692,7 @@ describe('collapseGlassKeys', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run src/main/__tests__/settingsMigration.test.ts --pool=forks --poolOptions.forks.maxForks=2`
+Run: `npx vitest run src/main/__tests__/settingsMigration.test.ts`
 
 Expected: FAIL — `Failed to resolve import "../glassSettingMigration"`.
 
@@ -775,7 +775,7 @@ export function collapseGlassKeys(settings: Record<string, any>): void {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx vitest run src/main/__tests__/settingsMigration.test.ts --pool=forks --poolOptions.forks.maxForks=2`
+Run: `npx vitest run src/main/__tests__/settingsMigration.test.ts`
 
 Expected: PASS, 13 tests (9 for `migrateGlassSetting` and the legacy table, 4 for `collapseGlassKeys`).
 
@@ -1091,7 +1091,7 @@ In the same file's `renderSettings` helper (line 66), replace `onGlassSurfacesSa
 
 - [ ] **Step 11: Run test to verify it fails**
 
-Run: `npx vitest run src/renderer/__tests__/SettingsView.test.tsx --pool=forks --poolOptions.forks.maxForks=2`
+Run: `npx vitest run src/renderer/__tests__/SettingsView.test.tsx`
 
 Expected: FAIL — `screen.getByText('Glass')` finds nothing (the rendered labels are still "Glass Surfaces", "Lillifox Mode", "Axi Design"), and `callbacks.onGlassSaved` is not a recognised prop.
 
@@ -1280,7 +1280,7 @@ Run `grep -n 'onGlassSurfacesSaved\|onGlassmorphicSaved\|onAxiDesignSaved\|glass
 Run:
 
 ```bash
-npx vitest run src/main/__tests__/settingsMigration.test.ts src/renderer/__tests__/SettingsView.test.tsx --pool=forks --poolOptions.forks.maxForks=2
+npx vitest run src/main/__tests__/settingsMigration.test.ts src/renderer/__tests__/SettingsView.test.tsx
 ```
 
 Expected: PASS.
@@ -1460,7 +1460,7 @@ describe('axi-design.css', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run src/renderer/__tests__/themeCssContract.test.ts --pool=forks --poolOptions.forks.maxForks=2`
+Run: `npx vitest run src/renderer/__tests__/themeCssContract.test.ts`
 
 Expected: FAIL on most assertions — no upstream imports, `body.palette-*` present, 123 glass selectors present, 667 `body.axi-design` present.
 
@@ -1777,7 +1777,7 @@ In `src/renderer/app/hooks/useSettings.ts`, delete these three lines from the ef
 
 - [ ] **Step 12: Run the test to verify it passes**
 
-Run: `npx vitest run src/renderer/__tests__/themeCssContract.test.ts --pool=forks --poolOptions.forks.maxForks=2`
+Run: `npx vitest run src/renderer/__tests__/themeCssContract.test.ts`
 
 Expected: PASS, 14 tests.
 
@@ -1807,7 +1807,7 @@ Expected: both counts greater than zero. If either is `0`, the `?inline` import 
 
 - [ ] **Step 14: Run the full unit suite**
 
-Run: `npx vitest run --pool=forks --poolOptions.forks.maxForks=2`
+Run: `npx vitest run`
 
 Expected: PASS except for `src/shared/__tests__/statsThemesContract.test.ts`, `src/web/__tests__/reportPalette.test.ts` and `src/web/__tests__/reportShareTheme.test.tsx`, which Tasks 6 and 7 own. Note any *other* failure and fix it here.
 
@@ -1926,7 +1926,7 @@ describe('readPaletteFromReport', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run src/web/__tests__/reportPalette.test.ts --pool=forks --poolOptions.forks.maxForks=2`
+Run: `npx vitest run src/web/__tests__/reportPalette.test.ts`
 
 Expected: FAIL — the returned objects still carry `glassmorphic` and `axi`, and the legacy branches still resolve.
 
@@ -1966,7 +1966,7 @@ export function readPaletteFromReport(stats: any): { palette: ColorPalette; glas
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx vitest run src/web/__tests__/reportPalette.test.ts --pool=forks --poolOptions.forks.maxForks=2`
+Run: `npx vitest run src/web/__tests__/reportPalette.test.ts`
 
 Expected: PASS, 9 tests.
 
@@ -2050,7 +2050,7 @@ beforeEach(() => {
 
 - [ ] **Step 6: Run test to verify it fails**
 
-Run: `npx vitest run src/web/__tests__/reportShareTheme.test.tsx --pool=forks --poolOptions.forks.maxForks=2`
+Run: `npx vitest run src/web/__tests__/reportShareTheme.test.tsx`
 
 Expected: FAIL — no `data-axi-accent` is set, and `--axi-accent` is never written inline.
 
@@ -2303,7 +2303,7 @@ with:
 
 - [ ] **Step 10: Run the viewer tests to verify they pass**
 
-Run: `npx vitest run src/web src/shared/__tests__/mapAccent.test.ts --pool=forks --poolOptions.forks.maxForks=2`
+Run: `npx vitest run src/web src/shared/__tests__/mapAccent.test.ts`
 
 Expected: PASS.
 
@@ -2353,7 +2353,7 @@ with:
 
 - [ ] **Step 12: Run test to verify it fails**
 
-Run: `npx vitest run src/main/__tests__/webReportParts.test.ts --pool=forks --poolOptions.forks.maxForks=2`
+Run: `npx vitest run src/main/__tests__/webReportParts.test.ts`
 
 Expected: FAIL — `stub.stats.glass` is `undefined`, because `glass` is not in `STUB_STATS_KEYS`.
 
@@ -2382,7 +2382,7 @@ const STUB_STATS_KEYS = ['colorPalette', 'glass', 'glassSurfaces'] as const;
 
 - [ ] **Step 14: Update the snapshot**
 
-Run: `npx vitest run src/main/__tests__/webReportParts.test.ts -u --pool=forks --poolOptions.forks.maxForks=2`
+Run: `npx vitest run src/main/__tests__/webReportParts.test.ts -u`
 
 Then verify the snapshot file now reads:
 
@@ -2582,7 +2582,7 @@ Expected: only `src/main/glassSettingMigration.ts` and `src/main/handlers/settin
 Run:
 
 ```bash
-npx vitest run src/main src/web src/shared --pool=forks --poolOptions.forks.maxForks=2
+npx vitest run src/main src/web src/shared
 npm run validate
 ```
 
@@ -2808,7 +2808,7 @@ Expected: only the two deliberate compatibility sites, `src/main/glassSettingMig
 
 - [ ] **Step 6: Run the whole unit suite**
 
-Run: `npx vitest run --pool=forks --poolOptions.forks.maxForks=2`
+Run: `npx vitest run`
 
 Expected: PASS, no skips beyond the suite's existing ones.
 
