@@ -23,29 +23,29 @@ export function AxiRail({ unpublishedCategoryIds }: AxiRailProps) {
 
     return (
         <aside className="bridge-rail">
-            <nav className="axi-rail__nav">
+            <nav className="bridge-rail__nav">
                 {STATS_CATEGORIES.map((category) => {
                     const isActiveCategory = category.id === activeCategory;
                     return (
                         <div key={category.id}>
                             <button
                                 type="button"
-                                className="axi-rail__item"
+                                className="bridge-rail__item"
                                 aria-current={isActiveCategory ? 'page' : undefined}
                                 onClick={() => handleCategoryClick(category.id)}
                             >
                                 {category.label}
                                 {unpublishedCategoryIds?.has(category.id) && (
-                                    <span className="axi-rail__mark" title="Left out of published reports">Local</span>
+                                    <span className="bridge-rail__mark" title="Left out of published reports">Local</span>
                                 )}
                             </button>
                             {isActiveCategory && category.sections.length > 1 && (
-                                <div className="axi-rail__sections">
+                                <div className="bridge-rail__sections">
                                     {category.sections.map((section) => (
                                         <button
                                             key={section.id}
                                             type="button"
-                                            className="axi-rail__section"
+                                            className="bridge-rail__section"
                                             data-on={activeSectionId === section.id ? '' : undefined}
                                             onClick={() => handleSectionClick(section.id)}
                                         >
