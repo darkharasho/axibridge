@@ -4,6 +4,7 @@ import https from 'node:https';
 import http from 'node:http';
 import path from 'node:path';
 import { LEGACY_THEME_TO_PALETTE } from '../../shared/webThemes';
+import { collapseGlassKeys } from '../glassSettingMigration';
 import { DEFAULT_DISRUPTION_METHOD } from '../../shared/metricsSettings';
 import { isR2SliceEnabled } from './githubHandlers';
 import { parseMaybeGzippedJson } from '../cloudflare/replaySidecar';
@@ -171,9 +172,7 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             disruptionMethod: store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD),
             commanderThresholds: store.get('commanderThresholds', undefined),
             colorPalette: store.get('colorPalette', 'electric-blue'),
-            glassSurfaces: store.get('glassSurfaces', false),
-            glassmorphic: store.get('glassmorphic', false),
-            axiDesign: store.get('axiDesign', false),
+            glass: store.get('glass', false),
             particlesEnabled: store.get('particlesEnabled', true),
             autoUpdateSupported: updateSupported,
             autoUpdateDisabledReason: updateDisabledReason,
@@ -257,9 +256,7 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             disruptionMethod: store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD),
             commanderThresholds: store.get('commanderThresholds', undefined),
             colorPalette: store.get('colorPalette', 'electric-blue'),
-            glassSurfaces: store.get('glassSurfaces', false),
-            glassmorphic: store.get('glassmorphic', false),
-            axiDesign: store.get('axiDesign', false),
+            glass: store.get('glass', false),
             particlesEnabled: store.get('particlesEnabled', true),
             githubRepoOwner: store.get('githubRepoOwner', null),
             githubRepoName: store.get('githubRepoName', null),
@@ -308,13 +305,18 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             if (importedSettings.uiTheme && !importedSettings.colorPalette) {
                 const mapping = LEGACY_THEME_TO_PALETTE[importedSettings.uiTheme] ?? { palette: 'electric-blue', glass: false };
                 importedSettings.colorPalette = mapping.palette;
-                importedSettings.glassSurfaces = mapping.glass;
+                if (mapping.glass) importedSettings.glassSurfaces = true;
                 delete importedSettings.uiTheme;
                 delete importedSettings.githubWebTheme;
                 delete importedSettings.kineticFontStyle;
                 delete importedSettings.kineticThemeVariant;
                 delete importedSettings.dashboardLayout;
             }
+            // Outside the uiTheme guard on purpose: a settings file exported by
+            // the version that shipped the three booleans carries them and no
+            // uiTheme, so a guarded collapse would land the import with no glass
+            // key at all and silently switch the setting off.
+            collapseGlassKeys(importedSettings);
             onApplySettings(importedSettings);
             return { success: true };
         } catch (err: any) {

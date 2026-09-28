@@ -5,7 +5,7 @@ import https from 'node:https'
 import { createHash } from 'node:crypto'
 
 import { spawn } from 'node:child_process'
-import { LEGACY_THEME_TO_PALETTE } from '../shared/webThemes';
+import { migrateGlassSetting } from './glassSettingMigration';
 import { buildFightLabelV2, computeFightAvgPosition } from '../shared/mapUtils';
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
 import { LogWatcher } from './watcher'
@@ -223,20 +223,8 @@ const { setForwarding: setConsoleLogForwarding, getHistory: getConsoleLogHistory
 const Store = require('electron-store');
 const store = new Store();
 
-// ─── Settings migration: legacy UiTheme → colorPalette + glassSurfaces ────────
-{
-    const legacyUiTheme = store.get('uiTheme') as string | undefined;
-    if (legacyUiTheme) {
-        const mapping = LEGACY_THEME_TO_PALETTE[legacyUiTheme] ?? { palette: 'electric-blue', glass: false };
-        store.set('colorPalette', mapping.palette);
-        store.set('glassSurfaces', mapping.glass);
-        store.delete('uiTheme');
-        store.delete('githubWebTheme');
-        store.delete('kineticFontStyle');
-        store.delete('kineticThemeVariant');
-        store.delete('dashboardLayout');
-    }
-}
+// ─── Settings migration: legacy appearance keys → colorPalette + glass ────────
+migrateGlassSetting(store);
 
 // Local wrappers bind the store-injected functions from uploadRetryQueue.ts to
 // the module-level electron-store instance, preserving all existing call sites.
@@ -1847,7 +1835,7 @@ if (!gotTheLock) {
             console.log(msg);
         });
 
-        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], reportWebhooks?: any[], selectedWebhookId?: string | null, enabledWebhookIds?: string[], dpsReportToken?: string | null, dpsReportEnabled?: boolean, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, mvpWeightProfiles?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, colorPalette?: string, glassSurfaces?: boolean, glassmorphic?: boolean, axiDesign?: boolean, particlesEnabled?: boolean, githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean, allowLocalJson?: boolean, r2AccountId?: string | null, r2AccessKeyId?: string | null, r2SecretAccessKey?: string | null, r2BucketName?: string | null, r2PublicUrl?: string | null, r2PreciseReplay?: boolean, r2HostingEnabled?: boolean, r2SliceEnabled?: boolean, reportWebhookSelection?: string[], reportWebhookSeen?: string[] }) => {
+        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], reportWebhooks?: any[], selectedWebhookId?: string | null, enabledWebhookIds?: string[], dpsReportToken?: string | null, dpsReportEnabled?: boolean, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, mvpWeightProfiles?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, colorPalette?: string, glass?: boolean, particlesEnabled?: boolean, githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean, allowLocalJson?: boolean, r2AccountId?: string | null, r2AccessKeyId?: string | null, r2SecretAccessKey?: string | null, r2BucketName?: string | null, r2PublicUrl?: string | null, r2PreciseReplay?: boolean, r2HostingEnabled?: boolean, r2SliceEnabled?: boolean, reportWebhookSelection?: string[], reportWebhookSeen?: string[] }) => {
             if (settings.logDirectory !== undefined) {
                 store.set('logDirectory', settings.logDirectory);
                 if (settings.logDirectory) watcher?.start(settings.logDirectory);
@@ -1937,14 +1925,8 @@ if (!gotTheLock) {
             if (settings.colorPalette !== undefined) {
                 store.set('colorPalette', settings.colorPalette);
             }
-            if (settings.glassSurfaces !== undefined) {
-                store.set('glassSurfaces', settings.glassSurfaces);
-            }
-            if (settings.axiDesign !== undefined) {
-                store.set('axiDesign', settings.axiDesign);
-            }
-            if (settings.glassmorphic !== undefined) {
-                store.set('glassmorphic', settings.glassmorphic);
+            if (settings.glass !== undefined) {
+                store.set('glass', settings.glass);
             }
             if (settings.particlesEnabled !== undefined) {
                 store.set('particlesEnabled', settings.particlesEnabled);
