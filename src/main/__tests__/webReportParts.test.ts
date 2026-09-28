@@ -21,7 +21,7 @@ afterEach(() => { fs.rmSync(dir, { recursive: true, force: true }); });
 
 const payload = (title: string, fill: number) => ({
     meta: { id: 'r1', title },
-    stats: { colorPalette: 'arcane', glassSurfaces: false, glassmorphic: true, blob: 'x'.repeat(fill) }
+    stats: { colorPalette: 'amber-warm', glass: true, glassSurfaces: true, blob: 'x'.repeat(fill) }
 });
 
 // Incompressible filler so the gzip really spans multiple parts.
@@ -61,8 +61,14 @@ describe('writeReportParts', () => {
         const p = payload('Small', 10);
         writeReportParts(dir, Buffer.from(JSON.stringify(p)), p);
         const stub = JSON.parse(fs.readFileSync(path.join(dir, 'report.json'), 'utf8'));
-        expect(stub.stats).toMatchObject({ colorPalette: 'arcane', glassSurfaces: false, glassmorphic: true });
+        // glassSurfaces rides along beside glass on purpose: viewers already
+        // deployed in the field only know that spelling, and a published report
+        // keeps the viewer bundle from its last publish. One redundant boolean is
+        // the whole cost of not breaking them.
+        expect(stub.stats).toMatchObject({ colorPalette: 'amber-warm', glass: true, glassSurfaces: true });
         expect(stub.stats.blob).toBeUndefined();
+        expect(stub.stats.glassmorphic).toBeUndefined();
+        expect(stub.stats.axiDesign).toBeUndefined();
     });
 });
 
