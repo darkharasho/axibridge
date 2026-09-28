@@ -1696,7 +1696,7 @@ body.web-report {
    FLAT APP SURFACE TOKENS UNDER GLASS
 
    Upstream's glass theme declares --axi-surface and --axi-surface-raised as
-   alpha GRADIENTS (glass.css:7-8). axi-design.css remaps fifteen of the app's
+   alpha GRADIENTS (glass.css:7-8). axi-design.css remaps sixteen of the app's
    own --bg-, --accent-, --status- and --section- tokens onto those two, and a
    gradient in `background-color` is invalid at computed-value time: the whole
    declaration drops and the surface computes to `transparent`, losing ALL fill.
