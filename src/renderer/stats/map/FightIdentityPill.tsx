@@ -23,13 +23,13 @@ const stepBtn = (disabled: boolean): React.CSSProperties => ({
  * `FightPicker` overlay, in ~28px of floating chrome instead of 34px of
  * docked chrome.
  *
- * `className="app-dropdown"` alone only paints a background under the
- * glass-surfaces/glassmorphic themes (see src/renderer/index.css:1538); in
- * the default theme it carries only an animation. Since blur does not work
- * on this platform, a translucent floating card over the map reads as
- * see-through. We therefore also set an explicit opaque background inline,
- * matching every other floating surface in this codebase (e.g.
- * ColumnFilterDropdown.tsx, PublishWebhookPopover.tsx).
+ * `className="app-dropdown"` alone only paints a background under the glass
+ * theme (`[data-axi-theme="glass"] .app-dropdown` overrides in index.css); the
+ * flat theme gives it only an animation. Blur does not work on this platform, so a
+ * translucent floating card over the map reads as see-through. We therefore
+ * also set an explicit opaque background inline, matching every other floating
+ * surface in this codebase (e.g. ColumnFilterDropdown.tsx,
+ * PublishWebhookPopover.tsx).
  */
 const FightIdentityPillInner: React.FC<FightIdentityPillProps> = ({ fights, onOpenPicker }) => {
     const selectedId = useStatsStore(state => state.selectedReplayFightId);

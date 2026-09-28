@@ -4,6 +4,7 @@ import https from 'node:https';
 import http from 'node:http';
 import path from 'node:path';
 import { LEGACY_THEME_TO_PALETTE } from '../../shared/webThemes';
+import { collapseGlassKeys } from '../glassSettingMigration';
 import { DEFAULT_DISRUPTION_METHOD } from '../../shared/metricsSettings';
 import { isR2SliceEnabled } from './githubHandlers';
 import { parseMaybeGzippedJson } from '../cloudflare/replaySidecar';
@@ -105,6 +106,37 @@ export const DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS = {
 
 // ─── Private helpers ───────────────────────────────────────────────────────────
 
+/**
+ * Normalizes a just-parsed settings-file object in place: finishes the legacy
+ * `uiTheme` → `colorPalette`/glass migration if still pending, then collapses
+ * the three legacy glass booleans into one `glass`.
+ *
+ * Shared by both settings-file entry points — `import-settings` (dead IPC path,
+ * no renderer caller) and `select-settings-file` (the one `SettingsView.tsx`
+ * actually calls) — so the two cannot drift the way they did before this was
+ * extracted: `select-settings-file` returned the raw parsed object straight to
+ * the renderer, which filters it against `IMPORT_SETTING_META` (no legacy glass
+ * keys), silently dropping a user's glass choice on import unless this runs
+ * first.
+ */
+export function normalizeImportedSettings(settings: Record<string, any>): void {
+    if (settings.uiTheme && !settings.colorPalette) {
+        const mapping = LEGACY_THEME_TO_PALETTE[settings.uiTheme] ?? { palette: 'electric-blue', glass: false };
+        settings.colorPalette = mapping.palette;
+        if (mapping.glass) settings.glassSurfaces = true;
+        delete settings.uiTheme;
+        delete settings.githubWebTheme;
+        delete settings.kineticFontStyle;
+        delete settings.kineticThemeVariant;
+        delete settings.dashboardLayout;
+    }
+    // Outside the uiTheme guard on purpose: a settings file exported by
+    // the version that shipped the three booleans carries them and no
+    // uiTheme, so a guarded collapse would land the import with no glass
+    // key at all and silently switch the setting off.
+    collapseGlassKeys(settings);
+}
+
 const bringDialogParentToFront = (parent: BrowserWindow | null) => {
     if (!parent) return;
     parent.show();
@@ -171,9 +203,7 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             disruptionMethod: store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD),
             commanderThresholds: store.get('commanderThresholds', undefined),
             colorPalette: store.get('colorPalette', 'electric-blue'),
-            glassSurfaces: store.get('glassSurfaces', false),
-            glassmorphic: store.get('glassmorphic', false),
-            axiDesign: store.get('axiDesign', false),
+            glass: store.get('glass', false),
             particlesEnabled: store.get('particlesEnabled', true),
             autoUpdateSupported: updateSupported,
             autoUpdateDisabledReason: updateDisabledReason,
@@ -257,9 +287,7 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             disruptionMethod: store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD),
             commanderThresholds: store.get('commanderThresholds', undefined),
             colorPalette: store.get('colorPalette', 'electric-blue'),
-            glassSurfaces: store.get('glassSurfaces', false),
-            glassmorphic: store.get('glassmorphic', false),
-            axiDesign: store.get('axiDesign', false),
+            glass: store.get('glass', false),
             particlesEnabled: store.get('particlesEnabled', true),
             githubRepoOwner: store.get('githubRepoOwner', null),
             githubRepoName: store.get('githubRepoName', null),
@@ -305,16 +333,7 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
                 return { success: false, error: 'Invalid settings file.' };
             }
             const importedSettings = parsed as Record<string, any>;
-            if (importedSettings.uiTheme && !importedSettings.colorPalette) {
-                const mapping = LEGACY_THEME_TO_PALETTE[importedSettings.uiTheme] ?? { palette: 'electric-blue', glass: false };
-                importedSettings.colorPalette = mapping.palette;
-                importedSettings.glassSurfaces = mapping.glass;
-                delete importedSettings.uiTheme;
-                delete importedSettings.githubWebTheme;
-                delete importedSettings.kineticFontStyle;
-                delete importedSettings.kineticThemeVariant;
-                delete importedSettings.dashboardLayout;
-            }
+            normalizeImportedSettings(importedSettings);
             onApplySettings(importedSettings);
             return { success: true };
         } catch (err: any) {
@@ -341,6 +360,13 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             if (!parsed || typeof parsed !== 'object') {
                 return { success: false, error: 'Invalid settings file.' };
             }
+            // The live import flow: SettingsView.tsx's selectSettingsFile() calls this
+            // handler directly and filters the returned settings against
+            // IMPORT_SETTING_META, which no longer lists the legacy glass keys. The
+            // normalization has to run here, before the filter sees the object, or a
+            // file exported by the currently shipped version (three booleans, no
+            // glass) silently loses the user's glass choice on import.
+            normalizeImportedSettings(parsed as Record<string, any>);
             return { success: true, settings: parsed, filePath };
         } catch (err: any) {
             return { success: false, error: err?.message || 'Failed to read settings file.' };

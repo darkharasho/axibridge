@@ -30,11 +30,11 @@ export function useSearchJump({ onRequestCategory }: UseSearchJumpOptions) {
                 target = sectionEl.querySelector(`[data-player-account="${CSS.escape(entry.account)}"]`) ?? sectionEl;
             }
             target.scrollIntoView({ behavior: 'smooth', block: entry.type === 'section' ? 'start' : 'center' });
-            target.classList.remove('axi-search-flash');
+            target.classList.remove('bridge-search-flash');
             // reflow so re-adding restarts the animation
             void (target as HTMLElement).offsetWidth;
-            target.classList.add('axi-search-flash');
-            window.setTimeout(() => target.classList.remove('axi-search-flash'), 3400);
+            target.classList.add('bridge-search-flash');
+            window.setTimeout(() => target.classList.remove('bridge-search-flash'), 3400);
         };
         requestAnimationFrame(tick);
     };

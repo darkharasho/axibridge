@@ -11,7 +11,8 @@ import { FightSlicePill } from '../components/FightSliceTray';
    colour meaning anything. Drawn as an object instead - accent fill, ink glyph
    - so the accent carries it and no status ink is borrowed. The outline and the
    hard offset that make it a raised thing come from .report-head-mark in
-   axi-design.css, which is inert with the language off. */
+   axi-design.css, which is unconditional - the same mark on both surface
+   treatments, with only its fill following the accent. */
 const TitleMark = () => (
     <div
         className="report-head-mark grid place-items-center shrink-0"
@@ -192,11 +193,11 @@ export const StatsHeader = ({
                         onClick={onSearchClick}
                         title="Search (Ctrl+K)"
                         aria-label="Search"
-                        className="axi-search-trigger flex h-[30px] w-full items-center gap-2.5 rounded-[4px] px-2.5 text-[12px] transition-colors"
+                        className="bridge-search-trigger flex h-[30px] w-full items-center gap-2.5 rounded-[4px] px-2.5 text-[12px] transition-colors"
                     >
                         {/* Its own element so the axi language can cap the well with
                             an accent block instead of floating a glyph in the fill. */}
-                        <span className="axi-search-trigger__mark flex shrink-0 items-center self-stretch">
+                        <span className="bridge-search-trigger__mark flex shrink-0 items-center self-stretch">
                             <Search className="w-3.5 h-3.5" style={{ color: 'var(--brand-primary)' }} />
                         </span>
                         {/* Now that there is room, the trigger says what the panel's
