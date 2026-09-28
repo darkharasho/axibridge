@@ -7,7 +7,6 @@ import { Terminal as TerminalIcon } from 'lucide-react';
 import { SettingsView } from '../SettingsView';
 import { StatsView } from '../StatsView';
 import { StatsErrorBoundary } from '../stats/StatsErrorBoundary';
-import { CategoryBar } from '../stats/CategoryBar';
 import { Terminal } from '../Terminal';
 import { UpdateErrorModal } from '../UpdateErrorModal';
 import { WalkthroughModal } from '../WalkthroughModal';
@@ -115,14 +114,6 @@ export function AppLayout({ ctx }: { ctx: any }) {
         logDirectory,
         handleSelectDirectory,
     } = ctx;
-
-    // TRANSITIONAL, removed in the CSS switchover (Task 5): axiDesign is no
-    // longer a setting (useSettings applies it unconditionally), but the JSX
-    // below still branches on it for the nav-tab accent styling and the
-    // AxiRail/CategoryBar choice. Hardcoding it true here keeps that branching
-    // compiling and pointed at the now-permanent state without reaching into
-    // Task 5's scope.
-    const axiDesign = true;
 
     const [activeNavView, setActiveNavView] = useState(view);
 
@@ -254,18 +245,9 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 ? 'text-[color:var(--brand-primary)]'
                                 : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                         }`}
-                        style={activeNavView === id && !axiDesign ? { background: 'var(--accent-bg)' } : {}}
                     >
                         <Icon className="w-3.5 h-3.5" />
                         {label}
-                        {activeNavView === id && !axiDesign && (
-                            <motion.div
-                                layoutId="activeNavIndicator"
-                                className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full"
-                                style={{ background: 'var(--brand-primary)' }}
-                                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                            />
-                        )}
                     </button>
                 ))}
                 <div className="ml-auto flex items-center gap-2">
@@ -415,9 +397,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                whole app — header included. With it, the width stops here and
                                `#stats-dashboard-container` scrolls horizontally instead. */
                             <div className="flex-1 min-h-0 min-w-0 flex gap-3">
-                                {axiDesign
-                                    ? <AxiRail unpublishedCategoryIds={replayPublishing.published ? undefined : UNPUBLISHED_REPLAY} />
-                                    : <CategoryBar unpublishedCategoryIds={replayPublishing.published ? undefined : UNPUBLISHED_REPLAY} />}
+                                <AxiRail unpublishedCategoryIds={replayPublishing.published ? undefined : UNPUBLISHED_REPLAY} />
                                 <div className="flex-1 min-w-0 min-h-0 flex flex-col">
                                     <StatsErrorBoundary>
                                         <StatsView

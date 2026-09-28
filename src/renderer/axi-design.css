@@ -6,7 +6,7 @@
    is no setting to turn it off, and every rule here is scoped to
    `[data-axi-accent] body`.
 
-   That scope is a specificity choice, not a condition. It was `body.axi-design`
+   That scope is a specificity choice, not a condition. It was a body class
    while the language was a toggle, and `[data-axi-accent] body` is the only
    replacement with the same specificity (0,1,1) — index.css still holds rules
    like `body.web-report .stats-view .max-h-80` that contest classes this file

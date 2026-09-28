@@ -1335,9 +1335,10 @@ body.bulk-uploading .stats-particle-spinner__particle {
 
 /* Nine of these remaps are gone, not disabled. They were the `.rounded-*`
    radius bridges and four of the `bg-*` fills, written with !important and then
-   scoped to `body:not(.axi-design)` once axi-design.css started remapping the
-   same literals onto its own scale. With the axi language unconditional that
-   negation can never match, so the rules were already dead code; the axi sheet
+   then scoped away from the axi language with a :not() on the old toggle class,
+   once axi-design.css started remapping the same literals onto its own scale.
+   With that language unconditional the negation can never match, so the rules
+   were already dead code; the axi sheet
    owns those literals now. What is left below is the set the two sheets agree
    on, which is why it needs no scope at all.
 
@@ -1660,4 +1661,150 @@ body.web-report {
 .bridge-search-trigger kbd {
     border: 1px solid var(--border-subtle);
     color: var(--text-secondary);
+}
+
+/* ---------------------------------------------------------------------------
+   FLOATING SURFACES UNDER GLASS
+
+   Every rule here is a migration of one that used to live under the two
+   deleted homegrown glass body classes, not a new decision. The reason
+   is unchanged and worth restating because it is not obvious from the token
+   names: upstream glass makes --axi-surface an alpha gradient and puts the
+   blur in --axi-surface-filter, and backdrop-filter is a no-op on Linux. A
+   floating surface with content moving behind it therefore reads as
+   see-through rather than as frosted, so it gets an opaque fill of its own.
+
+   The rule: anything the page scrolls underneath is opaque. Anything you read
+   the page around keeps the tint.
+
+   WHY THE SELECTORS CARRY BOTH ATTRIBUTES. `[data-axi-accent]` is not a second
+   condition - both attributes live on <html>, so it is always true wherever
+   the first one is. It is there for specificity, and the block does not work
+   without it. axi-design.css loads AFTER this file and styles most of these
+   same surfaces as `[data-axi-accent] body .app-modal-card` (0,2,1), several
+   of them with !important. A bare `[data-axi-theme="glass"] .app-modal-card`
+   is (0,2,0) and would lose every one of those contests, silently: the rules
+   would be in the bundle and never paint. Two attributes plus the class is
+   (0,3,0), which clears the whole remap layer. The deleted rules did the same
+   job by being two body classes deep. */
+
+/* Dropdowns, popovers and tooltips - the page moves behind all of them. */
+[data-axi-accent][data-axi-theme="glass"] .app-dropdown,
+[data-axi-accent][data-axi-theme="glass"] .stats-popover {
+  background: rgba(15, 18, 25, 0.97) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Sticky action bars (report-history bulk delete): cards scroll underneath. */
+[data-axi-accent][data-axi-theme="glass"] .app-sticky-bar {
+  background: rgba(15, 18, 25, 0.97) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Modals sit over the whole app; the scrim darkens it but does not hide it. */
+[data-axi-accent][data-axi-theme="glass"] .app-modal-card {
+  background: rgba(15, 18, 25, 0.92) !important;
+}
+
+/* The search palette and the stats nav panel both float over scrolling content.
+   The search palette is the one axi-design.css pins with !important, which is
+   why this block needs the specificity rather than just the flag. */
+[data-axi-accent][data-axi-theme="glass"] .bridge-search-panel,
+[data-axi-accent][data-axi-theme="glass"] .stats-dashboard-nav-panel {
+  background: rgba(15, 18, 25, 0.97) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* The web report's nav strip is the same object as .stats-dashboard-nav-panel
+   on the desktop side: fixed, with the report scrolling behind it. */
+[data-axi-accent][data-axi-theme="glass"] .report-nav-sidebar {
+  background: rgba(15, 18, 25, 0.95) !important;
+}
+
+/* Sticky table headers: rows scroll under them, and --bg-card is a glass tint,
+   so the tint is layered over a solid dark base rather than used alone. */
+[data-axi-accent][data-axi-theme="glass"] .stats-table thead th,
+[data-axi-accent][data-axi-theme="glass"] .rollup-table thead th {
+  background-color: #0c0f16;
+  background-image: linear-gradient(var(--bg-card), var(--bg-card));
+}
+
+/* The bucket grids' pinned name column and time ruler are sticky in one axis
+   each and overlap the cells that scroll under them. The un-themed rules above
+   pin them to --bg-card, which the glass theme turns into a tint; this is the
+   opaque base those rules assume. Deeper than the rest of the block because
+   axi-design.css reaches them at `... body .stats-view .bucket-grid__pin`. */
+[data-axi-accent][data-axi-theme="glass"] .stats-view .bucket-grid__pin,
+[data-axi-accent][data-axi-theme="glass"] .stats-view .bucket-grid__head {
+  background: rgb(21, 25, 34);
+}
+
+/* Native <select> controls: Chromium on Linux paints the OS option popup from
+   the control's own background, and no filter applies to an OS-drawn popup, so
+   a tinted control means an unreadable list. */
+[data-axi-accent][data-axi-theme="glass"] .app-native-select,
+[data-axi-accent][data-axi-theme="glass"] .stats-view .fight-diff-select {
+  background-color: rgba(15, 18, 25, 0.9) !important;
+}
+
+[data-axi-accent][data-axi-theme="glass"] .stats-view .fight-diff-select option {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+/* Fight Comp is not a floating surface - this is legibility. Its labels are
+   compact and dense, and against a tinted panel the secondary text blends into
+   whatever is behind it, so its reading surfaces get a darker base and
+   brighter ink. Migrated as-is from the deleted glass block. */
+[data-axi-accent][data-axi-theme="glass"] .stats-view .fight-comp-fight-nav-item:not(.text-cyan-100) {
+  background-color: rgba(15, 18, 25, 0.62) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-axi-accent][data-axi-theme="glass"] .stats-view .fight-comp-fight-label,
+[data-axi-accent][data-axi-theme="glass"] .stats-view .fight-comp-fight-meta {
+  color: var(--text-secondary) !important;
+}
+
+[data-axi-accent][data-axi-theme="glass"] .stats-view .fight-comp-card-header {
+  background-color: rgba(15, 18, 25, 0.72) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--text-primary) !important;
+}
+
+[data-axi-accent][data-axi-theme="glass"] .stats-view .fight-comp-count-badge,
+[data-axi-accent][data-axi-theme="glass"] .stats-view .fight-comp-party-badge {
+  background-color: rgba(15, 18, 25, 0.58) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: var(--text-primary) !important;
+}
+
+/* The glass light is painted by upstream as body's background-image, fixed. The
+   app's own opaque layers sit on top of it, so under glass they step back to
+   transparent and let it through. Not under the flat theme, where --axi-ground
+   is the page and these layers are what draw it. */
+[data-axi-accent][data-axi-theme="glass"] #root,
+[data-axi-accent][data-axi-theme="glass"] .app-content {
+  background: transparent !important;
+}
+
+[data-axi-accent][data-axi-theme="glass"] .app-shell,
+[data-axi-accent][data-axi-theme="glass"] .min-h-screen {
+  background-color: transparent;
+}
+
+/* Bulk upload turns the blurs off for frame rate. The opaque fills stay - they
+   are legibility, not decoration.
+   Two descendant steps rather than one compound selector: the theme attributes
+   are on <html> and `bulk-uploading` on <body>, so asking one element to carry
+   both would match nothing. */
+[data-axi-accent][data-axi-theme="glass"] body.bulk-uploading .app-dropdown,
+[data-axi-accent][data-axi-theme="glass"] body.bulk-uploading .app-sticky-bar,
+[data-axi-accent][data-axi-theme="glass"] body.bulk-uploading .bridge-search-panel,
+[data-axi-accent][data-axi-theme="glass"] body.bulk-uploading .stats-dashboard-nav-panel {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }

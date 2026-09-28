@@ -164,10 +164,6 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         // Two data attributes on <html> are the whole appearance API — see
         // applyAxiTheme for why the document element rather than the body.
         applyAxiTheme(document.documentElement, { accent: colorPalette, glass });
-        // TRANSITIONAL, removed in the CSS switchover: axi is unconditional from
-        // here on, but the stylesheets are still keyed on this class. Glass is
-        // inert for now, which is what it already was under axi.
-        document.body.classList.add('axi-design');
         // Not part of the design language — app behaviour, so it stays a body class.
         document.body.classList.toggle('particles-disabled', !particlesEnabled);
     }, [colorPalette, glass, particlesEnabled]);
