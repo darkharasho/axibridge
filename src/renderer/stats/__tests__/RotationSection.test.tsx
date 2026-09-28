@@ -80,4 +80,23 @@ describe('RotationSection', () => {
         const casts = container.querySelectorAll('[data-cast]');
         casts.forEach((cast) => expect(cast.querySelector('img')).toBeNull());
     });
+
+    it('offers a 10s row width and defaults to 15s', () => {
+        render(<RotationSection fights={[fight]} recorded selectedFightId="f1" />);
+        const select = screen.getByLabelText('Row width') as HTMLSelectElement;
+        expect(select.value).toBe('15000');
+        expect(Array.from(select.options).map(o => o.textContent)).toEqual(['10s', '15s', '30s', '60s']);
+    });
+
+    it('keeps a zero-duration cast clickable at the widest row setting', () => {
+        const zeroDur: RotationFightData = {
+            ...fight,
+            players: [{ ...fight.players[0], skill: [0], dt: [2000], dur: [0], interrupted: [] }],
+        };
+        const { container } = render(
+            <RotationSection fights={[zeroDur]} recorded selectedFightId="f1" />);
+        const box = container.querySelector('[data-cast]') as HTMLElement;
+        expect(box).toBeTruthy();
+        expect(box.style.minWidth).toBe('26px');
+    });
 });
