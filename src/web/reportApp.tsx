@@ -1842,11 +1842,11 @@ export function ReportApp({ injectedSource, assetBase }: {
                                 onClick={() => searchOpenRef.current?.()}
                                 title="Search (Ctrl+K)"
                                 aria-label="Search report"
-                                className="report-nav-search axi-search-trigger w-full flex items-center gap-2.5 px-3 py-2 rounded-[4px] transition-colors text-left"
+                                className="report-nav-search bridge-search-trigger w-full flex items-center gap-2.5 px-3 py-2 rounded-[4px] transition-colors text-left"
                             >
                                 {/* The glyph gets its own element so the axi language
-                                    can cap the well with it. See .axi-search-trigger__mark. */}
-                                <span className="axi-search-trigger__mark flex shrink-0 items-center self-stretch">
+                                    can cap the well with it. See .bridge-search-trigger__mark. */}
+                                <span className="bridge-search-trigger__mark flex shrink-0 items-center self-stretch">
                                     <Search className="w-4 h-4 text-[color:var(--brand-primary)]" />
                                 </span>
                                 {/* No ellipsis: the well already reads as a field you
