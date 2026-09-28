@@ -14,8 +14,8 @@ export default defineConfig({
     // Icons/fonts the viewer needs (gw2-class-icons) are inlined as base64
     // data URIs at build time (see src/renderer/classIconUtils.ts), and no
     // CSS in this bundle references `public/` by absolute path. Copying the
-    // ~5MB `public/` tree (fonts/img/svg/web-report-themes meant for the
-    // Electron app and the full web report) into `docs/view/` would just be
+    // ~5MB `public/` tree (fonts/img/svg meant for the Electron app and the
+    // full web report) into `docs/view/` would just be
     // dead weight next to `viewer.js`.
     publicDir: false,
     // Emit asset URLs relative to the bundle rather than root-absolute. The

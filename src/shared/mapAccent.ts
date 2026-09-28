@@ -51,8 +51,9 @@ const toRgb = (hex: string): [number, number, number] => [
 
 /**
  * Expand one hex into the full accent variable set, using the same alpha ladder
- * every palette in `index.css` uses (.10 wash, .18 strong wash, .35 border and
- * glow) and the single-hue gradient the glassmorphic white accent already ships.
+ * every accent palette in upstream's `accents.css` uses (.10 wash, .18 strong
+ * wash, .35 border and glow) and the same single-hue gradient shape those
+ * palettes ship.
  */
 const buildAccent = (hex: string): MapAccent => {
     const [r, g, b] = toRgb(hex);

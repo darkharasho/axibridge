@@ -962,9 +962,12 @@ export function ReportApp({ injectedSource, assetBase }: {
     // All theming resolves from --axi-accent and the axi token set; the two data
     // attributes on <html> are the only switches.
     const defaultLogoColor = 'var(--brand-primary)';
+    // `background` shorthand, not `backgroundColor`: under glass `--bg-card`
+    // resolves to `--axi-surface`, an alpha gradient, and a plain
+    // `background-color: var(--axi-surface)` is invalid at computed-value time
+    // — it silently computes to transparent, leaving every card with no fill.
     const glassCardStyle: CSSProperties = {
-        backgroundImage: 'none',
-        backgroundColor: 'var(--bg-card)',
+        background: 'var(--bg-card)',
         borderColor: 'var(--border-default)'
     };
     // Sticky table headers need an opaque base. The reasoning survives the move
