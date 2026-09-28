@@ -93,8 +93,28 @@ describe('resolveMapAccentFromStats', () => {
 
 describe('MAP_ACCENT_CSS_VARS', () => {
     it('covers every field of the accent', () => {
+        // --axi-accent duplicates the `primary` key deliberately (see the export's
+        // doc comment), so this compares the unique key set rather than the raw list.
         const accent = resolveMapAccentFromName('EBG');
-        expect(MAP_ACCENT_CSS_VARS.map(([, key]) => key).sort())
-            .toEqual(Object.keys(accent).sort());
+        expect(new Set(MAP_ACCENT_CSS_VARS.map(([, key]) => key)))
+            .toEqual(new Set(Object.keys(accent)));
+    });
+
+    it('leads with --axi-accent so the map colour reaches the design language', () => {
+        expect(MAP_ACCENT_CSS_VARS[0]).toEqual(['--axi-accent', 'primary']);
+    });
+
+    it('still carries every brand and glow variable a component may read directly', () => {
+        expect(MAP_ACCENT_CSS_VARS.map(([cssVar]) => cssVar)).toEqual([
+            '--axi-accent',
+            '--brand-primary',
+            '--brand-secondary',
+            '--brand-gradient',
+            '--accent-bg',
+            '--accent-bg-strong',
+            '--accent-border',
+            '--glow-primary',
+            '--glow-secondary',
+        ]);
     });
 });

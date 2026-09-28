@@ -969,7 +969,10 @@ const buildWebReportPayload = (
         stats: {
             ...(sourceStats || {}),
             colorPalette,
-            glass
+            glass,
+            // The same value under its old name, for viewers already deployed in
+            // the field. See STUB_STATS_KEYS in webReportParts.ts.
+            glassSurfaces: glass
         } as Record<string, any>
     };
 
@@ -2424,6 +2427,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const indexPayload = {
                 colorPalette: paletteValue,
                 glass: glassValue,
+                glassSurfaces: glassValue,
                 entries: mergedEntries
             };
 
@@ -2828,6 +2832,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const localIndexPayload = {
                 colorPalette: localPalette,
                 glass: localGlass,
+                glassSurfaces: localGlass,
                 entries: mergedLocalEntries
             };
             fs.writeFileSync(indexPath, JSON.stringify(localIndexPayload, null, 2));

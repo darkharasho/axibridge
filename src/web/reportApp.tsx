@@ -2,9 +2,10 @@ import { CSSProperties, MouseEvent as ReactMouseEvent, startTransition, useCallb
 import { StatsView } from '../renderer/StatsView';
 import { STATS_TOC_GROUPS } from '../renderer/stats/hooks/useStatsNavigation';
 import { resolveSectionTarget } from '../renderer/stats/statsTaxonomy';
-import { PALETTES, type ColorPalette } from '../shared/webThemes';
+import type { ColorPalette } from '../shared/webThemes';
 import { readPaletteFromReport } from './paletteReader';
 import { resolveMapAccentFromStats, MAP_ACCENT_CSS_VARS, type MapAccent } from '../shared/mapAccent';
+import { applyAxiTheme } from '../shared/applyAxiTheme';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
@@ -366,9 +367,7 @@ export function ReportApp({ injectedSource, assetBase }: {
     const [reportPathHint, setReportPathHint] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [colorPalette, setColorPalette] = useState<ColorPalette>('electric-blue');
-    const [glassSurfaces, setGlassSurfaces] = useState(false);
-    const [glassmorphic, setGlassmorphic] = useState(false);
-    const [axiDesign, setAxiDesign] = useState(false);
+    const [glass, setGlass] = useState(false);
     const [mapAccent, setMapAccent] = useState<MapAccent | null>(null);
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [logoIsDefault, setLogoIsDefault] = useState(false);
@@ -525,30 +524,22 @@ export function ReportApp({ injectedSource, assetBase }: {
         if (!isNarrowViewport) setTocOpen(false);
     }, [isNarrowViewport]);
 
-    // Apply palette and glass body classes so CSS variables drive all theming.
+    // The publisher's accent and glass choice, applied the same way the renderer
+    // applies them — two data attributes on <html>, nothing else.
     useEffect(() => {
-        const body = document.body;
-        body.classList.add('web-report');
-        for (const id of Object.keys(PALETTES)) body.classList.remove(`palette-${id}`);
-        if (colorPalette !== 'electric-blue') {
-            body.classList.add(`palette-${colorPalette}`);
-        }
-        // Glass and axi are opposite claims about what a surface is, and the
-        // glass rules are written with !important, so with both on the glass
-        // wins every contested property and the result is neither language.
-        // The renderer suppresses them the same way (useSettings).
-        body.classList.toggle('glass-surfaces', glassSurfaces && !axiDesign);
-        body.classList.toggle('glassmorphic', glassmorphic && !axiDesign);
-        body.classList.toggle('axi-design', axiDesign);
-        // A share link's accent comes from the map it was fought on, not from a
-        // palette class. Inline properties beat every `palette-*` rule without
-        // needing a class per map, and `axi-design.css` reads the accent through
-        // `--axi-accent: var(--brand-primary)`, so the whole language follows.
+        document.body.classList.add('web-report');
+        applyAxiTheme(document.documentElement, { accent: colorPalette, glass });
+        // A share link's accent comes from the map it was fought on rather than
+        // from the publisher's palette. Inline properties on <body> beat the
+        // [data-axi-accent] rule on <html> by proximity, so this overrides the
+        // whole language — including upstream's own components — without needing
+        // an accent id per map. --axi-accent leads the list for exactly that
+        // reason; see MAP_ACCENT_CSS_VARS.
         for (const [cssVar, key] of MAP_ACCENT_CSS_VARS) {
-            if (mapAccent) body.style.setProperty(cssVar, mapAccent[key]);
-            else body.style.removeProperty(cssVar);
+            if (mapAccent) document.body.style.setProperty(cssVar, mapAccent[key]);
+            else document.body.style.removeProperty(cssVar);
         }
-    }, [colorPalette, glassSurfaces, glassmorphic, axiDesign, mapAccent]);
+    }, [colorPalette, glass, mapAccent]);
 
     useEffect(() => {
         setAssetBasePath(assetBasePathCandidates[0] || '/');
@@ -968,16 +959,20 @@ export function ReportApp({ injectedSource, assetBase }: {
             window.removeEventListener('hashchange', syncFromHash);
         };
     }, [navGroups]);
-    // All theming is now driven by CSS variables set by palette/glass body classes.
+    // All theming resolves from --axi-accent and the axi token set; the two data
+    // attributes on <html> are the only switches.
     const defaultLogoColor = 'var(--brand-primary)';
     const glassCardStyle: CSSProperties = {
         backgroundImage: 'none',
         backgroundColor: 'var(--bg-card)',
         borderColor: 'var(--border-default)'
     };
-    // Sticky table headers need an opaque base: --bg-card is a translucent glass
-    // tint in glass/glassmorphic modes, so layer it over a solid dark fallback to
-    // keep scrolled rows from showing through.
+    // Sticky table headers need an opaque base. The reasoning survives the move
+    // to upstream glass unchanged: --bg-card resolves to --axi-surface, which the
+    // glass theme makes an alpha gradient, and its blur lives in
+    // --axi-surface-filter, which is a no-op on Linux. So the tint is layered
+    // over a solid dark fallback rather than used alone, or scrolled rows show
+    // straight through the header.
     const rollupTableHeaderStyle: CSSProperties = {
         backgroundColor: '#0c0f16',
         backgroundImage: 'linear-gradient(var(--bg-card), var(--bg-card))'
@@ -1031,15 +1026,13 @@ export function ReportApp({ injectedSource, assetBase }: {
             setRollupLoading(false);
             setRollupRequestedCount(0);
             setReportPathHint(null);
-            // Share links have a look of their own: always the axi language,
-            // accented by the WvW map the fights were on. The publisher's own
-            // palette and surface toggles don't reach `/r/<code>` — only
-            // published Pages reports (the branch below) follow those.
-            const { palette } = readPaletteFromReport(injectedSource.report.stats);
+            // A share link is accented by the WvW map the fights were on rather
+            // than by the publisher's palette (see the mapAccent call below), but
+            // it follows the publisher's glass choice like any other report.
+            // There is no language to force on any more — axi is the only one.
+            const { palette, glass: publishedGlass } = readPaletteFromReport(injectedSource.report.stats);
             setColorPalette(palette);
-            setGlassSurfaces(false);
-            setGlassmorphic(false);
-            setAxiDesign(true);
+            setGlass(publishedGlass);
             setMapAccent(resolveMapAccentFromStats(injectedSource.report.stats));
             setReport(injectedSource.report);
             return () => {
@@ -1058,11 +1051,9 @@ export function ReportApp({ injectedSource, assetBase }: {
         setReportPathHint(reportId ? reportPath : null);
 
         const applyPaletteFromReport = (reportData: ReportPayload) => {
-            const { palette, glass, glassmorphic: gm, axi } = readPaletteFromReport(reportData.stats);
+            const { palette, glass: publishedGlass } = readPaletteFromReport(reportData.stats);
             setColorPalette(palette);
-            setGlassSurfaces(glass);
-            setGlassmorphic(gm);
-            setAxiDesign(axi);
+            setGlass(publishedGlass);
         };
 
         const loadIndex = (suppressError = false) => {
@@ -1075,11 +1066,9 @@ export function ReportApp({ injectedSource, assetBase }: {
                     setIndex(entries);
                     // Apply site-wide palette and glass from index.json
                     if (!Array.isArray(data) && data?.colorPalette) {
-                        const { palette, glass, glassmorphic: gm, axi } = readPaletteFromReport(data);
+                        const { palette, glass: siteGlass } = readPaletteFromReport(data);
                         setColorPalette(palette);
-                        setGlassSurfaces(glass);
-                        setGlassmorphic(gm);
-                        setAxiDesign(axi);
+                        setGlass(siteGlass);
                     }
                 })
                 .catch(() => {

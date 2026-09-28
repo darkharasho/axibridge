@@ -2,62 +2,62 @@ import { describe, it, expect } from 'vitest';
 import { readPaletteFromReport } from '../paletteReader';
 
 describe('readPaletteFromReport', () => {
-    it('reads new format colorPalette', () => {
-        expect(readPaletteFromReport({ colorPalette: 'amber-warm', glassSurfaces: true }))
-            .toEqual({ palette: 'amber-warm', glass: true, glassmorphic: false, axi: false });
+    it('reads the accent and the glass flag', () => {
+        expect(readPaletteFromReport({ colorPalette: 'amber-warm', glass: true }))
+            .toEqual({ palette: 'amber-warm', glass: true });
     });
 
-    it('reads the new format axiDesign flag', () => {
-        expect(readPaletteFromReport({ colorPalette: 'electric-blue', axiDesign: true }))
-            .toEqual({ palette: 'electric-blue', glass: false, glassmorphic: false, axi: true });
-    });
-
-    it('reads new format glassmorphic flag', () => {
-        expect(readPaletteFromReport({ colorPalette: 'electric-blue', glassmorphic: true }))
-            .toEqual({ palette: 'electric-blue', glass: false, glassmorphic: true, axi: false });
-    });
-
-    it('reads legacy reportTheme.ui format', () => {
-        expect(readPaletteFromReport({ reportTheme: { ui: 'matte', paletteId: 'MatteSlate' } }))
-            .toEqual({ palette: 'refined-cyan', glass: false, glassmorphic: false, axi: false });
-    });
-
-    it('reads older legacy stats.uiTheme format', () => {
-        expect(readPaletteFromReport({ uiTheme: 'dark-glass' }))
-            .toEqual({ palette: 'electric-blue', glass: true, glassmorphic: false, axi: false });
-    });
-
-    it('falls back to electric-blue for unknown data', () => {
-        expect(readPaletteFromReport({}))
-            .toEqual({ palette: 'electric-blue', glass: false, glassmorphic: false, axi: false });
-    });
-
-    it('prefers new format over legacy', () => {
-        expect(readPaletteFromReport({ colorPalette: 'emerald-mint', reportTheme: { ui: 'matte' } }))
-            .toEqual({ palette: 'emerald-mint', glass: false, glassmorphic: false, axi: false });
-    });
-
-    it('falls back to electric-blue for null/undefined stats', () => {
-        expect(readPaletteFromReport(null)).toEqual({ palette: 'electric-blue', glass: false, glassmorphic: false, axi: false });
-        expect(readPaletteFromReport(undefined)).toEqual({ palette: 'electric-blue', glass: false, glassmorphic: false, axi: false });
-    });
-
-    it('defaults glassSurfaces to false when not specified in new format', () => {
+    it('defaults glass to false when the report does not carry it', () => {
         expect(readPaletteFromReport({ colorPalette: 'refined-cyan' }))
-            .toEqual({ palette: 'refined-cyan', glass: false, glassmorphic: false, axi: false });
+            .toEqual({ palette: 'refined-cyan', glass: false });
     });
 
-    it('ignores unknown colorPalette and falls through to legacy', () => {
-        expect(readPaletteFromReport({ colorPalette: 'unknown-palette', reportTheme: { ui: 'kinetic' } }))
-            .toEqual({ palette: 'amber-warm', glass: false, glassmorphic: false, axi: false });
+    // The one compatibility path that survives: a report published before the
+    // collapse spells the same choice `glassSurfaces`.
+    it('accepts glassSurfaces as an alias for glass', () => {
+        expect(readPaletteFromReport({ colorPalette: 'electric-blue', glassSurfaces: true }))
+            .toEqual({ palette: 'electric-blue', glass: true });
     });
 
-    it('maps all known legacy uiTheme values', () => {
-        expect(readPaletteFromReport({ uiTheme: 'classic' })).toEqual({ palette: 'electric-blue', glass: false, glassmorphic: false, axi: false });
-        expect(readPaletteFromReport({ uiTheme: 'modern' })).toEqual({ palette: 'electric-blue', glass: false, glassmorphic: false, axi: false });
-        expect(readPaletteFromReport({ uiTheme: 'crt' })).toEqual({ palette: 'emerald-mint', glass: false, glassmorphic: false, axi: false });
-        expect(readPaletteFromReport({ uiTheme: 'kinetic' })).toEqual({ palette: 'amber-warm', glass: false, glassmorphic: false, axi: false });
-        expect(readPaletteFromReport({ uiTheme: 'matte' })).toEqual({ palette: 'refined-cyan', glass: false, glassmorphic: false, axi: false });
-        expect(readPaletteFromReport({ uiTheme: 'dark-glass' })).toEqual({ palette: 'electric-blue', glass: true, glassmorphic: false, axi: false });
+    it('prefers glass over the glassSurfaces alias', () => {
+        expect(readPaletteFromReport({ colorPalette: 'electric-blue', glass: false, glassSurfaces: true }))
+            .toEqual({ palette: 'electric-blue', glass: false });
+    });
+
+    // Decision 2: already-published reports get no compatibility path. These two
+    // branches are gone, and anything they used to catch lands on the default.
+    it('ignores the legacy reportTheme.ui branch', () => {
+        expect(readPaletteFromReport({ reportTheme: { ui: 'matte', paletteId: 'MatteSlate' } }))
+            .toEqual({ palette: 'electric-blue', glass: false });
+    });
+
+    it('ignores the legacy uiTheme branch', () => {
+        expect(readPaletteFromReport({ uiTheme: 'dark-glass' }))
+            .toEqual({ palette: 'electric-blue', glass: false });
+    });
+
+    it('ignores the retired axiDesign and glassmorphic flags', () => {
+        expect(readPaletteFromReport({ colorPalette: 'crimson-red', axiDesign: false, glassmorphic: true }))
+            .toEqual({ palette: 'crimson-red', glass: false });
+    });
+
+    it('falls back to electric-blue for an unknown palette', () => {
+        expect(readPaletteFromReport({ colorPalette: 'unknown-palette' }))
+            .toEqual({ palette: 'electric-blue', glass: false });
+    });
+
+    // report.json comes off the network; `in` would accept every Object.prototype key.
+    it.each(['constructor', 'toString', 'hasOwnProperty', 'valueOf'])(
+        'rejects the prototype key %s as a palette id',
+        (key) => {
+            expect(readPaletteFromReport({ colorPalette: key }))
+                .toEqual({ palette: 'electric-blue', glass: false });
+        },
+    );
+
+    it('falls back to electric-blue for empty, null and undefined stats', () => {
+        expect(readPaletteFromReport({})).toEqual({ palette: 'electric-blue', glass: false });
+        expect(readPaletteFromReport(null)).toEqual({ palette: 'electric-blue', glass: false });
+        expect(readPaletteFromReport(undefined)).toEqual({ palette: 'electric-blue', glass: false });
     });
 });
