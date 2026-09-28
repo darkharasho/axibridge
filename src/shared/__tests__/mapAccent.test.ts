@@ -94,10 +94,17 @@ describe('resolveMapAccentFromStats', () => {
 describe('MAP_ACCENT_CSS_VARS', () => {
     it('covers every field of the accent', () => {
         // --axi-accent duplicates the `primary` key deliberately (see the export's
-        // doc comment), so this compares the unique key set rather than the raw list.
+        // doc comment), so the key set alone can't be a plain array-equality check
+        // against Object.keys(accent). But Set equality on its own is too weak: it
+        // drops cardinality, so it would miss two *different* keys colliding onto
+        // the same CSS var as long as the resulting key-set size still matched by
+        // coincidence. Assert both: the unique key set covers every field, and the
+        // duplicate is exactly the one deliberate case (primary, twice).
         const accent = resolveMapAccentFromName('EBG');
-        expect(new Set(MAP_ACCENT_CSS_VARS.map(([, key]) => key)))
-            .toEqual(new Set(Object.keys(accent)));
+        const keys = MAP_ACCENT_CSS_VARS.map(([, key]) => key);
+        expect(new Set(keys)).toEqual(new Set(Object.keys(accent)));
+        expect(keys).toHaveLength(Object.keys(accent).length + 1);
+        expect(keys.filter(key => key === 'primary')).toHaveLength(2);
     });
 
     it('leads with --axi-accent so the map colour reaches the design language', () => {

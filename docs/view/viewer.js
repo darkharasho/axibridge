@@ -75681,8 +75681,7 @@ function Cke({ injectedSource: e, assetBase: t } = {}) {
     };
   }, [Mt]);
   const ir = "var(--brand-primary)", dr = {
-    backgroundImage: "none",
-    backgroundColor: "var(--bg-card)",
+    background: "var(--bg-card)",
     borderColor: "var(--border-default)"
   }, Hr = {
     backgroundColor: "#0c0f16",
