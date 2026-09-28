@@ -170,15 +170,11 @@ const Toggle = memo(function Toggle({ enabled, onChange, label, description, dis
                     <div className="text-xs text-gray-500 mt-0.5">{description}</div>
                 )}
             </div>
-            <div
-                className={`relative w-11 h-6 rounded-[4px] transition-colors border ${enabled ? 'bg-blue-500/30 border-blue-500/40 toggle-track--on' : 'border-white/10 toggle-track--off'
-                    } toggle-track`}
-                style={!enabled ? { background: 'var(--bg-input)' } : undefined}
-            >
-                <div
-                    className={`absolute top-1 w-4 h-4 rounded-[4px] bg-white shadow-md transition-transform toggle-knob ${enabled ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                />
+            {/* Upstream's switch at its native size. The row owns the click, so this
+                carries the state for assistive tech and for axi.css's
+                [aria-checked] selector, and nothing else. */}
+            <div className="axi-switch" role="switch" aria-checked={enabled}>
+                <span className="axi-switch__knob" />
             </div>
         </div>
     );

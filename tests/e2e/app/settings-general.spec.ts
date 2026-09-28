@@ -12,7 +12,7 @@ test.describe('Settings — General Behavior (SET-001–003)', () => {
     test('SET-002: settings auto-save on toggle change', async ({ page }) => {
         await setupAppPage(page);
         await navigateTo(page, 'Settings');
-        const toggle = page.locator('.toggle-track').first();
+        const toggle = page.locator('.axi-switch').first();
         if (await toggle.isVisible({ timeout: 3000 }).catch(() => false)) {
             await toggle.click();
             await page.waitForTimeout(500);
@@ -61,7 +61,7 @@ test.describe('Settings — Appearance (SET-010–013)', () => {
         await openSettingsCategory(page, 'Application');
         const appearance = page.locator('[data-settings-label="Appearance"]');
         await appearance.scrollIntoViewIfNeeded();
-        const glassToggle = appearance.locator('.toggle-track').first();
+        const glassToggle = appearance.locator('.axi-switch').first();
         if (await glassToggle.isVisible({ timeout: 2000 }).catch(() => false)) {
             await glassToggle.click();
             await page.waitForTimeout(500);
