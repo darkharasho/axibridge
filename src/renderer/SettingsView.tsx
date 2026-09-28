@@ -2980,9 +2980,18 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             : 'border-white/10 bg-white/5 hover:border-white/30'
                                             }`}
                                     >
+                                        {/* A flat chip of `primary`, not `palette.gradient`.
+                                            The accent chain now runs from
+                                            [data-axi-accent] -> --axi-accent -> the app's
+                                            brand variables, and axi-design.css resolves
+                                            --brand-secondary and --brand-gradient to the flat
+                                            accent, so a two-hue swatch would advertise a ramp
+                                            nothing on screen renders: you would pick "Electric
+                                            Blue" off a blue-to-indigo chip and get a flat blue
+                                            UI. The swatch shows the colour the app paints. */}
                                         <div
                                             className="w-full h-8 rounded-[4px] mb-2 border border-white/10"
-                                            style={{ backgroundImage: palette.gradient }}
+                                            style={{ backgroundColor: palette.primary }}
                                         />
                                         <div className="text-xs font-semibold text-gray-200">{palette.label}</div>
                                     </button>

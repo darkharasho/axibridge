@@ -123,8 +123,8 @@ export function FightHero({
                         the language - accent fill, ink glyph - rather than set
                         inline in accent-coloured text beside a label. The ink
                         outline and the hard offset that make it raised come
-                        from .report-head-mark, which is inert with the
-                        language off. */}
+                        from .report-head-mark in axi-design.css, which is
+                        unconditional. */}
                     <div
                         className="report-head-mark grid shrink-0 place-items-center"
                         style={{ width: 38, height: 38, borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)' }}

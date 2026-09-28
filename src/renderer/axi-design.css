@@ -859,6 +859,15 @@
 [data-axi-accent] body .bridge-rail {
   display: flex;
   flex-direction: column;
+  /* THE PREFIX SPLIT, stated once where a reader meets it: AxiBridge's own
+     components are `bridge-*` CLASSES, but the variables they read keep the
+     `axi-*` prefix. The two namespaces answer to different owners. A class name
+     is ours, and `.axi-search` / `.axi-rail` are real components in upstream's
+     stylesheet, so reusing those names would collide with the package. A token
+     name is the language's public vocabulary - `--axi-rail-w` is read here with a
+     fallback and declared nowhere, i.e. it is the hook a caller overrides - and
+     renaming it would break that contract for no gain. Hence `.bridge-rail`
+     styled with `--axi-rail-w`, and the same everywhere else. */
   width: var(--axi-rail-w, 208px);
   flex: none;
   padding: 10px;
@@ -1993,14 +2002,20 @@
 [data-axi-accent] body .bucket-grid td[data-bucket-cell] {
   border-radius: 0;
 }
+/* The heat ramp mixes the accent into the panel colour. The second operand is
+   --bg-card rather than --axi-surface: outside glass they are the same value, but
+   under glass --axi-surface is an alpha gradient and color-mix() takes colours
+   only, so the whole declaration would be invalid at computed-value time and the
+   heat cells would lose their fill. --bg-card is flat under glass (see the token
+   block in index.css), so the mix is valid in both themes. */
 [data-axi-accent] body .bucket-grid td[data-heat='1'] {
-  background-color: color-mix(in srgb, var(--axi-accent) 18%, var(--axi-surface)) !important;
+  background-color: color-mix(in srgb, var(--axi-accent) 18%, var(--bg-card)) !important;
 }
 [data-axi-accent] body .bucket-grid td[data-heat='2'] {
-  background-color: color-mix(in srgb, var(--axi-accent) 42%, var(--axi-surface)) !important;
+  background-color: color-mix(in srgb, var(--axi-accent) 42%, var(--bg-card)) !important;
 }
 [data-axi-accent] body .bucket-grid td[data-heat='3'] {
-  background-color: color-mix(in srgb, var(--axi-accent) 70%, var(--axi-surface)) !important;
+  background-color: color-mix(in srgb, var(--axi-accent) 70%, var(--bg-card)) !important;
   color: var(--axi-accent-ink);
 }
 [data-axi-accent] body .bucket-grid td[data-heat='4'] {
@@ -2672,8 +2687,15 @@
 /* In the published report the header opens a ground page that the first panel
    is visibly raised off, so the rule is a second horizontal line saying what
    the ground/surface step already says. The desktop header has no such step
-   under it and keeps its rule. */
-body.web-report.axi-design .report-head { border-bottom: none !important; padding-bottom: 0 !important; }
+   under it and keeps its rule.
+
+   This was scoped through the old body theme class until the language became
+   unconditional and nothing added that class any more, at which point the rule
+   could never match and every published report kept the double line this comment
+   says must go. `[data-axi-accent] body.web-report` is the same shape as the rest of this
+   file - one always-present attribute for specificity - and at (0,2,1) it still
+   beats the `border-bottom-color` rule above it at (0,1,1). */
+[data-axi-accent] body.web-report .report-head { border-bottom: none !important; padding-bottom: 0 !important; }
 
 /* The single-fight report's hero. The utility bridge above already carries its
    card, its tiles and its text across; what it cannot reach is the three
