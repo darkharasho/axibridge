@@ -48,6 +48,7 @@ Five input classes the spec implies but which no task's own tests would otherwis
 - `package.json` — the dependency pin.
 - `src/shared/webThemes.ts` — doc comment on `primary` and on `LEGACY_THEME_TO_PALETTE`.
 - `src/shared/mapAccent.ts` — `MAP_ACCENT_CSS_VARS` gains `--axi-accent`.
+- `index.html`, `web/index.html`, `src/web/viewerMain.tsx` — seed `data-axi-accent` so the remap layer's scope is true from first paint.
 - `src/renderer/index.css` — upstream imports; delete the legacy layer; re-express glass floating surfaces.
 - `src/renderer/axi-design.css` — drop the `tokens.css` import, drop the 667 `body.axi-design ` prefixes, invert the accent, add the glass overrides.
 - `src/renderer/global.d.ts` — `DEFAULT_GLASS`; the two settings interfaces.
@@ -1335,11 +1336,12 @@ Load upstream, flatten the remap layer, invert the accent direction, re-express 
 - Modify: `src/renderer/index.css` (imports at the head; delete `:109-211` and the 123 glass selectors; the `html, body` background; add the glass overrides)
 - Modify: `src/renderer/axi-design.css` (drop the `tokens.css` import, drop the 667 `body.axi-design ` prefixes, invert the accent)
 - Modify: `src/renderer/app/hooks/useSettings.ts` (drop the transitional body class)
+- Modify: `index.html`, `web/index.html`, `src/web/viewerMain.tsx` (seed `data-axi-accent`)
 - Create: `src/renderer/__tests__/themeCssContract.test.ts`
 
 **Interfaces:**
 - Consumes: the upstream stylesheets from Task 1; the `bridge-*` class names from Task 3; `data-axi-accent` / `data-axi-theme` set by Task 4.
-- Produces: `--brand-primary`, `--brand-secondary`, `--brand-gradient`, `--on-brand`, `--accent-bg`, `--accent-bg-strong`, `--accent-border`, `--glow-primary`, `--glow-secondary` all resolving from `--axi-accent` at `:root`. Task 6 relies on this when it sets `--axi-accent` inline for a share link's map accent.
+- Produces: `--brand-primary`, `--brand-secondary`, `--brand-gradient`, `--on-brand`, `--accent-bg`, `--accent-bg-strong`, `--accent-border`, `--glow-primary`, `--glow-secondary` all resolving from `--axi-accent`, and the remap layer scoped as `[data-axi-accent] body`. Task 6 relies on both: it sets `--axi-accent` **and** the brand variables inline on `<body>` for a share link's map accent, because a custom property declared at `:root` computes once at `<html>` and is inherited as a value — overriding `--axi-accent` lower down does not recompute it.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1428,6 +1430,14 @@ describe('axi-design.css', () => {
         expect(css).not.toContain('body.axi-design');
     });
 
+    // [data-axi-accent] body, not :where(body) or a bare body: it is the only
+    // replacement with the same specificity (0,1,1) as body.axi-design, so none of
+    // the 667 contests this file currently wins against index.css re-resolve.
+    it('scopes through the always-present accent attribute', () => {
+        expect(css).toContain('[data-axi-accent] body');
+        expect(css).not.toContain(':where(body)');
+    });
+
     it('does not import tokens.css (axi.css carries the token block)', () => {
         expect(css).not.toContain('axi-design/tokens.css');
     });
@@ -1491,25 +1501,30 @@ Drop the `tokens.css` import (line 27) and every `body.axi-design ` prefix. Run:
 ```bash
 cd /var/home/mstephens/Documents/GitHub/axibridge
 sed -i -e "/@import '@axiapps\/axi-design\/tokens.css';/d" \
-       -e 's/^body\.axi-design\.web-report /.web-report /' \
-       -e 's/^body\.axi-design\.web-report/.web-report/' \
-       -e 's/^body\.axi-design /:where(body) /' \
-       -e 's/^body\.axi-design,/:where(body),/' \
-       -e 's/^body\.axi-design {/:where(body) {/' \
-       -e 's/body\.axi-design /:where(body) /g' \
-       -e 's/body\.axi-design/:where(body)/g' \
+       -e 's/body\.axi-design/[data-axi-accent] body/g' \
        src/renderer/axi-design.css
 ```
 
 There is no hand-copied token block left to delete alongside it: the spec cites one at `axi-design.css:29`, but that line is already the opening of the `body.axi-design` rule — the hand-copy was replaced by the `tokens.css` import in an earlier change, and the file's own header comment records it. Deleting the import is the whole job.
 
-`:where(body)` rather than a bare `body`: `:where()` contributes zero specificity, so a rule that read `body.axi-design .app-dropdown` (0,2,1) becomes (0,1,1) — the same weight it would have had as `.app-dropdown` alone, keeping the file's carefully-ordered internal precedence intact while still scoping to the document body. A bare `body .app-dropdown` would be (0,1,2) and would start beating rules in `index.css` that it does not today.
+**`[data-axi-accent] body`, and the choice matters.** The replacement has to preserve specificity *exactly*, and the obvious candidates do not:
+
+| Replacement | Specificity | Effect |
+|---|---|---|
+| `body.axi-design` (today) | (0,1,1) | — |
+| `:where(body)` | (0,0,0) | loses one class; flips every contest this file currently wins by source order against a 2-class rule in `index.css` |
+| `body` | (0,0,1) | same problem |
+| `[data-axi-accent] body` | (0,1,1) | **identical**; every relationship inside and outside the file is unchanged |
+
+`index.css` still holds rules like `body.web-report .stats-view .max-h-80` and `body:not(.web-report) .modal-pane .dense-table` that contest classes this file styles. Dropping a class from 667 selectors at once would silently re-resolve an unknown number of those contests, and no test in this repo can see it. The attribute form is also honest rather than a trick: `data-axi-accent` is exactly "the axi language is applied here", which is what `axi-design` meant.
+
+All 667 occurrences are the bare string with no compound class attached, so one global substitution is sufficient — verified with `grep -oE 'body\.axi-design[^ ,{]*' | sort -u`, which yields only `body.axi-design`.
 
 Verify:
 
 ```bash
 grep -c 'body\.axi-design' src/renderer/axi-design.css || echo "0 — clean"
-grep -c ':where(body)' src/renderer/axi-design.css
+grep -c '\[data-axi-accent\] body' src/renderer/axi-design.css
 ```
 
 Expected: `0 — clean`, then `667`.
@@ -1539,8 +1554,11 @@ with:
      Everything downstream of the accent is already remapped below, which is why
      deleting those palette blocks cost nothing: all eight of their declarations
      were being overridden here anyway.
-     Declared at :root rather than on the body, because an inline --axi-accent on
-     the body (a share link's map accent) has to be able to win. */
+     Declared at :root, with one consequence worth knowing: a custom property
+     computes where it is declared and is inherited as a value, so overriding
+     --axi-accent further down does NOT recompute this. That is exactly why
+     MAP_ACCENT_CSS_VARS carries both --axi-accent (for the token consumers) and
+     --brand-primary (for this one) rather than relying on the derivation. */
   --brand-primary: var(--axi-accent);
 ```
 
@@ -1550,8 +1568,11 @@ That declaration must sit in a `:root` rule, not in the `:where(body)` block, so
 /* The accent enters the app here. Upstream accents.css sets --axi-accent from
    [data-axi-accent] on <html>; every brand variable in AxiBridge derives from
    it, so the picker drives the whole language including upstream's own
-   components. At :root so an inline --axi-accent on <body> — which is how a
-   share link carries its map accent — overrides it by proximity. */
+   components.
+   A share link's map accent cannot ride this derivation: a custom property
+   computes at its declaration site and inherits as a value, so setting
+   --axi-accent on <body> does not recompute --brand-primary. That is why
+   MAP_ACCENT_CSS_VARS sets both. */
 :root {
   --brand-primary: var(--axi-accent);
 }
@@ -1688,6 +1709,43 @@ Upstream glass has exactly the property the deleted overrides existed for: `--ax
 [data-axi-theme="glass"] body.bulk-uploading .stats-dashboard-nav-panel {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+```
+
+- [ ] **Step 9b: Seed the attribute in both entry HTML files**
+
+`[data-axi-accent] body` is the scope for the whole remap layer, and `applyAxiTheme`
+sets that attribute from a React effect — so between first paint and mount the
+language would not apply at all, showing a flash of unstyled content. (The old
+`body.axi-design` class had the same defect; this is the cheap moment to fix it.)
+Seed the default statically so the selector is true from the first byte, and let
+the effect correct it to the user's actual accent.
+
+In `index.html`, replace:
+
+```html
+<html lang="en">
+```
+
+with:
+
+```html
+<!-- Seeded so the axi layer ([data-axi-accent] body ... in axi-design.css) applies
+     from first paint; applyAxiTheme corrects it to the saved accent on mount. -->
+<html lang="en" data-axi-accent="electric-blue">
+```
+
+Make the identical change to `web/index.html:2`.
+
+The share-link viewer needs it too, and has no HTML of ours — the Worker serves a
+bare `<body>`. In `src/web/viewerMain.tsx`, beside the two existing
+`classList.add('web-report')` calls, add:
+
+```tsx
+// The Worker's boot HTML has no <html> attributes of ours, so seed the accent
+// scope before the style tag lands rather than waiting for ReportApp's effect.
+if (!document.documentElement.hasAttribute('data-axi-accent')) {
+    document.documentElement.setAttribute('data-axi-accent', 'electric-blue');
 }
 ```
 
