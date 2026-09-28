@@ -15,6 +15,7 @@
 - `@axiapps/axi-design` pinned at `^1.13.0`. Import paths are exactly `@axiapps/axi-design/axi.css`, `@axiapps/axi-design/accents.css`, `@axiapps/axi-design/themes/glass.css`, `@axiapps/axi-design/accents.json`. `tokens.css` is NOT imported separately — `axi.css` already carries the token block in its `:root`.
 - Run vitest as `npx vitest run <file>` — nothing more. `vitest.config.ts` already pins `pool: 'forks'`, `maxWorkers: 2`, which is the memory cap this machine needs (it has 32 GB but runs heavy apps alongside dev work). Do NOT pass `--pool=forks --poolOptions.forks.maxForks=2`: vitest 4 removed `test.poolOptions`, and that flag makes the run die with `CACError: Unknown option --poolOptions` rather than capping anything.
 - `npm run validate` is `typecheck + lint` at `--max-warnings 0`. It must pass at the end of every task that touches TS/TSX.
+- **Membership in `PALETTES` is tested with `Object.prototype.hasOwnProperty.call(PALETTES, id)`, never `id in PALETTES`.** `in` walks the prototype chain, so `'constructor' in PALETTES` is `true` and a payload carrying `colorPalette: "constructor"` would pass an `in` guard unclamped. Not `Object.hasOwn`: `tsconfig.json` sets `lib: ["ES2021", …]` and `hasOwn` is ES2022, so it will not typecheck.
 - All 11 `ColorPalette` ids survive: `electric-blue refined-cyan amber-warm emerald-mint rose-pink violet-purple crimson-red slate-silver teal-ocean gold-bronze axi-gold`. `DEFAULT_PALETTE_ID` stays `electric-blue`.
 - `PALETTES` in `src/shared/webThemes.ts` stays. `LEGACY_THEME_TO_PALETTE` stays, for *settings* migration only.
 - Already-published reports get no compatibility path in the reader: `readPaletteFromReport` drops its `reportTheme.ui` and `uiTheme` branches. It keeps one fallback only — `stats.glassSurfaces` as an alias for `stats.glass`.
@@ -271,6 +272,15 @@ describe('applyAxiTheme', () => {
         expect(root.getAttribute('data-axi-accent')).toBe('electric-blue');
     });
 
+    // `in` would return true for these — every one is an Object.prototype key.
+    it.each(['constructor', 'toString', 'hasOwnProperty', 'valueOf'])(
+        'clamps the prototype key %s to the default palette',
+        (key) => {
+            applyAxiTheme(root, { accent: key, glass: false });
+            expect(root.getAttribute('data-axi-accent')).toBe('electric-blue');
+        },
+    );
+
     it('clamps a missing accent to the default palette', () => {
         applyAxiTheme(root, { accent: null, glass: false });
         expect(root.getAttribute('data-axi-accent')).toBe('electric-blue');
@@ -322,8 +332,13 @@ export function applyAxiTheme(
     root: HTMLElement,
     opts: { accent: ColorPalette | string | null | undefined; glass: boolean },
 ): void {
+    // hasOwnProperty, not `in`: `in` walks the prototype chain, so
+    // `'constructor' in PALETTES` is true and an accent of "constructor" — which a
+    // malformed settings blob or a hand-edited report.json can carry — would sail
+    // through unclamped and land in the attribute, where upstream's accents.css has
+    // no rule for it and --axi-accent silently falls back to upstream's gold.
     const accent: ColorPalette =
-        typeof opts.accent === 'string' && opts.accent in PALETTES
+        typeof opts.accent === 'string' && Object.prototype.hasOwnProperty.call(PALETTES, opts.accent)
             ? (opts.accent as ColorPalette)
             : DEFAULT_PALETTE_ID;
 
@@ -338,7 +353,7 @@ export function applyAxiTheme(
 
 Run: `npx vitest run src/shared/__tests__/applyAxiTheme.test.ts`
 
-Expected: PASS, 6 tests.
+Expected: PASS, 10 tests (6 behavioural + 4 prototype-key cases).
 
 - [ ] **Step 5: Validate**
 
@@ -1179,6 +1194,20 @@ with:
         }
 ```
 
+While you are in this block, fix the same prototype-chain guard three lines above it. Replace:
+
+```ts
+        if (settings.colorPalette && settings.colorPalette in PALETTES) {
+```
+
+with:
+
+```ts
+        // hasOwnProperty, not `in`: `in` walks the prototype chain, so a settings
+        // blob carrying colorPalette: "constructor" would be accepted as an accent id.
+        if (settings.colorPalette && Object.prototype.hasOwnProperty.call(PALETTES, settings.colorPalette)) {
+```
+
 Lines 857-859, 1030-1032 and 1084-1086 — in each of those three places, replace the three lines
 
 ```ts
@@ -1916,6 +1945,15 @@ describe('readPaletteFromReport', () => {
             .toEqual({ palette: 'electric-blue', glass: false });
     });
 
+    // report.json comes off the network; `in` would accept every Object.prototype key.
+    it.each(['constructor', 'toString', 'hasOwnProperty', 'valueOf'])(
+        'rejects the prototype key %s as a palette id',
+        (key) => {
+            expect(readPaletteFromReport({ colorPalette: key }))
+                .toEqual({ palette: 'electric-blue', glass: false });
+        },
+    );
+
     it('falls back to electric-blue for empty, null and undefined stats', () => {
         expect(readPaletteFromReport({})).toEqual({ palette: 'electric-blue', glass: false });
         expect(readPaletteFromReport(null)).toEqual({ palette: 'electric-blue', glass: false });
@@ -1954,7 +1992,10 @@ import { PALETTES, type ColorPalette, DEFAULT_PALETTE_ID } from '../shared/webTh
  * not pick up the new look until it is republished.
  */
 export function readPaletteFromReport(stats: any): { palette: ColorPalette; glass: boolean } {
-    if (stats?.colorPalette && stats.colorPalette in PALETTES) {
+    // hasOwnProperty, not `in`: this reads a JSON file off the network, and `in`
+    // walks the prototype chain — `colorPalette: "constructor"` would pass an `in`
+    // guard and be handed to the applier as if it were a real accent id.
+    if (stats?.colorPalette && Object.prototype.hasOwnProperty.call(PALETTES, stats.colorPalette)) {
         return {
             palette: stats.colorPalette,
             glass: stats.glass ?? stats.glassSurfaces ?? false,
@@ -1968,7 +2009,7 @@ export function readPaletteFromReport(stats: any): { palette: ColorPalette; glas
 
 Run: `npx vitest run src/web/__tests__/reportPalette.test.ts`
 
-Expected: PASS, 9 tests.
+Expected: PASS, 13 tests (9 behavioural + 4 prototype-key cases).
 
 - [ ] **Step 5: Write the failing share-theme test**
 
