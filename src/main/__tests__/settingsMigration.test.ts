@@ -27,11 +27,12 @@ describe('LEGACY_THEME_TO_PALETTE', () => {
 });
 
 describe('migrateGlassSetting', () => {
-    it('maps a legacy uiTheme to a palette and the glass boolean', () => {
+    it('maps a legacy uiTheme to a palette, leaving glass off', () => {
         const store = makeStore({ uiTheme: 'dark-glass' });
         migrateGlassSetting(store);
         expect(store.data.colorPalette).toBe('electric-blue');
-        expect(store.data.glass).toBe(true);
+        // The palette carries over; the legacy theme's glassiness does not.
+        expect(store.data.glass).toBe(false);
         expect(store.data.uiTheme).toBeUndefined();
     });
 
@@ -49,22 +50,23 @@ describe('migrateGlassSetting', () => {
         }
     });
 
-    // The reason the collapse cannot sit inside the `if (legacyUiTheme)` guard it
-    // used to share: most users have no uiTheme left but do have the three
-    // booleans, so a guarded migration would silently skip every one of them.
-    it('collapses the booleans with no uiTheme present', () => {
+    // Glass is opt-in. The legacy booleans are retired, not carried forward:
+    // deriving `glass` from them made glass the effective default for everyone
+    // who had ever switched the old theme on, which is the opposite of the one
+    // toggle this feature is supposed to be.
+    it('retires the legacy booleans without enabling glass', () => {
         const store = makeStore({ glassSurfaces: true, glassmorphic: false, axiDesign: true });
         migrateGlassSetting(store);
-        expect(store.data.glass).toBe(true);
+        expect(store.data.glass).toBe(false);
         expect(store.data.glassSurfaces).toBeUndefined();
         expect(store.data.glassmorphic).toBeUndefined();
         expect(store.data.axiDesign).toBeUndefined();
     });
 
-    it('folds glassmorphic alone into glass', () => {
+    it('does not fold glassmorphic into glass', () => {
         const store = makeStore({ glassmorphic: true });
         migrateGlassSetting(store);
-        expect(store.data.glass).toBe(true);
+        expect(store.data.glass).toBe(false);
     });
 
     it('leaves glass off when neither glass boolean was set', () => {
@@ -73,11 +75,10 @@ describe('migrateGlassSetting', () => {
         expect(store.data.glass).toBe(false);
     });
 
-    // Review Focus 1: glassSurfaces/glassmorphic are deleted by the first run, so
-    // re-deriving on every launch would read `undefined || undefined` and switch a
-    // user's glass back off for good.
-    it('does not clobber an existing glass value on a second launch', () => {
-        const store = makeStore({ glassSurfaces: true });
+    // The `!store.has('glass')` guard still matters: once a user opts in from
+    // Settings, no later launch may quietly switch them back off.
+    it('does not clobber a user who opted in, on a second launch', () => {
+        const store = makeStore({ glass: true });
         migrateGlassSetting(store);
         expect(store.data.glass).toBe(true);
         migrateGlassSetting(store);
