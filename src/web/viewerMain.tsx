@@ -26,6 +26,12 @@ document.head.appendChild(styleTag);
 document.documentElement.classList.add('web-report');
 document.body.classList.add('web-report');
 
+// The Worker's boot HTML has no <html> attributes of ours, so seed the accent
+// scope before the style tag lands rather than waiting for ReportApp's effect.
+if (!document.documentElement.hasAttribute('data-axi-accent')) {
+    document.documentElement.setAttribute('data-axi-accent', 'electric-blue');
+}
+
 /**
  * Where this bundle's sibling static assets (logos, class icons, `logo.json`)
  * live.
