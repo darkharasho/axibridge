@@ -1911,9 +1911,19 @@ body.web-report {
 /* The glass light is painted by upstream as body's background-image, fixed. The
    app's own opaque layers sit on top of it, so under glass they step back to
    transparent and let it through. Not under the flat theme, where --axi-ground
-   is the page and these layers are what draw it. */
+   is the page and these layers are what draw it.
+
+   .dashboard-rail belongs in this list and was missing from it: AppLayout
+   paints its fill inline and axi-design.css overrides that with `background:
+   var(--axi-ground) !important`, which under glass is a flat near-black column
+   300px wide sitting on top of the ground light. The aurora survived only in
+   the gap the window frame leaves at the left edge, and every card in the rail
+   was reading against black instead of against the page. This selector is
+   (0,3,0) to axi-design's (0,2,1), so with !important on both it wins - and
+   the !important is still needed to clear the inline style underneath. */
 [data-axi-accent][data-axi-theme="glass"] #root,
-[data-axi-accent][data-axi-theme="glass"] .app-content {
+[data-axi-accent][data-axi-theme="glass"] .app-content,
+[data-axi-accent][data-axi-theme="glass"] .dashboard-rail {
   background: transparent !important;
 }
 
