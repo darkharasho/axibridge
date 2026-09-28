@@ -136,4 +136,23 @@ describe('RotationSection', () => {
         expect(box.textContent).not.toContain('Symbol of Blades');
         expect(box.querySelector('img')).toBeTruthy();
     });
+
+    it('renders each cast as a button that reports its selection state', () => {
+        const { container } = render(
+            <RotationSection fights={[fight]} recorded selectedFightId="f1" />);
+        const boxes = Array.from(container.querySelectorAll('[data-cast]')) as HTMLElement[];
+        expect(boxes.every(b => b.tagName === 'BUTTON')).toBe(true);
+        expect(boxes[0].getAttribute('aria-pressed')).toBe('false');
+        act(() => { boxes[0].click(); });
+        expect((container.querySelectorAll('[data-cast]')[0] as HTMLElement)
+            .getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('keeps the cast data attributes after the boxes become buttons', () => {
+        const { container } = render(
+            <RotationSection fights={[fight]} recorded selectedFightId="f1" />);
+        expect(container.querySelectorAll('[data-cast]')).toHaveLength(3);
+        expect(container.querySelectorAll('[data-interrupted="true"]')).toHaveLength(1);
+        expect(container.querySelector('[data-prelog="true"]')).toBeTruthy();
+    });
 });

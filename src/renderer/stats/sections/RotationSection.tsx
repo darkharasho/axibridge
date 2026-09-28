@@ -3,7 +3,7 @@ import { ListOrdered, Maximize2, X } from 'lucide-react';
 import { FightPicker } from './BucketGridTable';
 import { renderProfessionIcon } from '../ui/StatsViewShared';
 import { StatsSharedContext } from '../StatsViewContext';
-import type { RotationFightData } from '../computeRotationTimeline';
+import { decodeRotation, type RotationFightData } from '../computeRotationTimeline';
 import { RotationTrack } from './RotationTrack';
 
 /** Matches the taxonomy id in `statsTaxonomy.ts`, which the expand state keys on. */
@@ -70,6 +70,7 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
     const [wrapMs, setWrapMs] = useState<number>(15000);
     const [selectedPlayerKey, setSelectedPlayerKey] = useState<string | null>(null);
     const [playerFilter, setPlayerFilter] = useState('');
+    const [selectedCastIndex, setSelectedCastIndex] = useState<number | null>(null);
 
     const resolvedFightId = internalFightId;
     // `fights` is only known to be an array past the `Array.isArray` guard
@@ -102,6 +103,13 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
         }
         return sortedPlayers[0] || null;
     }, [sortedPlayers, selectedPlayerKey]);
+
+    // Memoised on `[fight, selectedPlayer]` and nothing else: the row width
+    // changes how the casts are laid out, never what they are.
+    const casts = useMemo(
+        () => (fight && selectedPlayer ? decodeRotation(fight, selectedPlayer) : []),
+        [fight, selectedPlayer],
+    );
 
     // An older `report.json` has no `rotationTimelineDrilldown` at all, and
     // a half-rendered shell is worse than nothing.
@@ -200,7 +208,14 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
                                 <span>Interrupted: {selectedPlayer.interrupted.length}</span>
                                 <span>Distinct skills: {distinctSkills}</span>
                             </div>
-                            <RotationTrack fight={fight} player={selectedPlayer} wrapMs={wrapMs} />
+                            <RotationTrack
+                                fight={fight}
+                                wrapMs={wrapMs}
+                                casts={casts}
+                                selectedIndex={selectedCastIndex}
+                                onSelectCast={(index) => setSelectedCastIndex(
+                                    (prev) => (prev === index ? null : index))}
+                            />
                         </>
                     ) : null}
                 </div>

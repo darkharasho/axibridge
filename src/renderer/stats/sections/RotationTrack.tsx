@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { decodeRotation, type RotationFightData, type RotationPlayerData } from '../computeRotationTimeline';
+import type { DecodedCast, RotationFightData } from '../computeRotationTimeline';
 
 /**
  * `m:ss.mmm`, with a leading `-` for a cast that began before the log did
@@ -35,13 +35,19 @@ const NAME_MIN_PX = 78;
 
 export interface RotationTrackProps {
     fight: RotationFightData;
-    player: RotationPlayerData;
     /** Row width in ms: 10000 | 15000 | 30000 | 60000. */
     wrapMs: number;
+    /** Decoded once by the section so the detail sheet sees the same list. */
+    casts: DecodedCast[];
+    /** Index into `casts`, or null when nothing is selected. */
+    selectedIndex: number | null;
+    onSelectCast: (index: number) => void;
 }
 
 interface CastBox {
     key: string;
+    /** Index into the section's `casts`, which `key` does not preserve as a number. */
+    castIndex: number;
     name: string;
     /** A URL string once icon-index expansion has run; a bare number if the
      *  report trimmed `iconIndex` out from under it. Only the string form is
@@ -61,8 +67,9 @@ interface CastBox {
  * touches — never the whole box duplicated into both, never dropped from
  * either.
  */
-const buildRows = (fight: RotationFightData, player: RotationPlayerData, wrapMs: number): CastBox[][] => {
-    const casts = decodeRotation(fight, player);
+const buildRows = (
+    fight: RotationFightData, casts: DecodedCast[], wrapMs: number,
+): CastBox[][] => {
     const rowCount = Math.max(1, Math.ceil(fight.durationMs / wrapMs));
     const rows: CastBox[][] = Array.from({ length: rowCount }, () => []);
 
@@ -85,6 +92,7 @@ const buildRows = (fight: RotationFightData, player: RotationPlayerData, wrapMs:
             const widthPct = (widthMs / wrapMs) * 100;
             rows[row].push({
                 key: `${castIndex}-${row}`,
+                castIndex,
                 name: cast.name,
                 icon: cast.icon,
                 duration: cast.duration,
@@ -141,8 +149,10 @@ const RotationLegend: React.FC = () => (
     </div>
 );
 
-export const RotationTrack: React.FC<RotationTrackProps> = ({ fight, player, wrapMs }) => {
-    const rows = useMemo(() => buildRows(fight, player, wrapMs), [fight, player, wrapMs]);
+export const RotationTrack: React.FC<RotationTrackProps> = ({
+    fight, wrapMs, casts, selectedIndex, onSelectCast,
+}) => {
+    const rows = useMemo(() => buildRows(fight, casts, wrapMs), [fight, casts, wrapMs]);
 
     // Rows are all the same width, so measuring the first one measures them
     // all. `measure()` runs directly here rather than waiting on `observe()`:
@@ -182,20 +192,27 @@ export const RotationTrack: React.FC<RotationTrackProps> = ({ fight, player, wra
                         // An icon with no name is always correct; a name clipped to
                         // three characters is not.
                         const showName = trackPx > 0 && (box.widthPct / 100) * trackPx >= NAME_MIN_PX;
+                        const selected = selectedIndex === box.castIndex;
                         return (
-                            <div
+                            <button
                                 key={box.key}
+                                type="button"
+                                onClick={() => onSelectCast(box.castIndex)}
+                                aria-pressed={selected}
+                                aria-label={`${box.name}, cast at ${mmssMillis(box.castTime)}, ${box.duration} milliseconds${box.interrupted ? ', interrupted' : ''}`}
                                 data-cast=""
                                 data-interrupted={box.interrupted ? 'true' : undefined}
                                 data-prelog={box.prelog ? 'true' : undefined}
-                                className={`absolute top-[3px] bottom-[3px] flex items-center gap-1 overflow-hidden px-1 text-[11px] leading-none ${showName ? 'justify-start' : 'justify-center'}`}
+                                className={`absolute top-[3px] bottom-[3px] flex items-center gap-1 overflow-hidden px-1 text-[11px] leading-none appearance-none text-left ${showName ? 'justify-start' : 'justify-center'}`}
                                 title={`${box.name} · ${mmssMillis(box.castTime)} · ${box.duration}ms`}
                                 style={{
                                     left: `${box.leftPct}%`,
                                     width: `${box.widthPct}%`,
                                     minWidth: `${MIN_BOX_PX}px`,
-                                    background: 'var(--bg-hover)',
+                                    background: selected ? 'var(--bg-card-inner)' : 'var(--bg-hover)',
                                     border: boxBorder(box),
+                                    outline: selected ? '2px solid var(--brand-primary)' : undefined,
+                                    outlineOffset: selected ? '-1px' : undefined,
                                     borderRadius: 'var(--radius-md)',
                                     color: 'var(--text-primary)',
                                 }}
@@ -209,7 +226,7 @@ export const RotationTrack: React.FC<RotationTrackProps> = ({ fight, player, wra
                                     <img src={iconSrc} alt="" className="h-5 w-5 object-contain shrink-0" />
                                 )}
                                 {showName && <span className="truncate min-w-0">{box.name}</span>}
-                            </div>
+                            </button>
                         );
                     })}
                 </div>
