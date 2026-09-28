@@ -835,10 +835,10 @@ body.axi-design [data-nav-tab][data-on]:hover {
    and the strip keeps carrying the other four. It is a panel like any other
    panel on the page - the same border weight and the same offset block - and
    nothing inside it is outlined except the item that is on. */
-body.axi-design .axi-rail {
+body.axi-design .bridge-rail {
   display: flex;
   flex-direction: column;
-  width: var(--axi-rail-w, 208px);
+  width: var(--bridge-rail-w, 208px);
   flex: none;
   padding: 10px;
   /* The offset block falls below the rail, so end short of the row's floor to
@@ -2043,13 +2043,13 @@ body.axi-design .stats-view .bucket-grid tbody tr:hover > .bucket-grid__pin {
    The gold rectangle around the whole top row was the global focus ring
    landing on an input that fills the row. An input is a well, so the focus
    goes on the well's own edge instead of a ring around the bar it sits in. */
-body.axi-design .axi-search-panel {
+body.axi-design .bridge-search-panel {
   background: var(--axi-surface) !important;
   border: var(--axi-border-panel) solid var(--axi-ink-line) !important;
   border-radius: var(--axi-radius) !important;
   box-shadow: var(--axi-offset-panel) var(--axi-offset-panel) 0 var(--axi-ink-line) !important;
 }
-body.axi-design .axi-search-bar {
+body.axi-design .bridge-search-bar {
   background: var(--axi-surface-raised);
   border-bottom: var(--axi-border-control) solid var(--axi-ink-line) !important;
   padding: 8px 10px;
@@ -2057,27 +2057,27 @@ body.axi-design .axi-search-bar {
 /* The field is the whole well, magnifier included, the way .axi-search draws
    it on the site: the glyph is inside the outline and takes the accent, so the
    bar is one object with a mark in it rather than an icon next to a box. */
-body.axi-design .axi-search-field {
+body.axi-design .bridge-search-field {
   background: var(--axi-ground);
   border: var(--axi-border-control) solid var(--axi-well-line);
   border-radius: var(--axi-radius-sm);
 }
-body.axi-design .axi-search-icon { color: var(--axi-accent) !important; }
-body.axi-design .axi-search-bar input {
+body.axi-design .bridge-search-icon { color: var(--axi-accent) !important; }
+body.axi-design .bridge-search-bar input {
   background: transparent;
   border: 0;
   padding: 6px 8px 6px 32px;
   color: var(--axi-text);
 }
-body.axi-design .axi-search-bar input::placeholder { color: var(--axi-text-faint); }
+body.axi-design .bridge-search-bar input::placeholder { color: var(--axi-text-faint); }
 /* No accent on focus here. The palette exists only to be typed into and opens
    with the caret already in this field, so an always-on gold rectangle is not
    telling you anything - and it would be arguing with the gold on the row the
    cursor is sitting on, which is the one mark that means something. */
-body.axi-design .axi-search-bar input:focus-visible { outline: none; }
+body.axi-design .bridge-search-bar input:focus-visible { outline: none; }
 /* The Esc hint is a key, so it is drawn as one: a small control with the ink
    edge, not a hairline box. */
-body.axi-design .axi-search-bar kbd {
+body.axi-design .bridge-search-bar kbd {
   background: var(--axi-surface);
   border: var(--axi-border-control) solid var(--axi-ink-line) !important;
   border-radius: var(--axi-radius-sm);
@@ -2085,7 +2085,7 @@ body.axi-design .axi-search-bar kbd {
   padding: 2px 5px;
   font: 700 10px/1 var(--axi-sans);
 }
-/* The trigger is the same well as .axi-search-field, so the button in the
+/* The trigger is the same well as .bridge-search-field, so the button in the
    header and the field it opens are visibly one object. It stands for
    somewhere to type rather than something to press, so it keeps the ground
    fill - but it now spans its whole column instead of a 186px sliver, and at
@@ -2099,7 +2099,7 @@ body.axi-design .axi-search-bar kbd {
    meant to look at until you want it. The glyph alone says the same thing -
    this is where you search - at a fraction of the volume, and the well keeps
    its shape from the ink edge rather than from a cap. */
-body.axi-design .axi-search-trigger {
+body.axi-design .bridge-search-trigger {
   background: var(--axi-ground);
   border: var(--axi-border-control) solid var(--axi-ink-line);
   border-radius: var(--axi-radius-sm);
@@ -2110,22 +2110,22 @@ body.axi-design .axi-search-trigger {
   font-weight: 600;
   transition: transform .1s, box-shadow .1s, color .1s;
 }
-body.axi-design .axi-search-trigger__mark {
+body.axi-design .bridge-search-trigger__mark {
   margin-right: 10px;
   padding: 0 8px 0 10px;
 }
 /* !important because StatsHeader paints the glyph --brand-primary inline. */
-body.axi-design .axi-search-trigger__mark svg { color: var(--axi-accent) !important; }
+body.axi-design .bridge-search-trigger__mark svg { color: var(--axi-accent) !important; }
 /* It lifts like every other control here. The well is what you press to get
    the panel, so it should answer the cursor the way a control does - the
    resting form already says field, and that is the part that has to carry. */
-body.axi-design .axi-search-trigger:hover {
+body.axi-design .bridge-search-trigger:hover {
   color: var(--axi-text);
   box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
   transform: translate(-2px, -2px);
 }
 /* Same key form as the panel's Esc, scaled to the smaller row. */
-body.axi-design .axi-search-trigger kbd {
+body.axi-design .bridge-search-trigger kbd {
   background: var(--axi-surface);
   border: 2px solid var(--axi-ink-line);
   border-radius: 3px;
@@ -2158,19 +2158,19 @@ body.axi-design [data-search-pill][aria-pressed="true"]:hover {
   box-shadow: var(--axi-offset-control) var(--axi-offset-control) 0 var(--axi-ink-line);
 }
 body.axi-design [data-search-count] { color: var(--axi-text-faint) !important; }
-body.axi-design .axi-search-results { scrollbar-width: none; }
-body.axi-design .axi-search-results::-webkit-scrollbar { width: 0; height: 0; }
+body.axi-design .bridge-search-results { scrollbar-width: none; }
+body.axi-design .bridge-search-results::-webkit-scrollbar { width: 0; height: 0; }
 /* Groups are parted by a rule, the way rows are everywhere else, rather than
    by the gap the padding was leaving. */
-body.axi-design .axi-search-group {
+body.axi-design .bridge-search-group {
   color: var(--axi-text-faint);
   padding: 8px 10px 4px;
 }
-body.axi-design .axi-search-results > div + div .axi-search-group {
+body.axi-design .bridge-search-results > div + div .bridge-search-group {
   border-top: 1px solid var(--axi-rule);
   margin-top: 4px;
 }
-body.axi-design .axi-search-empty { color: var(--axi-text-faint); }
+body.axi-design .bridge-search-empty { color: var(--axi-text-faint); }
 body.axi-design [data-search-row] {
   color: var(--axi-text-dim) !important;
   padding: 7px 10px;
@@ -2423,7 +2423,7 @@ body.axi-design .mobile-action-bar > div > button svg { color: var(--axi-text-fa
 
    The cell march is what the log picker uses; the snap is here as the other
    option for a spot too narrow for four cells. */
-body.axi-design .axi-step-spinner {
+body.axi-design .bridge-step-spinner {
   /* Off cells sit on the ground, and --border-default is the ink line here -
      black on black. The rule is the line a well gets, so it is the one that
      reads. */
@@ -2432,8 +2432,8 @@ body.axi-design .axi-step-spinner {
   border: var(--axi-border-hairline) solid var(--axi-ink-line);
   border-radius: 2px;
 }
-body.axi-design .axi-step-spinner > i,
-body.axi-design .axi-step-spinner::after { border-radius: 0; }
+body.axi-design .bridge-step-spinner > i,
+body.axi-design .bridge-step-spinner::after { border-radius: 0; }
 
 body.axi-design .axi-snap-spinner {
   border: var(--axi-border-hairline) solid var(--axi-ink-line);

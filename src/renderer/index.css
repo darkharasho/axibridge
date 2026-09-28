@@ -250,7 +250,7 @@ body.glass-surfaces .stats-dashboard-nav-panel {
 /* Search palette must be fully opaque under glass: it floats over arbitrary
    content, and backdrop-filter blur is unavailable on Linux, so any alpha
    reads as plain see-through. Solid, no blur. */
-body.glass-surfaces .axi-search-panel {
+body.glass-surfaces .bridge-search-panel {
   background: rgb(15, 18, 25) !important;
 }
 
@@ -1560,7 +1560,7 @@ body.web-report #top-players .mvp-gold-icon-badge {
    progress, and what is actually happening is N files going past one at a
    time. The axi language redraws both; see axi-design.css. */
 
-.axi-step-spinner {
+.bridge-step-spinner {
   --step-off: var(--border-default);
   /* The lit cell is the one piece of colour the strip around it is allowed,
      so a caller that means something other than "the app is working" - a
@@ -1579,7 +1579,7 @@ body.web-report #top-players .mvp-gold-icon-badge {
   border: 1px solid var(--border-subtle);
 }
 
-.axi-step-spinner > i {
+.bridge-step-spinner > i {
   display: block;
   width: 3px;
   height: 10px;
@@ -1593,7 +1593,7 @@ body.web-report #top-players .mvp-gold-icon-badge {
    busy while this is on screen - it would freeze on its first frame and sit
    there looking broken. transform is composited, so it keeps marching
    through a blocked render. */
-.axi-step-spinner::after {
+.bridge-step-spinner::after {
   content: '';
   position: absolute;
   left: 2px;
@@ -1809,7 +1809,7 @@ body.glass-surfaces .stats-dashboard-nav-panel {
   }
 
   /* The march rests in the first cell rather than stopping wherever it was. */
-  .axi-step-spinner::after {
+  .bridge-step-spinner::after {
     animation: none !important;
   }
 
@@ -2175,18 +2175,18 @@ body.web-report {
    sidebar — wear this, so opening the palette looks like the button growing
    rather than a different object appearing. Hover brightens the outline
    instead of filling, because a field does not light up when you point at it. */
-.axi-search-trigger {
+.bridge-search-trigger {
     background: var(--bg-base);
     border: var(--panel-border-w, 1px) solid var(--border-default);
     color: var(--text-secondary);
 }
 
-.axi-search-trigger:hover {
+.bridge-search-trigger:hover {
     border-color: var(--border-hover, rgba(255, 255, 255, 0.18));
     color: var(--text-primary);
 }
 
-.axi-search-trigger kbd {
+.bridge-search-trigger kbd {
     border: 1px solid var(--border-subtle);
     color: var(--text-secondary);
 }

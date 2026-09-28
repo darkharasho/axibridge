@@ -52,7 +52,7 @@ describe('SearchPalette', () => {
     });
 
     it('keeps the flash keyframes style in the document after a selection closes the palette', () => {
-        // Regression test for a real bug: the <style> tag defining .axi-search-flash
+        // Regression test for a real bug: the <style> tag defining .bridge-search-flash
         // used to be rendered only inside the open-dialog JSX, so it unmounted the
         // instant onClose() fired — before useSearchJump's requestAnimationFrame-
         // scheduled flash could ever apply, making the highlight a silent no-op on
@@ -119,11 +119,15 @@ describe('SearchPalette', () => {
         expect(count()).toBe('1 match');
     });
 
-    it('carries the axi-search-panel class the glass theme targets for its opaque override', () => {
-        // index.css: `body.glass-surfaces .axi-search-panel { background: rgb(15,18,25) !important }`
-        // Glass surfaces are translucent and backdrop blur is unavailable on Linux,
-        // so without this hook the palette renders see-through over report content.
+    it('carries the bridge-search-panel class the glass theme targets for its opaque override', () => {
+        // The search palette floats over scrolling content, and blur is a no-op on
+        // Linux, so it needs an opaque fill of its own under glass. That override
+        // is keyed on this class:
+        //   index.css: `[data-axi-theme="glass"] .bridge-search-panel { … }`
+        // `bridge-` rather than `axi-`: upstream @axiapps/axi-design owns
+        // `.axi-search` and `.axi-search__icon`, and this is not one of those.
         const { container } = render(<SearchPalette open onClose={() => {}} index={INDEX} onSelect={() => {}} />);
-        expect(container.querySelector('.axi-search-panel')).toBeTruthy();
+        expect(container.querySelector('.bridge-search-panel')).toBeTruthy();
+        expect(container.querySelector('.axi-search-panel')).toBeNull();
     });
 });

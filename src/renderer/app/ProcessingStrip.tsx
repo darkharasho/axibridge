@@ -30,7 +30,7 @@ export function ProcessingStrip({ tone = 'busy', children, className = '' }: {
             {/* Counts in beats rather than sweeping, and marches on the
                 compositor - which matters most here, because the thread this
                 is reporting on is the one that would otherwise freeze it. */}
-            <span className="axi-step-spinner" aria-hidden="true"><i /><i /><i /><i /></span>
+            <span className="bridge-step-spinner" aria-hidden="true"><i /><i /><i /><i /></span>
             <span>{children}</span>
         </div>
     );
