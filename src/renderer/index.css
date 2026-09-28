@@ -3,6 +3,16 @@
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
 
+/* The design language, after Tailwind's preflight so its base reset wins.
+   axi.css carries the token block in its own :root as well as the 46 component
+   families, which is why tokens.css is not imported separately any more.
+   accents.css must follow axi.css: both land on <html> with equal specificity,
+   so source order is the only thing that decides which one sets --axi-accent.
+   The components are loaded but not yet adopted — that is sub-projects 2-5. */
+@import '@axiapps/axi-design/axi.css';
+@import '@axiapps/axi-design/accents.css';
+@import '@axiapps/axi-design/themes/glass.css';
+
 :root {
   /* Electric Blue palette (default) */
   --brand-primary: #3b82f6;
@@ -105,475 +115,14 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Palette overrides */
-body.palette-refined-cyan {
-  --brand-primary: #5eadd5;
-  --brand-secondary: #7b9fdb;
-  --brand-gradient: linear-gradient(135deg, #5eadd5, #7b9fdb);
-  --accent-bg: rgba(94, 173, 213, 0.10);
-  --accent-bg-strong: rgba(94, 173, 213, 0.18);
-  --accent-border: rgba(94, 173, 213, 0.35);
-  --glow-primary: rgba(94, 173, 213, 0.35);
-  --glow-secondary: rgba(123, 159, 219, 0.35);
-}
-
-body.palette-amber-warm {
-  --brand-primary: #f59e0b;
-  --brand-secondary: #e67e22;
-  --brand-gradient: linear-gradient(135deg, #f59e0b, #e67e22);
-  --accent-bg: rgba(245, 158, 11, 0.10);
-  --accent-bg-strong: rgba(245, 158, 11, 0.18);
-  --accent-border: rgba(245, 158, 11, 0.35);
-  --glow-primary: rgba(245, 158, 11, 0.35);
-  --glow-secondary: rgba(230, 126, 34, 0.35);
-}
-
-body.palette-emerald-mint {
-  --brand-primary: #34d399;
-  --brand-secondary: #2dd4bf;
-  --brand-gradient: linear-gradient(135deg, #34d399, #2dd4bf);
-  --accent-bg: rgba(52, 211, 153, 0.10);
-  --accent-bg-strong: rgba(52, 211, 153, 0.18);
-  --accent-border: rgba(52, 211, 153, 0.35);
-  --glow-primary: rgba(52, 211, 153, 0.35);
-  --glow-secondary: rgba(45, 212, 191, 0.35);
-}
-
-body.palette-rose-pink {
-  --brand-primary: #f43f5e;
-  --brand-secondary: #ec4899;
-  --brand-gradient: linear-gradient(135deg, #f43f5e, #ec4899);
-  --accent-bg: rgba(244, 63, 94, 0.10);
-  --accent-bg-strong: rgba(244, 63, 94, 0.18);
-  --accent-border: rgba(244, 63, 94, 0.35);
-  --glow-primary: rgba(244, 63, 94, 0.35);
-  --glow-secondary: rgba(236, 72, 153, 0.35);
-}
-
-body.palette-violet-purple {
-  --brand-primary: #8b5cf6;
-  --brand-secondary: #a855f7;
-  --brand-gradient: linear-gradient(135deg, #8b5cf6, #a855f7);
-  --accent-bg: rgba(139, 92, 246, 0.10);
-  --accent-bg-strong: rgba(139, 92, 246, 0.18);
-  --accent-border: rgba(139, 92, 246, 0.35);
-  --glow-primary: rgba(139, 92, 246, 0.35);
-  --glow-secondary: rgba(168, 85, 247, 0.35);
-}
-
-body.palette-crimson-red {
-  --brand-primary: #ef4444;
-  --brand-secondary: #f97316;
-  --brand-gradient: linear-gradient(135deg, #ef4444, #f97316);
-  --accent-bg: rgba(239, 68, 68, 0.10);
-  --accent-bg-strong: rgba(239, 68, 68, 0.18);
-  --accent-border: rgba(239, 68, 68, 0.35);
-  --glow-primary: rgba(239, 68, 68, 0.35);
-  --glow-secondary: rgba(249, 115, 22, 0.35);
-}
-
-body.palette-slate-silver {
-  --brand-primary: #94a3b8;
-  --brand-secondary: #64748b;
-  --brand-gradient: linear-gradient(135deg, #94a3b8, #64748b);
-  --accent-bg: rgba(148, 163, 184, 0.10);
-  --accent-bg-strong: rgba(148, 163, 184, 0.18);
-  --accent-border: rgba(148, 163, 184, 0.35);
-  --glow-primary: rgba(148, 163, 184, 0.35);
-  --glow-secondary: rgba(100, 116, 139, 0.35);
-}
-
-body.palette-teal-ocean {
-  --brand-primary: #14b8a6;
-  --brand-secondary: #0891b2;
-  --brand-gradient: linear-gradient(135deg, #14b8a6, #0891b2);
-  --accent-bg: rgba(20, 184, 166, 0.10);
-  --accent-bg-strong: rgba(20, 184, 166, 0.18);
-  --accent-border: rgba(20, 184, 166, 0.35);
-  --glow-primary: rgba(20, 184, 166, 0.35);
-  --glow-secondary: rgba(8, 145, 178, 0.35);
-}
-
-/* The axi language's own accent, offered as a palette so it stays reachable.
-   Before this it was hardcoded inside axi-design.css, which is what stopped
-   the picker from reaching the language at all. */
-body.palette-axi-gold {
-  --brand-primary: #ffc53d;
-  --brand-secondary: #ffa41b;
-  --brand-gradient: linear-gradient(135deg, #ffc53d, #ffa41b);
-  --accent-bg: rgba(255, 197, 61, 0.10);
-  --accent-bg-strong: rgba(255, 197, 61, 0.18);
-  --accent-border: rgba(255, 197, 61, 0.35);
-  --glow-primary: rgba(255, 197, 61, 0.35);
-  --glow-secondary: rgba(255, 164, 27, 0.35);
-}
-
-body.palette-gold-bronze {
-  --brand-primary: #d4a017;
-  --brand-secondary: #b8860b;
-  --brand-gradient: linear-gradient(135deg, #d4a017, #b8860b);
-  --accent-bg: rgba(212, 160, 23, 0.10);
-  --accent-bg-strong: rgba(212, 160, 23, 0.18);
-  --accent-border: rgba(212, 160, 23, 0.35);
-  --glow-primary: rgba(212, 160, 23, 0.35);
-  --glow-secondary: rgba(184, 134, 11, 0.35);
-}
-
-/* Glass surface mode */
-body.glass-surfaces .stats-view,
-body.glass-surfaces .app-shell,
-body.glass-surfaces.web-report {
-  --bg-card: rgba(255, 255, 255, 0.035);
-}
-
-body.glass-surfaces .stats-view,
-body.glass-surfaces .app-shell,
-body.glass-surfaces.web-report {
-  --bg-card-inner: rgba(255, 255, 255, 0.05);
-  --bg-input: rgba(255, 255, 255, 0.04);
-  /* Glass surfaces are translucent, so a low-alpha hover tint reads as nothing.
-     Use a solid slate fill so hover states stay clearly visible under glass. */
-  --bg-hover: rgba(148, 163, 184, 0.45);
-}
-
-body.glass-surfaces .stats-view [data-surface="card"],
-body.glass-surfaces .app-shell [data-surface="card"],
-body.glass-surfaces.web-report [data-surface="card"] {
-  backdrop-filter: blur(12px);
-}
-
-body.glass-surfaces .stats-dashboard-nav-panel {
-  background: rgba(15, 18, 25, 0.85) !important;
-  backdrop-filter: blur(16px);
-}
-
-/* Search palette must be fully opaque under glass: it floats over arbitrary
-   content, and backdrop-filter blur is unavailable on Linux, so any alpha
-   reads as plain see-through. Solid, no blur. */
-body.glass-surfaces .bridge-search-panel {
-  background: rgb(15, 18, 25) !important;
-}
-
-body.glass-surfaces .app-modal-card {
-  background: rgba(15, 18, 25, 0.92) !important;
-  backdrop-filter: blur(20px);
-}
-
-/* Dropdowns and tooltips in glass mode — near-solid so content beneath doesn't bleed through */
-body.glass-surfaces .app-dropdown {
-  background: rgba(15, 18, 25, 0.97) !important;
-  backdrop-filter: blur(12px) !important;
-}
-
 /* Sticky action bars (report-history bulk delete) — cards scroll underneath,
    so the bar needs an opaque fill of its own. Same rule as .app-dropdown: a
    surface with content moving behind it never inherits a translucent glass
    background, because blur is a no-op on Linux and alpha alone reads as
-   see-through. */
+   see-through. This is the flat theme's fill; the glass theme's is in the
+   FLOATING SURFACES block at the foot of this file. */
 .app-sticky-bar {
   background: var(--bg-card);
-}
-
-body.glass-surfaces .app-sticky-bar,
-body.glassmorphic .app-sticky-bar {
-  background: rgba(15, 18, 25, 0.97) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-body.bulk-uploading.glass-surfaces .app-sticky-bar,
-body.bulk-uploading.glassmorphic .app-sticky-bar {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* Settings sidebar in glass mode */
-body.glass-surfaces .settings-view aside > div {
-  backdrop-filter: blur(12px);
-}
-
-/* Stats group containers in glass mode */
-body.glass-surfaces .stats-view .stats-group-container {
-  backdrop-filter: blur(10px);
-}
-
-/* Web report glass mode */
-body.glass-surfaces.web-report .glass-card {
-  backdrop-filter: blur(16px);
-  background: rgba(255, 255, 255, 0.035) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-body.glass-surfaces.web-report .report-nav-sidebar {
-  background: rgba(15, 18, 25, 0.85) !important;
-  backdrop-filter: blur(20px);
-}
-
-body.glass-surfaces.web-report #report-list-container {
-  background: rgba(255, 255, 255, 0.02) !important;
-  backdrop-filter: blur(12px);
-}
-
-/* Web report: replace per-frame backdrop-filter blur with a static
-   translucent fill. backdrop-filter re-blurs the scrolling backdrop every
-   frame on the GPU compositor (cheap on a dGPU, brutal on an iGPU — shows up
-   as constant GPU wattage during scroll). A solid fill keeps the frosted-panel
-   look at ~zero per-frame cost. Scoped to the web report only; the desktop
-   app's glass surfaces are untouched. Higher specificity (3 classes) + the
-   !important on the utility re-enables below beats the rules above and at
-   lines ~1540. */
-body.web-report.glass-surfaces .glass-card,
-body.web-report.glass-surfaces [data-surface="card"],
-body.web-report.glass-surfaces .stats-group-container,
-body.web-report.glass-surfaces #report-list-container,
-body.web-report.glass-surfaces .report-nav-sidebar,
-body.web-report.glass-surfaces .backdrop-blur-xl,
-body.web-report.glass-surfaces .backdrop-blur-lg,
-body.web-report.glass-surfaces .backdrop-blur-md,
-body.web-report.glass-surfaces .backdrop-blur-sm {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* Bump opacity slightly to compensate for the lost blur so panels still read
-   as distinct frosted surfaces rather than near-transparent tint. */
-body.web-report.glass-surfaces .glass-card,
-body.web-report.glass-surfaces [data-surface="card"] {
-  background: rgba(255, 255, 255, 0.05) !important;
-}
-body.web-report.glass-surfaces #report-list-container {
-  background: rgba(255, 255, 255, 0.035) !important;
-}
-body.web-report.glass-surfaces .report-nav-sidebar {
-  background: rgba(15, 18, 25, 0.9) !important;
-}
-
-/* Disable glass effects during bulk upload for performance */
-body.bulk-uploading.glass-surfaces .stats-view,
-body.bulk-uploading.glass-surfaces .app-shell {
-  --bg-card: #1a1f2e;
-  --bg-card-inner: #222838;
-  --bg-input: #141822;
-  --bg-hover: rgba(255, 255, 255, 0.05);
-}
-body.bulk-uploading.glass-surfaces [data-surface="card"],
-body.bulk-uploading.glass-surfaces .stats-group-container,
-body.bulk-uploading.glass-surfaces .settings-view aside > div,
-body.bulk-uploading.glass-surfaces .app-modal-card {
-  backdrop-filter: none;
-}
-
-/* Glassmorphic theme — restores the original AxiBridge look:
-   indigo radial body with bright purple/blue blurred orbs, rounded
-   translucent cards. Composes with any color palette.
-
-   NOTE: must override the unified design system at the bottom of this
-   file which forces all rounded-* to 4px and remaps translucent bg
-   utilities to solid var(--bg-card). */
-
-/* Body gradient — vivid indigo top-right, very visible.
-   background-attachment: fixed keeps the gradient viewport-sized
-   even when #root grows tall on long web reports (otherwise the
-   ellipse stretches across the whole document). */
-body.glassmorphic #root {
-  background: radial-gradient(ellipse at top right, #312e81 0%, #0f0d2a 30%, #050505 80%) fixed !important;
-  position: relative;
-}
-
-/* Aurora orbs — position:fixed so a tall web report doesn't get
-   extra scroll height from the bottom orb's negative offset. */
-body.glassmorphic #root::before,
-body.glassmorphic #root::after {
-  content: '';
-  position: fixed;
-  width: 700px;
-  height: 700px;
-  border-radius: 50%;
-  filter: blur(120px);
-  pointer-events: none;
-  z-index: 0;
-}
-body.glassmorphic #root::before {
-  top: -200px;
-  right: -100px;
-  background: rgba(62, 44, 137, 0.32);
-}
-body.glassmorphic #root::after {
-  bottom: -200px;
-  left: -100px;
-  background: rgba(8, 20, 45, 0.55);
-}
-
-/* No orbs on the web report — gradient background only.
-   The web report renders its own aurora orbs as JSX elements
-   styled with var(--glow-primary)/var(--glow-secondary), which
-   in Lillifox become near-white via the white-accent override.
-   Hide them here along with our own pseudo-element orbs. */
-body.glassmorphic.web-report #root::before,
-body.glassmorphic.web-report #root::after,
-body.glassmorphic.web-report [style*="var(--glow-primary)"],
-body.glassmorphic.web-report [style*="var(--glow-secondary)"] {
-  display: none !important;
-}
-body.glassmorphic #root > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* Translucent surface variables (consumed by inline-styled cards
-   and the AppLayout shell — title bar, content area, dashboard rail).
-   Color palette is forced to white-on-glass; the per-palette accent
-   overrides at body.palette-* never see this body class. */
-body.glassmorphic {
-  --bg-base: rgba(15, 18, 25, 0.55);
-  --bg-elevated: transparent;
-  --bg-card: rgba(255, 255, 255, 0.05);
-  --bg-card-inner: rgba(255, 255, 255, 0.07);
-  --bg-input: rgba(0, 0, 0, 0.4);
-  --bg-hover: rgba(255, 255, 255, 0.10);
-  --border-default: rgba(255, 255, 255, 0.10);
-  --border-subtle: rgba(255, 255, 255, 0.05);
-  --border-hover: rgba(255, 255, 255, 0.20);
-  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  --brand-primary: #ffffff;
-  --brand-secondary: rgba(255, 255, 255, 0.85);
-  --brand-gradient: linear-gradient(135deg, #ffffff, rgba(255, 255, 255, 0.7));
-  --accent-bg: rgba(255, 255, 255, 0.10);
-  --accent-bg-strong: rgba(255, 255, 255, 0.18);
-  --accent-border: rgba(255, 255, 255, 0.35);
-  --glow-primary: rgba(255, 255, 255, 0.35);
-  --glow-secondary: rgba(255, 255, 255, 0.25);
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.85);
-  --text-muted: rgba(255, 255, 255, 0.65);
-  /* Bump radii so anything using var(--radius-*) (incl. stats sections
-     that use rounded-[var(--radius-md)]) gets the bubbly treatment. */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-}
-
-/* Glassmorphic must beat any palette-* class on body */
-body.glassmorphic.palette-refined-cyan,
-body.glassmorphic.palette-amber-warm,
-body.glassmorphic.palette-emerald-mint,
-body.glassmorphic.palette-rose-pink,
-body.glassmorphic.palette-violet-purple,
-body.glassmorphic.palette-crimson-red,
-body.glassmorphic.palette-slate-silver,
-body.glassmorphic.palette-teal-ocean,
-body.glassmorphic.palette-axi-gold,
-body.glassmorphic.palette-gold-bronze {
-  --brand-primary: #ffffff;
-  --brand-secondary: rgba(255, 255, 255, 0.85);
-  --brand-gradient: linear-gradient(135deg, #ffffff, rgba(255, 255, 255, 0.7));
-  --accent-bg: rgba(255, 255, 255, 0.10);
-  --accent-bg-strong: rgba(255, 255, 255, 0.18);
-  --accent-border: rgba(255, 255, 255, 0.35);
-  --glow-primary: rgba(255, 255, 255, 0.35);
-  --glow-secondary: rgba(255, 255, 255, 0.25);
-}
-
-/* Title bar gets backdrop blur so it has depth without being opaque */
-body.glassmorphic .app-titlebar {
-  backdrop-filter: blur(12px) saturate(130%);
-  -webkit-backdrop-filter: blur(12px) saturate(130%);
-}
-
-/* "Bridge" wordmark — restore the blue→purple gradient from the original */
-body.glassmorphic .app-brand-bridge {
-  background: linear-gradient(to right, #60a5fa, #c084fc);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent !important;
-}
-
-/* Victory/Defeat overview + MVP cards get the OG blue→purple gradient fill */
-body.glassmorphic .overview-card,
-body.glassmorphic .mvp-card {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.20) 0%, rgba(147, 51, 234, 0.20) 100%) !important;
-  backdrop-filter: blur(16px) saturate(130%);
-  -webkit-backdrop-filter: blur(16px) saturate(130%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.10),
-    0 20px 40px -12px rgba(0, 0, 0, 0.4);
-}
-
-/* Restore rounded corners — reverse the unified-design 4px flattening */
-body.glassmorphic .rounded-\[4px\],
-body.glassmorphic .rounded-md {
-  border-radius: 0.5rem !important;
-}
-body.glassmorphic .rounded-lg {
-  border-radius: 0.75rem !important;
-}
-body.glassmorphic .rounded-xl {
-  border-radius: 1rem !important;
-}
-body.glassmorphic .rounded-2xl {
-  border-radius: 1.25rem !important;
-}
-
-/* Glass effect on common card surfaces — both Tailwind utilities (which
-   the unified design has remapped to var(--bg-card)) and direct class
-   markers used by the app/web shells. */
-body.glassmorphic .bg-white\/5,
-body.glassmorphic .bg-white\/4,
-body.glassmorphic .bg-white\/3,
-body.glassmorphic .bg-black\/20,
-body.glassmorphic .bg-black\/25,
-body.glassmorphic .bg-black\/30,
-body.glassmorphic .bg-black\/40,
-body.glassmorphic .stats-group-container,
-body.glassmorphic .app-modal-card,
-body.glassmorphic.web-report .glass-card,
-body.glassmorphic.web-report #report-list-container {
-  backdrop-filter: blur(20px) saturate(130%);
-  -webkit-backdrop-filter: blur(20px) saturate(130%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.10),
-    0 25px 50px -12px rgba(0, 0, 0, 0.4);
-}
-
-/* Modal/nav sidebar — slightly more opaque than cards so content is readable */
-body.glassmorphic .app-modal-card {
-  background: rgba(15, 18, 25, 0.85) !important;
-  border: 1px solid rgba(255, 255, 255, 0.10) !important;
-}
-body.glassmorphic .stats-dashboard-nav-panel,
-body.glassmorphic.web-report .report-nav-sidebar {
-  background: rgba(15, 18, 25, 0.7) !important;
-  backdrop-filter: blur(20px) saturate(130%);
-  -webkit-backdrop-filter: blur(20px) saturate(130%);
-  border-color: rgba(255, 255, 255, 0.10) !important;
-}
-
-body.glassmorphic .app-dropdown {
-  background: rgba(15, 18, 25, 0.95) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border-radius: 0.75rem !important;
-}
-
-/* Bulk-upload performance fallback */
-body.bulk-uploading.glassmorphic #root::before,
-body.bulk-uploading.glassmorphic #root::after {
-  display: none;
-}
-body.bulk-uploading.glassmorphic .bg-white\/5,
-body.bulk-uploading.glassmorphic .bg-white\/4,
-body.bulk-uploading.glassmorphic .bg-white\/3,
-body.bulk-uploading.glassmorphic .bg-black\/20,
-body.bulk-uploading.glassmorphic .bg-black\/25,
-body.bulk-uploading.glassmorphic .bg-black\/30,
-body.bulk-uploading.glassmorphic .bg-black\/40,
-body.bulk-uploading.glassmorphic .stats-group-container,
-body.bulk-uploading.glassmorphic .app-modal-card,
-body.bulk-uploading.glassmorphic .stats-dashboard-nav-panel,
-body.bulk-uploading.glassmorphic.web-report .report-nav-sidebar,
-body.bulk-uploading.glassmorphic .app-dropdown {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
 }
 
 html,
@@ -581,7 +130,6 @@ body {
     height: 100%;
     margin: 0;
     padding: 0;
-    background: transparent;
 }
 
 #root {
@@ -607,21 +155,12 @@ body {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23cbd5e1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E") !important;
 }
 
-body.glass-surfaces .stats-view .fight-diff-select {
-    background-color: rgba(15, 18, 25, 0.85) !important;
-    backdrop-filter: blur(12px);
-}
-
-body.glass-surfaces .stats-view .fight-diff-select option {
-    background: var(--bg-elevated);
-    color: var(--text-primary);
-}
-
 /* Pinned player column of the CC / Strip timeline grids.
 
-   Must be OPAQUE: it overlaps the cells that scroll underneath it, and both
-   glass themes set --bg-card to a low-alpha white, which would let those
-   cells bleed through. Same trap the .app-dropdown overrides exist for.
+   Must be OPAQUE: it overlaps the cells that scroll underneath it, and the
+   glass theme makes every surface token an alpha gradient, which would let
+   those cells bleed through. Same trap the .app-dropdown overrides exist for,
+   and the glass-scoped fill at the foot of this file is its other half.
    The right edge is a shadow rather than a border so it reads as depth
    against the time ruler instead of adding another gridline. */
 .stats-view .bucket-grid__pin {
@@ -633,11 +172,6 @@ body.glass-surfaces .stats-view .fight-diff-select option {
     box-shadow: 6px 0 10px -6px rgba(0, 0, 0, 0.45);
 }
 
-body.glass-surfaces .stats-view .bucket-grid__pin,
-body.glassmorphic .stats-view .bucket-grid__pin {
-    background: rgb(21, 25, 34);
-}
-
 /* Header row of a vertically-scrolling bucket grid. Only applied when the
    grid is actually capped: sticking to the nearest scroll ancestor when
    there is no cap would float the timestamps over the whole page instead. */
@@ -647,11 +181,6 @@ body.glassmorphic .stats-view .bucket-grid__pin {
     z-index: 3;
     background: var(--bg-card);
     background-clip: padding-box;
-}
-
-body.glass-surfaces .stats-view .bucket-grid__head,
-body.glassmorphic .stats-view .bucket-grid__head {
-    background: rgb(21, 25, 34);
 }
 
 /* The top-left cell is sticky in both axes, so it has to paint over the
@@ -1421,32 +950,6 @@ body.web-report .stats-view .fight-comp-class-icon--squad {
     color: var(--text-secondary);
 }
 
-/* Fight Comp has compact, information-dense labels. In glass mode the generic
-   slate hover surface makes its secondary text blend into the panel, so give
-   the roster's reading surfaces an intentionally darker base and brighter ink. */
-body.glass-surfaces .stats-view .fight-comp-fight-nav-item:not(.text-cyan-100) {
-    background-color: rgba(15, 18, 25, 0.62) !important;
-    color: var(--text-primary) !important;
-}
-
-body.glass-surfaces .stats-view .fight-comp-fight-label,
-body.glass-surfaces .stats-view .fight-comp-fight-meta {
-    color: var(--text-secondary) !important;
-}
-
-body.glass-surfaces .stats-view .fight-comp-card-header {
-    background-color: rgba(15, 18, 25, 0.72) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-    color: var(--text-primary) !important;
-}
-
-body.glass-surfaces .stats-view .fight-comp-count-badge,
-body.glass-surfaces .stats-view .fight-comp-party-badge {
-    background-color: rgba(15, 18, 25, 0.58) !important;
-    border-color: rgba(255, 255, 255, 0.2) !important;
-    color: var(--text-primary) !important;
-}
-
 /* Keep MVP crown icon wrappers circular in web report across theme overrides. */
 body.web-report #top-players .mvp-gold-icon-ring,
 body.web-report #top-players .mvp-gold-icon-badge {
@@ -1717,7 +1220,7 @@ body.web-report #top-players .mvp-gold-icon-badge {
 
 /* The commander picker is a real <select>, and Chromium on Linux paints the
    native option popup from the control's own background. Under the glass
-   palettes --bg-card-inner is rgba(255, 255, 255, 0.05) and blur does not
+   theme --bg-card-inner is an alpha fill and blur does not
    apply to an OS-drawn popup, so the option list would render see-through and
    unreadable. Same rule as .app-dropdown above: a floating surface gets an
    opaque fill. Only the options are pinned — the control itself keeps the
@@ -1779,18 +1282,6 @@ body.web-report #top-players .mvp-gold-icon-badge {
   transform: rotate(45deg);
 }
 
-/* ── Glass mode transition smoothing ── */
-
-body.glass-surfaces .stats-view,
-body.glass-surfaces .app-shell,
-body.glass-surfaces .stats-group-container,
-body.glass-surfaces .app-modal-card,
-body.glass-surfaces .app-dropdown,
-body.glass-surfaces .stats-dashboard-nav-panel {
-  transition: background-color var(--duration-slow) var(--ease-out-expo),
-              border-color var(--duration-slow) var(--ease-out-expo);
-}
-
 /* ── Reduced motion / bulk upload ── */
 
 @media (prefers-reduced-motion: reduce) {
@@ -1842,35 +1333,25 @@ body.bulk-uploading .stats-particle-spinner__particle {
    solid backgrounds, unified borders).
    ============================================================ */
 
-/* These nine are scoped away from the axi language. They are this stylesheet's
-   own remap of the Tailwind literals onto the classic tokens, written with
-   !important, and axi-design.css remaps the same literals onto its own scale -
-   so with both in play the !important won every time and the axi sheet's radius
-   and fill bridges were dead. Worse than dead: `bg-white/10` landed on the
-   ground rather than the raised surface, which put ink text on a near-black
-   fill wherever a selected item carried it. Only the lines where the two sheets
-   actually disagree are scoped; the rest of this block is left alone because it
-   resolves to the same thing under either language. */
+/* Nine of these remaps are gone, not disabled. They were the `.rounded-*`
+   radius bridges and four of the `bg-*` fills, written with !important and then
+   scoped to `body:not(.axi-design)` once axi-design.css started remapping the
+   same literals onto its own scale. With the axi language unconditional that
+   negation can never match, so the rules were already dead code; the axi sheet
+   owns those literals now. What is left below is the set the two sheets agree
+   on, which is why it needs no scope at all.
 
-/* --- Border Radius: everything becomes 4px --- */
-body:not(.axi-design) .rounded-2xl { border-radius: var(--radius-md) !important; }
-body:not(.axi-design) .rounded-xl { border-radius: var(--radius-md) !important; }
-body:not(.axi-design) .rounded-lg { border-radius: var(--radius-md) !important; }
-body:not(.axi-design) .rounded-md { border-radius: var(--radius-md) !important; }
-/* Keep rounded-full for pills/badges/dots — do NOT override */
+   No border-radius section any more for the same reason: axi-design.css maps
+   every `.rounded-*` literal to its own radius scale, and `rounded-full` was
+   never overridden here. */
 
 /* --- Backgrounds: glass → solid layered --- */
-body:not(.axi-design) .bg-white\/5 { background-color: var(--bg-card) !important; }
 .bg-white\/4 { background-color: var(--bg-card) !important; }
 .bg-white\/3 { background-color: var(--bg-card) !important; }
-body:not(.axi-design) .bg-white\/10 { background-color: var(--bg-card-inner) !important; }
-body:not(.axi-design) .bg-black\/20 { background-color: var(--bg-card) !important; }
 .bg-black\/25 { background-color: var(--bg-card) !important; }
 .bg-black\/30 { background-color: var(--bg-card-inner) !important; }
 .bg-black\/40 { background-color: var(--bg-card-inner) !important; }
 .bg-black\/50 { background-color: var(--bg-input) !important; }
-body:not(.axi-design) .bg-black\/60 { background-color: rgba(0, 0, 0, 0.6) !important; } /* modal overlays — keep */
-body:not(.axi-design) .bg-black\/70 { background-color: var(--bg-base) !important; }
 
 /* --- Borders: unified opacity levels ---
    These four are deliberately not !important. They only have to beat Tailwind's
@@ -1900,11 +1381,6 @@ body:not(.axi-design) .bg-black\/70 { background-color: var(--bg-base) !importan
 .backdrop-blur-lg { backdrop-filter: none !important; }
 .backdrop-blur-md { backdrop-filter: none !important; }
 .backdrop-blur-sm { backdrop-filter: none !important; }
-
-/* Re-enable blur for glass mode */
-body.glass-surfaces .backdrop-blur-xl { backdrop-filter: blur(20px) !important; }
-body.glass-surfaces .backdrop-blur-lg { backdrop-filter: blur(12px) !important; }
-body.glass-surfaces .backdrop-blur-md { backdrop-filter: blur(8px) !important; }
 
 /* --- Native select/option styling --- */
 select option {
@@ -1941,11 +1417,6 @@ select option {
 .app-native-select option {
   background-color: var(--bg-elevated);
   color: var(--text-primary);
-}
-
-body.glass-surfaces .app-native-select,
-body.glassmorphic .app-native-select {
-  background-color: rgba(15, 18, 25, 0.9);
 }
 
 /* --- Hover states --- */
