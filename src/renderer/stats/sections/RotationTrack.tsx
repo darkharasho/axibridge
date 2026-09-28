@@ -174,13 +174,21 @@ export const RotationTrack: React.FC<RotationTrackProps> = ({
         <div className="flex flex-col gap-1.5">
             <RotationLegend />
             {rows.map((row, rowIndex) => (
-                <div
-                    key={rowIndex}
-                    ref={rowIndex === 0 ? rowRef : undefined}
-                    data-track-row=""
-                    className="relative h-9 w-full overflow-hidden"
-                    style={{ background: 'var(--bg-card-inner)', borderRadius: 'var(--radius-md)' }}
-                >
+                <div key={rowIndex} className="flex items-stretch gap-2">
+                    {/* Once the track is the full width of a phone, a reader has
+                        nothing to anchor a row to without this. */}
+                    <span
+                        className="shrink-0 text-right w-[30px] sm:w-[38px] text-[10px] sm:text-[11px] pt-2.5 tabular-nums"
+                        style={{ color: 'var(--text-muted)' }}
+                    >
+                        {Math.floor((rowIndex * wrapMs) / 1000)}s
+                    </span>
+                    <div
+                        ref={rowIndex === 0 ? rowRef : undefined}
+                        data-track-row=""
+                        className="relative h-9 flex-1 min-w-0 overflow-hidden"
+                        style={{ background: 'var(--bg-card-inner)', borderRadius: 'var(--radius-md)' }}
+                    >
                     {row.map((box) => {
                         // A published report hands `icon` over already expanded to a
                         // URL; a report whose `iconIndex` itself got trimmed leaves the
@@ -228,7 +236,8 @@ export const RotationTrack: React.FC<RotationTrackProps> = ({
                                 {showName && <span className="truncate min-w-0">{box.name}</span>}
                             </button>
                         );
-                    })}
+                        })}
+                    </div>
                 </div>
             ))}
         </div>

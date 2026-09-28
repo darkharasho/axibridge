@@ -235,4 +235,31 @@ describe('RotationSection', () => {
         openCast(container, 0);
         expect(screen.getByTestId('rotation-cast-sheet').querySelector('img')).toBeNull();
     });
+
+    it('hides the player rail below the sm breakpoint and shows a chip strip instead', () => {
+        const { container } = render(
+            <RotationSection fights={[fight]} recorded selectedFightId="f1" />);
+        const rail = container.querySelector('[data-player-rail]') as HTMLElement;
+        const strip = container.querySelector('[data-player-chips]') as HTMLElement;
+        expect(rail.className).toContain('hidden');
+        expect(rail.className).toContain('sm:flex');
+        expect(strip.className).toContain('sm:hidden');
+    });
+
+    it('selects a player from the chip strip', () => {
+        const twoPlayers: RotationFightData = {
+            ...fight,
+            players: [
+                fight.players[0],
+                { ...fight.players[0], key: 'b.5678|Necromancer', displayName: 'Other', profession: 'Necromancer' },
+            ],
+        };
+        const { container } = render(
+            <RotationSection fights={[twoPlayers]} recorded selectedFightId="f1" />);
+        const strip = container.querySelector('[data-player-chips]') as HTMLElement;
+        const chip = Array.from(strip.querySelectorAll('button'))
+            .find(b => b.textContent?.includes('Other')) as HTMLElement;
+        act(() => { chip.click(); });
+        expect(chip.getAttribute('aria-pressed')).toBe('true');
+    });
 });
