@@ -1599,8 +1599,13 @@
    Presentation attributes set in JSX lose to CSS properties of the same name,
    so stroke and fill can be reclaimed here without touching thirty call
    sites. */
+/* The app's own token, not --axi-surface-raised: `fill` takes <paint> and not
+   <image>, so under glass a gradient-valued token makes this invalid — and
+   because `fill` inherits, the element adopts its ancestor's fill rather than
+   falling back. --bg-hover resolves to --axi-surface-raised outside glass, so
+   the default theme renders identically, and to a flat colour under it. */
 [data-axi-accent] body .recharts-brush .recharts-brush-slide {
-  fill: var(--axi-surface-raised);
+  fill: var(--bg-hover);
   fill-opacity: 1;
   stroke: var(--axi-ink-line);
   stroke-width: var(--axi-border-control);
@@ -1646,7 +1651,7 @@
 [data-axi-accent] body .recharts-tooltip-cursor {
   stroke: var(--axi-accent);
   stroke-width: var(--axi-border-control);
-  fill: var(--axi-surface-raised);
+  fill: var(--bg-hover);
   fill-opacity: 1;
 }
 [data-axi-accent] body .recharts-cartesian-axis-tick text { fill: var(--axi-text-faint); }
@@ -2578,7 +2583,7 @@
 /* Rule 2 again: the hover band was white at a few percent over the ground.
    Here it is the next surface up, which is a fill change rather than a wash. */
 [data-axi-accent] body .recharts-tooltip-cursor {
-  fill: var(--axi-surface-raised);
+  fill: var(--bg-hover);
   fill-opacity: 1;
   stroke: var(--axi-rule);
 }
@@ -2624,11 +2629,11 @@
   stroke-width: var(--axi-border-control);
 }
 [data-axi-accent] body .recharts-brush-slide {
-  fill: var(--axi-surface);
+  fill: var(--bg-card);
   fill-opacity: 1;
 }
 [data-axi-accent] body .recharts-brush-traveller > rect {
-  fill: var(--axi-surface-raised);
+  fill: var(--bg-hover);
   stroke: var(--axi-ink-line);
   stroke-width: var(--axi-border-hairline);
 }

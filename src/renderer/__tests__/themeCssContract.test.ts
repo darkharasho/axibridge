@@ -162,7 +162,7 @@ describe('axi-design.css', () => {
  * is invalid at computed-value time — it does not fall back, it drops, and the
  * element computes to `transparent` with NO fill. Upstream's glass theme makes
  * --axi-surface and --axi-surface-raised alpha gradients, and axi-design.css
- * remaps fifteen of the app's own tokens onto those two. Roughly 200 markup sites
+ * remaps sixteen of the app's own tokens onto those two. Roughly 200 markup sites
  * consume those tokens through Tailwind arbitrary utilities (`bg-[var(--bg-hover)]`),
  * which compile to `background-color` by construction and have no shorthand
  * spelling, so the only place the fix can live is the token itself.
@@ -202,7 +202,7 @@ describe('flat app surface tokens under glass', () => {
     it('finds the remapped tokens it is meant to guard', () => {
         // Guards the enumeration itself: if the selector shape in axi-design.css
         // changes, this test must fail loudly rather than pass over an empty set.
-        expect(gradientValued.size).toBeGreaterThanOrEqual(15);
+        expect(gradientValued.size).toBeGreaterThanOrEqual(16);
         for (const token of ['--bg-card', '--bg-elevated', '--bg-hover', '--accent-bg', '--accent-bg-strong']) {
             expect(gradientValued.has(token), `${token} should be remapped onto a surface token`).toBe(true);
         }
@@ -236,6 +236,13 @@ describe('flat app surface tokens under glass', () => {
     // property that only accepts a colour: `background-color` or a color-mix()
     // operand. The flat block above makes them safe today, which is exactly why a
     // regression here would be silent — it only resurfaces if a token moves.
+    //
+    // This list is deliberately five of the sixteen, not all of them. The other
+    // eleven ARE still read through `background-color` — `--status-success-bg` and
+    // `--status-error-bg` at index.css:941,947 and 951,957 — and are rescued by the
+    // flat block rather than by avoiding the property, so widening this regex would
+    // fail on correct code. The invariant these five carry is the stronger one:
+    // never reach for a colour-only property with a surface token in the first place.
     const COLOUR_ONLY_TOKENS = 'bg-card|bg-elevated|bg-hover|accent-bg|accent-bg-strong';
     it.each(['index.css', 'axi-design.css'])('%s never reads a surface token where only a colour is legal', (file) => {
         const css = file === 'index.css' ? indexCss : axiDesign;
@@ -243,5 +250,20 @@ describe('flat app surface tokens under glass', () => {
             .not.toMatch(new RegExp(String.raw`background-color:\s*var\(--(${COLOUR_ONLY_TOKENS})[,)]`));
         expect(css, 'color-mix() with a gradient-valued operand')
             .not.toMatch(/color-mix\([^;]*var\(--axi-surface(-raised)?\)/);
+    });
+
+    // SVG `fill` is the fifth population of the same mechanism, and the one that
+    // hides best: `fill` takes <paint>, not <image>, so a gradient-valued token
+    // makes the declaration invalid — and because `fill` INHERITS, the element does
+    // not fall back to its own initial value, it silently adopts the ancestor's
+    // fill. Measured in Chrome: a gradient-valued `fill` computed to the ancestor's
+    // purple, not to any surface. Nothing in the app sets fill on a recharts
+    // ancestor, so under glass the brush slide, the brush travellers and the
+    // tooltip hover band rendered initial black.
+    it('never paints SVG fill from a gradient-valued token', () => {
+        for (const [file, css] of [['index.css', indexCss], ['axi-design.css', axiDesign]] as const) {
+            expect(css, `${file}: fill: var(--axi-surface…) is invalid and inherits instead`)
+                .not.toMatch(/fill:\s*var\(--axi-surface(-raised)?\)/);
+        }
     });
 });
