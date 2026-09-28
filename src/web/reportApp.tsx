@@ -970,15 +970,15 @@ export function ReportApp({ injectedSource, assetBase }: {
         background: 'var(--bg-card)',
         borderColor: 'var(--border-default)'
     };
-    // Sticky table headers need an opaque base. The reasoning survives the move
-    // to upstream glass unchanged: --bg-card resolves to --axi-surface, which the
-    // glass theme makes an alpha gradient, and its blur lives in
-    // --axi-surface-filter, which is a no-op on Linux. So the tint is layered
-    // over a solid dark fallback rather than used alone, or scrolled rows show
-    // straight through the header.
+    // Sticky table headers need an opaque base, or scrolled rows show straight
+    // through. This used to layer the token over a hardcoded dark fallback as a
+    // gradient, because --bg-card resolved to --axi-surface, which upstream's glass
+    // theme makes an alpha gradient: opaque underneath, tint on top. That also made
+    // the tint silently vanish under glass, since a gradient is not a valid colour
+    // stop. --bg-card is now flat and opaque in BOTH surface treatments (the glass
+    // token block in index.css), so the token alone is the opaque base.
     const rollupTableHeaderStyle: CSSProperties = {
-        backgroundColor: '#0c0f16',
-        backgroundImage: 'linear-gradient(var(--bg-card), var(--bg-card))'
+        backgroundColor: 'var(--bg-card)'
     };
     const showProfessionTooltip = (event: ReactMouseEvent<HTMLElement>, entries?: RollupProfessionUsage[]) => {
         if (!entries || entries.length === 0) return;

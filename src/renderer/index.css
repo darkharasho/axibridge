@@ -209,15 +209,25 @@ body.web-report .stats-view .max-h-80 {
     max-height: 28rem !important;
 }
 
-/* File picker: calendar selected cell (border all sides) and list selected item (border-bottom only) */
+/* File picker: calendar selected cell (border all sides) and list selected item
+   (border-bottom only).
+
+   `background:` shorthand, not `background-color:`. --accent-bg-strong is
+   --axi-surface-raised under the axi remap, which upstream's glass theme makes an
+   alpha gradient; as `background-color` that is invalid at computed-value time and
+   the whole declaration drops, taking the selection highlight with it. The rgba
+   fallback does NOT rescue it - a var() fallback fires only when the property is
+   undefined, and here it resolves successfully, to a gradient. The glass token
+   block further down flattens the token as well, so this is belt and braces; the
+   shorthand is what keeps it true if the token is ever re-pointed. */
 .file-picker-selected-cell {
-    background-color: var(--accent-bg-strong, rgba(59, 130, 246, 0.18)) !important;
+    background: var(--accent-bg-strong, rgba(59, 130, 246, 0.18)) !important;
     border-color: var(--accent-border, rgba(59, 130, 246, 0.35)) !important;
     color: var(--text-primary, #e8eaed) !important;
 }
 
 .file-picker-selected-item {
-    background-color: var(--accent-bg-strong, rgba(59, 130, 246, 0.18)) !important;
+    background: var(--accent-bg-strong, rgba(59, 130, 246, 0.18)) !important;
     color: var(--text-primary, #e8eaed) !important;
 }
 
@@ -1340,7 +1350,7 @@ body.bulk-uploading .stats-particle-spinner__particle {
 
 /* Nine of these remaps are gone, not disabled. They were the `.rounded-*`
    radius bridges and four of the `bg-*` fills, written with !important and then
-   then scoped away from the axi language with a :not() on the old toggle class,
+   scoped away from the axi language with a :not() on the old toggle class,
    once axi-design.css started remapping the same literals onto its own scale.
    With that language unconditional the negation can never match, so the rules
    were already dead code; the axi sheet
@@ -1680,6 +1690,89 @@ body.web-report {
 .bridge-search-trigger kbd {
     border: 1px solid var(--border-subtle);
     color: var(--text-secondary);
+}
+
+/* ---------------------------------------------------------------------------
+   FLAT APP SURFACE TOKENS UNDER GLASS
+
+   Upstream's glass theme declares --axi-surface and --axi-surface-raised as
+   alpha GRADIENTS (glass.css:7-8). axi-design.css remaps fifteen of the app's
+   own --bg-, --accent-, --status- and --section- tokens onto those two, and a
+   gradient in `background-color` is invalid at computed-value time: the whole
+   declaration drops and the surface computes to `transparent`, losing ALL fill.
+   The same trap is written up at the .bg-white\/4 remap above.
+
+   Converting the declaration to the `background:` shorthand is the fix wherever
+   the declaration is ours to edit. It is not, for two whole populations:
+
+     - Tailwind arbitrary-value utilities. `bg-[var(--bg-hover)]` and
+       `bg-[color:var(--bg-elevated)]` compile to `background-color: var(...)`
+       BY CONSTRUCTION - there is no shorthand spelling of them. 78 markup
+       sites use --bg-hover and 74 use --accent-bg-strong.
+     - Inline React styles on components we do not want to teach about themes.
+
+   So the fix goes at the token, not the call site: under glass the app's own
+   tokens become the flat colour the gradient would have composited to. Upstream's
+   own .axi-* components read --axi-surface DIRECTLY and are untouched by this
+   block, so they keep their gradients; only AxiBridge's variables go flat. This
+   is what the two deleted homegrown glass themes did (flat rgba()), which is why
+   they never had this defect.
+
+   WHY THE SELECTOR ENDS IN ` body`. The remaps are declared ON body
+   (`[data-axi-accent] body`, 0,1,1). A custom property declared on <html>
+   inherits to body, and an inherited value always loses to a declaration made
+   directly on the element - specificity never enters it. A block on
+   `[data-axi-accent][data-axi-theme="glass"]` alone would therefore be inert no
+   matter how specific. With ` body` this is (0,2,1) against (0,1,1) on the same
+   element, so it wins on specificity and does not depend on load order (index.css
+   loads BEFORE axi-design.css).
+
+   THE ARITHMETIC. Each flat value is the gradient's 50% midpoint composited over
+   the glass ground #0a0c10 = rgb(10,12,16) (glass.css:5). Gradient stops
+   interpolate in premultiplied alpha, and compositing then un-premultiplies, so
+   the result is just mean(premultiplied stops) + ground x (1 - mean alpha):
+
+     --axi-surface: linear-gradient(145deg, rgba(58,68,92,.55), rgba(28,33,46,.42))
+       premultiplied stops (31.90,37.40,50.60) and (11.76,13.86,19.32); mean
+       (21.83,25.63,34.96) at alpha .485; + rgb(10,12,16) x .515 = (5.15,6.18,8.24)
+       => rgb(26.98,31.81,43.20) => #1b202b
+     --axi-surface-raised: linear-gradient(145deg, rgba(86,99,130,.5), rgba(44,52,71,.38))
+       premultiplied stops (43.00,49.50,65.00) and (16.72,19.76,26.98); mean
+       (29.86,34.63,45.99) at alpha .44; + rgb(10,12,16) x .56 = (5.60,6.72,8.96)
+       => rgb(35.46,41.35,54.95) => #232937
+
+   What is genuinely lost is the ground light showing through the translucent
+   surface. The flat value composites over the flat ground colour, not over
+   whichever of the three radial gradients happens to sit behind the element. The
+   alternative was losing the fill entirely.
+
+   src/renderer/__tests__/themeCssContract.test.ts enumerates the remapped tokens
+   out of axi-design.css and fails if any of them is missing here. --- */
+[data-axi-accent][data-axi-theme="glass"] body {
+    /* surfaces */
+    --bg-elevated: #1b202b;
+    --bg-card: #1b202b;
+    --bg-hover: #232937;
+    /* accent washes turned neutral by the remap */
+    --accent-bg: #1b202b;
+    --accent-bg-strong: #232937;
+    /* status washes: --status-success-bg and --status-error-bg are read as
+       `background-color` by the two upload-row rules above, the rest by inline
+       `background:` shorthands. They all resolve to --axi-surface-raised, so one
+       value covers the set. */
+    --status-success-bg: #232937;
+    --status-error-bg: #232937;
+    --status-warning-bg: #232937;
+    --status-info-bg: #232937;
+    /* the stats-group mark's ground, declared body-level so it lands here too. */
+    --stats-group-mark-bg: #232937;
+    /* section washes: same target token, same flat value. */
+    --section-offense-bg: #232937;
+    --section-defense-bg: #232937;
+    --section-mitigation-bg: #232937;
+    --section-support-bg: #232937;
+    --section-healing-bg: #232937;
+    --section-boon-bg: #232937;
 }
 
 /* ---------------------------------------------------------------------------

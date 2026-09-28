@@ -46,8 +46,13 @@ describe('index.css', () => {
         expect(css).not.toContain('glassmorphic');
     });
 
+    // `:not(.axi-design)` anywhere, not just after a bare `body`: the compound-class
+    // near-miss that let `body.web-report.axi-design` survive in axi-design.css is the
+    // same shape of hole, and `body.web-report:not(.axi-design)` would slip through a
+    // substring check on `body:not(.axi-design)`.
     it('has no non-axi escape hatch left', () => {
-        expect(css).not.toContain('body:not(.axi-design)');
+        expect(css).not.toMatch(/:not\(\.axi-design\)/);
+        expect(css).not.toMatch(/\.axi-design\b/);
     });
 
     // Blur is a no-op on Linux, so a translucent floating surface over content is
@@ -83,8 +88,15 @@ describe('index.css', () => {
 describe('axi-design.css', () => {
     const css = read('axi-design.css');
 
-    it('is unconditional — no body.axi-design scoping left', () => {
-        expect(css).not.toContain('body.axi-design');
+    // A regex on the class name anywhere, not `not.toContain('body.axi-design')`.
+    // The substring form passed for a whole release while
+    // `body.web-report.axi-design .report-head` sat in the file: the compound class
+    // does not contain the substring `body.axi-design`, so the assertion could not
+    // fail for the very thing it named, and every published report kept the header
+    // rule that rule exists to remove. Any `.axi-design` in a selector is dead now
+    // — nothing adds the class — so match it wherever it appears.
+    it('is unconditional — no .axi-design class scoping left, compound or not', () => {
+        expect(css).not.toMatch(/\.axi-design\b/);
     });
 
     // [data-axi-accent] body, not :where(body) or a bare body: it is the only
@@ -140,5 +152,96 @@ describe('axi-design.css', () => {
     it('reads the rail width as an overridable usage, un-renamed', () => {
         expect(css).toContain('var(--axi-rail-w, 208px)');
         expect(css).not.toContain('--bridge-rail-w');
+    });
+});
+
+/**
+ * The flat-surface-token contract under glass.
+ *
+ * Mechanism: `background-color: var(--X)` where --X resolves to a linear-gradient
+ * is invalid at computed-value time — it does not fall back, it drops, and the
+ * element computes to `transparent` with NO fill. Upstream's glass theme makes
+ * --axi-surface and --axi-surface-raised alpha gradients, and axi-design.css
+ * remaps fifteen of the app's own tokens onto those two. Roughly 200 markup sites
+ * consume those tokens through Tailwind arbitrary utilities (`bg-[var(--bg-hover)]`),
+ * which compile to `background-color` by construction and have no shorthand
+ * spelling, so the only place the fix can live is the token itself.
+ *
+ * This test enumerates the affected tokens OUT OF axi-design.css rather than from a
+ * hand-kept list, so it fails on three distinct regressions:
+ *   1. the glass flat-token block in index.css is deleted or renamed;
+ *   2. any one token in it is re-pointed back at a gradient-valued --axi-* token;
+ *   3. a NEW app token is remapped onto --axi-surface/-raised in axi-design.css
+ *      without a flat counterpart being added here.
+ * It also fails if the glass block's selector loses its trailing ` body`, which is
+ * the form that ships inert: the remaps are declared directly ON body, and an
+ * inherited custom property from <html> always loses to a declaration on the
+ * element regardless of specificity.
+ */
+describe('flat app surface tokens under glass', () => {
+    const axiDesign = read('axi-design.css');
+    const indexCss = read('index.css');
+
+    // Every block whose selector is exactly `[data-axi-accent] body` — the app's
+    // body-level token layer. Component blocks (`... body .foo`) are excluded on
+    // purpose: the tokens they declare are read by `background:` shorthands, where a
+    // gradient is valid, and they are out of a body-scoped block's reach anyway.
+    const gradientValued = new Map<string, string>();
+    for (const block of axiDesign.matchAll(/^\[data-axi-accent\] body \{([^}]*)\}/gm)) {
+        for (const decl of block[1].matchAll(/(--[\w-]+):\s*var\((--axi-surface(?:-raised)?)\)\s*;/g)) {
+            gradientValued.set(decl[1], decl[2]);
+        }
+    }
+
+    const glassBlock = indexCss.match(
+        /\[data-axi-accent\]\[data-axi-theme="glass"\] body \{([^}]*)\}/
+    );
+
+    const FLAT = /^(#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)|hsla?\([^)]*\))$/;
+
+    it('finds the remapped tokens it is meant to guard', () => {
+        // Guards the enumeration itself: if the selector shape in axi-design.css
+        // changes, this test must fail loudly rather than pass over an empty set.
+        expect(gradientValued.size).toBeGreaterThanOrEqual(15);
+        for (const token of ['--bg-card', '--bg-elevated', '--bg-hover', '--accent-bg', '--accent-bg-strong']) {
+            expect(gradientValued.has(token), `${token} should be remapped onto a surface token`).toBe(true);
+        }
+    });
+
+    it('re-declares them on body, where a declaration beats inheritance', () => {
+        expect(glassBlock, 'the [data-axi-accent][data-axi-theme="glass"] body token block').not.toBeNull();
+    });
+
+    it('gives every one of them a flat colour under glass', () => {
+        const declared = new Map<string, string>();
+        for (const decl of glassBlock![1].matchAll(/(--[\w-]+):\s*([^;]+);/g)) {
+            declared.set(decl[1], decl[2].trim());
+        }
+        for (const [token, source] of gradientValued) {
+            const value = declared.get(token);
+            expect(value, `${token} maps to ${source} (a gradient under glass) and needs a flat value here`)
+                .toBeDefined();
+            expect(value, `${token} is still gradient-valued under glass`).toMatch(FLAT);
+        }
+    });
+
+    it('does not redeclare upstream’s own tokens', () => {
+        // Upstream's .axi-* components read --axi-surface directly and must keep
+        // their gradients; this block is only for AxiBridge's vocabulary.
+        expect(glassBlock![1]).not.toMatch(/--axi-[\w-]+\s*:/);
+    });
+
+    // The hand-written third of the same problem. These five tokens are
+    // gradient-valued under glass, so neither stylesheet may consume them through a
+    // property that only accepts a colour: `background-color` or a color-mix()
+    // operand. The flat block above makes them safe today, which is exactly why a
+    // regression here would be silent — it only resurfaces if a token moves.
+    const COLOUR_ONLY_TOKENS = 'bg-card|bg-elevated|bg-hover|accent-bg|accent-bg-strong';
+    it.each(['index.css', 'axi-design.css'])('%s never reads a surface token where only a colour is legal', (file) => {
+        const css = file === 'index.css' ? indexCss : axiDesign;
+        expect(css, 'background-color: var(<surface token>)')
+            .not.toMatch(new RegExp(String.raw`background-color:\s*var\(--(${COLOUR_ONLY_TOKENS})[,)]`));
+        expect(css, 'color-mix() with a gradient-valued operand')
+            .not.toMatch(/color-mix\([^;]*var\(--axi-surface(-raised)?\)/);
     });
 });

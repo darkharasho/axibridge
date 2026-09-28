@@ -11,7 +11,8 @@ import { FightSlicePill } from '../components/FightSliceTray';
    colour meaning anything. Drawn as an object instead - accent fill, ink glyph
    - so the accent carries it and no status ink is borrowed. The outline and the
    hard offset that make it a raised thing come from .report-head-mark in
-   axi-design.css, which is inert with the language off. */
+   axi-design.css, which is unconditional - the same mark on both surface
+   treatments, with only its fill following the accent. */
 const TitleMark = () => (
     <div
         className="report-head-mark grid place-items-center shrink-0"
