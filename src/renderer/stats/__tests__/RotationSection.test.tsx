@@ -155,4 +155,84 @@ describe('RotationSection', () => {
         expect(container.querySelectorAll('[data-interrupted="true"]')).toHaveLength(1);
         expect(container.querySelector('[data-prelog="true"]')).toBeTruthy();
     });
+
+    const openCast = (container: HTMLElement, index: number) => {
+        const box = container.querySelectorAll('[data-cast]')[index] as HTMLElement;
+        act(() => { box.click(); });
+    };
+
+    it('opens a sheet with the clicked cast timing and gap', () => {
+        const { container } = render(
+            <RotationSection fights={[fight]} recorded selectedFightId="f1" />);
+        openCast(container, 1);
+        expect(screen.getByTestId('rotation-cast-sheet')).toBeTruthy();
+        expect(screen.getByText('0:01.002')).toBeTruthy();
+        expect(screen.getByText('300 ms')).toBeTruthy();
+        expect(screen.getByText('500 ms')).toBeTruthy();
+        expect(screen.getByText('Interrupted')).toBeTruthy();
+    });
+
+    it('shows an em dash for the gap before the very first cast', () => {
+        const { container } = render(
+            <RotationSection fights={[fight]} recorded selectedFightId="f1" />);
+        openCast(container, 0);
+        const gap = screen.getByTestId('rotation-cast-gap');
+        expect(gap.textContent).toBe('—');
+    });
+
+    it('reports a negative gap as-is when two casts overlap', () => {
+        const overlapping: RotationFightData = {
+            ...fight,
+            players: [{
+                ...fight.players[0],
+                skill: [0, 0], dt: [0, 200], dur: [1000, 1000], interrupted: [],
+            }],
+        };
+        const { container } = render(
+            <RotationSection fights={[overlapping]} recorded selectedFightId="f1" />);
+        openCast(container, 1);
+        expect(screen.getByTestId('rotation-cast-gap').textContent).toBe('-800 ms');
+    });
+
+    it('closes the sheet when the same cast is clicked again, and on Escape', () => {
+        const { container } = render(
+            <RotationSection fights={[fight]} recorded selectedFightId="f1" />);
+        openCast(container, 1);
+        openCast(container, 1);
+        expect(screen.queryByTestId('rotation-cast-sheet')).toBeNull();
+        openCast(container, 1);
+        act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
+        expect(screen.queryByTestId('rotation-cast-sheet')).toBeNull();
+    });
+
+    it('closes the sheet when the selected player changes', () => {
+        const twoPlayers: RotationFightData = {
+            ...fight,
+            players: [
+                fight.players[0],
+                { ...fight.players[0], key: 'b.5678|Necromancer', displayName: 'Other', profession: 'Necromancer' },
+            ],
+        };
+        const { container } = render(
+            <RotationSection fights={[twoPlayers]} recorded selectedFightId="f1" />);
+        openCast(container, 1);
+        expect(screen.getByTestId('rotation-cast-sheet')).toBeTruthy();
+        // The rail sorts by group then name, so 'Other' sorts before 'Tester'
+        // and is the default selection — clicking 'Other' would change nothing.
+        // 'Tester' is the click that actually swaps the player.
+        act(() => { (screen.getAllByText('Tester')[0].closest('button') as HTMLElement).click(); });
+        expect(screen.queryByTestId('rotation-cast-sheet')).toBeNull();
+    });
+
+    it('never emits an <img> in the sheet for a bare numeric icon index', () => {
+        const numericIcon: RotationFightData = {
+            ...fight,
+            palette: [{ id: 1, name: 'Symbol of Blades', icon: 7 as unknown as string }],
+            players: [{ ...fight.players[0], skill: [0], dt: [0], dur: [500], interrupted: [] }],
+        };
+        const { container } = render(
+            <RotationSection fights={[numericIcon]} recorded selectedFightId="f1" />);
+        openCast(container, 0);
+        expect(screen.getByTestId('rotation-cast-sheet').querySelector('img')).toBeNull();
+    });
 });

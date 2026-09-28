@@ -1,9 +1,10 @@
-import React, { useContext, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { ListOrdered, Maximize2, X } from 'lucide-react';
 import { FightPicker } from './BucketGridTable';
 import { renderProfessionIcon } from '../ui/StatsViewShared';
 import { StatsSharedContext } from '../StatsViewContext';
 import { decodeRotation, type RotationFightData } from '../computeRotationTimeline';
+import { RotationCastSheet } from './RotationCastSheet';
 import { RotationTrack } from './RotationTrack';
 
 /** Matches the taxonomy id in `statsTaxonomy.ts`, which the expand state keys on. */
@@ -111,6 +112,19 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
         [fight, selectedPlayer],
     );
 
+    // A cast index means nothing once the list it indexes into has been
+    // replaced — index 40 is a different skill for a different player.
+    useEffect(() => { setSelectedCastIndex(null); }, [fight?.id, selectedPlayer?.key]);
+
+    useEffect(() => {
+        if (selectedCastIndex === null) return;
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setSelectedCastIndex(null);
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [selectedCastIndex]);
+
     // An older `report.json` has no `rotationTimelineDrilldown` at all, and
     // a half-rendered shell is worse than nothing.
     if (!Array.isArray(fights)) return null;
@@ -216,6 +230,14 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
                                 onSelectCast={(index) => setSelectedCastIndex(
                                     (prev) => (prev === index ? null : index))}
                             />
+                            {selectedCastIndex !== null && (
+                                <RotationCastSheet
+                                    casts={casts}
+                                    index={selectedCastIndex}
+                                    fightDurationMs={fight.durationMs}
+                                    onClose={() => setSelectedCastIndex(null)}
+                                />
+                            )}
                         </>
                     ) : null}
                 </div>
