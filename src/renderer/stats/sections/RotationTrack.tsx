@@ -17,13 +17,19 @@ const mmssMillis = (ms: number): string => {
     return `${sign}${minutes}:${String(seconds).padStart(2, '0')}.${String(millis).padStart(3, '0')}`;
 };
 
-/** Zero-duration casts still need to be hoverable, so every box floors here. */
-const MIN_WIDTH_PCT = 1.05;
+/**
+ * Minimum rendered box width. A percentage floor cannot express "wide enough
+ * for the icon": the pixel width a percentage buys depends on the row's width,
+ * which the percentage does not know. 26px is the 20px icon plus its 2x2px
+ * padding and 2x1px border, so a zero-duration cast stays a real click target
+ * at every row width.
+ */
+const MIN_BOX_PX = 26;
 
 export interface RotationTrackProps {
     fight: RotationFightData;
     player: RotationPlayerData;
-    /** Row width in ms: 15000 | 30000 | 60000. */
+    /** Row width in ms: 10000 | 15000 | 30000 | 60000. */
     wrapMs: number;
 }
 
@@ -69,7 +75,7 @@ const buildRows = (fight: RotationFightData, player: RotationPlayerData, wrapMs:
             const leftMs = prelog && row === 0 ? 0 : Math.max(0, clippedStart - rowStart);
             const widthMs = Math.max(0, clippedEnd - Math.max(clippedStart, rowStart));
             const leftPct = (leftMs / wrapMs) * 100;
-            const widthPct = Math.max(MIN_WIDTH_PCT, (widthMs / wrapMs) * 100);
+            const widthPct = (widthMs / wrapMs) * 100;
             rows[row].push({
                 key: `${castIndex}-${row}`,
                 name: cast.name,
@@ -115,11 +121,11 @@ const LEGEND_STATES: { label: string; state: { interrupted: boolean; prelog: boo
  * captions) rather than introducing a new legend widget for one section.
  */
 const RotationLegend: React.FC = () => (
-    <div className="flex flex-wrap items-center gap-3 text-[10px] mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+    <div className="flex flex-wrap items-center gap-3.5 text-[11px] mb-2" style={{ color: 'var(--text-secondary)' }}>
         {LEGEND_STATES.map(({ label, state }) => (
             <span key={label} className="flex items-center gap-1">
                 <span
-                    className="inline-block w-3 h-2.5 rounded-sm"
+                    className="inline-block w-3.5 h-3 rounded-sm"
                     style={{ border: boxBorder(state), background: 'var(--bg-hover)' }}
                 />
                 {label}
@@ -137,7 +143,7 @@ export const RotationTrack: React.FC<RotationTrackProps> = ({ fight, player, wra
             {rows.map((row, rowIndex) => (
                 <div
                     key={rowIndex}
-                    className="relative h-6 w-full overflow-hidden"
+                    className="relative h-9 w-full overflow-hidden"
                     style={{ background: 'var(--bg-card-inner)', borderRadius: 'var(--radius-md)' }}
                 >
                     {row.map((box) => {
@@ -152,11 +158,12 @@ export const RotationTrack: React.FC<RotationTrackProps> = ({ fight, player, wra
                                 data-cast=""
                                 data-interrupted={box.interrupted ? 'true' : undefined}
                                 data-prelog={box.prelog ? 'true' : undefined}
-                                className="absolute top-0.5 bottom-0.5 flex items-center gap-0.5 overflow-hidden px-0.5 text-[9px] leading-none"
+                                className="absolute top-[3px] bottom-[3px] flex items-center gap-1 overflow-hidden px-1 text-[11px] leading-none"
                                 title={`${box.name} · ${mmssMillis(box.castTime)} · ${box.duration}ms`}
                                 style={{
                                     left: `${box.leftPct}%`,
                                     width: `${box.widthPct}%`,
+                                    minWidth: `${MIN_BOX_PX}px`,
                                     background: 'var(--bg-hover)',
                                     border: boxBorder(box),
                                     borderRadius: 'var(--radius-md)',
@@ -169,7 +176,7 @@ export const RotationTrack: React.FC<RotationTrackProps> = ({ fight, player, wra
                                     `min-w-0 truncate` on the name mean the name is what
                                     disappears first as the box narrows, never the icon. */}
                                 {iconSrc && (
-                                    <img src={iconSrc} alt="" className="h-3 w-3 object-contain shrink-0" />
+                                    <img src={iconSrc} alt="" className="h-5 w-5 object-contain shrink-0" />
                                 )}
                                 <span className="truncate min-w-0">{box.name}</span>
                             </div>

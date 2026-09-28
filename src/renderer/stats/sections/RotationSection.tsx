@@ -31,6 +31,7 @@ const ROTATION_TRIMMED_MESSAGE =
     'Rotation data was recorded but dropped from this report to stay under the upload size limit.';
 
 const WRAP_OPTIONS: Array<{ value: number; label: string }> = [
+    { value: 10000, label: '10s' },
     { value: 15000, label: '15s' },
     { value: 30000, label: '30s' },
     { value: 60000, label: '60s' },
@@ -62,7 +63,11 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
     const closeExpandedSection = sharedContext?.closeExpandedSection ?? (() => {});
     const isExpanded = expandedSection === SECTION_ID;
     const [internalFightId, setInternalFightId] = useState<string | null>(selectedFightId);
-    const [wrapMs, setWrapMs] = useState<number>(30000);
+    // 15s, not 30s: at 30s a typical 600-900ms cast is ~25px wide on a desktop
+    // track, too narrow for the 20px icon plus any name. 15s gives ~55-70px
+    // (icon, no name) and 10s gives ~100px+ (icon and name). 30s and 60s remain
+    // for reading a long fight's shape on one screen.
+    const [wrapMs, setWrapMs] = useState<number>(15000);
     const [selectedPlayerKey, setSelectedPlayerKey] = useState<string | null>(null);
     const [playerFilter, setPlayerFilter] = useState('');
 
@@ -156,7 +161,7 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
                 Per-cast timeline for one player
             </div>
             <div className="flex gap-3">
-                <div className="w-48 shrink-0 flex flex-col gap-1">
+                <div className="w-52 shrink-0 flex flex-col gap-1">
                     <input
                         type="text"
                         value={playerFilter}
