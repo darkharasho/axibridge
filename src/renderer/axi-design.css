@@ -719,7 +719,6 @@
   padding: 8px;
 }
 [data-axi-accent] body .dashboard-rail .rail-stack { gap: 8px; }
-[data-axi-accent] body .dashboard-rail .rail-card { padding: 8px 10px; }
 [data-axi-accent] body .dashboard-rail .rail-card__label { margin-bottom: 4px; }
 /* Rows carry a hairline between them, so their own padding is the only thing
    holding them apart and 3px is still a clear gap at this type size. */
@@ -771,11 +770,6 @@
    once by a cap of status colour over its label. The wells inside it are the
    ground, so their line is the well line and not the ink. */
 [data-axi-accent] body .overview-card {
-  /* The card carried no fill of its own, which was survivable when it was an
-     outlined box but not now that it holds wells: ground inside ground is not
-     a well, it is nothing. It sits on the ground like every other panel. */
-  background: var(--axi-surface);
-  --panel-border-w: var(--axi-border-panel);
   --overview-edge-w: var(--axi-border-panel);
   --overview-label: var(--axi-text-dim);
   --overview-well-w: var(--axi-border-control);
@@ -1093,20 +1087,10 @@
    what keeps the cards reading as the thing you are meant to click. */
 [data-axi-accent] body .history-view {
   --history-edge-w: var(--axi-border-control);
-  --history-card-hover-edge: var(--axi-rule);
   /* The filter's "on" state was the accent at 15% over the ground. An accent
      at partial opacity is rule 2 exactly; the state is carried by the accent
      edge and the accent label it already has, so the fill just goes opaque. */
   --history-filter-on-bg: var(--axi-surface-raised);
-}
-
-/* The width has to arrive through the variable rather than a `border-width`
-   rule: the edge is an inline shorthand, and an inline shorthand beats any
-   selector. Setting --history-edge-w on the card itself re-resolves the
-   inline var() in place, which is the only way in. */
-[data-axi-accent] body .history-card {
-  --history-edge-w: var(--axi-border-panel);
-  box-shadow: var(--axi-shadow-panel);
 }
 
 /* The map split is a quantity read as length, so it keeps its proportions and
@@ -1201,14 +1185,6 @@
    The one thing deliberately not touched is the white stroke on the objective
    markers. That is a legibility outline over a map tile, not a colour over the
    app's ground, and over terrain it has to be the thing that stays readable. */
-[data-axi-accent] body .replay-picker-card {
-  --panel-border-w: var(--axi-border-control);
-  border-radius: var(--axi-radius-sm);
-}
-[data-axi-accent] body .replay-picker-card.is-active {
-  box-shadow: var(--axi-shadow-control);
-}
-
 /* ---------------------------------------------------------------------------
    THE SETTINGS VIEW
    The largest surface in the app and the last one with no section of its own.
@@ -1220,17 +1196,14 @@
    the same hairline at the same radius, so nothing in a 3800-line view told
    you what contained what.
 
-   It needs almost nothing, because every section in the view goes through one
-   wrapper and every well and input in the cards reads --panel-border-w. Give
-   the wrapper the panel step and the rest falls out: the sections become the
+   It needed almost nothing, because every section in the view goes through one
+   wrapper and every well and input in the cards reads --panel-border-w. Giving
+   the wrapper the panel step made the rest fall out: the sections are the
    panels, and the wells and inputs inside them stay at the control step the
-   body already sets, one rung down. That single step of difference is the
-   whole fix. */
-[data-axi-accent] body .settings-section {
-  --panel-border-w: var(--axi-border-panel);
-  border-radius: var(--axi-radius);
-  box-shadow: var(--axi-shadow-panel);
-}
+   body already sets, one rung down. That single step of difference was the
+   whole fix - and the wrapper now says it by being an .axi-panel, so nothing
+   about the sections themselves is written here any more. What is left is the
+   one ornament upstream has no word for. */
 
 /* The section's icon sat in a tinted blue box with a coloured edge, which is
    rule 5's annotation chip - the same form the buttons were pulled out of two

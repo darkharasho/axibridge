@@ -86,7 +86,7 @@ export const OverviewSection = () => {
     );
 
     return (
-        <div className="overview-card" style={{ border: 'var(--panel-border-w, 1px) solid var(--border-default)', borderRadius: 'var(--radius-md)', padding: '16px 18px' }}>
+        <div className="overview-card axi-panel [--axi-panel-pad:16px_18px]">
             {/* Averages over one sample, and a win/loss tally of a single
                 result, say nothing a reader cannot read off the fight header
                 directly above — which already carries squad vs enemies and the
