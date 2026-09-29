@@ -328,7 +328,6 @@
 [data-axi-accent] body .bg-cyan-500\/30,
 [data-axi-accent] body .bg-cyan-500\/8,
 [data-axi-accent] body .bg-emerald-400\/5,
-[data-axi-accent] body .bg-emerald-500\/10,
 [data-axi-accent] body .bg-emerald-500\/15,
 [data-axi-accent] body .bg-emerald-500\/20,
 [data-axi-accent] body .bg-fuchsia-500\/20,
@@ -821,81 +820,72 @@
 [data-axi-accent] body .modal-pane button[aria-label^="Close "]:hover { background: var(--axi-surface-raised); }
 
 /* ---------------------------------------------------------------------------
-   THE PLAIN TABLES
-   Thirty tables across the stats, commander, settings and release-notes views
-   were written as bare `<table>` with nothing but utility classes on them: no
-   frame, no header ground, a hairline under each row and nothing else. They
-   are the majority of the tables in the app by count, and they were the ones
-   that kept looking untouched, because there was no hook to touch.
+   THE PLAIN TABLES -- gone, and the reason is the whole argument for this work.
 
-   They now carry one class and read as the same object DenseStatsTable is -
-   deliberately the same vocabulary, because two kinds of table in one app is
-   two systems. Frame at the control step in ink, header at the raised step
-   with the control cut under it, rows parted by the rule, zebra in two opaque
-   fills rather than a wash. */
-[data-axi-accent] body .stats-table {
-  border: var(--axi-border-control) solid var(--axi-ink-line);
-  border-radius: var(--axi-radius-sm);
-  /* Cell radii - and so the table's own rounded corners - only exist under
-     separate borders; collapse throws them away. */
-  border-collapse: separate;
-  border-spacing: 0;
-  background: var(--axi-surface);
-}
-[data-axi-accent] body .stats-table thead th {
-  background: var(--axi-surface-raised);
-  color: var(--axi-text);
-  border-bottom: var(--axi-border-control) solid var(--axi-ink-line);
-}
-[data-axi-accent] body .stats-table thead th:not(:last-child) {
-  border-right: 1px solid var(--axi-rule);
-}
-[data-axi-accent] body .stats-table tbody td {
-  border-bottom: 1px solid var(--axi-rule);
-  background: transparent;
-}
-[data-axi-accent] body .stats-table tbody tr:last-child > td { border-bottom: none; }
-[data-axi-accent] body .stats-table tbody tr:nth-of-type(odd) > td { background: var(--axi-ground); }
-[data-axi-accent] body .stats-table tbody tr:hover > td { background: var(--axi-surface-raised); }
-/* The frame's corners have to be cut into the cells that sit in them. */
-[data-axi-accent] body .stats-table thead tr:first-child > *:first-child { border-top-left-radius: var(--axi-radius-sm); }
-[data-axi-accent] body .stats-table thead tr:first-child > *:last-child { border-top-right-radius: var(--axi-radius-sm); }
-[data-axi-accent] body .stats-table tbody tr:last-child > *:first-child { border-bottom-left-radius: var(--axi-radius-sm); }
-[data-axi-accent] body .stats-table tbody tr:last-child > *:last-child { border-bottom-right-radius: var(--axi-radius-sm); }
+   Twelve rules used to live here reskinning `.stats-table`: a frame at the
+   control step, a vertical rule between every pair of header cells, a zebra in
+   two opaque fills. Upstream's `.axi-table` opens by refusing exactly that --
+   "rows are separated by rules, never outlined and never blocked: the panel is
+   the raised thing and the table is what is inside it", and names the failure
+   the hairline exists to avoid as turning a list of numbers into a grid of
+   boxes. This file drew the grid of boxes. It argued against the design system
+   it is a bridge to, by accident, because nobody writing it had read rule 8.
+
+   The zebra is the sharper lesson. It was `background: var(--axi-ground)` --
+   the page colour used as a surface, which is the conflation upstream's
+   `fix(well)` release went through its own components to correct. This copy
+   never got that fix, because a reskin does not merely duplicate a component,
+   it duplicates the component's bugs and then only one of the two copies is
+   ever repaired. Under glass it rendered as opaque near-black stripes inside a
+   translucent panel.
+
+   All 29 tables now carry `.axi-table` and its modifiers. See the
+   commit for the measured before/after. */
 
 /* ---------------------------------------------------------------------------
    THE SHELL-BUILT TABLES
-   The third kind. A dozen sections build their rows as bare `grid-cols-[...]`
-   divs inside StatsTableShell, whose wrapper classes existed but had never had
-   a single rule written against them. Same vocabulary again, applied to the
-   two containers rather than to thirty hand-written column templates. */
+   The third kind, and the one place in the app where the table VOCABULARY
+   cannot be adopted: a dozen sections build their rows as `grid-cols-[...]`
+   divs inside StatsTableShell, and `.axi-table`'s rules all select `th`, `td`
+   and `tbody tr`. There is no element here for them to match.
+
+   What can be adopted is the rule behind them, which is what these rules got
+   wrong. They used to draw the same frame the plain-table reskin drew, in the
+   same two defects: a box outlining the rows, which rule 8 refuses by name, and
+   a zebra on `--axi-ground` -- the page colour used as a surface, the
+   conflation upstream's `fix(well)` release corrected across its own components
+   and that this hand-written copy never received.
+
+   So: no frame and no zebra. The head keeps its raised fill and the
+   control-weight cut that makes it a lid on the column, the rows are parted by
+   the hairline that is exactly what --axi-border-hairline exists for, and the
+   panel around them stays the raised thing. Two kinds of table in this app now
+   agree because both follow one rule, rather than because one was drawn to
+   match the other.
+
+   Converting the grid divs to real tables would let them take `.axi-table`
+   outright, and is the honest end state; it is a markup slice, not a CSS one. */
 [data-axi-accent] body .stats-table-shell__columns {
   background: var(--axi-surface-raised);
+  /* The one-surface-many-elements case upstream's .axi-table documents: a themed
+     surface is allowed to be a gradient, and glass makes this one, so a row of
+     cells each restarting it arrives as separately lit boxes with a seam
+     between them. Sharing the painting area resolves them back into one strip. */
+  background-attachment: fixed;
   color: var(--axi-text);
-  border-bottom: var(--axi-border-control) solid var(--axi-ink-line);
+  border-bottom: var(--axi-border-control) solid var(--axi-rule);
   border-top-left-radius: var(--axi-radius-sm);
   border-top-right-radius: var(--axi-radius-sm);
 }
 [data-axi-accent] body .stats-table-shell__columns > * { border-bottom: none; }
-/* The shell renders the head stack and the rows as siblings, not as one box,
-   so the frame is drawn in two halves that meet: the head stack carries the
-   top and sides, the rows carry the sides and the bottom, and neither draws
-   the line between them twice - that line is the header's own cut. */
-[data-axi-accent] body .stats-table-shell__head-stack {
-  border: var(--axi-border-control) solid var(--axi-ink-line);
-  border-bottom: none;
-  border-top-left-radius: var(--axi-radius-sm);
-  border-top-right-radius: var(--axi-radius-sm);
-  overflow: hidden;
+[data-axi-accent] body .stats-table-shell__rows > * + * {
+  border-top: var(--axi-border-hairline) solid var(--axi-rule);
 }
-[data-axi-accent] body .stats-table-shell__rows {
-  background: var(--axi-surface);
-  border: var(--axi-border-control) solid var(--axi-ink-line);
-  border-top: none;
-  border-bottom-left-radius: var(--axi-radius-sm);
-  border-bottom-right-radius: var(--axi-radius-sm);
+[data-axi-accent] body .stats-table-shell__rows > *:hover {
+  background: var(--axi-surface-raised);
+  background-attachment: fixed;
+  color: var(--axi-text);
 }
-[data-axi-accent] body .stats-table-shell__rows > *:nth-child(odd) { background: var(--axi-ground); }
 
 /* ---------------------------------------------------------------------------
    THE CHART CHROME
@@ -1300,8 +1290,8 @@
    white-alpha hairlines: a row divider at 3%, a 30s tick at 10%, a subgroup
    cut at 10%. Rule 2 rules those out, and over the axi ground they were close
    to invisible anyway - the grid had an axi frame around a field that still
-   looked like the old one. Redrawn in the vocabulary DenseStatsTable and
-   .stats-table already share, so this reads as the third member of that family
+   looked like the old one. Redrawn in the vocabulary upstream's
+   `.axi-table` sets, so this reads as a member of that family
    rather than as a heatmap that happens to live nearby: zebra in two opaque
    fills, row dividers on the rule, the subgroup cut in ink at the hairline
    step because a change of party is a heavier statement than a change of row.

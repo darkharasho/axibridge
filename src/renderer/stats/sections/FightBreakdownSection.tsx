@@ -284,75 +284,72 @@ export const FightBreakdownSection = ({
                 ) : (
                     <div className="overflow-x-auto">
                         <div className="max-h-[360px] overflow-y-auto">
-                            <table className="stats-table w-full text-xs table-auto min-w-[720px]">
+                            <table className="axi-table min-w-[720px]">
                                 <thead>
-                                    <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
-                                        <th className="text-right py-2 px-3 w-8">#</th>
-                                        <th className="text-left py-2 px-3 w-[240px]">Report</th>
-                                        <th className="text-left py-2 px-3 w-20">Duration</th>
-                                        <th className="text-left py-2 px-3 w-20">Outcome</th>
+                                    <tr>
+                                        <th className="text-right w-8">#</th>
+                                        <th className="text-left w-[240px]">Report</th>
+                                        <th className="text-left w-20">Duration</th>
+                                        <th className="text-left w-20">Outcome</th>
                                         {fightBreakdownTab === 'sizes' && (
                                             <>
-                                                <th className="text-right py-2 px-3">Squad</th>
-                                                <th className="text-right py-2 px-3">Allies</th>
-                                                <th className="text-right py-2 px-3">Enemies</th>
+                                                <th>Squad</th>
+                                                <th>Allies</th>
+                                                <th>Enemies</th>
                                                 {teamColorColumns.length === 0 ? (
-                                                    <th className="text-right py-2 px-3">Teams</th>
+                                                    <th>Teams</th>
                                                 ) : (
                                                     teamColorColumns.map((color) => (
-                                                        <th key={color} className="text-right py-2 px-3" style={{ color: WVW_TEAM_COLOR_META[color].hex }}>{WVW_TEAM_COLOR_META[color].label}</th>
+                                                        <th key={color} style={{ color: WVW_TEAM_COLOR_META[color].hex }}>{WVW_TEAM_COLOR_META[color].label}</th>
                                                     ))
                                                 )}
                                             </>
                                         )}
                                         {fightBreakdownTab === 'outcomes' && (
                                             <>
-                                                <th className="text-right py-2 px-3">Allies Down</th>
-                                                <th className="text-right py-2 px-3">Allies Dead</th>
-                                                <th className="text-right py-2 px-3">Allies Revived</th>
-                                                <th className="text-right py-2 px-3">Rallies</th>
-                                                <th className="text-right py-2 px-3">Enemy Downs</th>
-                                                <th className="text-right py-2 px-3">Enemy Deaths</th>
+                                                <th>Allies Down</th>
+                                                <th>Allies Dead</th>
+                                                <th>Allies Revived</th>
+                                                <th>Rallies</th>
+                                                <th>Enemy Downs</th>
+                                                <th>Enemy Deaths</th>
                                             </>
                                         )}
                                         {fightBreakdownTab === 'damage' && (
                                             <>
-                                                <th className="text-right py-2 px-3">Outgoing Dmg</th>
-                                                <th className="text-right py-2 px-3">Incoming Dmg</th>
-                                                <th className="text-right py-2 px-3">Delta</th>
+                                                <th>Outgoing Dmg</th>
+                                                <th>Incoming Dmg</th>
+                                                <th>Delta</th>
                                             </>
                                         )}
                                         {fightBreakdownTab === 'barrier' && (
                                             <>
                                                 <th
-                                                    className="text-right py-2 px-3"
-                                                    title="Incoming damage mitigated by your squad's barrier"
-                                                >
+ 
+ title="Incoming damage mitigated by your squad's barrier">
                                                     Barrier Absorbed
                                                 </th>
                                                 <th
-                                                    className="text-right py-2 px-3"
-                                                    title="Barrier your squad applied to squad members"
-                                                >
+ 
+ title="Barrier your squad applied to squad members">
                                                     Barrier Generated
                                                 </th>
                                                 <th
-                                                    className="text-right py-2 px-3"
-                                                    title="Barrier that expired before absorbing any damage (generated minus absorbed). Lower is better."
-                                                >
+ 
+ title="Barrier that expired before absorbing any damage (generated minus absorbed). Lower is better.">
                                                     Unused
                                                 </th>
                                             </>
                                         )}
-                                        <th className="text-left py-2 px-3 w-20">dps.report</th>
+                                        <th className="text-left w-20">dps.report</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {fights.map((fight: any, idx: number) => (
-                                        <tr key={fight.id || `${fight.label}-${idx}`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-muted)] w-8">{fights.length - idx}</td>
-                                            <td className="py-2 px-3 w-[240px]">{renderReportCell(fight)}</td>
-                                            <td className="py-2 px-3 text-[color:var(--text-primary)] w-20">{fight.duration || '--:--'}</td>
+                                        <tr key={fight.id || `${fight.label}-${idx}`}>
+                                            <td className="text-right text-[color:var(--text-muted)] w-8">{fights.length - idx}</td>
+                                            <td className="w-[240px]">{renderReportCell(fight)}</td>
+                                            <td className="axi-table__num w-20">{fight.duration || '--:--'}</td>
                                             <td
                                                 className={`py-2 px-3 font-semibold ${
                                                     fight.isWin === true
@@ -366,7 +363,7 @@ export const FightBreakdownSection = ({
                                             </td>
                                             {fightBreakdownTab === 'sizes' && (
                                                 <>
-                                                    <td className="py-2 px-3 text-right font-mono">
+                                                    <td>
                                                         <CountClassTooltip
                                                             count={fight.squadCount ?? 0}
                                                             classCounts={fight.squadClassCountsFight}
@@ -374,7 +371,7 @@ export const FightBreakdownSection = ({
                                                             className="text-[color:var(--text-primary)]"
                                                         />
                                                     </td>
-                                                    <td className="py-2 px-3 text-right font-mono">
+                                                    <td>
                                                         <CountClassTooltip
                                                             count={fight.allyCount ?? 0}
                                                             classCounts={fight.allyClassCountsFight}
@@ -382,7 +379,7 @@ export const FightBreakdownSection = ({
                                                             className="text-[color:var(--text-primary)]"
                                                         />
                                                     </td>
-                                                    <td className="py-2 px-3 text-right font-mono">
+                                                    <td>
                                                         <CountClassTooltip
                                                             count={fight.enemyCount ?? 0}
                                                             classCounts={fight.enemyClassCounts}
@@ -391,7 +388,7 @@ export const FightBreakdownSection = ({
                                                         />
                                                     </td>
                                                     {teamColorColumns.length === 0 ? (
-                                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">0</td>
+                                                        <td className="axi-table__num">0</td>
                                                     ) : (
                                                         teamColorColumns.map((color) => {
                                                             const rows = Array.isArray(fight.teamBreakdown) ? fight.teamBreakdown : [];
@@ -400,7 +397,7 @@ export const FightBreakdownSection = ({
                                                                 return rowColor === color ? sum + Number(row?.count || 0) : sum;
                                                             }, 0);
                                                             return (
-                                                                <td key={color} className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">
+                                                                <td key={color} className="axi-table__num">
                                                                     {total}
                                                                 </td>
                                                             );
@@ -410,18 +407,18 @@ export const FightBreakdownSection = ({
                                             )}
                                             {fightBreakdownTab === 'outcomes' && (
                                                 <>
-                                                    <td className="py-2 px-3 text-right font-mono">{fight.alliesDown ?? 0}</td>
-                                                    <td className="py-2 px-3 text-right font-mono">{fight.alliesDead ?? 0}</td>
-                                                    <td className="py-2 px-3 text-right font-mono">{fight.alliesRevived ?? 0}</td>
-                                                    <td className="py-2 px-3 text-right font-mono">{fight.rallies ?? 0}</td>
-                                                    <td className="py-2 px-3 text-right font-mono">{fight.enemyDowns ?? 0}</td>
-                                                    <td className="py-2 px-3 text-right font-mono">{fight.enemyDeaths ?? 0}</td>
+                                                    <td>{fight.alliesDown ?? 0}</td>
+                                                    <td>{fight.alliesDead ?? 0}</td>
+                                                    <td>{fight.alliesRevived ?? 0}</td>
+                                                    <td>{fight.rallies ?? 0}</td>
+                                                    <td>{fight.enemyDowns ?? 0}</td>
+                                                    <td>{fight.enemyDeaths ?? 0}</td>
                                                 </>
                                             )}
                                             {fightBreakdownTab === 'damage' && (
                                                 <>
-                                                    <td className="py-2 px-3 text-right font-mono">{Number(fight.totalOutgoingDamage || 0).toLocaleString()}</td>
-                                                    <td className="py-2 px-3 text-right font-mono">{Number(fight.totalIncomingDamage || 0).toLocaleString()}</td>
+                                                    <td>{Number(fight.totalOutgoingDamage || 0).toLocaleString()}</td>
+                                                    <td>{Number(fight.totalIncomingDamage || 0).toLocaleString()}</td>
                                                     {(() => {
                                                         const delta = Number((fight.totalOutgoingDamage || 0) - (fight.totalIncomingDamage || 0));
                                                         return (
@@ -434,8 +431,8 @@ export const FightBreakdownSection = ({
                                             )}
                                             {fightBreakdownTab === 'barrier' && (
                                                 <>
-                                                    <td className="py-2 px-3 text-right font-mono">{Number(fight.incomingBarrierAbsorbed || 0).toLocaleString()}</td>
-                                                    <td className="py-2 px-3 text-right font-mono">{fightBarrierGenerated(fight).toLocaleString()}</td>
+                                                    <td>{Number(fight.incomingBarrierAbsorbed || 0).toLocaleString()}</td>
+                                                    <td>{fightBarrierGenerated(fight).toLocaleString()}</td>
                                                     {(() => {
                                                         const delta = fightBarrierUnused(fight);
                                                         return (
@@ -446,7 +443,7 @@ export const FightBreakdownSection = ({
                                                     })()}
                                                 </>
                                             )}
-                                            <td className="py-2 px-3 w-20">{renderDpsReportCell(fight)}</td>
+                                            <td className="w-20">{renderDpsReportCell(fight)}</td>
                                         </tr>
                                     ))}
                                 </tbody>

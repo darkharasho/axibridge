@@ -65,11 +65,15 @@ export const OnTagReviewSection = ({ result }: Props) => {
 
     const sortIcon = (key: SortKey) =>
         key !== sortKey ? null : sortDir === 'asc' ? <ArrowUp className="w-3 h-3 inline-block" /> : <ArrowDown className="w-3 h-3 inline-block" />;
+    // aria-sort is both the announcement and the styling hook that upstream's
+    // .axi-table th[aria-sort] reads; a class beside it would say one fact twice.
+    const ariaSort = (key: SortKey): 'ascending' | 'descending' | undefined =>
+        key !== sortKey ? undefined : sortDir === 'asc' ? 'ascending' : 'descending';
 
     const countCell = (key: string, value: number, color?: string, bold?: boolean) => (
         <td
             key={key}
-            className="text-right py-2 px-3 font-mono whitespace-nowrap"
+            className="axi-table__num"
             style={value === 0
                 ? { color: 'var(--text-secondary)', opacity: 0.45 }
                 : { color: color || 'var(--text-primary)', fontWeight: bold ? 700 : undefined }}
@@ -128,44 +132,47 @@ export const OnTagReviewSection = ({ result }: Props) => {
                     No replay data available — commander tag positions are required for this table.
                 </div>
             ) : (
-                <div className={`rounded-[var(--radius-md)] overflow-hidden ${visibleRows.length > 12 ? 'max-h-[30rem] overflow-y-auto' : ''}`}>
-                    <table className="stats-table w-full text-xs table-auto min-w-full border-separate border-spacing-0" style={{ color: 'var(--text-primary)' }}>
+                <div className={`axi-table__scroll rounded-[var(--radius-md)] ${visibleRows.length > 12 ? 'max-h-[30rem]' : ''}`}>
+                    <table className="axi-table axi-table--sticky">
                         <thead>
-                            <tr className="text-[10px] uppercase tracking-widest border-b border-[color:var(--border-default)]" style={{ color: 'var(--text-secondary)' }}>
-                                <th className="text-left py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer" onClick={() => onSort('account')}>Player {sortIcon('account')}</th>
-                                <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer" onClick={() => onSort('fightCount')}># Fights {sortIcon('fightCount')}</th>
-                                <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer" onClick={() => onSort('avgDist')} title="Average distance to tag while alive, before the tag died">Avg Dist {sortIcon('avgDist')}</th>
+                            <tr>
+                                <th scope="col" aria-sort={ariaSort('account')}>
+                                    <button type="button" className="axi-table__sort" onClick={() => onSort('account')}>Player {sortIcon('account')}</button>
+                                </th>
+                                <th scope="col" aria-sort={ariaSort('fightCount')}>
+                                    <button type="button" className="axi-table__sort" onClick={() => onSort('fightCount')}># Fights {sortIcon('fightCount')}</button>
+                                </th>
+                                <th scope="col" aria-sort={ariaSort('avgDist')} title="Average distance to tag while alive, before the tag died">
+                                    <button type="button" className="axi-table__sort" onClick={() => onSort('avgDist')}>Avg Dist {sortIcon('avgDist')}</button>
+                                </th>
                                 {DEATH_COLUMNS.map(col => (
-                                    <th
-                                        key={col.key}
-                                        className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer"
-                                        onClick={() => onSort(col.key)}
-                                        title={col.tip}
-                                    >
-                                        <span className="inline-flex items-center gap-1">{col.label} <Skull className="w-2.5 h-2.5 inline-block opacity-60" /> {sortIcon(col.key)}</span>
+                                    <th key={col.key} scope="col" aria-sort={ariaSort(col.key)} title={col.tip}>
+                                        <button type="button" className="axi-table__sort" onClick={() => onSort(col.key)}>
+                                            {col.label} <Skull className="w-2.5 h-2.5 inline-block opacity-60" /> {sortIcon(col.key)}
+                                        </button>
                                     </th>
                                 ))}
-                                <th className="text-left py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title="Distances of Off-Tag deaths, furthest first">Off-Tag Ranges</th>
+                                <th scope="col" className="text-left" title="Distances of Off-Tag deaths, furthest first">Off-Tag Ranges</th>
                             </tr>
                         </thead>
                         <tbody>
                             {visibleRows.map(r => (
-                                <tr key={r.account} className="align-top border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                    <td className="py-2 px-3 whitespace-nowrap">
-                                        <span className="inline-flex items-center gap-1.5">
+                                <tr key={r.account} className="align-top">
+                                    <td>
+                                        <span className="axi-table__who">
                                             {renderProfessionIcon(r.profession, r.professionList, 'w-4 h-4 flex-shrink-0')}
                                             <span>{r.account}</span>
                                             {r.isCommander && <span title="Commander" style={{ color: 'var(--status-warning)' }}>★</span>}
                                         </span>
                                     </td>
-                                    <td className="text-right py-2 px-3 font-mono whitespace-nowrap">{r.fightCount}</td>
-                                    <td className="text-right py-2 px-3 font-mono whitespace-nowrap">
+                                    <td className="axi-table__num">{r.fightCount}</td>
+                                    <td className="axi-table__num">
                                         {r.avgDist === null
                                             ? <span style={{ color: 'var(--text-secondary)', opacity: 0.35 }}>—</span>
                                             : formatWithCommas(r.avgDist, 0)}
                                     </td>
                                     {DEATH_COLUMNS.map(col => countCell(col.key, r[col.key], col.color, col.bold))}
-                                    <td className="py-2 px-3">{rangeChips(r.offTagRanges)}</td>
+                                    <td className="text-left">{rangeChips(r.offTagRanges)}</td>
                                 </tr>
                             ))}
                         </tbody>

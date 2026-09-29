@@ -200,19 +200,19 @@ export const CommanderTargetConversionSection = ({
             ) : (
                 <div className="space-y-4 min-w-0">
                     <div className="w-full max-w-full overflow-x-auto pb-1">
-                        <table className="stats-table w-full min-w-[700px] text-xs table-auto">
+                        <table className="axi-table min-w-[700px]">
                             <thead>
-                                <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
-                                    <th className="text-left py-2 px-3">Commander</th>
-                                    <th className="text-right py-2 px-3">Down To Kill %</th>
+                                <tr>
+                                    <th>Commander</th>
+                                    <th>Down To Kill %</th>
                                     {/* At one fight these are totalDowns/1 and
                                         totalKills/1 — the same numbers as Enemy
                                         Downs and Enemy Kills two columns over. */}
-                                    {!singleFight && <th className="text-right py-2 px-3">Avg Downs / Fight</th>}
-                                    {!singleFight && <th className="text-right py-2 px-3">Avg Kills / Fight</th>}
-                                    <th className="text-right py-2 px-3">Failed Downs</th>
-                                    <th className="text-right py-2 px-3">Enemy Downs</th>
-                                    <th className="text-right py-2 px-3">Enemy Kills</th>
+                                    {!singleFight && <th>Avg Downs / Fight</th>}
+                                    {!singleFight && <th>Avg Kills / Fight</th>}
+                                    <th>Failed Downs</th>
+                                    <th>Enemy Downs</th>
+                                    <th>Enemy Kills</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -220,17 +220,16 @@ export const CommanderTargetConversionSection = ({
                                     <tr
                                         key={`${row.key}-target-conversion`}
                                         onClick={() => setSelectedCommanderKey(row.key)}
-                                        className={`border-b border-[color:var(--border-subtle)] cursor-pointer transition-colors ${
-                                            selectedCommander?.key === row.key ? 'bg-cyan-500/10' : 'hover:bg-[var(--bg-hover)]'
-                                        }`}
+                                        className="cursor-pointer transition-colors"
+                                        aria-current={selectedCommander?.key === row.key ? true : undefined}
                                     >
-                                        <td className="py-2 px-3 axi-ink-plain font-semibold truncate">{row.account}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(row.downToKillConversionPct)}</td>
-                                        {!singleFight && <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgDownsPerFight, 1)}</td>}
-                                        {!singleFight && <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgKillsPerFight, 1)}</td>}
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.failedDownEstimate)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.downs)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.kills)}</td>
+                                        <td className="axi-ink-plain font-semibold truncate">{row.account}</td>
+                                        <td className="axi-table__num">{formatNullablePct(row.downToKillConversionPct)}</td>
+                                        {!singleFight && <td className="axi-table__num">{formatNullableNumber(row.avgDownsPerFight, 1)}</td>}
+                                        {!singleFight && <td className="axi-table__num">{formatNullableNumber(row.avgKillsPerFight, 1)}</td>}
+                                        <td className="axi-table__num">{formatInt(row.failedDownEstimate)}</td>
+                                        <td className="axi-table__num">{formatInt(row.downs)}</td>
+                                        <td className="axi-table__num">{formatInt(row.kills)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -239,25 +238,25 @@ export const CommanderTargetConversionSection = ({
 
                     {selectedCommander && (
                         <div className="overflow-x-auto min-w-0">
-                            <table className="stats-table w-full min-w-[620px] text-xs table-auto">
+                            <table className="axi-table min-w-[620px]">
                                 <thead>
-                                    <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
-                                        <th className="text-left py-2 px-3">Fight</th>
-                                        <th className="text-right py-2 px-3">Enemy Downs</th>
-                                        <th className="text-right py-2 px-3">Enemy Kills</th>
-                                        <th className="text-right py-2 px-3">Conversion %</th>
-                                        <th className="text-right py-2 px-3">Failed Downs</th>
-                                        <th className="text-right py-2 px-3">Result</th>
+                                    <tr>
+                                        <th>Fight</th>
+                                        <th>Enemy Downs</th>
+                                        <th>Enemy Kills</th>
+                                        <th>Conversion %</th>
+                                        <th>Failed Downs</th>
+                                        <th>Result</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {newestFirst(selectedCommander.fightsData).map((fight) => (
-                                        <tr key={`${fight.id}-target-conversion`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                            <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</td>
-                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(fight.downs)}</td>
-                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(fight.kills)}</td>
-                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(fight.downToKillConversionPct)}</td>
-                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(fight.failedDownEstimate)}</td>
+                                        <tr key={`${fight.id}-target-conversion`}>
+                                            <td className="axi-ink-plain">{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</td>
+                                            <td className="axi-table__num">{formatInt(fight.downs)}</td>
+                                            <td className="axi-table__num">{formatInt(fight.kills)}</td>
+                                            <td className="axi-table__num">{formatNullablePct(fight.downToKillConversionPct)}</td>
+                                            <td className="axi-table__num">{formatInt(fight.failedDownEstimate)}</td>
                                             <td className={`py-2 px-3 text-right font-semibold ${fight.isWin ? 'axi-ink-ok' : 'axi-ink-danger'}`}>
                                                 {fight.isWin ? 'Win' : 'Loss'}
                                             </td>
@@ -327,14 +326,14 @@ export const CommanderTagMovementSection = ({
                         </div>
                     ) : null}
                     <div className="w-full max-w-full overflow-x-auto pb-1">
-                        <table className="stats-table w-full min-w-[700px] text-xs table-auto">
+                        <table className="axi-table min-w-[700px]">
                             <thead>
-                                <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
-                                    <th className="text-left py-2 px-3">Commander</th>
-                                    <th className="text-right py-2 px-3">{avgLabel(singleFight, 'Avg Distance', 'Distance')}</th>
-                                    <th className="text-right py-2 px-3">Move / Min</th>
-                                    <th className="text-right py-2 px-3">Stationary %</th>
-                                    <th className="text-right py-2 px-3">Move Bursts</th>
+                                <tr>
+                                    <th>Commander</th>
+                                    <th>{avgLabel(singleFight, 'Avg Distance', 'Distance')}</th>
+                                    <th>Move / Min</th>
+                                    <th>Stationary %</th>
+                                    <th>Move Bursts</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -342,15 +341,14 @@ export const CommanderTagMovementSection = ({
                                     <tr
                                         key={`${row.key}-tag-movement`}
                                         onClick={() => setSelectedCommanderKey(row.key)}
-                                        className={`border-b border-[color:var(--border-subtle)] cursor-pointer transition-colors ${
-                                            selectedCommander?.key === row.key ? 'bg-emerald-500/10' : 'hover:bg-[var(--bg-hover)]'
-                                        }`}
+                                        className="cursor-pointer transition-colors"
+                                        aria-current={selectedCommander?.key === row.key ? true : undefined}
                                     >
-                                        <td className="py-2 px-3 axi-ink-plain font-semibold truncate">{row.account}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgCommanderDistanceTraveled, 0)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgCommanderMovementPerMinute, 1)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(row.avgTagStationaryPct)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgTagMovementBurstCount, 1)}</td>
+                                        <td className="axi-ink-plain font-semibold truncate">{row.account}</td>
+                                        <td className="axi-table__num">{formatNullableNumber(row.avgCommanderDistanceTraveled, 0)}</td>
+                                        <td className="axi-table__num">{formatNullableNumber(row.avgCommanderMovementPerMinute, 1)}</td>
+                                        <td className="axi-table__num">{formatNullablePct(row.avgTagStationaryPct)}</td>
+                                        <td className="axi-table__num">{formatNullableNumber(row.avgTagMovementBurstCount, 1)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -359,25 +357,25 @@ export const CommanderTagMovementSection = ({
 
                     {selectedCommander && (
                         <div className="overflow-x-auto min-w-0">
-                            <table className="stats-table w-full min-w-[620px] text-xs table-auto">
+                            <table className="axi-table min-w-[620px]">
                                 <thead>
-                                    <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
-                                        <th className="text-left py-2 px-3">Fight</th>
-                                        <th className="text-right py-2 px-3">Distance</th>
-                                        <th className="text-right py-2 px-3">Move / Min</th>
-                                        <th className="text-right py-2 px-3">Stationary %</th>
-                                        <th className="text-right py-2 px-3">Bursts</th>
-                                        <th className="text-right py-2 px-3">Result</th>
+                                    <tr>
+                                        <th>Fight</th>
+                                        <th>Distance</th>
+                                        <th>Move / Min</th>
+                                        <th>Stationary %</th>
+                                        <th>Bursts</th>
+                                        <th>Result</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {newestFirst(selectedCommander.fightsData).map((fight) => (
-                                        <tr key={`${fight.id}-tag-movement`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                            <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</td>
-                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(fight.distanceTraveled, 0)}</td>
-                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(fight.movementPerMinute, 1)}</td>
-                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(fight.stationaryPct)}</td>
-                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(fight.movementBurstCount, 0)}</td>
+                                        <tr key={`${fight.id}-tag-movement`}>
+                                            <td className="axi-ink-plain">{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</td>
+                                            <td className="axi-table__num">{formatNullableNumber(fight.distanceTraveled, 0)}</td>
+                                            <td className="axi-table__num">{formatNullableNumber(fight.movementPerMinute, 1)}</td>
+                                            <td className="axi-table__num">{formatNullablePct(fight.stationaryPct)}</td>
+                                            <td className="axi-table__num">{formatNullableNumber(fight.movementBurstCount, 0)}</td>
                                             <td className={`py-2 px-3 text-right font-semibold ${fight.isWin ? 'axi-ink-ok' : 'axi-ink-danger'}`}>
                                                 {fight.isWin ? 'Win' : 'Loss'}
                                             </td>
@@ -447,15 +445,15 @@ export const CommanderTagDeathResponseSection = ({
                         </div>
                     ) : null}
                     <div className="w-full max-w-full overflow-x-auto pb-1">
-                        <table className="stats-table w-full min-w-[760px] text-xs table-auto">
+                        <table className="axi-table min-w-[760px]">
                             <thead>
-                                <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
-                                    <th className="text-left py-2 px-3">Commander</th>
-                                    <th className="text-right py-2 px-3">Fights With Tag Death</th>
-                                    <th className="text-right py-2 px-3">Collapse Rate</th>
-                                    <th className="text-right py-2 px-3">{avgLabel(singleFight, 'Avg Squad Deaths After', 'Squad Deaths After')}</th>
-                                    <th className="text-right py-2 px-3">{avgLabel(singleFight, 'Avg Enemy Kills After', 'Enemy Kills After')}</th>
-                                    <th className="text-right py-2 px-3">Recovery Rate</th>
+                                <tr>
+                                    <th>Commander</th>
+                                    <th>Fights With Tag Death</th>
+                                    <th>Collapse Rate</th>
+                                    <th>{avgLabel(singleFight, 'Avg Squad Deaths After', 'Squad Deaths After')}</th>
+                                    <th>{avgLabel(singleFight, 'Avg Enemy Kills After', 'Enemy Kills After')}</th>
+                                    <th>Recovery Rate</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -463,16 +461,15 @@ export const CommanderTagDeathResponseSection = ({
                                     <tr
                                         key={`${row.key}-tag-death-response`}
                                         onClick={() => setSelectedCommanderKey(row.key)}
-                                        className={`border-b border-[color:var(--border-subtle)] cursor-pointer transition-colors ${
-                                            selectedCommander?.key === row.key ? 'bg-rose-500/10' : 'hover:bg-[var(--bg-hover)]'
-                                        }`}
+                                        className="cursor-pointer transition-colors"
+                                        aria-current={selectedCommander?.key === row.key ? true : undefined}
                                     >
-                                        <td className="py-2 px-3 axi-ink-plain font-semibold truncate">{row.account}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.fightsWithCommanderDeath)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(row.squadCollapseAfterTagDeathPct)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgSquadDeathsAfterTagDeath, 1)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgEnemyKillsAfterTagDeath, 1)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(row.recoveryAfterTagDeathPct)}</td>
+                                        <td className="axi-ink-plain font-semibold truncate">{row.account}</td>
+                                        <td className="axi-table__num">{formatInt(row.fightsWithCommanderDeath)}</td>
+                                        <td className="axi-table__num">{formatNullablePct(row.squadCollapseAfterTagDeathPct)}</td>
+                                        <td className="axi-table__num">{formatNullableNumber(row.avgSquadDeathsAfterTagDeath, 1)}</td>
+                                        <td className="axi-table__num">{formatNullableNumber(row.avgEnemyKillsAfterTagDeath, 1)}</td>
+                                        <td className="axi-table__num">{formatNullablePct(row.recoveryAfterTagDeathPct)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -484,24 +481,24 @@ export const CommanderTagDeathResponseSection = ({
                             <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">This commander has no fights with a recorded tag death.</div>
                         ) : (
                             <div className="overflow-x-auto min-w-0">
-                                <table className="stats-table w-full min-w-[700px] text-xs table-auto">
+                                <table className="axi-table min-w-[700px]">
                                     <thead>
-                                        <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
-                                            <th className="text-left py-2 px-3">Fight</th>
-                                            <th className="text-right py-2 px-3">Commander Died At</th>
-                                            <th className="text-right py-2 px-3">Squad Deaths After</th>
-                                            <th className="text-right py-2 px-3">Enemy Kills After</th>
-                                            <th className="text-right py-2 px-3">Collapse</th>
-                                            <th className="text-right py-2 px-3">Recovery</th>
+                                        <tr>
+                                            <th>Fight</th>
+                                            <th>Commander Died At</th>
+                                            <th>Squad Deaths After</th>
+                                            <th>Enemy Kills After</th>
+                                            <th>Collapse</th>
+                                            <th>Recovery</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {deathFights.map((fight) => (
-                                            <tr key={`${fight.id}-tag-death-response`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                                <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</td>
-                                                <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(fight.commanderDiedAtMs)}</td>
-                                                <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(fight.squadDeathsAfterTagDeath, 0)}</td>
-                                                <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(fight.enemyKillsAfterTagDeath, 0)}</td>
+                                            <tr key={`${fight.id}-tag-death-response`}>
+                                                <td className="axi-ink-plain">{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</td>
+                                                <td className="axi-table__num">{formatNullableDuration(fight.commanderDiedAtMs)}</td>
+                                                <td className="axi-table__num">{formatNullableNumber(fight.squadDeathsAfterTagDeath, 0)}</td>
+                                                <td className="axi-table__num">{formatNullableNumber(fight.enemyKillsAfterTagDeath, 0)}</td>
                                                 <td
                                                     className={`py-2 px-3 text-right font-semibold ${
                                                         fight.collapsedAfterTagDeath === null
@@ -587,15 +584,15 @@ export const CommanderPushTimingSection = ({
                         </div>
                     ) : null}
                     <div className="w-full max-w-full overflow-x-auto pb-1">
-                        <table className="stats-table w-full min-w-[640px] text-xs table-auto">
+                        <table className="axi-table min-w-[640px]">
                             <thead>
-                                <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
-                                    <th className="text-left py-2 px-3">Commander</th>
-                                    <th className="text-right py-2 px-3">{avgLabel(singleFight, 'Avg To First Down', 'To First Down')}</th>
-                                    <th className="text-right py-2 px-3">{avgLabel(singleFight, 'Avg To First Kill', 'To First Kill')}</th>
-                                    <th className="text-right py-2 px-3">{avgLabel(singleFight, 'Avg Down To Kill', 'Down To Kill')}</th>
-                                    <th className="text-right py-2 px-3">Early Push %</th>
-                                    <th className="text-right py-2 px-3">Stalled %</th>
+                                <tr>
+                                    <th>Commander</th>
+                                    <th>{avgLabel(singleFight, 'Avg To First Down', 'To First Down')}</th>
+                                    <th>{avgLabel(singleFight, 'Avg To First Kill', 'To First Kill')}</th>
+                                    <th>{avgLabel(singleFight, 'Avg Down To Kill', 'Down To Kill')}</th>
+                                    <th>Early Push %</th>
+                                    <th>Stalled %</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -603,16 +600,15 @@ export const CommanderPushTimingSection = ({
                                     <tr
                                         key={`${row.key}-push-summary`}
                                         onClick={() => setSelectedCommanderKey(row.key)}
-                                        className={`border-b border-[color:var(--border-subtle)] cursor-pointer transition-colors ${
-                                            selectedCommander?.key === row.key ? 'bg-amber-500/10' : 'hover:bg-[var(--bg-hover)]'
-                                        }`}
+                                        className="cursor-pointer transition-colors"
+                                        aria-current={selectedCommander?.key === row.key ? true : undefined}
                                     >
-                                        <td className="py-2 px-3 axi-ink-plain font-semibold truncate">{row.account}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(row.avgTimeToFirstEnemyDownMs)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(row.avgTimeToFirstEnemyDeathMs)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(row.avgDownToKillConversionMs)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(row.pushesWithEarlyDownPct)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(row.stalledPushPct)}</td>
+                                        <td className="axi-ink-plain font-semibold truncate">{row.account}</td>
+                                        <td className="axi-table__num">{formatNullableDuration(row.avgTimeToFirstEnemyDownMs)}</td>
+                                        <td className="axi-table__num">{formatNullableDuration(row.avgTimeToFirstEnemyDeathMs)}</td>
+                                        <td className="axi-table__num">{formatNullableDuration(row.avgDownToKillConversionMs)}</td>
+                                        <td className="axi-table__num">{formatNullablePct(row.pushesWithEarlyDownPct)}</td>
+                                        <td className="axi-table__num">{formatNullablePct(row.stalledPushPct)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -621,28 +617,28 @@ export const CommanderPushTimingSection = ({
 
                     {selectedCommander && (
                         <div className="overflow-x-auto min-w-0">
-                            <table className="stats-table w-full min-w-[560px] text-xs table-auto">
+                            <table className="axi-table min-w-[560px]">
                                 <thead>
-                                    <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
-                                        <th className="text-left py-2 px-3">Fight</th>
-                                        <th className="text-right py-2 px-3">Result</th>
-                                        <th className="text-right py-2 px-3">To First Down</th>
-                                        <th className="text-right py-2 px-3">To First Kill</th>
-                                        <th className="text-right py-2 px-3">Down To Kill</th>
-                                        <th className="text-right py-2 px-3">Status</th>
+                                    <tr>
+                                        <th>Fight</th>
+                                        <th>Result</th>
+                                        <th>To First Down</th>
+                                        <th>To First Kill</th>
+                                        <th>Down To Kill</th>
+                                        <th>Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {newestFirst(selectedCommander.fightsData).map((fight) => (
-                                        <tr key={`${fight.id}-push-timing`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                            <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</td>
+                                        <tr key={`${fight.id}-push-timing`}>
+                                            <td className="axi-ink-plain">{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</td>
                                             <td className={`py-2 px-3 text-right font-semibold ${fight.isWin ? 'axi-ink-ok' : 'axi-ink-danger'}`}>
                                                 {fight.isWin ? 'Win' : 'Loss'}
                                             </td>
-                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(fight.timeToFirstEnemyDownMs)}</td>
-                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(fight.timeToFirstEnemyDeathMs)}</td>
-                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(fight.downToKillConversionMs)}</td>
-                                            <td className="py-2 px-3 text-right font-semibold text-[color:var(--text-primary)]">{pushTimingStatus(fight)}</td>
+                                            <td className="axi-table__num">{formatNullableDuration(fight.timeToFirstEnemyDownMs)}</td>
+                                            <td className="axi-table__num">{formatNullableDuration(fight.timeToFirstEnemyDeathMs)}</td>
+                                            <td className="axi-table__num">{formatNullableDuration(fight.downToKillConversionMs)}</td>
+                                            <td className="axi-table__num font-semibold">{pushTimingStatus(fight)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -774,22 +770,22 @@ export const CommanderStatsSection = ({
             ) : (
                 <div className="space-y-5 min-w-0">
                     <div className="w-full max-w-full overflow-x-auto pb-1">
-                        <table className="stats-table w-full min-w-[900px] text-xs table-auto">
+                        <table className="axi-table min-w-[900px]">
                             <thead>
-                                <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
-                                    <th className="text-left py-2 px-3">Commander</th>
+                                <tr>
+                                    <th>Commander</th>
                                     {/* One fight, one result: these read 1, 1-0
                                         and 100% — the outcome badge in the page
                                         header, spread over three columns. */}
-                                    {!singleFight && <th className="text-right py-2 px-3">Fights</th>}
-                                    {!singleFight && <th className="text-right py-2 px-3">W/L</th>}
-                                    {!singleFight && <th className="text-right py-2 px-3">Win %</th>}
-                                    <th className="text-right py-2 px-3">Squad KDR</th>
-                                    <th className="text-right py-2 px-3">{avgLabel(singleFight, 'Avg Squad', 'Squad')}</th>
-                                    <th className="text-right py-2 px-3">{avgLabel(singleFight, 'Avg Enemy', 'Enemies')}</th>
-                                    <th className="text-right py-2 px-3">Kills</th>
-                                    <th className="text-right py-2 px-3">Downs</th>
-                                    <th className="text-right py-2 px-3">Time Tagged</th>
+                                    {!singleFight && <th>Fights</th>}
+                                    {!singleFight && <th>W/L</th>}
+                                    {!singleFight && <th>Win %</th>}
+                                    <th>Squad KDR</th>
+                                    <th>{avgLabel(singleFight, 'Avg Squad', 'Squad')}</th>
+                                    <th>{avgLabel(singleFight, 'Avg Enemy', 'Enemies')}</th>
+                                    <th>Kills</th>
+                                    <th>Downs</th>
+                                    <th>Time Tagged</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -797,12 +793,11 @@ export const CommanderStatsSection = ({
                                     <tr
                                         key={row.key}
                                         onClick={() => setSelectedCommanderKey(row.key)}
-                                        className={`border-b border-[color:var(--border-subtle)] cursor-pointer transition-colors ${
-                                            selectedCommander?.key === row.key ? 'bg-amber-500/10' : 'hover:bg-[var(--bg-hover)]'
-                                        }`}
+                                        className="cursor-pointer transition-colors"
+                                        aria-current={selectedCommander?.key === row.key ? true : undefined}
                                     >
-                                        <td className="py-2 px-3">
-                                            <div className="flex items-center gap-2">
+                                        <td>
+                                            <div className="axi-table__who">
                                                 {getProfessionIconPath(row.profession) ? (
                                                     <img
                                                         src={getProfessionIconPath(row.profession) as string}
@@ -818,15 +813,15 @@ export const CommanderStatsSection = ({
                                                 </div>
                                             </div>
                                         </td>
-                                        {!singleFight && <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.fights)}</td>}
-                                        {!singleFight && <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.wins)}-{formatInt(row.losses)}</td>}
-                                        {!singleFight && <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatRate(row.winRatePct, 1)}%</td>}
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatRate(row.kdr, 2)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatRate(row.avgSquadSize, 1)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatRate(row.avgEnemySize, 1)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.kills)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.downs)}</td>
-                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatDuration(row.totalDurationMs)}</td>
+                                        {!singleFight && <td className="axi-table__num">{formatInt(row.fights)}</td>}
+                                        {!singleFight && <td className="axi-table__num">{formatInt(row.wins)}-{formatInt(row.losses)}</td>}
+                                        {!singleFight && <td className="axi-table__num">{formatRate(row.winRatePct, 1)}%</td>}
+                                        <td className="axi-table__num">{formatRate(row.kdr, 2)}</td>
+                                        <td className="axi-table__num">{formatRate(row.avgSquadSize, 1)}</td>
+                                        <td className="axi-table__num">{formatRate(row.avgEnemySize, 1)}</td>
+                                        <td className="axi-table__num">{formatInt(row.kills)}</td>
+                                        <td className="axi-table__num">{formatInt(row.downs)}</td>
+                                        <td className="axi-table__num">{formatDuration(row.totalDurationMs)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -865,20 +860,20 @@ export const CommanderStatsSection = ({
                             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 min-w-0">
                                 <div className="rounded-[var(--radius-md)] p-3 min-w-0 overflow-x-auto">
                                     <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Incoming Damage By Skill</div>
-                                    <table className="stats-table w-full min-w-[440px] text-xs table-auto">
+                                    <table className="axi-table min-w-[440px]">
                                         <thead>
-                                            <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
-                                                <th className="text-left py-2 px-3">Skill</th>
-                                                <th className="text-right py-2 px-3">Hits</th>
-                                                <th className="text-right py-2 px-3">Damage</th>
+                                            <tr>
+                                                <th>Skill</th>
+                                                <th>Hits</th>
+                                                <th>Damage</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {(selectedCommander.incomingSkillBreakdown || []).slice(0, 20).map((row) => (
-                                                <tr key={row.id} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                                    <td className="py-2 px-3 text-[color:var(--text-primary)]">{row.name}</td>
-                                                    <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.hits)}</td>
-                                                    <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.damage)}</td>
+                                                <tr key={row.id}>
+                                                    <td className="axi-ink-plain">{row.name}</td>
+                                                    <td className="axi-table__num">{formatInt(row.hits)}</td>
+                                                    <td className="axi-table__num">{formatInt(row.damage)}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -887,20 +882,20 @@ export const CommanderStatsSection = ({
 
                                 <div className="rounded-[var(--radius-md)] p-3 min-w-0 overflow-x-auto">
                                     <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Incoming Boons ({avgLabel(singleFight, 'Average Uptime', 'Uptime')})</div>
-                                    <table className="stats-table w-full min-w-[440px] text-xs table-auto">
+                                    <table className="axi-table min-w-[440px]">
                                         <thead>
-                                            <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
-                                                <th className="text-left py-2 px-3">Boon</th>
-                                                <th className="text-right py-2 px-3">Uptime %</th>
-                                                <th className="text-right py-2 px-3">Stacking</th>
+                                            <tr>
+                                                <th>Boon</th>
+                                                <th>Uptime %</th>
+                                                <th>Stacking</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {(selectedCommander.incomingBoonBreakdown || []).slice(0, 20).map((row) => (
-                                                <tr key={row.id} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                                    <td className="py-2 px-3 text-[color:var(--text-primary)]">{row.name}</td>
-                                                    <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatRate(row.uptimePct, 1)}%</td>
-                                                    <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{row.stacking ? 'Yes' : 'No'}</td>
+                                                <tr key={row.id}>
+                                                    <td className="axi-ink-plain">{row.name}</td>
+                                                    <td className="axi-table__num">{formatRate(row.uptimePct, 1)}%</td>
+                                                    <td className="axi-table__num">{row.stacking ? 'Yes' : 'No'}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -988,39 +983,39 @@ export const CommanderStatsSection = ({
                                             {selectedBucketIndex !== null ? ` • ${selectedBucketIndex * 5}-${selectedBucketIndex * 5 + 5}s` : ' • Full Fight'}
                                         </div>
                                         {timelineMode === 'incomingDamage' ? (
-                                            <table className="stats-table w-full min-w-[420px] text-xs table-auto">
+                                            <table className="axi-table min-w-[420px]">
                                                 <thead>
-                                                    <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
-                                                        <th className="text-left py-2 px-3">Skill</th>
-                                                        <th className="text-right py-2 px-3">Hits</th>
-                                                        <th className="text-right py-2 px-3">Damage</th>
+                                                    <tr>
+                                                        <th>Skill</th>
+                                                        <th>Hits</th>
+                                                        <th>Damage</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {filteredIncomingDamageRows.map((row) => (
-                                                        <tr key={row.id} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                                            <td className="py-2 px-3 text-[color:var(--text-primary)]">{row.name}</td>
-                                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.hits)}</td>
-                                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.damage)}</td>
+                                                        <tr key={row.id}>
+                                                            <td className="axi-ink-plain">{row.name}</td>
+                                                            <td className="axi-table__num">{formatInt(row.hits)}</td>
+                                                            <td className="axi-table__num">{formatInt(row.damage)}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
                                             </table>
                                         ) : (
-                                            <table className="stats-table w-full min-w-[420px] text-xs table-auto">
+                                            <table className="axi-table min-w-[420px]">
                                                 <thead>
-                                                    <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
-                                                        <th className="text-left py-2 px-3">Boon</th>
-                                                        <th className="text-right py-2 px-3">Uptime %</th>
-                                                        <th className="text-right py-2 px-3">Uptime Time</th>
+                                                    <tr>
+                                                        <th>Boon</th>
+                                                        <th>Uptime %</th>
+                                                        <th>Uptime Time</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {filteredIncomingBoonRows.map((row) => (
-                                                        <tr key={row.id} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                                            <td className="py-2 px-3 text-[color:var(--text-primary)]">{row.name}</td>
-                                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatRate(row.uptimePct, 1)}%</td>
-                                                            <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatDuration(row.uptimeMs)}</td>
+                                                        <tr key={row.id}>
+                                                            <td className="axi-ink-plain">{row.name}</td>
+                                                            <td className="axi-table__num">{formatRate(row.uptimePct, 1)}%</td>
+                                                            <td className="axi-table__num">{formatDuration(row.uptimeMs)}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>

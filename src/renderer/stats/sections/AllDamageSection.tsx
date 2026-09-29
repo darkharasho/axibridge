@@ -434,15 +434,15 @@ export const AllDamageSection = ({
                                 </span>
                             </div>
                             <div className="max-h-[300px] overflow-y-auto">
-                                <table className="stats-table w-full text-xs">
+                                <table className="axi-table">
                                     <thead>
-                                        <tr className="axi-ink-faint border-b axi-edge-rule">
-                                            <th className="text-left py-1.5 px-2 font-medium">Skill</th>
-                                            <th className="text-right py-1.5 px-2 font-medium">
+                                        <tr>
+                                            <th>Skill</th>
+                                            <th>
                                                 {mode === 'damage' ? 'Damage' : 'Down Contrib'}
                                             </th>
-                                            <th className="text-right py-1.5 px-2 font-medium">Hits</th>
-                                            <th className="text-right py-1.5 px-2 font-medium">%</th>
+                                            <th>Hits</th>
+                                            <th>%</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -452,20 +452,20 @@ export const AllDamageSection = ({
                                                 : selectedDrilldownPlayer.totalDownContribution;
                                             const pct = totalPlayerValue > 0 ? (row.displayValue / totalPlayerValue * 100) : 0;
                                             return (
-                                                <tr key={idx} className="border-b axi-edge-rule hover:bg-white/[0.02]">
-                                                    <td className="py-1.5 px-2 axi-ink-dim flex items-center gap-2">
+                                                <tr key={idx}>
+                                                    <td className="axi-ink-dim axi-table__who">
                                                         {row.icon && (
                                                             <img src={row.icon} alt="" className="w-4 h-4 rounded" loading="lazy" />
                                                         )}
                                                         <span className="truncate max-w-[200px]">{row.skillName}</span>
                                                     </td>
-                                                    <td className="py-1.5 px-2 text-right axi-ink-plain tabular-nums font-medium">
+                                                    <td className="axi-table__num">
                                                         {formatWithCommas(row.displayValue, 0)}
                                                     </td>
-                                                    <td className="py-1.5 px-2 text-right axi-ink-dim tabular-nums">
+                                                    <td className="axi-ink-dim">
                                                         {formatWithCommas(row.hits, 0)}
                                                     </td>
-                                                    <td className="py-1.5 px-2 text-right axi-ink-faint tabular-nums">
+                                                    <td className="axi-ink-faint">
                                                         {pct.toFixed(1)}%
                                                     </td>
                                                 </tr>

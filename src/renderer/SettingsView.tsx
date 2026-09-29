@@ -3465,14 +3465,14 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 <span>threshold: <span className="axi-ink-warn font-mono">{threshold.toFixed(2)}</span></span>
                                             </div>
                                             <div className="rounded-[4px] border axi-edge-rule overflow-hidden">
-                                                <table className="stats-table w-full text-xs">
+                                                <table className="axi-table">
                                                     <thead>
-                                                        <tr className="border-b axi-edge-rule axi-ink-dim">
-                                                            <th className="text-left px-3 py-2 font-medium">Player</th>
-                                                            <th className="text-left px-3 py-2 font-medium">Profession</th>
-                                                            <th className="text-center px-3 py-2 font-medium">Role</th>
-                                                            <th className="text-right px-3 py-2 font-medium">Support Score</th>
-                                                            <th className="text-right px-3 py-2 font-medium">Confidence</th>
+                                                        <tr className="axi-ink-dim">
+                                                            <th>Player</th>
+                                                            <th className="text-left">Profession</th>
+                                                            <th className="text-center">Role</th>
+                                                            <th>Support Score</th>
+                                                            <th>Confidence</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -3482,16 +3482,16 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                                 ? { top: '100%', marginTop: 4 }
                                                                 : { bottom: '100%', marginBottom: 4 };
                                                             return (
-                                                            <tr key={c.account} className="border-b axi-edge-rule hover:bg-white/5 relative group">
-                                                                <td className="px-3 py-1.5 axi-ink-plain">{c.account}</td>
-                                                                <td className="px-3 py-1.5" style={{ color: getProfessionColor(c.profession) }}>{c.profession}</td>
-                                                                <td className="px-3 py-1.5 text-center">
+                                                            <tr key={c.account} className="relative group">
+                                                                <td className="axi-ink-plain">{c.account}</td>
+                                                                <td style={{ color: getProfessionColor(c.profession) }}>{c.profession}</td>
+                                                                <td className="text-center">
                                                                     <span className={`inline-block px-2 py-0.5 rounded-[4px] text-[10px] font-semibold uppercase tracking-wide ${c.role === 'support' ? 'bg-emerald-500/20 axi-ink-ok border axi-edge-ok' : 'bg-orange-500/20 axi-ink-warn border axi-edge-warn'}`}>
                                                                         {c.role}
                                                                     </span>
                                                                 </td>
-                                                                <td className="px-3 py-1.5 text-right axi-ink-dim font-mono">{c.supportScore.toFixed(2)}</td>
-                                                                <td className="px-3 py-1.5 text-right">
+                                                                <td className="axi-ink-dim">{c.supportScore.toFixed(2)}</td>
+                                                                <td>
                                                                     <div className="flex items-center justify-end gap-2">
                                                                         <div className="w-16 h-1.5 rounded-full bg-white/10 overflow-hidden">
                                                                             <div className={`h-full rounded-full ${c.role === 'support' ? 'bg-emerald-400' : 'bg-orange-400'}`} style={{ width: `${Math.round(c.confidenceScore * 100)}%` }} />
@@ -3500,33 +3500,33 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                                     </div>
                                                                 </td>
                                                                 {c.factors && c.factors.length > 0 && (
-                                                                    <td className="p-0" style={{ position: 'absolute', left: 0, right: 0, pointerEvents: 'none' }}>
+                                                                    <td style={{ position: 'absolute', left: 0, right: 0, pointerEvents: 'none' }}>
                                                                         <div className="hidden group-hover:block absolute left-4 z-50 pointer-events-none" style={tooltipPosition}>
                                                                             <div className="rounded-[4px] border axi-edge-rule px-3 py-2.5 text-[11px] shadow-2xl" style={{ background: '#1a1f2e', minWidth: 340 }}>
                                                                                 <div className="axi-ink-dim font-medium mb-1.5">
                                                                                     {c.account} — <span className={c.role === 'support' ? 'axi-ink-ok' : 'axi-ink-warn'}>{c.role}</span>
                                                                                     <span className="axi-ink-faint font-normal ml-2">score {c.supportScore.toFixed(2)} / threshold {c.threshold.toFixed(2)}</span>
                                                                                 </div>
-                                                                                <table className="stats-table w-full">
+                                                                                <table className="axi-table">
                                                                                     <thead>
-                                                                                        <tr className="axi-ink-faint">
-                                                                                            <th className="text-left pr-3 pb-0.5 font-medium">Metric</th>
-                                                                                            <th className="text-right pr-3 pb-0.5 font-medium">Value</th>
-                                                                                            <th className="text-right pr-3 pb-0.5 font-medium">Median</th>
-                                                                                            <th className="text-right pr-3 pb-0.5 font-medium">Ratio</th>
-                                                                                            <th className="text-right pr-3 pb-0.5 font-medium">Wt</th>
-                                                                                            <th className="text-right pb-0.5 font-medium">Score</th>
+                                                                                        <tr>
+                                                                                            <th className="pr-3">Metric</th>
+                                                                                            <th className="pr-3">Value</th>
+                                                                                            <th className="pr-3">Median</th>
+                                                                                            <th className="pr-3">Ratio</th>
+                                                                                            <th className="pr-3">Wt</th>
+                                                                                            <th>Score</th>
                                                                                         </tr>
                                                                                     </thead>
                                                                                     <tbody>
                                                                                         {c.factors.map((f) => (
                                                                                             <tr key={f.metric} className={f.contribution > 0 ? 'axi-ink-dim' : 'axi-ink-faint'}>
                                                                                                 <td className="pr-3 py-px">{f.metric}</td>
-                                                                                                <td className="text-right pr-3 py-px font-mono">{f.value >= 1000 ? (f.value / 1000).toFixed(1) + 'k' : f.value.toFixed(0)}</td>
-                                                                                                <td className="text-right pr-3 py-px font-mono">{f.median >= 1000 ? (f.median / 1000).toFixed(1) + 'k' : f.median.toFixed(0)}</td>
-                                                                                                <td className="text-right pr-3 py-px font-mono">{f.ratio.toFixed(2)}</td>
-                                                                                                <td className="text-right pr-3 py-px font-mono axi-ink-faint">{f.weight}</td>
-                                                                                                <td className="text-right py-px font-mono">{f.contribution > 0 ? '+' : ''}{f.contribution.toFixed(2)}</td>
+                                                                                                <td className="pr-3 py-px">{f.value >= 1000 ? (f.value / 1000).toFixed(1) + 'k' : f.value.toFixed(0)}</td>
+                                                                                                <td className="pr-3 py-px">{f.median >= 1000 ? (f.median / 1000).toFixed(1) + 'k' : f.median.toFixed(0)}</td>
+                                                                                                <td className="pr-3 py-px">{f.ratio.toFixed(2)}</td>
+                                                                                                <td className="pr-3 py-px axi-ink-faint">{f.weight}</td>
+                                                                                                <td className="py-px">{f.contribution > 0 ? '+' : ''}{f.contribution.toFixed(2)}</td>
                                                                                             </tr>
                                                                                         ))}
                                                                                     </tbody>

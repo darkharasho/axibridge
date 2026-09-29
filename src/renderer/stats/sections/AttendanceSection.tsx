@@ -153,13 +153,13 @@ export const AttendanceSection = ({
                     <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No attendance data available.</div>
                 ) : (
                     <div className={`rounded-[var(--radius-md)] overflow-hidden ${shouldScrollLedger ? 'max-h-[30rem] overflow-y-auto' : ''}`}>
-                        <table className="stats-table w-full text-xs table-auto min-w-full border-separate border-spacing-0">
+                        <table className="axi-table axi-table--sticky">
                             <thead>
-                                <tr className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
-                                    <th className="text-left py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Account</th>
-                                    <th className="text-left py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Character(s)</th>
-                                    <th className="text-left py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Classes Played</th>
-                                    <th className="text-right py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)] whitespace-nowrap">
+                                <tr>
+                                    <th className="sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Account</th>
+                                    <th className="text-left sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Character(s)</th>
+                                    <th className="text-left sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Classes Played</th>
+                                    <th className="sticky top-0 z-20 bg-[color:var(--bg-elevated)]">
                                         <button
                                             type="button"
                                             onClick={() => updateSort('fight')}
@@ -169,7 +169,7 @@ export const AttendanceSection = ({
                                             Total Fight Time{sortKey === 'fight' ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
                                         </button>
                                     </th>
-                                    <th className="text-right py-2 px-4 sticky top-0 z-20 bg-[color:var(--bg-elevated)] whitespace-nowrap">
+                                    <th className="sticky top-0 z-20 bg-[color:var(--bg-elevated)]">
                                         <button
                                             type="button"
                                             onClick={() => updateSort('squad')}
@@ -183,12 +183,12 @@ export const AttendanceSection = ({
                             </thead>
                             <tbody>
                                 {visibleRows.map((row) => (
-                                    <tr key={row.account} className="align-top border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                        <td className="py-2 px-4 font-medium whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>{row.account}</td>
-                                        <td className="py-2 px-4" style={{ color: 'var(--text-secondary)' }}>
+                                    <tr key={row.account} className="align-top">
+                                        <td style={{ color: 'var(--text-primary)' }}>{row.account}</td>
+                                        <td style={{ color: 'var(--text-secondary)' }}>
                                             {row.characterNames.length > 0 ? row.characterNames.join(', ') : '-'}
                                         </td>
-                                        <td className="py-2 px-4">
+                                        <td>
                                             <div className="flex flex-wrap gap-1.5">
                                                 {row.classTimes.length > 0 ? row.classTimes.map((entry) => (
                                                     <span
@@ -209,17 +209,17 @@ export const AttendanceSection = ({
                                                 )) : <span style={{ color: 'var(--text-muted)' }}>-</span>}
                                             </div>
                                         </td>
-                                        <td className="py-2 px-4 text-right font-mono whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
+                                        <td style={{ color: 'var(--text-primary)' }}>
                                             {formatDuration(Number(row.combatTimeMs ?? row.squadTimeMs ?? 0))}
                                         </td>
-                                        <td className="py-2 px-4 text-right font-mono whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
+                                        <td style={{ color: 'var(--text-primary)' }}>
                                             {formatDuration(row.squadTimeMs)}
                                         </td>
                                     </tr>
                                 ))}
                                 {visibleRows.length === 0 && (
                                     <tr>
-                                        <td colSpan={5} className="py-6 text-center italic" style={{ color: 'var(--text-muted)' }}>No attendance rows match your search.</td>
+                                        <td colSpan={5} className="text-center italic" style={{ color: 'var(--text-muted)' }}>No attendance rows match your search.</td>
                                     </tr>
                                 )}
                             </tbody>

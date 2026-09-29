@@ -51,12 +51,15 @@ export const EnemyAttentionSection = ({ result }: Props) => {
 
     const preDownSeconds = result.preDownWindowMs > 0 ? Math.round(result.preDownWindowMs / 100) / 10 : 3;
 
+    // aria-sort is both the announcement and the hook upstream's
+    // .axi-table th[aria-sort] marks the column off.
+    const ariaSort = (key: SortKey): 'ascending' | 'descending' | undefined =>
+        key !== sortKey ? undefined : sortDir === 'asc' ? 'ascending' : 'descending';
+
     const th = (key: SortKey, label: string, title: string) => (
-        <th
-            className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer"
-            onClick={() => onSort(key)}
-            title={title}
-        >{label} {sortIcon(key)}</th>
+        <th scope="col" aria-sort={ariaSort(key)} title={title}>
+            <button type="button" className="axi-table__sort" onClick={() => onSort(key)}>{label} {sortIcon(key)}</button>
+        </th>
     );
 
     return (
@@ -95,11 +98,13 @@ export const EnemyAttentionSection = ({ result }: Props) => {
                 </div>
             ) : (
                 <>
-                    <div className={`rounded-[var(--radius-md)] overflow-hidden ${sortedRows.length > 12 ? 'max-h-[30rem] overflow-y-auto' : ''}`}>
-                        <table className="stats-table w-full text-xs table-auto min-w-full border-separate border-spacing-0" style={{ color: 'var(--text-primary)' }}>
+                    <div className={`axi-table__scroll rounded-[var(--radius-md)] ${sortedRows.length > 12 ? 'max-h-[30rem]' : ''}`}>
+                        <table className="axi-table axi-table--sticky">
                             <thead>
-                                <tr className="text-[10px] uppercase tracking-widest border-b border-[color:var(--border-default)]" style={{ color: 'var(--text-secondary)' }}>
-                                    <th className="text-left py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer" onClick={() => onSort('account')}>Player {sortIcon('account')}</th>
+                                <tr>
+                                    <th scope="col" aria-sort={ariaSort('account')}>
+                                        <button type="button" className="axi-table__sort" onClick={() => onSort('account')}>Player {sortIcon('account')}</button>
+                                    </th>
                                     {th('fightCount', '# Fights', 'Measurable fights this player appeared in.')}
                                     {th('focusIndex', 'Focus', 'Share of enemy casts aimed at this player, over an even share of the squad. 1.00× is average attention; 3.00× is three times it.')}
                                     {th('castsDrawn', 'Casts Drawn', 'Enemy cast-starts that named this player as their target.')}
@@ -110,24 +115,24 @@ export const EnemyAttentionSection = ({ result }: Props) => {
                             </thead>
                             <tbody>
                                 {sortedRows.map(r => (
-                                    <tr key={r.account} className="align-top border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                        <td className="py-2 px-3 whitespace-nowrap">
-                                            <span className="inline-flex items-center gap-1.5">
+                                    <tr key={r.account} className="align-top">
+                                        <td>
+                                            <span className="axi-table__who">
                                                 {renderProfessionIcon(r.profession, r.professionList, 'w-4 h-4 flex-shrink-0')}
                                                 <span>{r.account}</span>
                                                 {r.isCommander && <span title="Commander" style={{ color: 'var(--status-warning)' }}>★</span>}
                                             </span>
                                         </td>
-                                        <td className="py-2 px-3 text-right font-mono">{r.fightCount}</td>
-                                        <td className="py-2 px-3 text-right font-mono" style={{ color: r.focusIndex >= 1.5 ? 'var(--status-warning)' : undefined }}>
+                                        <td className="axi-table__num">{r.fightCount}</td>
+                                        <td className="axi-table__num" style={{ color: r.focusIndex >= 1.5 ? 'var(--status-warning)' : undefined }}>
                                             {r.focusIndex.toFixed(2)}×
                                         </td>
-                                        <td className="py-2 px-3 text-right font-mono">{formatWithCommas(r.castsDrawn, 0)}</td>
-                                        <td className="py-2 px-3 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
+                                        <td className="axi-table__num">{formatWithCommas(r.castsDrawn, 0)}</td>
+                                        <td style={{ color: 'var(--text-secondary)' }}>
                                             {r.castsDrawnMinions > 0 ? formatWithCommas(r.castsDrawnMinions, 0) : '—'}
                                         </td>
-                                        <td className="py-2 px-3 text-right font-mono">{r.downs}</td>
-                                        <td className="py-2 px-3 text-right font-mono">{r.downs > 0 ? r.preDownPerDown.toFixed(1) : '—'}</td>
+                                        <td className="axi-table__num">{r.downs}</td>
+                                        <td className="axi-table__num">{r.downs > 0 ? r.preDownPerDown.toFixed(1) : '—'}</td>
                                     </tr>
                                 ))}
                             </tbody>
