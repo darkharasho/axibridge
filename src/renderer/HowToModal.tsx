@@ -50,33 +50,33 @@ interface HelpNode {
 const ROOT = howToTree as HelpNode;
 
 const ICON_MAP: Record<string, ReactNode> = {
-    activity: <Activity className="w-5 h-5 text-blue-400 inline-block mb-1 mx-1" />,
-    'bar-chart': <BarChart2 className="w-5 h-5 text-purple-400 inline-block mb-1 mx-1" />,
-    settings: <Settings className="w-5 h-5 text-slate-400 inline-block mb-1 mx-1" />,
-    github: <Github className="w-5 h-5 text-white inline-block mb-1 mx-1" />,
-    database: <Database className="w-5 h-5 text-emerald-400 inline-block mb-1 mx-1" />,
-    upload: <Upload className="w-4 h-4 text-sky-400 inline-block mx-1" />,
-    layers: <Layers className="w-5 h-5 text-indigo-400 inline-block mb-1 mx-1" />,
-    file: <FileText className="w-5 h-5 text-amber-400 inline-block mb-1 mx-1" />,
-    globe: <Globe className="w-4 h-4 text-blue-300 inline-block mx-1" />,
-    dashboard: <LayoutDashboard className="w-5 h-5 text-orange-400 inline-block mb-1 mx-1" />,
-    clock: <Clock className="w-4 h-4 text-yellow-400 inline-block mx-1" />,
-    check: <Check className="w-4 h-4 text-green-400 inline-block mx-1" />,
-    error: <AlertTriangle className="w-4 h-4 text-red-400 inline-block mx-1" />,
-    'alert-triangle': <AlertTriangle className="w-4 h-4 text-red-400 inline-block mx-1" />,
-    shield: <Shield className="w-4 h-4 text-indigo-400 inline-block mx-1" />,
-    heart: <Heart className="w-4 h-4 text-rose-400 inline-block mx-1" />,
-    'arrow-up': <ArrowUp className="w-4 h-4 text-cyan-400 inline-block mx-1" />,
-    droplet: <Droplet className="w-4 h-4 text-red-500 inline-block mx-1" />,
-    sliders: <Sliders className="w-5 h-5 text-gray-400 inline-block mb-1 mx-1" />,
-    palette: <Palette className="w-5 h-5 text-pink-400 inline-block mb-1 mx-1" />,
-    plug: <Plug className="w-5 h-5 text-yellow-200 inline-block mb-1 mx-1" />,
-    rocket: <Rocket className="w-5 h-5 text-fuchsia-400 inline-block mb-1 mx-1" />,
-    link: <Link className="w-4 h-4 text-blue-300 inline-block mx-1" />,
-    folder: <Folder className="w-5 h-5 text-yellow-500 inline-block mb-1 mx-1" />,
-    'help-circle': <HelpCircle className="w-4 h-4 text-indigo-300 inline-block mx-1" />,
-    'mouse-pointer': <MousePointer className="w-4 h-4 text-slate-300 inline-block mx-1" />,
-    'list-tree': <ListTree className="w-4 h-4 text-blue-300 inline-block mx-1" />,
+    activity: <Activity className="w-5 h-5 axi-ink-meta inline-block mb-1 mx-1" />,
+    'bar-chart': <BarChart2 className="w-5 h-5 axi-ink-meta inline-block mb-1 mx-1" />,
+    settings: <Settings className="w-5 h-5 axi-ink-dim inline-block mb-1 mx-1" />,
+    github: <Github className="w-5 h-5 axi-ink-plain inline-block mb-1 mx-1" />,
+    database: <Database className="w-5 h-5 axi-ink-ok inline-block mb-1 mx-1" />,
+    upload: <Upload className="w-4 h-4 axi-ink-meta inline-block mx-1" />,
+    layers: <Layers className="w-5 h-5 axi-ink-meta inline-block mb-1 mx-1" />,
+    file: <FileText className="w-5 h-5 axi-ink-warn inline-block mb-1 mx-1" />,
+    globe: <Globe className="w-4 h-4 axi-ink-meta inline-block mx-1" />,
+    dashboard: <LayoutDashboard className="w-5 h-5 axi-ink-warn inline-block mb-1 mx-1" />,
+    clock: <Clock className="w-4 h-4 axi-ink-warn inline-block mx-1" />,
+    check: <Check className="w-4 h-4 axi-ink-ok inline-block mx-1" />,
+    error: <AlertTriangle className="w-4 h-4 axi-ink-danger inline-block mx-1" />,
+    'alert-triangle': <AlertTriangle className="w-4 h-4 axi-ink-danger inline-block mx-1" />,
+    shield: <Shield className="w-4 h-4 axi-ink-meta inline-block mx-1" />,
+    heart: <Heart className="w-4 h-4 axi-ink-danger inline-block mx-1" />,
+    'arrow-up': <ArrowUp className="w-4 h-4 axi-ink-meta inline-block mx-1" />,
+    droplet: <Droplet className="w-4 h-4 axi-ink-danger inline-block mx-1" />,
+    sliders: <Sliders className="w-5 h-5 axi-ink-dim inline-block mb-1 mx-1" />,
+    palette: <Palette className="w-5 h-5 axi-ink-meta inline-block mb-1 mx-1" />,
+    plug: <Plug className="w-5 h-5 axi-ink-warn inline-block mb-1 mx-1" />,
+    rocket: <Rocket className="w-5 h-5 axi-ink-meta inline-block mb-1 mx-1" />,
+    link: <Link className="w-4 h-4 axi-ink-meta inline-block mx-1" />,
+    folder: <Folder className="w-5 h-5 axi-ink-warn inline-block mb-1 mx-1" />,
+    'help-circle': <HelpCircle className="w-4 h-4 axi-ink-meta inline-block mx-1" />,
+    'mouse-pointer': <MousePointer className="w-4 h-4 axi-ink-dim inline-block mx-1" />,
+    'list-tree': <ListTree className="w-4 h-4 axi-ink-meta inline-block mx-1" />,
     axibridge: (
         <span
             className="axibridge-logo w-5 h-5 inline-block mb-1 mx-1"
@@ -121,20 +121,20 @@ const renderTree = (node: HelpNode, selectedId: string, onSelect: (id: string) =
                 type="button"
                 onClick={() => onSelect(node.id)}
                 className={`w-full rounded-[4px] px-2 py-2 text-left text-xs transition-colors ${active
-                    ? 'border-blue-500/40 bg-blue-500/15 text-blue-100'
-                    : 'text-gray-300 hover:text-white'
+                    ? 'axi-edge-meta bg-blue-500/15 axi-ink-meta'
+                    : 'axi-ink-dim hover:text-white'
                     }`}
                 style={{ border: active ? undefined : '1px solid var(--border-subtle)', background: active ? undefined : 'var(--bg-card-inner)' }}
             >
                 <div className="font-semibold">{node.title}</div>
                 {node.summary && depth < 2 && (
-                    <div className={`mt-0.5 text-[11px] ${active ? 'text-blue-200/80' : 'text-gray-500'}`}>
+                    <div className={`mt-0.5 text-[11px] ${active ? 'axi-ink-meta' : 'axi-ink-faint'}`}>
                         {node.summary}
                     </div>
                 )}
             </button>
             {hasChildren && (
-                <div className="ml-3 border-l border-white/10 pl-2 space-y-1">
+                <div className="ml-3 border-l axi-edge-rule pl-2 space-y-1">
                     {(node.children || []).map((child) => renderTree(child, selectedId, onSelect, depth + 1))}
                 </div>
             )}
@@ -175,17 +175,17 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                 >
                     <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
                         <div className="flex items-center gap-3">
-                            <div className="rounded-[4px] border border-blue-500/30 bg-blue-500/20 p-2">
-                                <ListTree className="h-5 w-5 text-blue-200" />
+                            <div className="rounded-[4px] border axi-edge-meta bg-blue-500/20 p-2">
+                                <ListTree className="h-5 w-5 axi-ink-meta" />
                             </div>
                             <div>
-                                <div className="text-lg font-bold text-white">How To</div>
-                                <div className="text-xs text-gray-400">Feature and workflow reference</div>
+                                <div className="text-lg font-bold axi-ink-plain">How To</div>
+                                <div className="text-xs axi-ink-dim">Feature and workflow reference</div>
                             </div>
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-1.5 rounded-[4px] hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
+                            className="p-1.5 rounded-[4px] hover:bg-white/10 axi-ink-dim hover:text-white transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -194,31 +194,31 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                     <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] flex-1 min-h-0">
                         <aside className="min-h-0 p-3 overflow-y-auto overscroll-contain" style={{ borderRight: '1px solid var(--border-default)', background: 'var(--bg-elevated)' }}>
                             <div className="mb-3 px-1 py-1">
-                                <div className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Guide Map</div>
-                                <div className="mt-1 text-xs text-gray-400">Browse by feature area</div>
+                                <div className="text-[11px] uppercase tracking-[0.24em] axi-ink-faint">Guide Map</div>
+                                <div className="mt-1 text-xs axi-ink-dim">Browse by feature area</div>
                             </div>
                             <div className="space-y-2">
                                 {renderTree(ROOT, selectedNode.id, setSelectedId)}
                             </div>
                         </aside>
                         <section className="min-h-0 p-6 overflow-y-auto overscroll-contain">
-                            <div className="flex flex-wrap items-center gap-1 text-xs text-gray-400 mb-4">
+                            <div className="flex flex-wrap items-center gap-1 text-xs axi-ink-dim mb-4">
                                 {breadcrumb.map((node, idx) => (
                                     <div key={node.id} className="flex items-center gap-1">
                                         <button
                                             type="button"
                                             onClick={() => setSelectedId(node.id)}
-                                            className={`transition-colors ${idx === breadcrumb.length - 1 ? 'text-blue-200' : 'text-gray-400 hover:text-white'
+                                            className={`transition-colors ${idx === breadcrumb.length - 1 ? 'axi-ink-meta' : 'axi-ink-dim hover:text-white'
                                                 }`}
                                         >
                                             {node.title}
                                         </button>
-                                        {idx < breadcrumb.length - 1 && <ChevronRight className="h-3.5 w-3.5 text-gray-500" />}
+                                        {idx < breadcrumb.length - 1 && <ChevronRight className="h-3.5 w-3.5 axi-ink-faint" />}
                                     </div>
                                 ))}
                             </div>
 
-                            <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+                            <h3 className="text-xl font-semibold axi-ink-plain flex items-center gap-2">
                                 {selectedNode.id === 'axibridge' && (
                                     <span
                                         className="axibridge-logo h-6 w-6"
@@ -229,11 +229,11 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                                 {selectedNode.title}
                             </h3>
                             {selectedNode.summary && (
-                                <p className="text-sm text-gray-300 mt-2">{selectedNode.summary}</p>
+                                <p className="text-sm axi-ink-dim mt-2">{selectedNode.summary}</p>
                             )}
 
                             {selectedNode.content && (
-                                <div className="mt-4 text-sm text-gray-200 leading-6 prose prose-invert max-w-none prose-p:my-3 prose-li:my-1">
+                                <div className="mt-4 text-sm axi-ink-plain leading-6 prose prose-invert max-w-none prose-p:my-3 prose-li:my-1">
                                     <ReactMarkdown
                                         remarkPlugins={[remarkGfm]}
                                         urlTransform={(url) => url}
@@ -245,28 +245,28 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                                                 }
                                                 return <img src={src} alt={alt} className="rounded-lg" />;
                                             },
-                                            h1: ({ children }) => <h1 className="text-2xl font-bold text-white flex items-center">{children}</h1>,
-                                            h2: ({ children }) => <h2 className="text-xl font-semibold text-white mt-5 flex items-center">{children}</h2>,
-                                            h3: ({ children }) => <h3 className="text-lg font-semibold text-white mt-4 flex items-center">{children}</h3>,
-                                            p: ({ children }) => <p className="my-3 leading-6 text-gray-200">{children}</p>,
-                                            ul: ({ children }) => <ul className="my-3 list-disc pl-5 space-y-1 text-gray-200">{children}</ul>,
-                                            ol: ({ children }) => <ol className="my-3 list-decimal pl-5 space-y-1 text-gray-200">{children}</ol>,
+                                            h1: ({ children }) => <h1 className="text-2xl font-bold axi-ink-plain flex items-center">{children}</h1>,
+                                            h2: ({ children }) => <h2 className="text-xl font-semibold axi-ink-plain mt-5 flex items-center">{children}</h2>,
+                                            h3: ({ children }) => <h3 className="text-lg font-semibold axi-ink-plain mt-4 flex items-center">{children}</h3>,
+                                            p: ({ children }) => <p className="my-3 leading-6 axi-ink-plain">{children}</p>,
+                                            ul: ({ children }) => <ul className="my-3 list-disc pl-5 space-y-1 axi-ink-plain">{children}</ul>,
+                                            ol: ({ children }) => <ol className="my-3 list-decimal pl-5 space-y-1 axi-ink-plain">{children}</ol>,
                                             li: ({ children }) => <li className="leading-6">{children}</li>,
-                                            strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+                                            strong: ({ children }) => <strong className="font-semibold axi-ink-plain">{children}</strong>,
                                             a: ({ href, children }) => (
                                                 <button
                                                     type="button"
-                                                    className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
+                                                    className="axi-ink-meta hover:text-blue-200 underline underline-offset-2"
                                                     onClick={() => href && window.electronAPI?.openExternal?.(href)}
                                                 >
                                                     {children}
                                                 </button>
                                             ),
                                             code: ({ children }) => (
-                                                <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] text-blue-200">{children}</code>
+                                                <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] axi-ink-meta">{children}</code>
                                             ),
                                             blockquote: ({ children }) => (
-                                                <blockquote className="my-3 border-l-2 border-blue-400/40 pl-3 italic text-gray-300">
+                                                <blockquote className="my-3 border-l-2 axi-edge-meta pl-3 italic axi-ink-dim">
                                                     {children}
                                                 </blockquote>
                                             )
@@ -279,7 +279,7 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
 
                             {(selectedNode.children || []).length > 0 && (
                                 <div className="mt-6">
-                                    <div className="text-xs uppercase tracking-wider text-gray-400 mb-3">In this section</div>
+                                    <div className="text-xs uppercase tracking-wider axi-ink-dim mb-3">In this section</div>
                                     <div className="grid gap-2">
                                         {selectedNode.children?.map((child) => (
                                             <button
@@ -289,8 +289,8 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                                                 className="w-full rounded-[4px] px-3 py-3 text-left transition-colors"
                                                 style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                                             >
-                                                <div className="text-sm font-medium text-white">{child.title}</div>
-                                                {child.summary && <div className="text-xs text-gray-400 mt-1">{child.summary}</div>}
+                                                <div className="text-sm font-medium axi-ink-plain">{child.title}</div>
+                                                {child.summary && <div className="text-xs axi-ink-dim mt-1">{child.summary}</div>}
                                             </button>
                                         ))}
                                     </div>

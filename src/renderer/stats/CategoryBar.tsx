@@ -141,7 +141,7 @@ export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed, unpub
                                     type="button"
                                     onClick={() => handleCategoryClick(category.id)}
                                     title={isUnpublished ? `${category.label} — not included in published reports` : undefined}
-                                    className={`w-full h-9 flex items-center text-left rounded-sm ${isActiveCategory ? 'text-white' : 'text-[color:var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}
+                                    className={`w-full h-9 flex items-center text-left rounded-sm ${isActiveCategory ? 'axi-ink-plain' : 'text-[color:var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}
                                     style={{
                                         paddingLeft: expanded ? 12 : 20,
                                         paddingRight: expanded ? 12 : 20,
@@ -196,7 +196,7 @@ export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed, unpub
                                         }}
                                         transition={FAST_SPRING}
                                     >
-                                        <ChevronDown className="w-4 h-4 text-gray-300" />
+                                        <ChevronDown className="w-4 h-4 axi-ink-dim" />
                                     </motion.span>
                                 </button>
 

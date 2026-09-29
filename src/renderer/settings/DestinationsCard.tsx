@@ -166,7 +166,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
             {/* Existing Webhooks */}
             <div className="space-y-3 mb-4">
                 {webhooks.length === 0 && !isAdding && !isLinking && (
-                    <div className="text-center text-gray-500 py-8">
+                    <div className="text-center axi-ink-faint py-8">
                         <Link className="w-12 h-12 mx-auto mb-3 opacity-30" />
                         <p>No webhooks configured</p>
                         <p className="text-sm">Add a webhook to get started</p>
@@ -195,26 +195,26 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                                         value={editName}
                                         onChange={(e) => setEditName(e.target.value)}
                                         placeholder="Webhook name"
-                                        className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
+                                        className="w-full rounded-[4px] px-3 py-2 text-sm axi-ink-plain placeholder-gray-500 focus:outline-none focus:border-blue-500/50" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                                     />
                                     <input
                                         type="text"
                                         value={editUrl}
                                         onChange={(e) => setEditUrl(e.target.value)}
                                         placeholder="https://discord.com/api/webhooks/..."
-                                        className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
+                                        className="w-full rounded-[4px] px-3 py-2 text-sm axi-ink-plain placeholder-gray-500 focus:outline-none focus:border-blue-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                                     />
                                     <div className="flex gap-2">
                                         <button
                                             onClick={handleSaveEdit}
-                                            className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-500/20 text-green-400 rounded-[4px] hover:bg-green-500/30 transition-colors text-sm font-medium"
+                                            className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-500/20 axi-ink-ok rounded-[4px] hover:bg-green-500/30 transition-colors text-sm font-medium"
                                         >
                                             <Check className="w-4 h-4" />
                                             Save
                                         </button>
                                         <button
                                             onClick={() => setEditingId(null)}
-                                            className="flex-1 py-2 bg-white/5 text-gray-400 rounded-[4px] hover:bg-white/10 transition-colors text-sm"
+                                            className="flex-1 py-2 bg-white/5 axi-ink-dim rounded-[4px] hover:bg-white/10 transition-colors text-sm"
                                         >
                                             Cancel
                                         </button>
@@ -224,21 +224,21 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                                 <div>
                                     <div className="flex items-center justify-between">
                                         <div className="min-w-0 flex-1">
-                                            <div className="font-medium text-white truncate">{webhook.name}</div>
+                                            <div className="font-medium axi-ink-plain truncate">{webhook.name}</div>
                                             {isBridge ? (
                                                 needsRelink ? (
-                                                    <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-[3px] text-[10px] font-semibold uppercase tracking-wide bg-amber-500/20 text-amber-300">
+                                                    <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-[3px] text-[10px] font-semibold uppercase tracking-wide bg-amber-500/20 axi-ink-warn">
                                                         <AlertTriangle className="w-3 h-3" />
                                                         Re-link required
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-[3px] text-[10px] font-semibold uppercase tracking-wide bg-purple-500/20 text-purple-300">
+                                                    <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-[3px] text-[10px] font-semibold uppercase tracking-wide bg-purple-500/20 axi-ink-meta">
                                                         <Zap className="w-3 h-3" />
                                                         Bridge
                                                     </span>
                                                 )
                                             ) : (
-                                                <div className="text-xs text-gray-500 font-mono truncate">{webhook.url}</div>
+                                                <div className="text-xs axi-ink-faint font-mono truncate">{webhook.url}</div>
                                             )}
                                         </div>
                                         <div className="flex items-center gap-1 ml-3">
@@ -259,7 +259,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                                             {!isBridge && (
                                                 <button
                                                     onClick={() => handleEdit(webhook)}
-                                                    className="p-2 rounded-[4px] hover:bg-white/10 text-gray-400 hover:text-blue-400 transition-colors"
+                                                    className="p-2 rounded-[4px] hover:bg-white/10 axi-ink-dim hover:text-blue-400 transition-colors"
                                                     title="Edit"
                                                 >
                                                     <Edit2 className="w-4 h-4" />
@@ -267,7 +267,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                                             )}
                                             <button
                                                 onClick={() => (isBridge ? handleUnlink(webhook.id) : handleDelete(webhook.id))}
-                                                className="p-2 rounded-[4px] hover:bg-white/10 text-gray-400 hover:text-red-400 transition-colors"
+                                                className="p-2 rounded-[4px] hover:bg-white/10 axi-ink-dim hover:text-red-400 transition-colors"
                                                 title={isBridge ? 'Unlink' : 'Delete'}
                                                 aria-label={`${isBridge ? 'Unlink' : 'Delete'} ${webhook.name}`}
                                             >
@@ -276,19 +276,19 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                                         </div>
                                     </div>
                                     {isBridge && needsRelink && (
-                                        <p className="mt-2 text-[11px] text-amber-300">
-                                            This link was revoked. Run <code className="rounded-[3px] border border-white/10 bg-black/40 px-1 text-purple-300">/bridge pair</code> in Discord again and paste the new key below to restore delivery.
+                                        <p className="mt-2 text-[11px] axi-ink-warn">
+                                            This link was revoked. Run <code className="rounded-[3px] border axi-edge-rule bg-black/40 px-1 axi-ink-meta">/bridge pair</code> in Discord again and paste the new key below to restore delivery.
                                         </p>
                                     )}
                                     {isBridge && !needsRelink && (
                                         <>
-                                            <p className="mt-2 text-[11px] text-gray-500">
-                                                Also run <code className="rounded-[3px] border border-white/10 bg-black/40 px-1 text-purple-300">/bridge revoke</code> in Discord to invalidate the key.
+                                            <p className="mt-2 text-[11px] axi-ink-faint">
+                                                Also run <code className="rounded-[3px] border axi-edge-rule bg-black/40 px-1 axi-ink-meta">/bridge revoke</code> in Discord to invalidate the key.
                                             </p>
                                             {/* Fix round 1, items 6/7: this note lived only inside the
                                                 isLinking form, so it vanished the moment linking
                                                 succeeded. Keep it visible on every bridge row. */}
-                                            <p className="mt-1 text-[11px] text-amber-400/80">
+                                            <p className="mt-1 text-[11px] axi-ink-warn">
                                                 Bridged reports are posted by the Axi bot, so they appear as <span className="font-semibold">Axi</span> rather than AxiBridge. If the bot is offline, bridged reports are not delivered.
                                             </p>
                                         </>
@@ -303,13 +303,13 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
             {/* Add New Webhook Form */}
             {isAdding && (
                 <div className="rounded-[4px] p-4 space-y-3 mb-3" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
-                    <div className="text-sm font-medium text-purple-300 mb-2">New Webhook</div>
+                    <div className="text-sm font-medium axi-ink-meta mb-2">New Webhook</div>
                     <input
                         type="text"
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
                         placeholder="Webhook name (e.g., My Guild)"
-                        className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
+                        className="w-full rounded-[4px] px-3 py-2 text-sm axi-ink-plain placeholder-gray-500 focus:outline-none focus:border-blue-500/50" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                         autoFocus
                     />
                     <input
@@ -317,20 +317,20 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                         value={newUrl}
                         onChange={(e) => setNewUrl(e.target.value)}
                         placeholder="https://discord.com/api/webhooks/..."
-                        className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
+                        className="w-full rounded-[4px] px-3 py-2 text-sm axi-ink-plain placeholder-gray-500 focus:outline-none focus:border-blue-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                     />
                     <div className="flex gap-2">
                         <button
                             onClick={handleAdd}
                             disabled={!newName.trim() || !newUrl.trim()}
-                            className="flex-1 flex items-center justify-center gap-2 py-2 bg-blue-500/20 text-blue-300 rounded-[4px] hover:bg-blue-500/30 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 flex items-center justify-center gap-2 py-2 bg-blue-500/20 axi-ink-meta rounded-[4px] hover:bg-blue-500/30 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Plus className="w-4 h-4" />
                             Add
                         </button>
                         <button
                             onClick={() => { setIsAdding(false); setNewName(''); setNewUrl(''); }}
-                            className="flex-1 py-2 bg-white/5 text-gray-400 rounded-[4px] hover:bg-white/10 transition-colors text-sm"
+                            className="flex-1 py-2 bg-white/5 axi-ink-dim rounded-[4px] hover:bg-white/10 transition-colors text-sm"
                         >
                             Cancel
                         </button>
@@ -341,19 +341,19 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
             {/* Link AxiTools Channel Form */}
             {isLinking && (
                 <div className="rounded-[4px] p-4 space-y-3 mb-3" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
-                    <div className="text-sm font-medium text-purple-300 mb-2">Link AxiTools channel</div>
+                    <div className="text-sm font-medium axi-ink-meta mb-2">Link AxiTools channel</div>
                     <div>
-                        <label className="block text-xs text-gray-400 mb-1">AxiTools bridge key</label>
+                        <label className="block text-xs axi-ink-dim mb-1">AxiTools bridge key</label>
                         <input
                             type="text"
                             value={bridgeKey}
                             onChange={(e) => { setBridgeKey(e.target.value); setBridgeLinkError(null); }}
                             placeholder="axb1.…"
-                            className="w-full rounded-[4px] px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
+                            className="w-full rounded-[4px] px-3 py-2 text-sm axi-ink-plain placeholder-gray-500 focus:outline-none focus:border-purple-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                             autoFocus
                         />
-                        <p className="mt-1.5 text-xs text-gray-500">
-                            In Discord, run <code className="rounded-[3px] border border-white/10 bg-black/40 px-1 text-purple-300">/bridge pair</code> in the channel that should receive reports, then paste the key here.
+                        <p className="mt-1.5 text-xs axi-ink-faint">
+                            In Discord, run <code className="rounded-[3px] border axi-edge-rule bg-black/40 px-1 axi-ink-meta">/bridge pair</code> in the channel that should receive reports, then paste the key here.
                         </p>
                     </div>
                     {/* Fix round 1 (task 8 review): the "posted by the Axi bot" note used
@@ -366,20 +366,20 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                         and the newly linked row renders -- so this transient copy is dropped
                         rather than duplicated. */}
                     {bridgeLinkError && (
-                        <p className="text-xs text-rose-300">{bridgeLinkError}</p>
+                        <p className="text-xs axi-ink-danger">{bridgeLinkError}</p>
                     )}
                     <div className="flex gap-2">
                         <button
                             onClick={handleLinkSubmit}
                             disabled={!bridgeKey.trim() || bridgeLinking}
-                            className="flex-1 flex items-center justify-center gap-2 py-2 bg-purple-500/20 text-purple-300 rounded-[4px] hover:bg-purple-500/30 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 flex items-center justify-center gap-2 py-2 bg-purple-500/20 axi-ink-meta rounded-[4px] hover:bg-purple-500/30 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Zap className="w-4 h-4" />
                             {bridgeLinking ? 'Linking…' : 'Link'}
                         </button>
                         <button
                             onClick={() => { setIsLinking(false); setBridgeKey(''); setBridgeLinkError(null); }}
-                            className="flex-1 py-2 bg-white/5 text-gray-400 rounded-[4px] hover:bg-white/10 transition-colors text-sm"
+                            className="flex-1 py-2 bg-white/5 axi-ink-dim rounded-[4px] hover:bg-white/10 transition-colors text-sm"
                         >
                             Cancel
                         </button>
@@ -391,14 +391,14 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                 <div className="flex gap-2">
                     <button
                         onClick={() => setIsAdding(true)}
-                        className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-[4px] text-gray-400 hover:text-blue-300 transition-colors" style={{ borderColor: 'var(--border-default)' }}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-[4px] axi-ink-dim hover:text-blue-300 transition-colors" style={{ borderColor: 'var(--border-default)' }}
                     >
                         <Plus className="w-5 h-5" />
                         Add Webhook
                     </button>
                     <button
                         onClick={() => setIsLinking(true)}
-                        className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-[4px] text-gray-400 hover:text-purple-300 transition-colors" style={{ borderColor: 'var(--border-default)' }}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-[4px] axi-ink-dim hover:text-purple-300 transition-colors" style={{ borderColor: 'var(--border-default)' }}
                     >
                         <Zap className="w-5 h-5" />
                         Link AxiTools channel

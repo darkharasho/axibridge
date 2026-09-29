@@ -80,7 +80,7 @@ export const ColumnFilterDropdown = ({
                                     onClick={() => onToggle(option.id)}
                                     className={`w-full text-left px-2 py-1.5 rounded-lg border transition-colors ${
                                         selectedSet.has(option.id)
-                                            ? 'text-white'
+                                            ? 'axi-ink-plain'
                                             : 'border-transparent hover:bg-[var(--bg-hover)] hover:text-white'
                                     }`}
                                     style={selectedSet.has(option.id)

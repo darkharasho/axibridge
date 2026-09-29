@@ -86,7 +86,7 @@ export function SettingsNav({
                                             data-settings-nav-id={section.id}
                                             onClick={() => onSelectSection(section.id)}
                                             className={`text-left px-2 py-1 rounded-[4px] text-xs transition-colors ${
-                                                section.id === activeSectionId ? 'text-white' : 'text-gray-400'
+                                                section.id === activeSectionId ? 'axi-ink-plain' : 'axi-ink-dim'
                                             }`}
                                         >
                                             {section.label}

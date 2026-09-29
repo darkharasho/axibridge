@@ -208,19 +208,19 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         <span className="app-brand-bridge" style={{ color: 'var(--brand-primary)' }}>Bridge</span>
                     </span>
                     {isDev ? (
-                        <span className="dev-build-badge ml-1 rounded-md border border-amber-500/50 bg-amber-500/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-amber-300">
+                        <span className="dev-build-badge ml-1 rounded-md border axi-edge-warn bg-amber-500/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] axi-ink-warn">
                             Dev Build
                         </span>
                     ) : null}
                 </div>
                 <div className="flex items-center gap-4 no-drag">
-                    <button onClick={() => window.electronAPI.windowControl('minimize')} className="text-gray-400 hover:text-white transition-colors">
+                    <button onClick={() => window.electronAPI.windowControl('minimize')} className="axi-ink-dim hover:text-white transition-colors">
                         <Minus className="w-4 h-4" />
                     </button>
-                    <button onClick={() => window.electronAPI.windowControl('maximize')} className="text-gray-400 hover:text-white transition-colors">
+                    <button onClick={() => window.electronAPI.windowControl('maximize')} className="axi-ink-dim hover:text-white transition-colors">
                         <Square className="w-3 h-3" />
                     </button>
-                    <button onClick={() => window.electronAPI.windowControl('close')} className="text-gray-400 hover:text-red-400 transition-colors">
+                    <button onClick={() => window.electronAPI.windowControl('close')} className="axi-ink-dim hover:text-red-400 transition-colors">
                         <X className="w-4 h-4" />
                     </button>
                 </div>
@@ -522,12 +522,12 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                     aria-selected={isEnabled}
                                 >
                                     {needsRelink
-                                        ? <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-400" aria-hidden="true" />
-                                        : isBridge && <Zap className="w-3.5 h-3.5 shrink-0 text-purple-300" aria-hidden="true" />}
+                                        ? <AlertTriangle className="w-3.5 h-3.5 shrink-0 axi-ink-warn" aria-hidden="true" />
+                                        : isBridge && <Zap className="w-3.5 h-3.5 shrink-0 axi-ink-meta" aria-hidden="true" />}
                                     <span className="truncate">{hook.name}</span>
                                     {isBridge && (
                                         <span
-                                            className={`ml-auto shrink-0 px-1.5 py-0.5 rounded-[3px] text-[9px] font-semibold uppercase tracking-wide ${needsRelink ? 'bg-amber-500/20 text-amber-300' : 'bg-purple-500/20 text-purple-300'}`}
+                                            className={`ml-auto shrink-0 px-1.5 py-0.5 rounded-[3px] text-[9px] font-semibold uppercase tracking-wide ${needsRelink ? 'bg-amber-500/20 axi-ink-warn' : 'bg-purple-500/20 axi-ink-meta'}`}
                                         >
                                             {needsRelink ? 'Re-link' : 'Bridge'}
                                         </span>

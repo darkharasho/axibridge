@@ -448,8 +448,8 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
 
     const replaySliceNotice = (
         <div className="flex flex-col items-center justify-center w-full gap-2 text-center px-6">
-            <span className="text-sm text-gray-300">Combat replay is not available while a fight slice is active.</span>
-            <span className="text-xs text-gray-500 max-w-md">
+            <span className="text-sm axi-ink-dim">Combat replay is not available while a fight slice is active.</span>
+            <span className="text-xs axi-ink-faint max-w-md">
                 The replay covers the full session and cannot be narrowed to the selected fights.
                 Clear the slice to watch it.
             </span>
@@ -4563,8 +4563,8 @@ type SpikeFight = {
                     <div className="flex-1 min-h-0 flex">
                     {r2ReplayStatus === 'error' ? (
                         <div className="flex flex-col items-center justify-center w-full gap-1">
-                            <span className="text-sm text-rose-400">Failed to load replay data.</span>
-                            {r2ReplayError && <span className="text-xs text-rose-300/70">{r2ReplayError}</span>}
+                            <span className="text-sm axi-ink-danger">Failed to load replay data.</span>
+                            {r2ReplayError && <span className="text-xs axi-ink-danger">{r2ReplayError}</span>}
                         </div>
                     ) : replayUnsliceable ? (
                         replaySliceNotice
@@ -4572,7 +4572,7 @@ type SpikeFight = {
                         <div style={{ display: 'contents' }}>
                             {r2ReplayStatus === 'loading' && (
                                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, pointerEvents: 'none' }}>
-                                    <span className="text-sm text-gray-400">Loading replay data...</span>
+                                    <span className="text-sm axi-ink-dim">Loading replay data...</span>
                                 </div>
                             )}
                             <ReplaySection fights={getReplayFights()} />
@@ -4793,7 +4793,7 @@ type SpikeFight = {
                                 sectionId="strip-spikes"
                                 title="Strip Spikes"
                                 titleIcon={Eraser}
-                                titleIconClassName="text-amber-300"
+                                titleIconClassName="axi-ink-warn"
                                 modes={[
                                     { id: 'strips', label: 'Strips' },
                                     { id: 'stripDownContrib', label: 'Down Contrib' },
@@ -4858,7 +4858,7 @@ type SpikeFight = {
                                 listTitle="Enemy Classes"
                                 searchPlaceholder="Search enemy class"
                                 titleIcon={ShieldAlert}
-                                titleIconClassName="text-cyan-300"
+                                titleIconClassName="axi-ink-meta"
                                 spikePlayerFilter={incomingStrikePlayerFilter}
                                 setSpikePlayerFilter={setIncomingStrikePlayerFilter}
                                 groupedSpikePlayers={groupedIncomingStrikePlayers}
@@ -5225,7 +5225,7 @@ type SpikeFight = {
                                 listTitle="Enemy Classes"
                                 searchPlaceholder="Search enemy class"
                                 titleIcon={ShieldAlert}
-                                titleIconClassName="text-cyan-300"
+                                titleIconClassName="axi-ink-meta"
                                 spikePlayerFilter={incomingStrikePlayerFilter}
                                 setSpikePlayerFilter={setIncomingStrikePlayerFilter}
                                 groupedSpikePlayers={groupedIncomingStrikePlayers}
@@ -5377,7 +5377,7 @@ type SpikeFight = {
                                 sectionId="strip-spikes"
                                 title="Strip Spikes"
                                 titleIcon={Eraser}
-                                titleIconClassName="text-amber-300"
+                                titleIconClassName="axi-ink-warn"
                                 modes={[
                                     { id: 'strips', label: 'Strips' },
                                     { id: 'stripDownContrib', label: 'Down Contrib' },

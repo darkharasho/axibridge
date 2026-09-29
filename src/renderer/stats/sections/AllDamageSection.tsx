@@ -141,10 +141,10 @@ export const AllDamageSection = ({
             style={{ scrollMarginTop: '80px' }}
         >
             {/* ── Header ── */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+            <div className="flex items-center justify-between px-4 py-3 border-b axi-edge-rule">
                 <div className="flex items-center gap-2">
-                    <Flame className="w-4 h-4 text-orange-400" />
-                    <span className="text-sm font-semibold text-slate-200">All Damage</span>
+                    <Flame className="w-4 h-4 axi-ink-warn" />
+                    <span className="text-sm font-semibold axi-ink-plain">All Damage</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <PillToggleGroup
@@ -157,7 +157,7 @@ export const AllDamageSection = ({
                     {!expanded && (
                         <button
                             onClick={() => openExpandedSection(sectionId)}
-                            className="p-1 rounded hover:bg-white/5 text-slate-400 hover:text-slate-200 transition-colors"
+                            className="p-1 rounded hover:bg-white/5 axi-ink-dim hover:text-slate-200 transition-colors"
                             title="Expand"
                         >
                             <Maximize2 className="w-3.5 h-3.5" />
@@ -166,7 +166,7 @@ export const AllDamageSection = ({
                     {expanded && (
                         <button
                             onClick={closeExpandedSection}
-                            className="p-1 rounded hover:bg-white/5 text-slate-400 hover:text-slate-200 transition-colors"
+                            className="p-1 rounded hover:bg-white/5 axi-ink-dim hover:text-slate-200 transition-colors"
                             title="Close"
                         >
                             <X className="w-3.5 h-3.5" />
@@ -179,7 +179,7 @@ export const AllDamageSection = ({
             <div className={expanded ? 'flex-1 min-h-0 flex flex-col' : ''}>
                 <div className="px-4 py-3" style={expanded ? undefined : { height: 240 }}>
                     {fightChartData.length === 0 ? (
-                        <div className="h-full flex items-center justify-center text-xs text-slate-500">No fight data</div>
+                        <div className="h-full flex items-center justify-center text-xs axi-ink-faint">No fight data</div>
                     ) : (
                         <ChartContainer width="100%" height="100%">
                             <LineChart
@@ -236,9 +236,9 @@ export const AllDamageSection = ({
                                     const data = payload[0]?.payload;
                                     if (!data) return null;
                                     return (
-                                        <div className="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-xs shadow-xl">
-                                            <div className="text-slate-200 font-medium mb-1">{sanitizeLabel(data.fullLabel)}</div>
-                                            <div className="text-indigo-300">
+                                        <div className="bg-slate-900 border axi-edge-rule rounded-lg px-3 py-2 text-xs shadow-xl">
+                                            <div className="axi-ink-plain font-medium mb-1">{sanitizeLabel(data.fullLabel)}</div>
+                                            <div className="axi-ink-meta">
                                                 {mode === 'damage' ? 'Total Damage' : 'Down Contribution'}: <strong>{formatWithCommas(data.value, 0)}</strong>
                                             </div>
                                         </div>
@@ -283,10 +283,10 @@ export const AllDamageSection = ({
                     }}
                 >
                     {selectedFight && (
-                        <div className="px-4 py-3 border-t border-white/5">
+                        <div className="px-4 py-3 border-t axi-edge-rule">
                             <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-3">
-                                    <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                                    <span className="text-[10px] uppercase tracking-wider axi-ink-faint">
                                         Fight Breakdown — {sanitizeLabel(selectedFight.fullLabel)}
                                     </span>
                                     <PillToggleGroup
@@ -302,13 +302,13 @@ export const AllDamageSection = ({
                                         activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
                                         inactiveClassName="text-[color:var(--text-secondary)]"
                                     />
-                                    <span className="text-[10px] text-slate-500">
+                                    <span className="text-[10px] axi-ink-faint">
                                         {drilldownPlayers.length}/{drilldownPlayersAll.length} players
                                     </span>
                                 </div>
                                 <button
                                     onClick={() => { setSelectedFightIndex(null); setSelectedDrilldownPlayerKey(null); }}
-                                    className="text-[10px] uppercase tracking-wider text-slate-500 hover:text-slate-300 transition-colors"
+                                    className="text-[10px] uppercase tracking-wider axi-ink-faint hover:text-slate-300 transition-colors"
                                 >
                                     Clear
                                 </button>
@@ -337,19 +337,19 @@ export const AllDamageSection = ({
                                             if (!active || !payload?.length) return null;
                                             const sorted = [...payload].sort((a, b) => Number(b.value || 0) - Number(a.value || 0));
                                             return (
-                                                <div className="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-xs shadow-xl max-h-64 overflow-y-auto">
-                                                    <div className="text-slate-200 font-medium mb-1">{(payload[0]?.payload as any)?.label}</div>
+                                                <div className="bg-slate-900 border axi-edge-rule rounded-lg px-3 py-2 text-xs shadow-xl max-h-64 overflow-y-auto">
+                                                    <div className="axi-ink-plain font-medium mb-1">{(payload[0]?.payload as any)?.label}</div>
                                                     {sorted.slice(0, 10).map((entry) => (
                                                         <div key={entry.dataKey as string} className="flex items-center gap-1.5">
                                                             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
-                                                            <span className="text-slate-400 truncate max-w-[120px]">
+                                                            <span className="axi-ink-dim truncate max-w-[120px]">
                                                                 {drilldownPlayersAll.find((p) => p.key === entry.dataKey)?.displayName || entry.dataKey}
                                                             </span>
-                                                            <span className="text-slate-200 font-medium ml-auto">{formatWithCommas(Number(entry.value || 0), 0)}</span>
+                                                            <span className="axi-ink-plain font-medium ml-auto">{formatWithCommas(Number(entry.value || 0), 0)}</span>
                                                         </div>
                                                     ))}
                                                     {sorted.length > 10 && (
-                                                        <div className="text-slate-500 mt-1">+{sorted.length - 10} more</div>
+                                                        <div className="axi-ink-faint mt-1">+{sorted.length - 10} more</div>
                                                     )}
                                                 </div>
                                             );
@@ -407,10 +407,10 @@ export const AllDamageSection = ({
                                             onMouseLeave={() => setHoveredPlayerKey(null)}
                                         >
                                             {renderProfessionIcon(player.profession, player.professionList, 'w-3.5 h-3.5')}
-                                            <span className={`${isSelected ? 'text-slate-200 font-medium' : 'text-slate-400'}`}>
+                                            <span className={`${isSelected ? 'axi-ink-plain font-medium' : 'axi-ink-dim'}`}>
                                                 {player.displayName}
                                             </span>
-                                            <span className="text-slate-500 tabular-nums">{formatDamageValue(value)}</span>
+                                            <span className="axi-ink-faint tabular-nums">{formatDamageValue(value)}</span>
                                         </button>
                                     );
                                 })}
@@ -428,18 +428,18 @@ export const AllDamageSection = ({
                     }}
                 >
                     {selectedDrilldownPlayer && skillRows.length > 0 && (
-                        <div className="px-4 py-3 border-t border-white/5">
+                        <div className="px-4 py-3 border-t axi-edge-rule">
                             <div className="flex items-center gap-2 mb-2">
                                 {renderProfessionIcon(selectedDrilldownPlayer.profession, selectedDrilldownPlayer.professionList, 'w-4 h-4')}
-                                <span className="text-xs font-medium text-slate-200">{selectedDrilldownPlayer.displayName}</span>
-                                <span className="text-[10px] uppercase tracking-wider text-slate-500 ml-2">
+                                <span className="text-xs font-medium axi-ink-plain">{selectedDrilldownPlayer.displayName}</span>
+                                <span className="text-[10px] uppercase tracking-wider axi-ink-faint ml-2">
                                     {mode === 'damage' ? 'Damage' : 'Down Contribution'} Breakdown
                                 </span>
                             </div>
                             <div className="max-h-[300px] overflow-y-auto">
                                 <table className="stats-table w-full text-xs">
                                     <thead>
-                                        <tr className="text-slate-500 border-b border-white/5">
+                                        <tr className="axi-ink-faint border-b axi-edge-rule">
                                             <th className="text-left py-1.5 px-2 font-medium">Skill</th>
                                             <th className="text-right py-1.5 px-2 font-medium">
                                                 {mode === 'damage' ? 'Damage' : 'Down Contrib'}
@@ -455,20 +455,20 @@ export const AllDamageSection = ({
                                                 : selectedDrilldownPlayer.totalDownContribution;
                                             const pct = totalPlayerValue > 0 ? (row.displayValue / totalPlayerValue * 100) : 0;
                                             return (
-                                                <tr key={idx} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
-                                                    <td className="py-1.5 px-2 text-slate-300 flex items-center gap-2">
+                                                <tr key={idx} className="border-b axi-edge-rule hover:bg-white/[0.02]">
+                                                    <td className="py-1.5 px-2 axi-ink-dim flex items-center gap-2">
                                                         {row.icon && (
                                                             <img src={row.icon} alt="" className="w-4 h-4 rounded" loading="lazy" />
                                                         )}
                                                         <span className="truncate max-w-[200px]">{row.skillName}</span>
                                                     </td>
-                                                    <td className="py-1.5 px-2 text-right text-slate-200 tabular-nums font-medium">
+                                                    <td className="py-1.5 px-2 text-right axi-ink-plain tabular-nums font-medium">
                                                         {formatWithCommas(row.displayValue, 0)}
                                                     </td>
-                                                    <td className="py-1.5 px-2 text-right text-slate-400 tabular-nums">
+                                                    <td className="py-1.5 px-2 text-right axi-ink-dim tabular-nums">
                                                         {formatWithCommas(row.hits, 0)}
                                                     </td>
-                                                    <td className="py-1.5 px-2 text-right text-slate-500 tabular-nums">
+                                                    <td className="py-1.5 px-2 text-right axi-ink-faint tabular-nums">
                                                         {pct.toFixed(1)}%
                                                     </td>
                                                 </tr>

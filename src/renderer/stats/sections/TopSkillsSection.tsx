@@ -104,7 +104,7 @@ export const TopSkillsSection = ({
                         <div className="flex-1">
                             <div className="text-sm mb-1 py-0.5 leading-normal">
                                 <div className="sm:flex sm:items-center sm:justify-between sm:gap-3">
-                                    <div className="text-white font-bold min-w-0 truncate py-[1px]">
+                                    <div className="axi-ink-plain font-bold min-w-0 truncate py-[1px]">
                                         <InlineIconLabel
                                             name={skill.name}
                                             iconUrl={skill.icon}
@@ -114,7 +114,7 @@ export const TopSkillsSection = ({
                                         />
                                     </div>
                                     <div className="shrink-0">
-                                        <span className="top-skills-outgoing-value text-orange-400 font-mono font-bold">{Math.round((skill as any)[metricKey] || 0).toLocaleString()}</span>
+                                        <span className="top-skills-outgoing-value axi-ink-warn font-mono font-bold">{Math.round((skill as any)[metricKey] || 0).toLocaleString()}</span>
                                         <span className="text-[color:var(--text-secondary)] text-xs ml-2">({skill.hits.toLocaleString()} hits)</span>
                                     </div>
                                 </div>
@@ -169,7 +169,7 @@ export const TopSkillsSection = ({
                         <div className="flex-1">
                             <div className="text-sm mb-1 py-0.5 leading-normal">
                                 <div className="sm:flex sm:items-center sm:justify-between sm:gap-3">
-                                    <div className="text-white font-bold min-w-0 truncate py-[1px]">
+                                    <div className="axi-ink-plain font-bold min-w-0 truncate py-[1px]">
                                         <InlineIconLabel
                                             name={skill.name}
                                             iconUrl={skill.icon}
@@ -179,7 +179,7 @@ export const TopSkillsSection = ({
                                         />
                                     </div>
                                     <div className="shrink-0">
-                                        <span className="text-red-400 font-mono font-bold">{Math.round(incomingValue(skill)).toLocaleString()}</span>
+                                        <span className="axi-ink-danger font-mono font-bold">{Math.round(incomingValue(skill)).toLocaleString()}</span>
                                         <span className="text-[color:var(--text-secondary)] text-xs ml-2">({skill.hits.toLocaleString()} hits)</span>
                                     </div>
                                 </div>

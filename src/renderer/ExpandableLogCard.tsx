@@ -725,16 +725,16 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
             : `font-black ${colorClass} mb-3 uppercase tracking-widest ${fullHeight ? 'text-base' : 'text-xs'}`;
         return (
             <div className={`log-detail-tile rounded-[4px] ${compact ? 'p-3' : 'p-4'} shadow-lg ${fullHeight ? 'h-full' : ''}`} style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-default))' }}>
-                <h5 className={`${headerClass} border-b border-white/10 pb-2`} style={headerColorHex ? { color: headerColorHex } : undefined}>{title}</h5>
+                <h5 className={`${headerClass} border-b axi-edge-rule pb-2`} style={headerColorHex ? { color: headerColorHex } : undefined}>{title}</h5>
                 {limitedCounts.length > 0 ? (
-                    <div className={`grid grid-flow-col auto-cols-fr gap-2 font-mono text-gray-200 ${fullHeight ? 'text-base' : compact ? 'text-[11px]' : 'text-sm'}`}>
+                    <div className={`grid grid-flow-col auto-cols-fr gap-2 font-mono axi-ink-plain ${fullHeight ? 'text-base' : compact ? 'text-[11px]' : 'text-sm'}`}>
                         {columns.map((column, columnIndex) => (
                             <div key={`${title}-col-${columnIndex}`} className="space-y-2">
                                 {column.map(({ profession, count, isSummary }: any) => {
                                     if (isSummary) {
                                         return (
-                                            <div key={`${title}-summary`} className="flex items-center justify-between gap-2 bg-white/5 rounded-md px-2 py-1 border border-white/10">
-                                                <span className="text-gray-300 min-w-0 flex-1 truncate">{`+ ${count}`}</span>
+                                            <div key={`${title}-summary`} className="flex items-center justify-between gap-2 bg-white/5 rounded-md px-2 py-1 border axi-edge-rule">
+                                                <span className="axi-ink-dim min-w-0 flex-1 truncate">{`+ ${count}`}</span>
                                                 <span />
                                             </div>
                                         );
@@ -747,8 +747,8 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                         : (alwaysShowDetailedClassInfo ? displayName : label);
                                     const shouldShowIcon = (alwaysShowDetailedClassInfo || useClassIcons) && Boolean(iconPath);
                                     return (
-                                        <div key={profession} className="flex items-center justify-between gap-2 bg-white/5 rounded-md px-2 py-1 border border-white/10">
-                                            <span className="flex items-center gap-1 text-gray-100 min-w-0 flex-1" title={displayName}>
+                                        <div key={profession} className="flex items-center justify-between gap-2 bg-white/5 rounded-md px-2 py-1 border axi-edge-rule">
+                                            <span className="flex items-center gap-1 axi-ink-plain min-w-0 flex-1" title={displayName}>
                                                 {shouldShowIcon ? (
                                                     <img
                                                         src={iconPath ?? undefined}
@@ -756,13 +756,13 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                                         className={`shrink-0 ${fullHeight ? 'w-5 h-5 object-contain' : 'w-4 h-4 object-contain'}`}
                                                     />
                                                 ) : (
-                                                    <span className="uppercase text-gray-400 truncate">{displayLabel}</span>
+                                                    <span className="uppercase axi-ink-dim truncate">{displayLabel}</span>
                                                 )}
                                                 {shouldShowIcon ? (
-                                                    <span className={`${forceShortLabels || !alwaysShowDetailedClassInfo ? 'uppercase ' : ''}text-gray-400 truncate`}>{displayLabel}</span>
+                                                    <span className={`${forceShortLabels || !alwaysShowDetailedClassInfo ? 'uppercase ' : ''}axi-ink-dim truncate`}>{displayLabel}</span>
                                                 ) : null}
                                             </span>
-                                            <span className="font-bold text-white shrink-0">{count}</span>
+                                            <span className="font-bold axi-ink-plain shrink-0">{count}</span>
                                         </div>
                                     );
                                 })}
@@ -770,7 +770,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                         ))}
                     </div>
                 ) : (
-                    <div className="text-xs text-gray-500 italic text-center py-2">No Data</div>
+                    <div className="text-xs axi-ink-faint italic text-center py-2">No Data</div>
                 )}
             </div>
         );
@@ -786,18 +786,18 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
 
         return (
             <div className={`log-detail-tile rounded-[4px] p-3 shadow-inner ${fullHeight ? 'h-full' : ''}`} style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
-                <h5 className={`font-semibold text-gray-200 mb-2 border-b border-white/10 pb-1 uppercase tracking-tighter ${fullHeight ? 'text-sm' : 'text-[11px]'}`}>{title}</h5>
+                <h5 className={`font-semibold axi-ink-plain mb-2 border-b axi-edge-rule pb-1 uppercase tracking-tighter ${fullHeight ? 'text-sm' : 'text-[11px]'}`}>{title}</h5>
                 {hasData ? (
-                    <div className={`font-mono space-y-1 text-gray-300 ${fullHeight ? 'text-base' : 'text-[10px]'}`}>
+                    <div className={`font-mono space-y-1 axi-ink-dim ${fullHeight ? 'text-base' : 'text-[10px]'}`}>
                         {top.map((p, i) => {
                             const val = valFn(p);
                             if (val <= 0 && (typeof val !== 'string' || val === '0')) return null;
                             return (
-                                <div key={`${p.account}-${i}`} className="flex justify-between gap-2 border-b border-white/5 last:border-0 pb-0.5">
+                                <div key={`${p.account}-${i}`} className="flex justify-between gap-2 border-b axi-edge-rule last:border-0 pb-0.5">
                                     <span className="flex-1 min-w-0 flex items-center gap-2">
-                                        <span className="text-gray-500 w-5 shrink-0 text-right">{i + 1}</span>
+                                        <span className="axi-ink-faint w-5 shrink-0 text-right">{i + 1}</span>
                                         {getClassToken(p) && (
-                                            <span className="text-gray-400 w-10 shrink-0 text-center text-[10px] leading-none">
+                                            <span className="axi-ink-dim w-10 shrink-0 text-center text-[10px] leading-none">
                                                 {showClassIcons ? (
                                                     getProfessionIconPath(p.profession || 'Unknown') ? (
                                                         <img
@@ -817,13 +817,13 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                             {p.name || p.character_name || p.account}
                                         </span>
                                     </span>
-                                    <span className="text-right shrink-0 font-bold text-blue-400">{fmtVal(val)}</span>
+                                    <span className="text-right shrink-0 font-bold axi-ink-meta">{fmtVal(val)}</span>
                                 </div>
                             );
                         })}
                     </div>
                 ) : (
-                    <div className="text-[10px] text-gray-500 italic text-center py-2">No Data</div>
+                    <div className="text-[10px] axi-ink-faint italic text-center py-2">No Data</div>
                 )}
             </div>
         );
@@ -989,15 +989,15 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                 <div className="relative shrink-0">
                     <div
                         data-status={statusKey}
-                        className={`recent-activity-status-badge w-10 h-10 rounded-[4px] flex items-center justify-center border transition-all ${isQueued ? 'bg-slate-500/20 border-slate-400/30 text-slate-300 animate-pulse' :
-                        isPending ? 'bg-slate-500/20 border-slate-400/30 text-slate-300 animate-pulse' :
-                            isParsing ? 'bg-blue-500/20 border-blue-500/30 text-blue-400 animate-pulse' :
-                            isUploading ? 'bg-blue-500/20 border-blue-500/30 text-blue-400 animate-pulse' :
-                            isRetrying ? 'bg-blue-500/20 border-blue-500/30 text-blue-400 animate-pulse' :
-                                isCalculating ? 'bg-amber-500/20 border-amber-400/30 text-amber-300 animate-pulse' :
-                                    isDiscord ? 'bg-purple-500/20 border-purple-500/30 text-purple-400 animate-pulse' :
-                                        hasError ? 'bg-red-500/20 border-red-500/30 text-red-400' :
-                                            'bg-green-500/20 border-green-500/30 text-green-400'
+                        className={`recent-activity-status-badge w-10 h-10 rounded-[4px] flex items-center justify-center border transition-all ${isQueued ? 'bg-slate-500/20 axi-edge-rule axi-ink-dim animate-pulse' :
+                        isPending ? 'bg-slate-500/20 axi-edge-rule axi-ink-dim animate-pulse' :
+                            isParsing ? 'bg-blue-500/20 axi-edge-meta axi-ink-meta animate-pulse' :
+                            isUploading ? 'bg-blue-500/20 axi-edge-meta axi-ink-meta animate-pulse' :
+                            isRetrying ? 'bg-blue-500/20 axi-edge-meta axi-ink-meta animate-pulse' :
+                                isCalculating ? 'bg-amber-500/20 axi-edge-warn axi-ink-warn animate-pulse' :
+                                    isDiscord ? 'bg-purple-500/20 axi-edge-meta axi-ink-meta animate-pulse' :
+                                        hasError ? 'bg-red-500/20 axi-edge-danger axi-ink-danger' :
+                                            'bg-green-500/20 axi-edge-ok axi-ink-ok'
                         }`}
                     >
                         {badgePuffEmitter}
@@ -1013,7 +1013,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start gap-3">
-                        <h4 className="text-sm font-bold text-gray-200 truncate">{cardTitle}</h4>
+                        <h4 className="text-sm font-bold axi-ink-plain truncate">{cardTitle}</h4>
                         {lacksAxilogData && (
                             <span
                                 className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0"
@@ -1031,7 +1031,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                             <span className="text-xs font-mono font-semibold shrink-0 tabular-nums" style={{ color: 'var(--brand-primary)' }}>{encounterDurationLabel}</span>
                         )}
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                    <div className="flex items-center gap-3 mt-1 text-xs axi-ink-faint">
                         <span>{statusLabel ? statusLabel : `${playerCount || '0'} Players${nonSquadDisplayCount > 0 ? ` (${squadDisplayCount} +${nonSquadDisplayCount})` : ''}`}</span>
                         <span>•</span>
                         <span>{formattedTime()}</span>
@@ -1050,7 +1050,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     onRemove?.();
                                 }
                             }}
-                            className="p-2 rounded-[4px] border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 transition-all"
+                            className="p-2 rounded-[4px] border axi-edge-danger bg-red-500/10 axi-ink-danger hover:bg-red-500/20 transition-all"
                             title="Remove log from recent activity"
                             aria-label="Remove log from recent activity"
                         >
@@ -1068,12 +1068,12 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                         }}
                         disabled={ds === 'loading' || (detailsNotReady && !isExpanded && !onCancel)}
                         className={`px-3 py-1.5 rounded-[4px] text-xs font-medium transition-all flex items-center gap-1 border ${isCancellable
-                            ? 'bg-red-500/10 text-red-300 border-red-500/30 hover:bg-red-500/20'
+                            ? 'bg-red-500/10 axi-ink-danger axi-edge-danger hover:bg-red-500/20'
                             : ds === 'loading'
-                                ? 'bg-white/5 text-gray-500 border-white/10 cursor-not-allowed'
+                                ? 'bg-white/5 axi-ink-faint axi-edge-rule cursor-not-allowed'
                                 : detailsNotReady && !isExpanded && !onCancel
-                                    ? 'bg-white/5 text-gray-600 border-white/5 cursor-not-allowed opacity-50'
-                                    : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white group-hover:border-white/20'
+                                    ? 'bg-white/5 axi-ink-faint axi-edge-rule cursor-not-allowed opacity-50'
+                                    : 'bg-white/5 axi-ink-dim axi-edge-rule hover:bg-white/10 hover:text-white group-hover:border-white/20'
                             }`}
                     >
                         {isCancellable ? (
@@ -1107,8 +1107,8 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                 >
                                     {settings.showSquadSummary && (
                                         <div className="log-detail-tile rounded-[4px] p-3" style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
-                                            <h5 className="font-semibold text-green-400 mb-2 uppercase tracking-wider text-[10px]">Squad Summary</h5>
-                                            <div className="font-mono text-gray-300 space-y-1">
+                                            <h5 className="font-semibold axi-ink-ok mb-2 uppercase tracking-wider text-[10px]">Squad Summary</h5>
+                                            <div className="font-mono axi-ink-dim space-y-1">
                                                 <div className="flex justify-between"><span>Count:</span> <span>{squadDisplayCount} {nonSquadDisplayCount > 0 ? `(+${nonSquadDisplayCount})` : ''}</span></div>
                                                 <div className="flex justify-between"><span>DMG:</span> <span>{squadDmg.toLocaleString()}</span></div>
                                                 <div className="flex justify-between"><span>DPS:</span> <span>{Math.round(squadDps).toLocaleString()}</span></div>
@@ -1119,8 +1119,8 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     )}
                                     {settings.showEnemySummary && (!splitEnemiesByTeam || enemyTeamSummaryStats.length === 0) && (
                                         <div className="log-detail-tile rounded-[4px] p-3" style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
-                                            <h5 className="font-semibold text-red-400 mb-2 uppercase tracking-wider text-[10px]">Enemy Summary</h5>
-                                            <div className="font-mono text-gray-300 space-y-1">
+                                            <h5 className="font-semibold axi-ink-danger mb-2 uppercase tracking-wider text-[10px]">Enemy Summary</h5>
+                                            <div className="font-mono axi-ink-dim space-y-1">
                                                 <div className="flex justify-between"><span>Count:</span> <span>{enemyCount}</span></div>
                                                 <div className="flex justify-between"><span>DMG:</span> <span>{totalDmgTaken.toLocaleString()}</span></div>
                                                 <div className="flex justify-between"><span>DPS:</span> <span>{enemyDps.toLocaleString()}</span></div>
@@ -1132,7 +1132,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     {settings.showEnemySummary && splitEnemiesByTeam && enemyTeamSummaryStats.map((team) => (
                                         <div key={`expanded-team-summary-${team.teamId}`} className="log-detail-tile rounded-[4px] p-3" style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
                                             <h5 className="font-semibold mb-2 uppercase tracking-wider text-[10px]" style={{ color: WVW_TEAM_COLOR_META[team.color].hex }}>{`${WVW_TEAM_COLOR_META[team.color].label} team`}</h5>
-                                            <div className="font-mono text-gray-300 space-y-1">
+                                            <div className="font-mono axi-ink-dim space-y-1">
                                                 <div className="flex justify-between"><span>Count:</span> <span>{team.count}</span></div>
                                                 <div className="flex justify-between"><span>DMG:</span> <span>{team.dmg.toLocaleString()}</span></div>
                                                 <div className="flex justify-between"><span>DPS:</span> <span>{team.dps.toLocaleString()}</span></div>
@@ -1149,14 +1149,14 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     style={{ gridTemplateColumns: `repeat(${classColumnCount}, minmax(0, 1fr))` }}
                                 >
                                     {settings.showSquadSummary && (
-                                        renderClassSummary('Squad Classes', squadClassCounts, 'text-green-400', true)
+                                        renderClassSummary('Squad Classes', squadClassCounts, 'axi-ink-ok', true)
                                     )}
                                     {settings.showEnemySummary && (!splitEnemiesByTeam || enemyTeamClassSummaries.length === 0) && (
-                                        renderClassSummary('Enemy Classes', enemyClassCounts, 'text-red-400', true)
+                                        renderClassSummary('Enemy Classes', enemyClassCounts, 'axi-ink-danger', true)
                                     )}
                                     {settings.showEnemySummary && splitEnemiesByTeam && enemyTeamClassSummaries.map((team) => (
                                         <div key={`expanded-team-classes-${team.teamId}`}>
-                                            {renderClassSummary(`${WVW_TEAM_COLOR_META[team.color].label} Classes`, team.classes, 'text-red-400', true, undefined, WVW_TEAM_COLOR_META[team.color].hex)}
+                                            {renderClassSummary(`${WVW_TEAM_COLOR_META[team.color].label} Classes`, team.classes, 'axi-ink-danger', true, undefined, WVW_TEAM_COLOR_META[team.color].hex)}
                                         </div>
                                     ))}
                                 </div>
@@ -1165,28 +1165,28 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                             {settings.showIncomingStats && (
                                 <div className="grid grid-cols-3 gap-2">
                                     <div className="log-detail-tile rounded-[4px] p-2" style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
-                                        <h5 className="font-semibold text-blue-400 mb-1 uppercase tracking-wider text-[9px]">Incoming Attack</h5>
-                                        <div className="font-mono text-[10px] text-gray-300">
-                                            <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-gray-300">{totalMiss}</span></div>
-                                            <div className="flex justify-between text-gray-500"><span>Block:</span> <span className="text-gray-300">{totalBlock}</span></div>
-                                            <div className="flex justify-between text-gray-500"><span>Total:</span> <span className="text-gray-300">{totalMiss + totalBlock + totalEvade + totalDodge}</span></div>
+                                        <h5 className="font-semibold axi-ink-meta mb-1 uppercase tracking-wider text-[9px]">Incoming Attack</h5>
+                                        <div className="font-mono text-[10px] axi-ink-dim">
+                                            <div className="flex justify-between axi-ink-faint"><span>Miss:</span> <span className="axi-ink-dim">{totalMiss}</span></div>
+                                            <div className="flex justify-between axi-ink-faint"><span>Block:</span> <span className="axi-ink-dim">{totalBlock}</span></div>
+                                            <div className="flex justify-between axi-ink-faint"><span>Total:</span> <span className="axi-ink-dim">{totalMiss + totalBlock + totalEvade + totalDodge}</span></div>
                                         </div>
                                     </div>
                                     <div className="log-detail-tile rounded-[4px] p-2" style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
-                                        <h5 className="font-semibold text-purple-400 mb-1 uppercase tracking-wider text-[9px]">Incoming CC</h5>
-                                        <div className="font-mono text-[10px] text-gray-300">
-                                            <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-gray-300">{totalCCMissed}</span></div>
-                                            <div className="flex justify-between text-gray-500"><span>Block:</span> <span className="text-gray-300">{totalCCBlocked}</span></div>
-                                            <div className="flex justify-between text-gray-500"><span>Total:</span> <span className="text-gray-300">{totalCCTaken}</span></div>
+                                        <h5 className="font-semibold axi-ink-meta mb-1 uppercase tracking-wider text-[9px]">Incoming CC</h5>
+                                        <div className="font-mono text-[10px] axi-ink-dim">
+                                            <div className="flex justify-between axi-ink-faint"><span>Miss:</span> <span className="axi-ink-dim">{totalCCMissed}</span></div>
+                                            <div className="flex justify-between axi-ink-faint"><span>Block:</span> <span className="axi-ink-dim">{totalCCBlocked}</span></div>
+                                            <div className="flex justify-between axi-ink-faint"><span>Total:</span> <span className="axi-ink-dim">{totalCCTaken}</span></div>
                                         </div>
                                     </div>
 
                                     <div className="log-detail-tile rounded-[4px] p-2" style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
-                                        <h5 className="font-semibold text-orange-400 mb-1 uppercase tracking-wider text-[9px]">Incoming Strips</h5>
-                                        <div className="font-mono text-[10px] text-gray-300">
-                                            <div className="flex justify-between text-gray-500"><span>Miss:</span> <span className="text-gray-300">{totalStripsMissed}</span></div>
-                                            <div className="flex justify-between text-gray-500"><span>Block:</span> <span className="text-gray-300">{totalStripsBlocked}</span></div>
-                                            <div className="flex justify-between text-gray-500"><span>Total:</span> <span className="text-gray-300">{totalStripsTaken}</span></div>
+                                        <h5 className="font-semibold axi-ink-warn mb-1 uppercase tracking-wider text-[9px]">Incoming Strips</h5>
+                                        <div className="font-mono text-[10px] axi-ink-dim">
+                                            <div className="flex justify-between axi-ink-faint"><span>Miss:</span> <span className="axi-ink-dim">{totalStripsMissed}</span></div>
+                                            <div className="flex justify-between axi-ink-faint"><span>Block:</span> <span className="axi-ink-dim">{totalStripsBlocked}</span></div>
+                                            <div className="flex justify-between axi-ink-faint"><span>Total:</span> <span className="axi-ink-dim">{totalStripsTaken}</span></div>
                                         </div>
                                     </div>
                                 </div>
@@ -1213,7 +1213,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                         void handleCreateShareLink();
                                     }}
                                     disabled={isSharing}
-                                    className="log-card-share-link-btn w-full py-2.5 rounded-[4px] text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] text-white hover:brightness-110 disabled:cursor-not-allowed disabled:text-white/50"
+                                    className="log-card-share-link-btn w-full py-2.5 rounded-[4px] text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] axi-ink-plain hover:brightness-110 disabled:cursor-not-allowed disabled:text-white/50"
                                     style={{
                                         background: 'var(--share-btn-bg, color-mix(in srgb, var(--brand-primary) 30%, transparent))',
                                         border: 'var(--panel-border-w, 1px) solid var(--share-btn-edge, color-mix(in srgb, var(--brand-primary) 25%, transparent))',
@@ -1250,8 +1250,8 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                 }}
                                 disabled={!reportUrl}
                                 className={`log-card-dps-link-btn w-full py-2.5 rounded-[4px] text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] ${!reportUrl
-                                    ? 'text-white/50 cursor-not-allowed'
-                                    : 'text-white hover:brightness-110'
+                                    ? 'axi-ink-faint cursor-not-allowed'
+                                    : 'axi-ink-plain hover:brightness-110'
                                     }`}
                                 style={{
                                     background: !reportUrl

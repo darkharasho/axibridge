@@ -12,14 +12,14 @@ interface CommanderHeaderProps {
 }
 
 const CHIP_STYLE: Record<VerdictChip, string> = {
-  'wipe':          'bg-rose-500/15 text-rose-300 border-rose-500/35',
-  'trade':         'bg-amber-500/15 text-amber-300 border-amber-500/35',
-  'carry':         'bg-emerald-500/15 text-emerald-300 border-emerald-500/35',
-  'clean':         'bg-emerald-500/15 text-emerald-300 border-emerald-500/35',
-  'outnumbered':   'bg-amber-500/15 text-amber-300 border-amber-500/35',
-  'caught-engage': 'bg-violet-500/15 text-violet-300 border-violet-500/35',
-  'caught-out':    'bg-violet-500/15 text-violet-300 border-violet-500/35',
-  'bomb-broke-us': 'bg-rose-500/15 text-rose-300 border-rose-500/35',
+  'wipe':          'bg-rose-500/15 axi-ink-danger axi-edge-danger',
+  'trade':         'bg-amber-500/15 axi-ink-warn axi-edge-warn',
+  'carry':         'bg-emerald-500/15 axi-ink-ok axi-edge-ok',
+  'clean':         'bg-emerald-500/15 axi-ink-ok axi-edge-ok',
+  'outnumbered':   'bg-amber-500/15 axi-ink-warn axi-edge-warn',
+  'caught-engage': 'bg-violet-500/15 axi-ink-meta axi-edge-meta',
+  'caught-out':    'bg-violet-500/15 axi-ink-meta axi-edge-meta',
+  'bomb-broke-us': 'bg-rose-500/15 axi-ink-danger axi-edge-danger',
 };
 
 function fmtTime(epochMs: number): string {

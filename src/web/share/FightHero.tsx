@@ -61,9 +61,9 @@ const formatFightTime = (iso: string): string => {
 };
 
 const Kpi = ({ value, label, tone }: { value: React.ReactNode; label: string; tone?: string }) => (
-    <div className="fight-hero-kpi rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5">
+    <div className="fight-hero-kpi rounded-xl border axi-edge-rule bg-white/[0.035] px-3 py-2.5">
         <div className="text-lg font-semibold leading-tight" style={tone ? { color: tone } : undefined}>{value}</div>
-        <div className="mt-1 text-[9px] uppercase tracking-[0.16em] text-gray-400">{label}</div>
+        <div className="mt-1 text-[9px] uppercase tracking-[0.16em] axi-ink-dim">{label}</div>
     </div>
 );
 
@@ -147,7 +147,7 @@ export function FightHero({
                                 </span>
                             )}
                         </h1>
-                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400 sm:text-sm">
+                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs axi-ink-dim sm:text-sm">
                             {timeLabel && (
                                 <span className="inline-flex items-center gap-1.5">
                                     <CalendarDays className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--brand-primary)' }} />
@@ -185,20 +185,20 @@ export function FightHero({
             <div className="mt-5 flex items-center gap-4">
                 <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-[10px] uppercase tracking-[0.14em] text-gray-400">
+                        <span className="truncate text-[10px] uppercase tracking-[0.14em] axi-ink-dim">
                             Squad {squad}{allies > 0 ? ` · Allies ${allies}` : ''}
                         </span>
-                        <span className="text-xl font-semibold text-sky-300">{friendly}</span>
+                        <span className="text-xl font-semibold axi-ink-meta">{friendly}</span>
                     </div>
                     <div className="fight-hero-track mt-1.5 h-2 overflow-hidden rounded-full bg-white/[0.07]">
                         <div className="fight-hero-fill h-full rounded-full" data-side="friendly" style={{ width: `${(friendly / widest) * 100}%`, background: 'linear-gradient(90deg,#2563eb,#60a5fa)' }} />
                     </div>
                 </div>
-                <div className="shrink-0 pt-4 text-[10px] uppercase tracking-[0.2em] text-gray-500">vs</div>
+                <div className="shrink-0 pt-4 text-[10px] uppercase tracking-[0.2em] axi-ink-faint">vs</div>
                 <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
-                        <span className="text-xl font-semibold text-red-300">{enemies}</span>
-                        <span className="truncate text-[10px] uppercase tracking-[0.14em] text-gray-400">Enemies</span>
+                        <span className="text-xl font-semibold axi-ink-danger">{enemies}</span>
+                        <span className="truncate text-[10px] uppercase tracking-[0.14em] axi-ink-dim">Enemies</span>
                     </div>
                     <div className="fight-hero-track mt-1.5 h-2 overflow-hidden rounded-full bg-white/[0.07]">
                         <div className="fight-hero-fill ml-auto h-full rounded-full" data-side="enemy" style={{ width: `${(enemies / widest) * 100}%`, background: 'linear-gradient(90deg,#b91c1c,#f87171)' }} />
@@ -210,12 +210,12 @@ export function FightHero({
                 <Kpi
                     tone="var(--status-success-muted)"
                     label="Enemy Downs / Kills"
-                    value={<>{num(fight.enemyDowns)} <span className="text-xs text-gray-500">/ {num(fight.enemyDeaths)}</span></>}
+                    value={<>{num(fight.enemyDowns)} <span className="text-xs axi-ink-faint">/ {num(fight.enemyDeaths)}</span></>}
                 />
                 <Kpi
                     tone="var(--status-error-muted)"
                     label="Squad Downs / Deaths"
-                    value={<>{num(fight.alliesDown)} <span className="text-xs text-gray-500">/ {num(fight.alliesDead)}</span></>}
+                    value={<>{num(fight.alliesDown)} <span className="text-xs axi-ink-faint">/ {num(fight.alliesDead)}</span></>}
                 />
                 <Kpi label="Damage Dealt" value={compact(num(fight.totalOutgoingDamage))} />
                 <Kpi label="Damage Taken" value={compact(num(fight.totalIncomingDamage))} />

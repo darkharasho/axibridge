@@ -19,9 +19,9 @@ interface Props {
 const Panel = ({ children, tone }: { children: React.ReactNode; tone: 'neutral' | 'good' | 'bad' }) => (
     <div
         className={`mb-4 rounded-[6px] border px-3.5 py-3 ${
-            tone === 'good' ? 'border-emerald-400/25 bg-emerald-400/5'
-                : tone === 'bad' ? 'border-amber-400/25 bg-amber-400/5'
-                    : 'border-white/10 bg-black/20'
+            tone === 'good' ? 'axi-edge-ok bg-emerald-400/5'
+                : tone === 'bad' ? 'axi-edge-warn bg-amber-400/5'
+                    : 'axi-edge-rule bg-black/20'
         }`}
     >
         {children}
@@ -121,17 +121,17 @@ export function CloudflareConnect({ onChanged }: Props) {
             <Panel tone="good">
                 <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                        <p className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
+                        <p className="flex items-center gap-1.5 text-xs font-semibold axi-ink-ok">
                             <Check className="w-3.5 h-3.5 shrink-0" />
                             Connected to Cloudflare
-                            {status.accountName ? <span className="text-gray-400 font-normal">— {status.accountName}</span> : null}
+                            {status.accountName ? <span className="axi-ink-dim font-normal">— {status.accountName}</span> : null}
                         </p>
-                        <p className="mt-1 text-[11px] text-gray-400 truncate">
-                            Bucket <span className="text-gray-300">{status.bucketName}</span> at{' '}
-                            <code className="rounded-[3px] border border-white/10 bg-black/40 px-1 text-cyan-300">{status.publicUrl}</code>
+                        <p className="mt-1 text-[11px] axi-ink-dim truncate">
+                            Bucket <span className="axi-ink-dim">{status.bucketName}</span> at{' '}
+                            <code className="rounded-[3px] border axi-edge-rule bg-black/40 px-1 axi-ink-meta">{status.publicUrl}</code>
                         </p>
                         {adopted && (
-                            <p className="mt-1 text-[11px] text-gray-500">
+                            <p className="mt-1 text-[11px] axi-ink-faint">
                                 That bucket already existed on your account, so it was reused rather than created.
                             </p>
                         )}
@@ -139,12 +139,12 @@ export function CloudflareConnect({ onChanged }: Props) {
                     <button
                         type="button"
                         onClick={disconnect}
-                        className="shrink-0 rounded-[4px] border border-white/10 px-2.5 py-1 text-[11px] text-gray-300 hover:border-white/25 hover:text-white"
+                        className="shrink-0 rounded-[4px] border axi-edge-rule px-2.5 py-1 text-[11px] axi-ink-dim hover:border-white/25 hover:text-white"
                     >
                         Disconnect
                     </button>
                 </div>
-                <p className="mt-2.5 text-[11px] text-gray-500">
+                <p className="mt-2.5 text-[11px] axi-ink-faint">
                     Disconnecting revokes AxiBridge&apos;s access. Your bucket and everything already published stay exactly as they are.
                 </p>
             </Panel>
@@ -156,7 +156,7 @@ export function CloudflareConnect({ onChanged }: Props) {
     if (accounts.length > 0) {
         return (
             <Panel tone="neutral">
-                <p className="text-xs font-semibold text-gray-200 mb-2">Which Cloudflare account should AxiBridge use?</p>
+                <p className="text-xs font-semibold axi-ink-plain mb-2">Which Cloudflare account should AxiBridge use?</p>
                 <div className="space-y-1.5">
                     {accounts.map((account) => (
                         <button
@@ -164,14 +164,14 @@ export function CloudflareConnect({ onChanged }: Props) {
                             type="button"
                             disabled={busy}
                             onClick={() => chooseAccount(account)}
-                            className="w-full rounded-[4px] border border-white/10 px-3 py-1.5 text-left text-xs text-gray-200 hover:border-cyan-500/40 hover:text-white disabled:opacity-50"
+                            className="w-full rounded-[4px] border axi-edge-rule px-3 py-1.5 text-left text-xs axi-ink-plain hover:border-cyan-500/40 hover:text-white disabled:opacity-50"
                         >
                             {account.name}
                         </button>
                     ))}
                 </div>
                 {phase === 'provisioning' && (
-                    <p className="mt-2 flex items-center gap-1.5 text-[11px] text-gray-400">
+                    <p className="mt-2 flex items-center gap-1.5 text-[11px] axi-ink-dim">
                         <Loader2 className="w-3 h-3 animate-spin" /> Setting up the bucket&hellip;
                     </p>
                 )}
@@ -181,8 +181,8 @@ export function CloudflareConnect({ onChanged }: Props) {
 
     return (
         <Panel tone="neutral">
-            <p className="text-xs font-semibold text-gray-200 mb-1">Connect Cloudflare and skip the setup below</p>
-            <p className="text-[11px] text-gray-400 mb-3">
+            <p className="text-xs font-semibold axi-ink-plain mb-1">Connect Cloudflare and skip the setup below</p>
+            <p className="text-[11px] axi-ink-dim mb-3">
                 AxiBridge creates the bucket, turns on its public URL, and fills in all five fields for you. It asks
                 only for permission to manage R2 — it cannot read your other Cloudflare settings.
             </p>
@@ -190,21 +190,21 @@ export function CloudflareConnect({ onChanged }: Props) {
                 type="button"
                 onClick={connect}
                 disabled={busy}
-                className="flex items-center gap-2 rounded-[4px] border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-200 hover:bg-cyan-500/20 disabled:opacity-60"
+                className="flex items-center gap-2 rounded-[4px] border axi-edge-meta bg-cyan-500/10 px-3 py-1.5 text-xs axi-ink-meta hover:bg-cyan-500/20 disabled:opacity-60"
             >
                 {busy
                     ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Waiting for your browser&hellip;</>
                     : <><Cloud className="w-3.5 h-3.5" /> Sign in with Cloudflare</>}
             </button>
             {busy && (
-                <p className="mt-2 text-[11px] text-gray-500">
+                <p className="mt-2 text-[11px] axi-ink-faint">
                     A Cloudflare page opened in your browser. Approve the request there, then come back.
                 </p>
             )}
             {error && (
                 <div className="mt-3 flex items-start gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-400 mt-px" />
-                    <p className="text-[11px] text-amber-400">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 axi-ink-warn mt-px" />
+                    <p className="text-[11px] axi-ink-warn">
                         {error.message}
                         {error.helpUrl && (
                             <>
@@ -213,7 +213,7 @@ export function CloudflareConnect({ onChanged }: Props) {
                                     href={error.helpUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="inline-flex items-center gap-0.5 text-cyan-300 underline underline-offset-2"
+                                    className="inline-flex items-center gap-0.5 axi-ink-meta underline underline-offset-2"
                                 >
                                     Open the Cloudflare dashboard <ExternalLink className="w-2.5 h-2.5" />
                                 </a>

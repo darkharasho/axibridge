@@ -162,7 +162,7 @@ export const SquadKillPressureSection = () => {
                             <span className="text-[9px] text-[color:var(--text-secondary)]">KDR &lt; 1.0</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-0 border-t border-dashed border-amber-400" />
+                            <div className="w-3 h-0 border-t border-dashed axi-edge-warn" />
                             <span className="text-[9px] text-[color:var(--text-secondary)]">Break-even</span>
                         </div>
                     </div>

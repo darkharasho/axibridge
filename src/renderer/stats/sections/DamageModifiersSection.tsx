@@ -383,7 +383,7 @@ const CollapsedView = ({
                                     )}
                                     <span className="flex flex-col min-w-0">
                                         <span className="truncate">{mod.name}</span>
-                                        <span className={`text-[10px] font-normal ${mod.squadDamageGain < 0 ? 'text-teal-500' : 'text-[color:var(--text-muted)]'}`}>
+                                        <span className={`text-[10px] font-normal ${mod.squadDamageGain < 0 ? 'axi-ink-ok' : 'text-[color:var(--text-muted)]'}`}>
                                             {mod.squadDamageGain >= 0 ? '+' : ''}{formatWithCommas(mod.squadDamageGain, 0)} squad total
                                         </span>
                                     </span>
@@ -484,7 +484,7 @@ const CollapsedView = ({
                                                             {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
                                                             <span className="truncate">{row.account}</span>
                                                         </div>
-                                                        <div className={`text-right font-mono ${isNegative ? 'text-teal-400' : incoming ? 'text-red-400' : config.accentText}`}>
+                                                        <div className={`text-right font-mono ${isNegative ? 'axi-ink-ok' : incoming ? 'axi-ink-danger' : config.accentText}`}>
                                                             {row.damageGain >= 0 ? '+' : ''}{formatWithCommas(row.damageGain, 0)}
                                                         </div>
                                                         <div className="text-right font-mono text-[color:var(--text-secondary)]">

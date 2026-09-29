@@ -115,5 +115,39 @@ app-side override is correct rather than tolerated.
 6. **Cards, Modals, Buttons, Chips, Meters, Shell** — the remaining ADOPT mass.
 7. **EXTEND rulings** — four design decisions, upstream-side.
 
+## What the census got wrong
+
+Kept here rather than corrected in place, because the errors are the useful part.
+
+**Tables (step 4).** Both numbers and the verdict. "64 JSX sites / 13 files" counted
+consumers: every table in the app is one 140-line component, and the 13 files pass
+props to it. And ADOPT was wrong — `.axi-table` described a leaderboard, with no
+scroll, nothing to keep in place. The app needed twenty numeric columns against
+forty players scrolled both ways, which is why it had built a grid of divs with no
+`<table>`, no `<th>` and no `scope` at all. Reclassified EXTEND; the shape went
+upstream in 1.21.0.
+
+**The Tailwind bucket (step 5).** Called DELETE — "not upstream's problem — fix the
+JSX." Half right. The markup does have to say the meaning, but until 1.22.0 the
+language had no way to say it outside a component: rules 5 and 6 draw a
+status/commentary distinction that only a chip or a card could express. So the
+bucket was really EXTEND then DELETE, and it split three ways rather than one:
+
+- *Colour* (1445 sites, 55 files) — `text-*` and `border-*`, a pure substitution
+  once `.axi-ink-*` and `.axi-edge-*` existed. Done.
+- *Surfaces* (~400 sites) — `bg-white/5 border-white/10 rounded-lg p-3` is an
+  `.axi-well`, and naming it one is a markup change per site, not a substitution.
+  Still outstanding.
+- *Geometry* (`.border`, `.rounded-*`, 1175 sites) — never colour, never bridged.
+  It belongs to the component-adoption slices.
+
+**And a fourth group nobody counted: 293 variant-prefixed palette utilities that
+the bridge never reached.** Tailwind emits `hover:text-white` as the class
+`hover\:text-white`, which the bridge's `.text-white` does not match — so every
+hover, focus and placeholder colour in the app has been raw Tailwind palette since
+the theme landed, in both themes. Most sit on things that want to be `.axi-btn` or
+`.axi-menu`, which carry their own hover, so they are absorbed by the component
+slices rather than by a parallel hover vocabulary.
+
 Also outstanding, independent of all of the above: we are pinned at **1.13.0**
-and upstream is at **1.15.0**.
+and upstream is at **1.15.0**. *(Both stale: 1.22.0 as of 2026-09-28.)*

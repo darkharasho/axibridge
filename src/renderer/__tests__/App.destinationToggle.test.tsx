@@ -124,7 +124,7 @@ describe('App header — re-link warning across multiple destinations', () => {
     it('warns about a revoked bridge enabled SECOND, without claiming reports are stopped', async () => {
         const container = await renderWithDestinations([HEALTHY_WEBHOOK, REVOKED_BRIDGE], ['w1', 'b2']);
 
-        expect(container.querySelector('svg.text-amber-400')).not.toBeNull();
+        expect(container.querySelector('svg.axi-ink-warn')).not.toBeNull();
         expect(await screen.findByText(/Re-link required/i)).toHaveTextContent(
             'Re-link required — Old Keep was revoked and is not receiving reports.'
         );
@@ -134,7 +134,7 @@ describe('App header — re-link warning across multiple destinations', () => {
     it('warns about a revoked bridge enabled FIRST, still without claiming reports are stopped', async () => {
         const container = await renderWithDestinations([REVOKED_BRIDGE, HEALTHY_WEBHOOK], ['b2', 'w1']);
 
-        expect(container.querySelector('svg.text-amber-400')).not.toBeNull();
+        expect(container.querySelector('svg.axi-ink-warn')).not.toBeNull();
         expect(await screen.findByText(/Re-link required/i)).toHaveTextContent(
             'Re-link required — Old Keep was revoked and is not receiving reports.'
         );

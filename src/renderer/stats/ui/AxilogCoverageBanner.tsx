@@ -108,7 +108,7 @@ export const AxilogCoverageBanner = ({
                     <button
                         type="button"
                         onClick={() => setDetailsOpen((open) => !open)}
-                        className="px-3 py-1 rounded-full text-[10px] font-medium border bg-white/[0.04] text-gray-400 border-white/[0.08] hover:text-white hover:bg-white/[0.08] transition-colors"
+                        className="px-3 py-1 rounded-full text-[10px] font-medium border bg-white/[0.04] axi-ink-dim axi-edge-rule hover:text-white hover:bg-white/[0.08] transition-colors"
                     >
                         {detailsOpen ? 'Hide' : `Show ${missing.length}`}
                     </button>
@@ -133,7 +133,7 @@ export const AxilogCoverageBanner = ({
             </div>
 
             {detailsOpen && (
-                <ul className="mt-2 pt-2 border-t border-white/[0.07] space-y-0.5 max-h-40 overflow-y-auto">
+                <ul className="mt-2 pt-2 border-t axi-edge-rule space-y-0.5 max-h-40 overflow-y-auto">
                     {missing.map((log) => (
                         <li key={`${log.id || log.filePath}:${log.label}`} className="flex items-baseline gap-2 text-[10px]">
                             <span className="truncate" style={{ color: 'var(--text-secondary)' }}>{log.label}</span>

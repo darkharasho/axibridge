@@ -185,7 +185,7 @@ export const StabPerformanceSection = ({
             sectionId="stab-performance"
             title="Stab Performance"
             titleIcon={Shield}
-            titleIconClassName="text-violet-300"
+            titleIconClassName="axi-ink-meta"
             listTitle="Stability Sources"
             searchPlaceholder="Search player or account"
             modes={[]}
@@ -210,7 +210,7 @@ export const StabPerformanceSection = ({
                     aria-pressed={heatmapOverlay === 'incoming-damage'}
                     className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
                         heatmapOverlay === 'incoming-damage'
-                            ? 'text-red-200 hover:text-red-100'
+                            ? 'axi-ink-danger hover:text-red-100'
                             : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                     }`}
                 >
@@ -223,7 +223,7 @@ export const StabPerformanceSection = ({
                     aria-pressed={heatmapOverlay === 'strips-taken'}
                     className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
                         heatmapOverlay === 'strips-taken'
-                            ? 'text-red-300 hover:text-red-200'
+                            ? 'axi-ink-danger hover:text-red-200'
                             : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                     }`}
                 >
@@ -235,7 +235,7 @@ export const StabPerformanceSection = ({
                     title="Mark party member deaths on the drilldown chart"
                     className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
                         showPartyDeaths
-                            ? 'text-red-300 hover:text-red-200'
+                            ? 'axi-ink-danger hover:text-red-200'
                             : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                     }`}
                 >
@@ -247,7 +247,7 @@ export const StabPerformanceSection = ({
                     title="Flags party members who averaged more than 600 units from the commander during this fight"
                     className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
                         showPartyDistance
-                            ? 'text-yellow-200 hover:text-yellow-100'
+                            ? 'axi-ink-warn hover:text-yellow-100'
                             : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                     }`}
                 >
@@ -257,10 +257,10 @@ export const StabPerformanceSection = ({
             renderPlayerItem={(player, isSelected) => (
                 <>
                     {renderProfessionIcon(player.profession, player.professionList, 'w-4 h-4 flex-shrink-0')}
-                    <span className={`text-xs truncate flex-1 ${isSelected ? 'text-slate-200' : 'text-slate-400'}`}>
+                    <span className={`text-xs truncate flex-1 ${isSelected ? 'axi-ink-plain' : 'axi-ink-dim'}`}>
                         {player.displayName}
                     </span>
-                    <span className={`text-xs tabular-nums ${isSelected ? 'text-indigo-300 font-semibold' : 'text-slate-500'}`}>
+                    <span className={`text-xs tabular-nums ${isSelected ? 'axi-ink-meta font-semibold' : 'axi-ink-faint'}`}>
                         {formatWithCommas(player.value / 1000, 0)}
                     </span>
                 </>
@@ -273,7 +273,7 @@ export const StabPerformanceSection = ({
                             {partyMembers.map((m, mi) => (
                                 <div key={m.key} className="flex items-center gap-1.5">
                                     <div className="w-5 h-0" style={{ borderTop: `2px dashed ${PARTY_MEMBER_COLORS[mi % PARTY_MEMBER_COLORS.length]}` }} />
-                                    <span className="text-[9px] text-slate-400">{m.displayName}</span>
+                                    <span className="text-[9px] axi-ink-dim">{m.displayName}</span>
                                 </div>
                             ))}
                         </div>
@@ -283,7 +283,7 @@ export const StabPerformanceSection = ({
                         data-overlay={heatmapOverlay !== 'none' ? heatmapOverlay : undefined}
                     >
                         {drilldownData.length === 0 ? (
-                            <div className="h-full flex items-center justify-center text-xs text-slate-500">
+                            <div className="h-full flex items-center justify-center text-xs axi-ink-faint">
                                 No detailed data available for this fight.
                             </div>
                         ) : stripsTakenDataAbsent ? (
@@ -307,18 +307,18 @@ export const StabPerformanceSection = ({
                                             const damage = Number(point?.incomingDamage || 0);
                                             const strips = Number(point?.stripsTaken || 0);
                                             return (
-                                                <div className="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-xs shadow-xl">
-                                                    <div className="text-slate-200 font-medium mb-1">
+                                                <div className="bg-slate-900 border axi-edge-rule rounded-lg px-3 py-2 text-xs shadow-xl">
+                                                    <div className="axi-ink-plain font-medium mb-1">
                                                         {String(label || '')}
-                                                        {gen > 0 && <span className="text-violet-300">{` · Gen: ${formatWithCommas(gen / 1000, 0)}`}</span>}
+                                                        {gen > 0 && <span className="axi-ink-meta">{` · Gen: ${formatWithCommas(gen / 1000, 0)}`}</span>}
                                                     </div>
                                                     {heatmapOverlay === 'incoming-damage' && damage > 0 && (
-                                                        <div className="text-red-300 mb-1">
+                                                        <div className="axi-ink-danger mb-1">
                                                             Party Incoming Damage: {formatWithCommas(damage, 0)}
                                                         </div>
                                                     )}
                                                     {heatmapOverlay === 'strips-taken' && !stripsTakenDataAbsent && strips > 0 && (
-                                                        <div className="text-red-300 mb-1">
+                                                        <div className="axi-ink-danger mb-1">
                                                             Boon Strips Taken: {formatWithCommas(strips, 0)}
                                                         </div>
                                                     )}
@@ -335,12 +335,12 @@ export const StabPerformanceSection = ({
                                                                 <span>{member.displayName}</span>
                                                                 <span>: {stacks === 0 ? 'No stab' : stacks.toFixed(1) + ' stacks'}</span>
                                                                 {distance > 0 && (
-                                                                    <span className={`flex items-center gap-0.5 ${hasFar ? 'text-yellow-400' : 'text-slate-400'}`}>
+                                                                    <span className={`flex items-center gap-0.5 ${hasFar ? 'axi-ink-warn' : 'axi-ink-dim'}`}>
                                                                         <MapPin className="inline w-3 h-3" />
                                                                         {Math.round(distance)}u
                                                                     </span>
                                                                 )}
-                                                                {hasDeath && <Skull className={`inline w-3.5 h-3.5 ${member.key === selectedPlayerKey ? 'text-purple-400' : 'text-white'}`} />}
+                                                                {hasDeath && <Skull className={`inline w-3.5 h-3.5 ${member.key === selectedPlayerKey ? 'axi-ink-meta' : 'axi-ink-plain'}`} />}
                                                             </div>
                                                         );
                                                     })}

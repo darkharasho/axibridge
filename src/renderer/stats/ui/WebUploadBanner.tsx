@@ -78,7 +78,7 @@ export const WebUploadBanner = ({
 
     return (
         <>
-        <div className="mb-3 bg-white/[0.04] border border-white/[0.09] rounded-xl px-3 py-2.5 flex items-center gap-3">
+        <div className="mb-3 bg-white/[0.04] border axi-edge-rule rounded-xl px-3 py-2.5 flex items-center gap-3">
             {/* Icon */}
             <div
                 className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-sm"
@@ -120,7 +120,7 @@ export const WebUploadBanner = ({
                     <button
                         type="button"
                         onClick={() => setLogsOpen(true)}
-                        className="px-3 py-1 rounded-full text-[10px] font-medium border bg-white/[0.04] text-gray-400 border-white/[0.08] hover:text-white hover:bg-white/[0.08] transition-colors"
+                        className="px-3 py-1 rounded-full text-[10px] font-medium border bg-white/[0.04] axi-ink-dim axi-edge-rule hover:text-white hover:bg-white/[0.08] transition-colors"
                     >
                         Logs
                     </button>
@@ -134,14 +134,14 @@ export const WebUploadBanner = ({
                             setTimeout(() => setWebCopyStatus('idle'), 1200);
                         }
                     }}
-                    className="px-3 py-1 rounded-full text-[10px] font-medium border bg-white/[0.05] text-gray-300 border-white/10 hover:text-white transition-colors"
+                    className="px-3 py-1 rounded-full text-[10px] font-medium border bg-white/[0.05] axi-ink-dim axi-edge-rule hover:text-white transition-colors"
                 >
                     {webCopyStatus === 'copied' ? 'Copied' : 'Copy'}
                 </button>
                 <button
                     type="button"
                     onClick={openUrl}
-                    className="px-3 py-1 rounded-full text-[10px] font-medium border bg-cyan-500/[0.08] text-cyan-300 border-cyan-500/25 hover:bg-cyan-500/15 transition-colors"
+                    className="px-3 py-1 rounded-full text-[10px] font-medium border bg-cyan-500/[0.08] axi-ink-meta axi-edge-meta hover:bg-cyan-500/15 transition-colors"
                 >
                     Open ↗
                 </button>
@@ -167,12 +167,12 @@ export const WebUploadBanner = ({
                             <div className="text-[9px] font-bold tracking-[.15em] uppercase" style={{ color: 'var(--brand-primary)' }}>
                                 Web Upload
                             </div>
-                            <div className="text-base font-bold mt-0.5 text-white">Upload Log</div>
+                            <div className="text-base font-bold mt-0.5 axi-ink-plain">Upload Log</div>
                         </div>
                         <button
                             type="button"
                             onClick={() => setLogsOpen(false)}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+                            className="w-7 h-7 rounded-lg flex items-center justify-center axi-ink-dim hover:text-white hover:bg-white/[0.08] transition-colors"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -209,7 +209,7 @@ export const WebUploadBanner = ({
                         <button
                             type="button"
                             onClick={() => setLogsOpen(false)}
-                            className="px-4 py-1.5 rounded-lg text-xs font-semibold border border-white/10 bg-white/[0.05] text-gray-300 hover:bg-white/[0.10] transition-colors"
+                            className="px-4 py-1.5 rounded-lg text-xs font-semibold border axi-edge-rule bg-white/[0.05] axi-ink-dim hover:bg-white/[0.10] transition-colors"
                         >
                             Close
                         </button>

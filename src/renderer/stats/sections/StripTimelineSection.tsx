@@ -103,7 +103,7 @@ export const StripTimelineSection: React.FC<StripTimelineSectionProps> = ({
                     title="Boons this player removed from enemies"
                     className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
                         direction === 'out'
-                            ? 'text-fuchsia-200 hover:text-fuchsia-100'
+                            ? 'axi-ink-meta hover:text-fuchsia-100'
                             : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                     }`}
                 >
@@ -116,7 +116,7 @@ export const StripTimelineSection: React.FC<StripTimelineSectionProps> = ({
                     title="Boons removed from this player by enemies"
                     className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
                         direction === 'in'
-                            ? 'text-red-300 hover:text-red-200'
+                            ? 'axi-ink-danger hover:text-red-200'
                             : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                     }`}
                 >

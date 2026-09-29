@@ -223,7 +223,7 @@ export const CommanderTargetConversionSection = ({
                                             selectedCommander?.key === row.key ? 'bg-cyan-500/10' : 'hover:bg-[var(--bg-hover)]'
                                         }`}
                                     >
-                                        <td className="py-2 px-3 text-gray-100 font-semibold truncate">{row.account}</td>
+                                        <td className="py-2 px-3 axi-ink-plain font-semibold truncate">{row.account}</td>
                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(row.downToKillConversionPct)}</td>
                                         {!singleFight && <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgDownsPerFight, 1)}</td>}
                                         {!singleFight && <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgKillsPerFight, 1)}</td>}
@@ -257,7 +257,7 @@ export const CommanderTargetConversionSection = ({
                                             <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(fight.kills)}</td>
                                             <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(fight.downToKillConversionPct)}</td>
                                             <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(fight.failedDownEstimate)}</td>
-                                            <td className={`py-2 px-3 text-right font-semibold ${fight.isWin ? 'text-emerald-300' : 'text-rose-300'}`}>
+                                            <td className={`py-2 px-3 text-right font-semibold ${fight.isWin ? 'axi-ink-ok' : 'axi-ink-danger'}`}>
                                                 {fight.isWin ? 'Win' : 'Loss'}
                                             </td>
                                         </tr>
@@ -321,7 +321,7 @@ export const CommanderTagMovementSection = ({
             ) : (
                 <div className="space-y-4 min-w-0">
                     {!hasAnyMovementData ? (
-                        <div className="rounded-[var(--radius-md)] border border-emerald-200/10 px-3 py-2 text-xs text-emerald-100/80">
+                        <div className="rounded-[var(--radius-md)] border axi-edge-ok px-3 py-2 text-xs axi-ink-ok">
                             Tag movement is unavailable for these logs because commander replay positions were not present.
                         </div>
                     ) : null}
@@ -345,7 +345,7 @@ export const CommanderTagMovementSection = ({
                                             selectedCommander?.key === row.key ? 'bg-emerald-500/10' : 'hover:bg-[var(--bg-hover)]'
                                         }`}
                                     >
-                                        <td className="py-2 px-3 text-gray-100 font-semibold truncate">{row.account}</td>
+                                        <td className="py-2 px-3 axi-ink-plain font-semibold truncate">{row.account}</td>
                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgCommanderDistanceTraveled, 0)}</td>
                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgCommanderMovementPerMinute, 1)}</td>
                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(row.avgTagStationaryPct)}</td>
@@ -377,7 +377,7 @@ export const CommanderTagMovementSection = ({
                                             <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(fight.movementPerMinute, 1)}</td>
                                             <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(fight.stationaryPct)}</td>
                                             <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(fight.movementBurstCount, 0)}</td>
-                                            <td className={`py-2 px-3 text-right font-semibold ${fight.isWin ? 'text-emerald-300' : 'text-rose-300'}`}>
+                                            <td className={`py-2 px-3 text-right font-semibold ${fight.isWin ? 'axi-ink-ok' : 'axi-ink-danger'}`}>
                                                 {fight.isWin ? 'Win' : 'Loss'}
                                             </td>
                                         </tr>
@@ -441,7 +441,7 @@ export const CommanderTagDeathResponseSection = ({
             ) : (
                 <div className="space-y-4 min-w-0">
                     {!hasPostDeathEnemyData ? (
-                        <div className="rounded-[var(--radius-md)] border border-rose-200/10 px-3 py-2 text-xs text-rose-100/80">
+                        <div className="rounded-[var(--radius-md)] border axi-edge-danger px-3 py-2 text-xs axi-ink-danger">
                             Post-death enemy kill counts are unavailable for these logs because enemy replay death timestamps were not present.
                         </div>
                     ) : null}
@@ -466,7 +466,7 @@ export const CommanderTagDeathResponseSection = ({
                                             selectedCommander?.key === row.key ? 'bg-rose-500/10' : 'hover:bg-[var(--bg-hover)]'
                                         }`}
                                     >
-                                        <td className="py-2 px-3 text-gray-100 font-semibold truncate">{row.account}</td>
+                                        <td className="py-2 px-3 axi-ink-plain font-semibold truncate">{row.account}</td>
                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatInt(row.fightsWithCommanderDeath)}</td>
                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullablePct(row.squadCollapseAfterTagDeathPct)}</td>
                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableNumber(row.avgSquadDeathsAfterTagDeath, 1)}</td>
@@ -505,7 +505,7 @@ export const CommanderTagDeathResponseSection = ({
                                                     className={`py-2 px-3 text-right font-semibold ${
                                                         fight.collapsedAfterTagDeath === null
                                                             ? 'text-[color:var(--text-secondary)]'
-                                                            : (fight.collapsedAfterTagDeath ? 'text-rose-300' : 'text-emerald-300')
+                                                            : (fight.collapsedAfterTagDeath ? 'axi-ink-danger' : 'axi-ink-ok')
                                                     }`}
                                                 >
                                                     {fight.collapsedAfterTagDeath === null ? 'N/A' : (fight.collapsedAfterTagDeath ? 'Yes' : 'No')}
@@ -514,7 +514,7 @@ export const CommanderTagDeathResponseSection = ({
                                                     className={`py-2 px-3 text-right font-semibold ${
                                                         fight.recoveredAfterTagDeath === null
                                                             ? 'text-[color:var(--text-secondary)]'
-                                                            : (fight.recoveredAfterTagDeath ? 'text-emerald-300' : 'text-rose-300')
+                                                            : (fight.recoveredAfterTagDeath ? 'axi-ink-ok' : 'axi-ink-danger')
                                                     }`}
                                                 >
                                                     {fight.recoveredAfterTagDeath === null ? 'N/A' : (fight.recoveredAfterTagDeath ? 'Yes' : 'No')}
@@ -581,7 +581,7 @@ export const CommanderPushTimingSection = ({
             ) : (
                 <div className="space-y-4 min-w-0">
                     {!hasAnyTimingData ? (
-                        <div className="rounded-[var(--radius-md)] border border-amber-200/10 px-3 py-2 text-xs text-amber-100/80">
+                        <div className="rounded-[var(--radius-md)] border axi-edge-warn px-3 py-2 text-xs axi-ink-warn">
                             Exact push timing is unavailable for these logs because enemy replay down/death timestamps were not present.
                         </div>
                     ) : null}
@@ -606,7 +606,7 @@ export const CommanderPushTimingSection = ({
                                             selectedCommander?.key === row.key ? 'bg-amber-500/10' : 'hover:bg-[var(--bg-hover)]'
                                         }`}
                                     >
-                                        <td className="py-2 px-3 text-gray-100 font-semibold truncate">{row.account}</td>
+                                        <td className="py-2 px-3 axi-ink-plain font-semibold truncate">{row.account}</td>
                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(row.avgTimeToFirstEnemyDownMs)}</td>
                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(row.avgTimeToFirstEnemyDeathMs)}</td>
                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(row.avgDownToKillConversionMs)}</td>
@@ -635,7 +635,7 @@ export const CommanderPushTimingSection = ({
                                     {newestFirst(selectedCommander.fightsData).map((fight) => (
                                         <tr key={`${fight.id}-push-timing`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
                                             <td className="py-2 px-3 text-[color:var(--text-primary)]">{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</td>
-                                            <td className={`py-2 px-3 text-right font-semibold ${fight.isWin ? 'text-emerald-300' : 'text-rose-300'}`}>
+                                            <td className={`py-2 px-3 text-right font-semibold ${fight.isWin ? 'axi-ink-ok' : 'axi-ink-danger'}`}>
                                                 {fight.isWin ? 'Win' : 'Loss'}
                                             </td>
                                             <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatNullableDuration(fight.timeToFirstEnemyDownMs)}</td>
@@ -810,7 +810,7 @@ export const CommanderStatsSection = ({
                                                     />
                                                 ) : null}
                                                 <div className="min-w-0">
-                                                    <div className="text-gray-100 font-semibold truncate">{row.account}</div>
+                                                    <div className="axi-ink-plain font-semibold truncate">{row.account}</div>
                                                     <div className="text-[10px] text-[color:var(--text-secondary)] truncate">
                                                         {(row.characterNames || []).join(', ') || 'Unknown'}
                                                     </div>
@@ -837,27 +837,27 @@ export const CommanderStatsSection = ({
                             <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2">
                                 <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2">
                                     <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Time Tagged</div>
-                                    <div className="text-sm font-semibold text-gray-100">{formatDuration(selectedCommander.totalDurationMs)}</div>
+                                    <div className="text-sm font-semibold axi-ink-plain">{formatDuration(selectedCommander.totalDurationMs)}</div>
                                 </div>
                                 <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2">
                                     <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Inc. Strips</div>
-                                    <div className="text-sm font-semibold text-gray-100">{formatInt(selectedCommander.incomingStrips)}</div>
+                                    <div className="text-sm font-semibold axi-ink-plain">{formatInt(selectedCommander.incomingStrips)}</div>
                                 </div>
                                 <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2">
                                     <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Inc. CC</div>
-                                    <div className="text-sm font-semibold text-gray-100">{formatInt(selectedCommander.incomingCC)}</div>
+                                    <div className="text-sm font-semibold axi-ink-plain">{formatInt(selectedCommander.incomingCC)}</div>
                                 </div>
                                 <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2">
                                     <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Damage Taken</div>
-                                    <div className="text-sm font-semibold text-gray-100">{formatInt(selectedCommander.damageTaken)}</div>
+                                    <div className="text-sm font-semibold axi-ink-plain">{formatInt(selectedCommander.damageTaken)}</div>
                                 </div>
                                 <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2">
                                     <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Barrier Absorbed</div>
-                                    <div className="text-sm font-semibold text-gray-100">{formatInt(selectedCommander.incomingBarrierAbsorbed)}</div>
+                                    <div className="text-sm font-semibold axi-ink-plain">{formatInt(selectedCommander.incomingBarrierAbsorbed)}</div>
                                 </div>
                                 <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2">
                                     <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Boon Uptime</div>
-                                    <div className="text-sm font-semibold text-gray-100">{formatRate(selectedCommander.boonUptimePct, 1)}%</div>
+                                    <div className="text-sm font-semibold axi-ink-plain">{formatRate(selectedCommander.boonUptimePct, 1)}%</div>
                                 </div>
                             </div>
 

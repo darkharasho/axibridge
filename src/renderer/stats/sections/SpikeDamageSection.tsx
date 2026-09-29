@@ -92,7 +92,7 @@ export const SpikeDamageSection = ({
     listTitle = 'Squad Players',
     searchPlaceholder = 'Search player or account',
     titleIcon = Zap,
-    titleIconClassName = 'text-rose-300',
+    titleIconClassName = 'axi-ink-danger',
     spikePlayerFilter,
     setSpikePlayerFilter,
     groupedSpikePlayers,
@@ -258,7 +258,7 @@ export const SpikeDamageSection = ({
             renderDrilldown={() => (
                 <div className="h-[220px] relative">
                     {spikeDrilldownData.length === 0 ? (
-                        <div className="h-full flex items-center justify-center text-xs text-slate-500">
+                        <div className="h-full flex items-center justify-center text-xs axi-ink-faint">
                             No detailed data available for this fight.
                         </div>
                     ) : (
@@ -275,9 +275,9 @@ export const SpikeDamageSection = ({
                                             const d = payload[0]?.payload;
                                             if (!d) return null;
                                             return (
-                                                <div className="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-xs shadow-xl">
-                                                    <div className="text-slate-200 font-medium mb-1">{d.label}</div>
-                                                    <div className="text-indigo-300">Damage: <strong>{formatWithCommas(Number(d.value || 0), 0)}</strong></div>
+                                                <div className="bg-slate-900 border axi-edge-rule rounded-lg px-3 py-2 text-xs shadow-xl">
+                                                    <div className="axi-ink-plain font-medium mb-1">{d.label}</div>
+                                                    <div className="axi-ink-meta">Damage: <strong>{formatWithCommas(Number(d.value || 0), 0)}</strong></div>
                                                 </div>
                                             );
                                         }}
@@ -302,12 +302,12 @@ export const SpikeDamageSection = ({
                                 </LineChart>
                             </ChartContainer>
                             {hoveredMarkerInfo && (
-                                <div className="pointer-events-none absolute z-20 rounded-md border border-white/10 bg-slate-900 px-2 py-1 text-xs shadow-xl"
+                                <div className="pointer-events-none absolute z-20 rounded-md border axi-edge-rule bg-slate-900 px-2 py-1 text-xs shadow-xl"
                                     style={{ left: `${Math.max(8, hoveredMarkerInfo.x)}px`, top: `${Math.max(8, hoveredMarkerInfo.y - 38)}px`, transform: 'translate(-50%, -100%)' }}>
-                                    <div className={`${hoveredMarkerInfo.kind === 'down' ? 'text-yellow-300' : 'text-red-300'} font-semibold`}>
+                                    <div className={`${hoveredMarkerInfo.kind === 'down' ? 'axi-ink-warn' : 'axi-ink-danger'} font-semibold`}>
                                         {hoveredMarkerInfo.kind === 'down' ? 'Down' : 'Death'}
                                     </div>
-                                    <div className="text-slate-500">{hoveredMarkerInfo.label}</div>
+                                    <div className="axi-ink-faint">{hoveredMarkerInfo.label}</div>
                                 </div>
                             )}
                         </>
@@ -325,11 +325,11 @@ export const SpikeDamageSection = ({
                 return (
                     <>
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] uppercase tracking-wider text-slate-500">{spikeFightSkillTitle}</span>
-                            <span className="text-[10px] text-slate-500">{displayRows.length} {displayRows.length === 1 ? 'skill' : 'skills'}</span>
+                            <span className="text-[10px] uppercase tracking-wider axi-ink-faint">{spikeFightSkillTitle}</span>
+                            <span className="text-[10px] axi-ink-faint">{displayRows.length} {displayRows.length === 1 ? 'skill' : 'skills'}</span>
                         </div>
-                        <div className="rounded-lg overflow-hidden border border-white/5">
-                            <div className="grid grid-cols-[2fr_0.8fr_0.8fr] gap-2 px-3 py-2 text-[10px] uppercase tracking-wider text-slate-500 border-b border-white/5">
+                        <div className="rounded-lg overflow-hidden border axi-edge-rule">
+                            <div className="grid grid-cols-[2fr_0.8fr_0.8fr] gap-2 px-3 py-2 text-[10px] uppercase tracking-wider axi-ink-faint border-b axi-edge-rule">
                                 <div>Skill</div>
                                 <div className="text-right">{isDownContributionMode ? 'Down Contrib' : 'Damage'}</div>
                                 <div className="text-right">Hits</div>
@@ -337,18 +337,18 @@ export const SpikeDamageSection = ({
                             <div className="max-h-[260px] overflow-y-auto">
                                 {displayRows.map((row, idx) => (
                                     <div key={`${row.skillName}-${idx}`}
-                                        className="grid grid-cols-[2fr_0.8fr_0.8fr] gap-2 px-3 py-2.5 text-sm text-slate-300 border-b border-white/5 hover:bg-white/[0.03] last:border-b-0">
+                                        className="grid grid-cols-[2fr_0.8fr_0.8fr] gap-2 px-3 py-2.5 text-sm axi-ink-dim border-b axi-edge-rule hover:bg-white/[0.03] last:border-b-0">
                                         <div className="min-w-0 flex items-center gap-2">
                                             {row.icon ? (
                                                 <img src={row.icon} alt="" loading="lazy"
-                                                    className="w-4 h-4 rounded-sm border border-white/10 bg-white/5 flex-shrink-0" />
+                                                    className="w-4 h-4 rounded-sm border axi-edge-rule bg-white/5 flex-shrink-0" />
                                             ) : (
-                                                <div className="w-4 h-4 rounded-sm border border-white/10 bg-white/5 flex-shrink-0" />
+                                                <div className="w-4 h-4 rounded-sm border axi-edge-rule bg-white/5 flex-shrink-0" />
                                             )}
                                             <div className="truncate" title={row.skillName}>{row.skillName}</div>
                                         </div>
-                                        <div className="text-right font-mono text-indigo-300">{formatWithCommas(metricValue(row), 0)}</div>
-                                        <div className="text-right font-mono text-slate-500">{formatWithCommas(Number(row.hits || 0), 0)}</div>
+                                        <div className="text-right font-mono axi-ink-meta">{formatWithCommas(metricValue(row), 0)}</div>
+                                        <div className="text-right font-mono axi-ink-faint">{formatWithCommas(Number(row.hits || 0), 0)}</div>
                                     </div>
                                 ))}
                             </div>

@@ -271,7 +271,7 @@ describe('SettingsView', () => {
             selectSettingsCategory('Application');
             await waitFor(() => {
                 const amberButton = screen.getByRole('button', { name: 'Amber Warm' });
-                expect(amberButton.className).toMatch(/white\/40/);
+                expect(amberButton.className).toMatch(/axi-edge-accent/);
             });
         });
     });
@@ -353,7 +353,7 @@ describe('SettingsView', () => {
             const amberBtn = screen.getByRole('button', { name: 'Amber Warm' });
             fireEvent.click(amberBtn);
 
-            expect(amberBtn.className).toMatch(/white\/40/);
+            expect(amberBtn.className).toMatch(/axi-edge-accent/);
         });
 
         it('shows exactly one surface toggle, labelled Glass', async () => {

@@ -54,17 +54,17 @@ export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughMo
                 >
                     <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
                         <div className="flex items-center gap-3">
-                            <div className="rounded-[4px] border border-blue-500/30 bg-blue-500/20 p-1.5">
+                            <div className="rounded-[4px] border axi-edge-meta bg-blue-500/20 p-1.5">
                                 <span className="axibridge-logo h-7 w-7 rounded-lg" style={axibridgeLogoStyle} aria-label="AxiBridge logo" />
                             </div>
                             <div>
-                                <div className="text-lg font-bold text-white">Welcome to AxiBridge</div>
-                                <div className="text-xs text-gray-400">A quick overview of what this app does</div>
+                                <div className="text-lg font-bold axi-ink-plain">Welcome to AxiBridge</div>
+                                <div className="text-xs axi-ink-dim">A quick overview of what this app does</div>
                             </div>
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-1.5 rounded-[4px] hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
+                            className="p-1.5 rounded-[4px] hover:bg-white/10 axi-ink-dim hover:text-white transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -80,15 +80,15 @@ export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughMo
                                         className="rounded-[4px] px-4 py-4 flex gap-4 items-start"
                                         style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                                     >
-                                        <div className="mt-0.5 rounded-[4px] border border-blue-500/30 bg-blue-500/15 p-2">
-                                            <Icon className="w-4 h-4 text-blue-300" />
+                                        <div className="mt-0.5 rounded-[4px] border axi-edge-meta bg-blue-500/15 p-2">
+                                            <Icon className="w-4 h-4 axi-ink-meta" />
                                         </div>
                                         <div>
-                                            <div className="text-xs uppercase tracking-wider text-blue-200/80 font-semibold">
+                                            <div className="text-xs uppercase tracking-wider axi-ink-meta font-semibold">
                                                 Step {idx + 1}
                                             </div>
-                                            <div className="text-sm font-semibold text-white mt-1">{step.title}</div>
-                                            <div className="text-sm text-gray-300 mt-1 leading-6">{step.description}</div>
+                                            <div className="text-sm font-semibold axi-ink-plain mt-1">{step.title}</div>
+                                            <div className="text-sm axi-ink-dim mt-1 leading-6">{step.description}</div>
                                         </div>
                                     </div>
                                 );
@@ -99,7 +99,7 @@ export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughMo
                     <div className="flex justify-end gap-2 px-6 py-4" style={{ borderTop: '1px solid var(--border-default)' }}>
                         <button
                             onClick={() => onLearnMore?.()}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-[4px] text-gray-200 hover:bg-white/10 transition-colors text-sm font-medium"
+                            className="flex items-center gap-1.5 px-4 py-2 rounded-[4px] axi-ink-plain hover:bg-white/10 transition-colors text-sm font-medium"
                             style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                         >
                             <BookOpen className="w-3.5 h-3.5" />
@@ -107,7 +107,7 @@ export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughMo
                         </button>
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 rounded-[4px] bg-blue-500/20 text-blue-200 border border-blue-500/30 hover:bg-blue-500/30 transition-colors text-sm font-medium"
+                            className="px-4 py-2 rounded-[4px] bg-blue-500/20 axi-ink-meta border axi-edge-meta hover:bg-blue-500/30 transition-colors text-sm font-medium"
                         >
                             Get Started
                         </button>

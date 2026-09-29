@@ -216,7 +216,7 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
                 </colgroup>
                 <thead>
                     <tr>
-                        <th scope="col" className={`bucket-grid__pin${headClass} text-left pr-3 pb-1.5 border-b border-white/5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-secondary)]`}>Player</th>
+                        <th scope="col" className={`bucket-grid__pin${headClass} text-left pr-3 pb-1.5 border-b axi-edge-rule text-[9px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-secondary)]`}>Player</th>
                         {cols.map(i => {
                             const tick = i > 0 && i % stride === 0;
                             return (
@@ -228,13 +228,13 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
                                     // left edge sits exactly on its column's tick line.
                                     // Centring puts the text half a cell to the right of
                                     // the moment it names.
-                                    className={`${headClass} pb-1.5 text-left text-[9px] font-semibold tabular-nums whitespace-nowrap text-[color:var(--text-secondary)] border-b border-white/5 ${tick ? 'border-l border-white/10' : ''}`}
+                                    className={`${headClass} pb-1.5 text-left text-[9px] font-semibold tabular-nums whitespace-nowrap text-[color:var(--text-secondary)] border-b axi-edge-rule ${tick ? 'border-l axi-edge-rule' : ''}`}
                                 >
                                     {i % stride === 0 ? fmtBucketLabel(i, bucketMs) : ''}
                                 </th>
                             );
                         })}
-                        <th aria-hidden data-spacer className="pb-1.5 border-b border-white/5" />
+                        <th aria-hidden data-spacer className="pb-1.5 border-b axi-edge-rule" />
                     </tr>
                 </thead>
                 <tbody>
@@ -243,12 +243,12 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
                         // subgroup boundary — rule it, rather than leaving one
                         // undifferentiated block of names.
                         const startsGroup = rowIndex > 0 && rows[rowIndex - 1].group !== row.group;
-                        const edge = startsGroup ? 'border-t border-white/10' : '';
+                        const edge = startsGroup ? 'border-t axi-edge-rule' : '';
                         return (
                             <tr key={row.key} data-group-start={startsGroup || undefined} className="group/row">
                                 <th
                                     scope="row"
-                                    className={`bucket-grid__pin text-left pr-3 truncate border-b border-white/[0.03] text-[11px] font-medium text-[color:var(--text-primary)] ${edge}`}
+                                    className={`bucket-grid__pin text-left pr-3 truncate border-b axi-edge-rule text-[11px] font-medium text-[color:var(--text-primary)] ${edge}`}
                                 >
                                     <span className="flex items-center gap-1.5">
                                         <span className="w-2 shrink-0 text-[9px] tabular-nums text-[color:var(--text-secondary)]">{row.group || ''}</span>
@@ -281,7 +281,7 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
                                             // 60+ columns reads as a spreadsheet rather than
                                             // a heatmap. Verticals appear only on the 30s
                                             // ticks, matching the header labels.
-                                            className={`h-6 text-center text-[10px] tabular-nums text-[color:var(--text-primary)] border-b border-white/[0.03] group-hover/row:bg-white/[0.02] ${tick ? 'border-l border-white/10' : ''} ${edge}`}
+                                            className={`h-6 text-center text-[10px] tabular-nums text-[color:var(--text-primary)] border-b axi-edge-rule group-hover/row:bg-white/[0.02] ${tick ? 'border-l axi-edge-rule' : ''} ${edge}`}
                                             style={value > 0
                                                 ? { backgroundColor: withAlpha(accent, ALPHA_FLOOR + intensity * (1 - ALPHA_FLOOR)) }
                                                 : undefined}
@@ -291,7 +291,7 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
                                         </td>
                                     );
                                 })}
-                                <td aria-hidden data-spacer className={`border-b border-white/[0.03] group-hover/row:bg-white/[0.02] ${edge}`} />
+                                <td aria-hidden data-spacer className={`border-b axi-edge-rule group-hover/row:bg-white/[0.02] ${edge}`} />
                             </tr>
                         );
                     })}

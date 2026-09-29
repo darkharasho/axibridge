@@ -89,7 +89,7 @@ export const FightBreakdownSection = ({
                         window.open(fight.permalink, '_blank');
                     }
                 }}
-                className="text-cyan-300 hover:text-cyan-200 underline underline-offset-2 block truncate"
+                className="axi-ink-meta hover:text-cyan-200 underline underline-offset-2 block truncate"
             >
                 {label}
             </button>
@@ -117,7 +117,7 @@ export const FightBreakdownSection = ({
                 }}
                 title="Open on dps.report"
                 aria-label="Open on dps.report"
-                className="text-cyan-300 hover:text-cyan-200 underline underline-offset-2 whitespace-nowrap"
+                className="axi-ink-meta hover:text-cyan-200 underline underline-offset-2 whitespace-nowrap"
             >
                 Open
             </button>
@@ -162,7 +162,7 @@ export const FightBreakdownSection = ({
                 duration: fight.duration || '--:--',
                 outcome: (
                     <span className={`font-semibold ${
-                        fight.isWin === true ? 'text-emerald-300' : fight.isWin === false ? 'text-red-300' : 'text-amber-200'
+                        fight.isWin === true ? 'axi-ink-ok' : fight.isWin === false ? 'axi-ink-danger' : 'axi-ink-warn'
                     }`}
                     >
                         {fight.isWin === true ? 'Win' : fight.isWin === false ? 'Loss' : 'Unknown'}
@@ -201,14 +201,14 @@ export const FightBreakdownSection = ({
                 outgoingDmg: Number(fight.totalOutgoingDamage || 0).toLocaleString(),
                 incomingDmg: Number(fight.totalIncomingDamage || 0).toLocaleString(),
                 damageDelta: (
-                    <span className={damageDelta < 0 ? 'text-red-300' : 'text-emerald-300'}>
+                    <span className={damageDelta < 0 ? 'axi-ink-danger' : 'axi-ink-ok'}>
                         {damageDelta.toLocaleString()}
                     </span>
                 ),
                 barrierIn: Number(fight.incomingBarrierAbsorbed || 0).toLocaleString(),
                 barrierOut: fightBarrierGenerated(fight).toLocaleString(),
                 barrierDelta: (
-                    <span className={barrierDelta < 0 ? 'text-emerald-300' : 'text-red-300'}>
+                    <span className={barrierDelta < 0 ? 'axi-ink-ok' : 'axi-ink-danger'}>
                         {barrierDelta.toLocaleString()}
                     </span>
                 ),
@@ -360,10 +360,10 @@ export const FightBreakdownSection = ({
                                             <td
                                                 className={`py-2 px-3 font-semibold ${
                                                     fight.isWin === true
-                                                        ? 'text-emerald-300'
+                                                        ? 'axi-ink-ok'
                                                         : fight.isWin === false
-                                                            ? 'text-red-300'
-                                                            : 'text-amber-200'
+                                                            ? 'axi-ink-danger'
+                                                            : 'axi-ink-warn'
                                                 }`}
                                             >
                                                 {fight.isWin === true ? 'Win' : fight.isWin === false ? 'Loss' : 'Unknown'}
@@ -429,7 +429,7 @@ export const FightBreakdownSection = ({
                                                     {(() => {
                                                         const delta = Number((fight.totalOutgoingDamage || 0) - (fight.totalIncomingDamage || 0));
                                                         return (
-                                                            <td className={`py-2 px-3 text-right font-mono ${delta < 0 ? 'text-red-300' : 'text-emerald-300'}`}>
+                                                            <td className={`py-2 px-3 text-right font-mono ${delta < 0 ? 'axi-ink-danger' : 'axi-ink-ok'}`}>
                                                                 {delta.toLocaleString()}
                                                             </td>
                                                         );
@@ -443,7 +443,7 @@ export const FightBreakdownSection = ({
                                                     {(() => {
                                                         const delta = fightBarrierUnused(fight);
                                                         return (
-                                                            <td className={`py-2 px-3 text-right font-mono ${delta < 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+                                                            <td className={`py-2 px-3 text-right font-mono ${delta < 0 ? 'axi-ink-ok' : 'axi-ink-danger'}`}>
                                                                 {delta.toLocaleString()}
                                                             </td>
                                                         );

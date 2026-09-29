@@ -117,7 +117,7 @@ export function WebUploadOverlay({
                         <div className="text-[9px] font-bold tracking-[.15em] uppercase" style={{ color: 'var(--brand-primary)' }}>
                             Web Upload
                         </div>
-                        <div className={`text-base font-bold mt-0.5 ${hasFailure ? 'text-red-300' : 'text-white'}`}>
+                        <div className={`text-base font-bold mt-0.5 ${hasFailure ? 'axi-ink-danger' : 'axi-ink-plain'}`}>
                             {webUploadState.stage || 'Uploading'}
                         </div>
                     </div>
@@ -249,7 +249,7 @@ export function WebUploadOverlay({
                 {/* ── Error detail pre-block (dev or when detail is present) ── */}
                 {hasFailure && hasErrorDetail && webUploadState.detail && (
                     <pre
-                        className="mx-4 mb-3 mt-1 h-64 overflow-y-auto overflow-x-auto overscroll-contain rounded-xl border border-amber-500/20 bg-black/60 p-3 text-[11px] text-amber-100 whitespace-pre-wrap pointer-events-auto"
+                        className="mx-4 mb-3 mt-1 h-64 overflow-y-auto overflow-x-auto overscroll-contain rounded-xl border axi-edge-warn bg-black/60 p-3 text-[11px] axi-ink-warn whitespace-pre-wrap pointer-events-auto"
                         onWheel={(e) => e.stopPropagation()}
                         onTouchMove={(e) => e.stopPropagation()}
                     >
@@ -276,7 +276,7 @@ export function WebUploadOverlay({
                             type="button"
                             onClick={clearOverlay}
                             className={hasFailure
-                                ? 'px-3 py-1.5 rounded-lg text-xs font-semibold border border-amber-500/40 bg-amber-500/10 text-amber-100 hover:bg-amber-500/20'
+                                ? 'px-3 py-1.5 rounded-lg text-xs font-semibold border axi-edge-warn bg-amber-500/10 axi-ink-warn hover:bg-amber-500/20'
                                 : 'px-3 py-1.5 rounded-lg text-xs font-semibold border'}
                             style={hasFailure ? undefined : { borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                         >

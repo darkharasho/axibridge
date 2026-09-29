@@ -32,7 +32,7 @@ export function SectionSubnav({ category, activeSectionId, onSelect }: SectionSu
                         <button
                             type="button"
                             onClick={() => onSelect(section.id)}
-                            className={`w-full h-[34px] flex items-center justify-start gap-2 px-2 text-left rounded-md transition-colors duration-150 ${isActive ? 'text-white' : 'text-[color:var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}
+                            className={`w-full h-[34px] flex items-center justify-start gap-2 px-2 text-left rounded-md transition-colors duration-150 ${isActive ? 'axi-ink-plain' : 'text-[color:var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}
                         >
                             <SectionIcon className="w-3.5 h-3.5 text-[color:var(--brand-primary)] shrink-0" />
                             <span className="text-xs leading-tight truncate overflow-hidden">

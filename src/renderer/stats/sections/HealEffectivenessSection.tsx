@@ -216,7 +216,7 @@ export const HealEffectivenessSection = ({ fights }: HealEffectivenessSectionPro
                         <div className="grid gap-3 md:grid-cols-4 mb-3">
                             <div>
                                 <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">Incoming</div>
-                                <div className="mt-1 text-lg font-black font-mono text-rose-200">
+                                <div className="mt-1 text-lg font-black font-mono axi-ink-danger">
                                     {selectedFight ? formatWithCommas(selectedFight.incomingDamage, 0) : '—'}
                                 </div>
                             </div>
@@ -265,7 +265,7 @@ export const HealEffectivenessSection = ({ fights }: HealEffectivenessSectionPro
                                     title="Incoming Damage Skills"
                                     metricLabel="Damage"
                                     rows={selectedFight.incomingDamageSkills}
-                                    colorClass="text-rose-200"
+                                    colorClass="axi-ink-danger"
                                 />
                             </div>
                         ) : null}

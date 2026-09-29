@@ -600,7 +600,7 @@ export const PlayerBreakdownSection = ({
                                                         }
                                                     ]).map((row) => (
                                                         <div key={row.label} className="grid grid-cols-[1.2fr_0.8fr] px-3 py-2 text-xs text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                                            <div className="font-semibold text-white">{row.label}</div>
+                                                            <div className="font-semibold axi-ink-plain">{row.label}</div>
                                                             <div className="text-right font-mono text-[color:var(--text-secondary)]">{row.value}</div>
                                                         </div>
                                                     ))}
@@ -825,7 +825,7 @@ export const PlayerBreakdownSection = ({
                                                         <button
                                                             type="button"
                                                             onClick={() => toggleClassSort('down')}
-                                                            className={`text-right flex items-center justify-end gap-1 transition-colors ${classSort.key === 'down' ? 'text-sky-200' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
+                                                            className={`text-right flex items-center justify-end gap-1 transition-colors ${classSort.key === 'down' ? 'axi-ink-meta' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
                                                         >
                                                             Down Contrib
                                                             <span className="text-[10px]">{classSort.key === 'down' ? (classSort.dir === 'desc' ? '↓' : '↑') : ''}</span>
@@ -833,7 +833,7 @@ export const PlayerBreakdownSection = ({
                                                         <button
                                                             type="button"
                                                             onClick={() => toggleClassSort('damage')}
-                                                            className={`text-right flex items-center justify-end gap-1 transition-colors ${classSort.key === 'damage' ? 'text-sky-200' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
+                                                            className={`text-right flex items-center justify-end gap-1 transition-colors ${classSort.key === 'damage' ? 'axi-ink-meta' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
                                                         >
                                                             Damage
                                                             <span className="text-[10px]">{classSort.key === 'damage' ? (classSort.dir === 'desc' ? '↓' : '↑') : ''}</span>
@@ -841,7 +841,7 @@ export const PlayerBreakdownSection = ({
                                                         <button
                                                             type="button"
                                                             onClick={() => toggleClassSort('dps')}
-                                                            className={`text-right flex items-center justify-end gap-1 transition-colors ${classSort.key === 'dps' ? 'text-sky-200' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
+                                                            className={`text-right flex items-center justify-end gap-1 transition-colors ${classSort.key === 'dps' ? 'axi-ink-meta' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
                                                         >
                                                             DPS
                                                             <span className="text-[10px]">{classSort.key === 'dps' ? (classSort.dir === 'desc' ? '↓' : '↑') : ''}</span>
@@ -859,7 +859,7 @@ export const PlayerBreakdownSection = ({
                                                                 <div className="flex items-center gap-2 min-w-0">
                                                                     {renderProfessionIcon(player.profession, player.professionList, 'w-4 h-4')}
                                                                     <div className="min-w-0">
-                                                                        <div className="font-semibold text-white truncate">{player.displayName}</div>
+                                                                        <div className="font-semibold axi-ink-plain truncate">{player.displayName}</div>
                                                                     </div>
                                                                 </div>
                                                                 <div className="text-right font-mono text-[color:var(--text-secondary)]">{formatTopStatValue(downContribution)}</div>
