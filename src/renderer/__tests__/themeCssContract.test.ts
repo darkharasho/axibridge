@@ -55,37 +55,33 @@ describe('index.css', () => {
         expect(css).not.toMatch(/\.axi-design\b/);
     });
 
-    // Blur is a no-op on Linux, so a translucent floating surface over content is
-    // just see-through. These overrides were inside the deleted glass block and
-    // have to be re-expressed, not dropped.
+    // This used to be a list of app classes that had to be pinned opaque under
+    // glass, because blur is a no-op on Linux and a translucent floating surface
+    // over content is just see-through. The list is empty now: every surface that
+    // was on it - the modals, the search palette, both docks and finally the stats
+    // nav rail - is an upstream object reading --axi-surface-float, and the
+    // assertion that the wiring holds lives in axi-design's own suite, mutation-
+    // checked against each of those classes.
     //
-    // .app-opaque-float and .app-sticky-bar are no longer in this list either.
-    // They were one object under two names - a full-width bar that IS an edge of
-    // its scroll container - and upstream named it .axi-dock, which is on
-    // --axi-surface-float unconditionally. Pinning either here would now assert
-    // on a rule this migration deleted. The assertion that replaces them is in
-    // axi-design's own suite: .axi-dock reads --axi-surface-float, mutation-
-    // checked, so the wiring cannot rot the way it did before the token existed.
+    // What is left is the inverse, and it is the more useful shape: nothing here
+    // may hand-write a float again. .97 was the opacity every one of those deleted
+    // rules used, so a reintroduced float would almost certainly carry it - and if
+    // one does, it belongs upstream in the theme, not in this file.
     //
-    // The search palette is no longer in this list. It is .axi-palette__panel now,
-    // and upstream draws it on --axi-surface-float — this rule promoted to a token
-    // the whole language can reach, which is where it belonged. The modals have
-    // followed it: they are .axi-modal and .axi-panel--float, both of which read
-    // that same token, so pinning .app-modal-card here would now be asserting on a
-    // rule we deliberately deleted. The surfaces below are the ones still waiting.
-    //
-    // The full two-attribute prefix, not just `[data-axi-theme="glass"]`: axi-design.css
-    // styles several of these same surfaces at `[data-axi-accent] body .foo`, some with
-    // `!important`, which is (0,2,1) or deeper. A single-attribute
-    // `[data-axi-theme="glass"] .foo` rule is (0,2,0) — it would sit in the bundle, satisfy a
-    // substring check on the bare selector, and still lose the cascade and never paint. Pinning
-    // the full `[data-axi-accent][data-axi-theme="glass"]` prefix is what actually catches that.
-    it('re-expresses the opaque floating surfaces under the glass theme, at the specificity that wins', () => {
-        for (const selector of [
-            '[data-axi-accent][data-axi-theme="glass"] .stats-dashboard-nav-panel',
-        ]) {
-            expect(css, selector).toContain(selector);
-        }
+    // A `background` declaration specifically, not the literal anywhere: the
+    // paragraphs in that file explaining what was deleted quote the value, and a
+    // bare substring match would fail on its own history note.
+    it('hand-writes no floating surface fill any more', () => {
+        expect(css).not.toMatch(/background[^;:]*:[^;]*rgba\(\s*15,\s*18,\s*25,\s*0?\.97\s*\)/);
+    });
+
+    // The bulk-upload blur-off reaches surfaces through the token rather than by
+    // naming them. It was an enumeration once, and it lost a surface silently every
+    // time one migrated upstream - the modal, the palette, the popovers and both
+    // docks were all quietly getting their blur back mid-upload. Pinning the token
+    // form is what keeps the fix from decaying into that list again.
+    it('turns the bulk-upload blur off through the token, not a list of surfaces', () => {
+        expect(css).toMatch(/body\.bulk-uploading\s*\{[^}]*--axi-surface-filter:\s*none/);
     });
 
     // Upstream paints the glass light as body's background-image. A blanket

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronDown, CloudOff } from 'lucide-react';
 import { STATS_CATEGORIES } from './statsTaxonomy';
@@ -77,15 +77,36 @@ export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed, unpub
             transition={{ duration: 1, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
             className="relative z-50 w-[248px] -mr-[176px] shrink-0 self-stretch min-h-0 overflow-visible pointer-events-none"
         >
-            {/* Container: width animated via CSS transition instead of framer-motion spring */}
+            {/*
+                The same object as the app's own nav and the report's: an
+                `.axi-rail`, floated, because the stats page scrolls underneath
+                this one rather than sitting beside it. `--axi-rail-w` is the
+                hook the rail publishes for exactly this - a consumer that needs
+                to drive the width - so the hover-expand is a token flip now and
+                the `transition` still interpolates the width it computes to.
+
+                The fill, the edge, the corner and the raise all arrive with the
+                object. The 4px corner it used to write is gone with them: this
+                rail squares off under the default theme and rounds under glass,
+                like every other surface already migrated, and the pane that used
+                to be pinned opaque by an `!important` in index.css is opaque
+                here because `--axi-surface-float` says so.
+
+                `overflow: hidden` is inline rather than a class because
+                `.axi-rail` sets `overflow-y: auto` and loads after Tailwind, so
+                `overflow-hidden` would lose. It is also a fact about this layout
+                rather than about rails: a rail that collapses to an icon strip
+                has to clip the labels on the way in, and the scrolling happens
+                on the container below, not here.
+            */}
             <div
-                className="stats-dashboard-nav-panel absolute inset-y-0 left-0 z-40 min-h-0 rounded-[4px] border border-[color:var(--border-default)] overflow-hidden pointer-events-auto"
+                className="stats-dashboard-nav-panel axi-rail axi-rail--float absolute inset-y-0 left-0 z-40 min-h-0 pointer-events-auto"
                 style={{
-                    background: 'var(--bg-card)',
-                    boxShadow: 'var(--shadow-card)',
-                    width: expanded ? EXPANDED_W : COLLAPSED_W,
+                    overflow: 'hidden',
+                    '--axi-rail-w': `${expanded ? EXPANDED_W : COLLAPSED_W}px`,
+                    '--axi-rail-pad': '0',
                     transition: `width ${LAYOUT_T}`,
-                }}
+                } as CSSProperties}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
             >
