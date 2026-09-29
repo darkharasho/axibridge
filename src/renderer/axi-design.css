@@ -749,30 +749,17 @@
 [data-axi-accent] body .stats-dashboard-nav-panel::-webkit-scrollbar,
 [data-axi-accent] body .stats-dashboard-nav-panel *::-webkit-scrollbar { width: 0; height: 0; }
 
-/* The search box is a control sitting in the well, not an underline. */
-[data-axi-accent] body .stats-table-layout__sidebar input {
-  background: var(--axi-surface);
-  border: var(--axi-border-control) solid var(--axi-ink-line);
-  border-radius: var(--axi-radius-sm);
-  padding: 4px 8px;
-  color: var(--axi-text);
-}
-[data-axi-accent] body .stats-table-layout__sidebar input::placeholder { color: var(--axi-text-faint); }
+/* The two things this file used to say about these sidebars are both upstream
+   now. The filter field was reskinned here from an underline into a control;
+   it is an `.axi-input` in the markup, sized through --axi-input-pad and
+   --axi-input-size like the palette's own field.
 
-/* Every one of these lists writes its selected row the same way, so it only
-   needs saying once. The picked row is the ancestor treatment, not the accent:
-   the table beside it already carries the gold in its own controls, and two
-   gold claims on one panel is one too many. */
-[data-axi-accent] body .stats-table-layout__sidebar button {
-  border-radius: var(--axi-radius-sm);
-  color: var(--axi-text-dim);
-}
-[data-axi-accent] body .stats-table-layout__sidebar button:hover { background: var(--axi-surface); color: var(--axi-text); }
-[data-axi-accent] body .stats-table-layout__sidebar button[class*="accent-bg-strong"] {
-  background: var(--axi-surface-raised);
-  color: var(--axi-text);
-  box-shadow: inset var(--axi-border-control) 0 0 var(--axi-accent);
-}
+   The picked row was the more interesting one. The rule written here was that
+   it takes the ancestor treatment rather than the accent, because the table
+   beside it already carries the gold and two gold claims on one panel is one
+   too many. That turned out to be a rule the language already held one level
+   in - it is why .axi-rail__subitem has no fill - and upstream now holds it at
+   this level too, as .axi-rail__nav--quiet. Same drawing, one fewer file. */
 
 /* The table is the raised thing on the panel, so it takes the ink edge. */
 [data-axi-accent] body .stats-table-layout__content {

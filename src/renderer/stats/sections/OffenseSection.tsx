@@ -333,8 +333,8 @@ export const OffenseSection = ({
                             value={offenseSearch}
                             onChange={(e) => setOffenseSearch(e.target.value)}
                             placeholder="Search..."
-                            className="w-full px-2 py-1 text-xs focus:outline-none mb-2"
-                            style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
+                            className="axi-input mb-2"
+                            style={{ '--axi-input-pad': '5px 8px', '--axi-input-size': '12px' } as React.CSSProperties}
                         />
                         <div className={`${sidebarListClass} ${expandedSection === 'offense-detailed' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                             {(() => {
@@ -346,11 +346,8 @@ export const OffenseSection = ({
                                         key={metric.id}
                                         data-metric-key={metric.id}
                                         onClick={() => setActiveOffenseStat(metric.id)}
-                                        className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeOffenseStat === metric.id
-                                            ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
-                                            : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
-                                            }`}
-                                        style={activeOffenseStat !== metric.id ? { color: 'var(--text-secondary)' } : undefined}
+                                        className="axi-rail__item"
+                                        aria-current={activeOffenseStat === metric.id ? 'location' : undefined}
                                     >
                                         {metric.label}
                                     </button>

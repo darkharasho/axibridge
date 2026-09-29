@@ -320,17 +320,14 @@ export const HealingSection = ({
                 sidebar={
                     <>
                         <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Healing Tabs</div>
-                        <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+                        <div className="axi-rail__nav axi-rail__nav--quiet flex-1 overflow-y-auto pr-1">
                             {HEALING_METRICS.map((metric) => (
                                 <button
                                     key={metric.id}
                                     data-metric-key={metric.id}
                                     onClick={() => setActiveHealingMetric(metric.id)}
-                                    className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeHealingMetric === metric.id
-                                        ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
-                                        : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
-                                        }`}
-                                    style={activeHealingMetric !== metric.id ? { color: 'var(--text-secondary)' } : undefined}
+                                    className="axi-rail__item"
+                                    aria-current={activeHealingMetric === metric.id ? 'location' : undefined}
                                 >
                                     {metric.label}
                                 </button>
