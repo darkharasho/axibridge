@@ -50,7 +50,7 @@ export const BoonOutputSection = ({
         [stats.boonTables]
     );
     const {
-        sortState, updateSort,
+        sortState, updateSort, ariaSort,
         denseSort, setDenseSort,
         selectedColumnIds: selectedBoonColumnIds, setSelectedColumnIds: setSelectedBoonColumnIds,
         selectedPlayers: selectedBoonPlayers, setSelectedPlayers: setSelectedBoonPlayers,
@@ -358,18 +358,15 @@ export const BoonOutputSection = ({
                             expanded={expandedSection === 'boon-output'}
                             animationKey={`${activeBoonTab}-${activeBoonCategory}-${activeBoonMetric}`}
                             maxHeightClass="max-h-64"
-                            header={null}
-                            columns={
-                                <>
-                                    <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
-                                        <div className="text-center">#</div>
-                                        <div>Player</div>
-                                        <button
+                            cols={['0.4fr', '1.5fr', '1fr', '0.9fr']}
+head={
+<>
+<th scope="col">#</th>
+<th scope="col">Player</th>
+<th scope="col" aria-sort={ariaSort('value')}><button
                                             type="button"
                                             onClick={() => updateSort('value')}
-                                            title={activeBoonMetric === 'uptime' ? uptimeTitle : undefined}
-                                            className="text-right transition-colors"
-                                            style={{ color: sortState.key === 'value' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
+                                            title={activeBoonMetric === 'uptime' ? uptimeTitle : undefined} className="axi-table__sort"
                                         >
                                             {activeBoonMetric === 'total'
                                                 ? 'Total'
@@ -377,19 +374,16 @@ export const BoonOutputSection = ({
                                                     ? 'Gen/Sec'
                                                     : uptimeLabel}
                                             {sortState.key === 'value' ? (sortState.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                        </button>
-                                        <button
+                                        </button></th>
+<th scope="col" aria-sort={ariaSort('fightTime')}><button
                                             type="button"
-                                            onClick={() => updateSort('fightTime')}
-                                            className="text-right transition-colors"
-                                            style={{ color: sortState.key === 'fightTime' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
+                                            onClick={() => updateSort('fightTime')} className="axi-table__sort"
                                         >
                                             Fight Time{sortState.key === 'fightTime' ? (sortState.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                        </button>
-                                    </div>
-                                </>
-                            }
-                            rows={
+                                        </button></th>
+</>
+}
+rows={
                                 <>
                                     {[...activeBoonTable.rows]
                                         .sort((a: any, b: any) => (
@@ -405,19 +399,13 @@ export const BoonOutputSection = ({
                                             })()
                                         ))
                                         .map((row: any, idx: number) => (
-                                            <div key={`${activeBoonTable.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }}>
-                                                <div className="text-center font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</div>
-                                                <div className="flex items-center gap-2 min-w-0">
-                                                    {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
-                                                    <span className="truncate">{row.account}</span>
-                                                </div>
-                                                <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                    {formatBoonMetricDisplay(row, activeBoonCategory, activeBoonTable.stacking, activeBoonMetric, { roundCountStats })}
-                                                </div>
-                                                <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                    {row.activeTimeMs ? `${(row.activeTimeMs / 1000).toFixed(1)}s` : '-'}
-                                                </div>
-                                            </div>
+                                            <tr key={`${activeBoonTable.id}-${row.account}-${idx}`}>
+<td>{idx + 1}</td>
+<th scope="row"><span className="axi-table__who">{renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
+                                                    <span className="truncate">{row.account}</span></span></th>
+<td>{formatBoonMetricDisplay(row, activeBoonCategory, activeBoonTable.stacking, activeBoonMetric, { roundCountStats })}</td>
+<td>{row.activeTimeMs ? `${(row.activeTimeMs / 1000).toFixed(1)}s` : '-'}</td>
+</tr>
                                         ))}
                                 </>
                             }

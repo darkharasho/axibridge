@@ -102,6 +102,9 @@ export const SpecialBuffsSection = ({
         setSortDirection('desc');
     };
 
+    const ariaSort = (key: SpecialSortKey): 'ascending' | 'descending' | undefined =>
+        sortKey !== key ? undefined : sortDirection === 'asc' ? 'ascending' : 'descending';
+
     const sortIndicator = (key: SpecialSortKey) => {
         if (sortKey !== key) return '';
         return sortDirection === 'desc' ? ' ↓' : ' ↑';
@@ -383,56 +386,42 @@ export const SpecialBuffsSection = ({
                                 expanded={expandedSection === 'special-buffs'}
                                 animationKey={activeSpecialTab ?? undefined}
                                 maxHeightClass="max-h-64"
-                                header={null}
-                                columns={
-                                    <div className="grid grid-cols-[0.4fr_1.5fr_0.8fr_0.8fr_0.8fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
-                                        <div className="text-center">#</div>
-                                        <div>Player</div>
-                                        <button
+                                cols={['0.4fr', '1.5fr', '0.8fr', '0.8fr', '0.8fr']}
+head={
+<>
+<th scope="col">#</th>
+<th scope="col">Player</th>
+<th scope="col" aria-sort={ariaSort('total')}><button
                                             type="button"
-                                            onClick={() => updateSort('total')}
-                                            className="text-right transition-colors"
-                                            style={{ color: sortKey === 'total' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
+                                            onClick={() => updateSort('total')} className="axi-table__sort"
                                         >
                                             Total{sortIndicator('total')}
-                                        </button>
-                                        <button
+                                        </button></th>
+<th scope="col" aria-sort={ariaSort('perSecond')}><button
                                             type="button"
-                                            onClick={() => updateSort('perSecond')}
-                                            className="text-right transition-colors"
-                                            style={{ color: sortKey === 'perSecond' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
+                                            onClick={() => updateSort('perSecond')} className="axi-table__sort"
                                         >
                                             Per Sec{sortIndicator('perSecond')}
-                                        </button>
-                                        <button
+                                        </button></th>
+<th scope="col" aria-sort={ariaSort('duration')}><button
                                             type="button"
-                                            onClick={() => updateSort('duration')}
-                                            className="text-right transition-colors"
-                                            style={{ color: sortKey === 'duration' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
+                                            onClick={() => updateSort('duration')} className="axi-table__sort"
                                         >
                                             Fight Time{sortIndicator('duration')}
-                                        </button>
-                                    </div>
-                                }
-                                rows={
+                                        </button></th>
+</>
+}
+rows={
                                     <>
                                         {sortedRows.map((row: any, idx: number) => (
-                                            <div key={`${activeSpecialTable.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.5fr_0.8fr_0.8fr_0.8fr] px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }}>
-                                                <div className="text-center font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</div>
-                                                <div className="flex items-center gap-2 min-w-0">
-                                                    {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
-                                                    <span className="truncate">{row.account}</span>
-                                                </div>
-                                                <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                    {Math.round(row.total).toLocaleString()}
-                                                </div>
-                                                <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                    {formatWithCommas(row.perSecond, 1)}
-                                                </div>
-                                                <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                    {row.duration ? `${row.duration.toFixed(1)}s` : '-'}
-                                                </div>
-                                            </div>
+                                            <tr key={`${activeSpecialTable.id}-${row.account}-${idx}`}>
+<td>{idx + 1}</td>
+<th scope="row"><span className="axi-table__who">{renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
+                                                    <span className="truncate">{row.account}</span></span></th>
+<td>{Math.round(row.total).toLocaleString()}</td>
+<td>{formatWithCommas(row.perSecond, 1)}</td>
+<td>{row.duration ? `${row.duration.toFixed(1)}s` : '-'}</td>
+</tr>
                                         ))}
                                     </>
                                 }

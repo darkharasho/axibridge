@@ -116,35 +116,31 @@ export const SigilRelicUptimeSection = ({
                                     expanded={isExpanded}
                                     animationKey={activeSigilRelicTab ?? undefined}
                                     maxHeightClass="max-h-72"
-                                    header={null}
-                                    columns={
-                                        <div className="grid grid-cols-[0.4fr_1.6fr_1fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
-                                            <div className="text-center">#</div>
-                                            <div>Player</div>
-                                            <button
+                                    cols={['0.4fr', '1.6fr', '1fr']}
+head={
+<>
+<th scope="col">#</th>
+<th scope="col">Player</th>
+<th scope="col"><button
                                                 type="button"
                                                 onClick={() => setSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
                                                 className="text-right transition-colors text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
                                             >
                                                 Uptime {sortDirection === 'desc' ? '↓' : '↑'}
-                                            </button>
-                                        </div>
-                                    }
-                                    rows={
+                                            </button></th>
+</>
+}
+rows={
                                         <>
                                             {sortedRows.map((row: any, idx: number) => {
                                                 const uptimePct = Number(row.uptimePerSecond ?? row.perSecond ?? 0) * 100;
                                                 return (
-                                                    <div key={`${activeSigilRelicTable.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.6fr_1fr] px-3 py-2 text-xs text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                                        <div className="text-center text-[color:var(--text-muted)] font-mono">{idx + 1}</div>
-                                                        <div className="flex items-center gap-2 min-w-0">
-                                                            {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
-                                                            <span className="truncate">{row.account}</span>
-                                                        </div>
-                                                        <div className="text-right font-mono text-[color:var(--text-secondary)]">
-                                                            {formatWithCommas(uptimePct, 1)}%
-                                                        </div>
-                                                    </div>
+                                                    <tr key={`${activeSigilRelicTable.id}-${row.account}-${idx}`}>
+<td className="text-[color:var(--text-muted)]">{idx + 1}</td>
+<th scope="row"><span className="axi-table__who">{renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
+                                                            <span className="truncate">{row.account}</span></span></th>
+<td className="text-[color:var(--text-secondary)]">{formatWithCommas(uptimePct, 1)}%</td>
+</tr>
                                                 );
                                             })}
                                         </>

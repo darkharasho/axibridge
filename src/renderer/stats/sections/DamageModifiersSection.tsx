@@ -402,41 +402,42 @@ const CollapsedView = ({
                                     )}
                                 </div>
                             }
-                            columns={
-                                <div className="grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
-                                    <div className="text-center">#</div>
-                                    <div>Player</div>
-                                    <button
+                            cols={['0.3fr', '1.3fr', '1fr', '0.8fr', '0.8fr', '0.8fr']}
+head={
+<>
+<th scope="col">#</th>
+<th scope="col">Player</th>
+<th scope="col"><button
                                         type="button"
                                         onClick={() => updateCollapsedSort('damageGain')}
                                         className={`text-right transition-colors ${collapsedSort.key === 'damageGain' ? 'axi-ink-accent' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
                                     >
                                         Dmg Gain{collapsedSort.key === 'damageGain' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                    </button>
-                                    <button
+                                    </button></th>
+<th scope="col"><button
                                         type="button"
                                         onClick={() => updateCollapsedSort('pctTotal')}
                                         className={`text-right transition-colors ${collapsedSort.key === 'pctTotal' ? 'axi-ink-accent' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
                                     >
                                         % Total{collapsedSort.key === 'pctTotal' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                    </button>
-                                    <button
+                                    </button></th>
+<th scope="col"><button
                                         type="button"
                                         onClick={() => updateCollapsedSort('hitCoverage')}
                                         className={`text-right transition-colors ${collapsedSort.key === 'hitCoverage' ? 'axi-ink-accent' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
                                     >
                                         Hits{collapsedSort.key === 'hitCoverage' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                    </button>
-                                    <button
+                                    </button></th>
+<th scope="col"><button
                                         type="button"
                                         onClick={() => updateCollapsedSort('fightTime')}
                                         className={`text-right transition-colors ${collapsedSort.key === 'fightTime' ? 'axi-ink-accent' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
                                     >
                                         Fight Time{collapsedSort.key === 'fightTime' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                    </button>
-                                </div>
-                            }
-                            rows={
+                                    </button></th>
+</>
+}
+rows={
                                 <>
                                     {sortedPlayerData.length === 0 ? (
                                         <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No player data for this modifier</div>
@@ -466,25 +467,15 @@ const CollapsedView = ({
                                                         style={{ width: `${barWidthPct}%`, background: `var(--row-bar-fill, ${barStyle})` }}
                                                     />
                                                     {/* Row content */}
-                                                    <div className="relative grid grid-cols-[0.3fr_1.3fr_1fr_0.8fr_0.8fr_0.8fr] px-3 py-2 text-xs text-[color:var(--text-primary)]">
-                                                        <div className="text-center text-[color:var(--text-muted)] font-mono">{idx + 1}</div>
-                                                        <div className="flex items-center gap-2 min-w-0">
-                                                            {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
-                                                            <span className="truncate">{row.account}</span>
-                                                        </div>
-                                                        <div className={`text-right font-mono ${isNegative ? 'axi-ink-ok' : incoming ? 'axi-ink-danger' : 'axi-ink-accent'}`}>
-                                                            {row.damageGain >= 0 ? '+' : ''}{formatWithCommas(row.damageGain, 0)}
-                                                        </div>
-                                                        <div className="text-right font-mono text-[color:var(--text-secondary)]">
-                                                            {pctOfTotal}%
-                                                        </div>
-                                                        <div className="text-right font-mono text-[color:var(--text-secondary)]">
-                                                            {hitCoverage}
-                                                        </div>
-                                                        <div className="text-right font-mono text-[color:var(--text-secondary)]">
-                                                            {row.totalFightMs ? `${(row.totalFightMs / 1000).toFixed(1)}s` : '—'}
-                                                        </div>
-                                                    </div>
+                                                    <tr>
+<td className="text-[color:var(--text-muted)]">{idx + 1}</td>
+<th scope="row"><span className="axi-table__who">{renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
+                                                            <span className="truncate">{row.account}</span></span></th>
+<td>{row.damageGain >= 0 ? '+' : ''}{formatWithCommas(row.damageGain, 0)}</td>
+<td className="text-[color:var(--text-secondary)]">{pctOfTotal}%</td>
+<td className="text-[color:var(--text-secondary)]">{hitCoverage}</td>
+<td className="text-[color:var(--text-secondary)]">{row.totalFightMs ? `${(row.totalFightMs / 1000).toFixed(1)}s` : '—'}</td>
+</tr>
                                                 </div>
                                             );
                                         })

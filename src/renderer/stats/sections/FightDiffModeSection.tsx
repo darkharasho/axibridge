@@ -131,6 +131,9 @@ export const FightDiffModeSection = () => {
         if (metricId === 'squadKdr') return 2;
         return 0;
     };
+    const targetAriaSort = (key: TargetSortKey): 'ascending' | 'descending' | undefined =>
+        targetSort?.key !== key ? undefined : targetSort.direction === 'asc' ? 'ascending' : 'descending';
+
     const toggleTargetSort = (key: TargetSortKey) => {
         setTargetSort((current) => {
             if (!current || current.key !== key) return { key, direction: 'desc' };
@@ -139,9 +142,6 @@ export const FightDiffModeSection = () => {
     };
     const sortArrow = (key: TargetSortKey) => (
         targetSort?.key === key ? (targetSort.direction === 'desc' ? ' ↓' : ' ↑') : ''
-    );
-    const sortButtonClass = (key: TargetSortKey) => (
-        `fight-diff-sort-button transition-colors whitespace-nowrap ${targetSort?.key === key ? 'axi-ink-meta' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`
     );
 
     return (
@@ -228,82 +228,58 @@ export const FightDiffModeSection = () => {
                                     Target Focus Comparison
                                 </div>
                             )}
-                            columns={targetFocusRows.length > 0 ? (
-                                <div className="overflow-x-auto">
-                                    <table className="axi-table min-w-[700px] table-fixed">
-                                        <colgroup>
-                                            <col className="w-[220px]" />
-                                            <col className="w-[120px]" />
-                                            <col className="w-[120px]" />
-                                            <col className="w-[120px]" />
-                                            <col className="w-[120px]" />
-                                            <col className="w-[120px]" />
-                                        </colgroup>
-                                        <thead>
-                                            <tr>
-                                                <th>Target</th>
-                                                <th>
-                                                    <button type="button" className={sortButtonClass('aDamage')} onClick={() => toggleTargetSort('aDamage')}>
-                                                        {selectedFightA?.shortLabel} Damage{sortArrow('aDamage')}
-                                                    </button>
-                                                </th>
-                                                <th>
-                                                    <button type="button" className={sortButtonClass('aShare')} onClick={() => toggleTargetSort('aShare')}>
-                                                        {selectedFightA?.shortLabel} Share{sortArrow('aShare')}
-                                                    </button>
-                                                </th>
-                                                <th>
-                                                    <button type="button" className={sortButtonClass('bDamage')} onClick={() => toggleTargetSort('bDamage')}>
-                                                        {selectedFightB?.shortLabel} Damage{sortArrow('bDamage')}
-                                                    </button>
-                                                </th>
-                                                <th>
-                                                    <button type="button" className={sortButtonClass('bShare')} onClick={() => toggleTargetSort('bShare')}>
-                                                        {selectedFightB?.shortLabel} Share{sortArrow('bShare')}
-                                                    </button>
-                                                </th>
-                                                <th>
-                                                    <button type="button" className={sortButtonClass('shareDelta')} onClick={() => toggleTargetSort('shareDelta')}>
-                                                        Share Delta{sortArrow('shareDelta')}
-                                                    </button>
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                    </table>
-                                </div>
-                            ) : null}
+                            cols={['220px', '120px', '120px', '120px', '120px', '120px']}
+                            head={
+                                <>
+                                    <th scope="col">Target</th>
+                                    <th scope="col" aria-sort={targetAriaSort('aDamage')}>
+                                        <button type="button" className="axi-table__sort" onClick={() => toggleTargetSort('aDamage')}>
+                                            {selectedFightA?.shortLabel} Damage{sortArrow('aDamage')}
+                                        </button>
+                                    </th>
+                                    <th scope="col" aria-sort={targetAriaSort('aShare')}>
+                                        <button type="button" className="axi-table__sort" onClick={() => toggleTargetSort('aShare')}>
+                                            {selectedFightA?.shortLabel} Share{sortArrow('aShare')}
+                                        </button>
+                                    </th>
+                                    <th scope="col" aria-sort={targetAriaSort('bDamage')}>
+                                        <button type="button" className="axi-table__sort" onClick={() => toggleTargetSort('bDamage')}>
+                                            {selectedFightB?.shortLabel} Damage{sortArrow('bDamage')}
+                                        </button>
+                                    </th>
+                                    <th scope="col" aria-sort={targetAriaSort('bShare')}>
+                                        <button type="button" className="axi-table__sort" onClick={() => toggleTargetSort('bShare')}>
+                                            {selectedFightB?.shortLabel} Share{sortArrow('bShare')}
+                                        </button>
+                                    </th>
+                                    <th scope="col" aria-sort={targetAriaSort('shareDelta')}>
+                                        <button type="button" className="axi-table__sort" onClick={() => toggleTargetSort('shareDelta')}>
+                                            Share Delta{sortArrow('shareDelta')}
+                                        </button>
+                                    </th>
+                                </>
+                            }
                             rows={targetFocusRows.length > 0 ? (
-                                <div className="overflow-x-auto">
-                                    <table className="axi-table min-w-[700px] table-fixed">
-                                        <colgroup>
-                                            <col className="w-[220px]" />
-                                            <col className="w-[120px]" />
-                                            <col className="w-[120px]" />
-                                            <col className="w-[120px]" />
-                                            <col className="w-[120px]" />
-                                            <col className="w-[120px]" />
-                                        </colgroup>
-                                        <tbody>
-                                            {sortedTargetFocusRows.map((row) => (
-                                                <tr key={`focus-${row.label}`}>
-                                                    <td className="axi-ink-plain">{row.label}</td>
-                                                    <td className="axi-table__num">{formatWithCommas(row.aDamage, 0)}</td>
-                                                    <td className="text-[color:var(--text-secondary)]">{formatPct(row.aShare)}</td>
-                                                    <td className="axi-table__num">{formatWithCommas(row.bDamage, 0)}</td>
-                                                    <td className="text-[color:var(--text-secondary)]">{formatPct(row.bShare)}</td>
-                                                    <td className={`py-2 px-3 text-right font-mono ${row.shareDelta >= 0 ? 'axi-ink-ok' : 'axi-ink-danger'}`}>
-                                                        {row.shareDelta >= 0 ? '+' : ''}{formatPct(row.shareDelta)}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                sortedTargetFocusRows.map((row) => (
+                                    <tr key={`focus-${row.label}`}>
+                                        <th scope="row">{row.label}</th>
+                                        <td className="axi-table__num">{formatWithCommas(row.aDamage, 0)}</td>
+                                        <td>{formatPct(row.aShare)}</td>
+                                        <td className="axi-table__num">{formatWithCommas(row.bDamage, 0)}</td>
+                                        <td>{formatPct(row.bShare)}</td>
+                                        <td className={row.shareDelta >= 0 ? 'axi-ink-ok' : 'axi-ink-danger'}>
+                                            {row.shareDelta >= 0 ? '+' : ''}{formatPct(row.shareDelta)}
+                                        </td>
+                                    </tr>
+                                ))
                             ) : (
-                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)] space-y-1">
-                                    <div>No target focus data for selected fights.</div>
-                                    <div>Usually this means the fights were uploaded without Detailed WvW enemy slices, or the report was generated from an older build.</div>
-                                </div>
+                                <tr>
+                                    <td colSpan={6} className="axi-ink-muted text-center">
+                                        No target focus data for selected fights. Usually this means the fights were
+                                        uploaded without Detailed WvW enemy slices, or the report was generated from
+                                        an older build.
+                                    </td>
+                                </tr>
                             )}
                         />
                     </div>
@@ -317,55 +293,34 @@ export const FightDiffModeSection = () => {
                                     Squad Metric Comparison
                                 </div>
                             )}
-                            columns={squadMetricRows.length > 0 ? (
-                                <div className="overflow-x-auto">
-                                    <table className="axi-table min-w-[680px] table-fixed">
-                                        <colgroup>
-                                            <col className="w-[320px]" />
-                                            <col className="w-[120px]" />
-                                            <col className="w-[120px]" />
-                                            <col className="w-[120px]" />
-                                        </colgroup>
-                                        <thead>
-                                            <tr>
-                                                <th>Metric</th>
-                                                <th>{selectedFightA?.shortLabel} Value</th>
-                                                <th>{selectedFightB?.shortLabel} Value</th>
-                                                <th>Delta</th>
-                                            </tr>
-                                        </thead>
-                                    </table>
-                                </div>
-                            ) : null}
+                            cols={['320px', '120px', '120px', '120px']}
+                            head={
+                                <>
+                                    <th scope="col">Metric</th>
+                                    <th scope="col">{selectedFightA?.shortLabel} Value</th>
+                                    <th scope="col">{selectedFightB?.shortLabel} Value</th>
+                                    <th scope="col">Delta</th>
+                                </>
+                            }
                             rows={squadMetricRows.length > 0 ? (
-                                <div className="overflow-x-auto">
-                                    <table className="axi-table min-w-[680px] table-fixed">
-                                        <colgroup>
-                                            <col className="w-[320px]" />
-                                            <col className="w-[120px]" />
-                                            <col className="w-[120px]" />
-                                            <col className="w-[120px]" />
-                                        </colgroup>
-                                        <tbody>
-                                            {squadMetricRows.map((row) => {
-                                                const improving = row.higherIsBetter ? row.delta >= 0 : row.delta <= 0;
-                                                const decimals = metricDecimals(row.metricId);
-                                                return (
-                                                    <tr key={`performer-${row.metricId}`}>
-                                                        <td className="axi-ink-plain">{row.metricLabel}</td>
-                                                        <td className="axi-table__num">{formatWithCommas(Number(row.a?.value || 0), decimals)}</td>
-                                                        <td className="axi-table__num">{formatWithCommas(Number(row.b?.value || 0), decimals)}</td>
-                                                        <td className={`py-2 px-3 text-right font-mono ${improving ? 'axi-ink-ok' : 'axi-ink-danger'}`}>
-                                                            {row.delta > 0 ? '+' : ''}{formatWithCommas(row.delta, decimals)}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                squadMetricRows.map((row) => {
+                                    const improving = row.higherIsBetter ? row.delta >= 0 : row.delta <= 0;
+                                    const decimals = metricDecimals(row.metricId);
+                                    return (
+                                        <tr key={`performer-${row.metricId}`}>
+                                            <th scope="row">{row.metricLabel}</th>
+                                            <td className="axi-table__num">{formatWithCommas(Number(row.a?.value || 0), decimals)}</td>
+                                            <td className="axi-table__num">{formatWithCommas(Number(row.b?.value || 0), decimals)}</td>
+                                            <td className={improving ? 'axi-ink-ok' : 'axi-ink-danger'}>
+                                                {row.delta > 0 ? '+' : ''}{formatWithCommas(row.delta, decimals)}
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             ) : (
-                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No squad metric data for selected fights.</div>
+                                <tr>
+                                    <td colSpan={4} className="axi-ink-muted text-center">No squad metric data for selected fights.</td>
+                                </tr>
                             )}
                         />
                     </div>

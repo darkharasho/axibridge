@@ -40,7 +40,7 @@ export const DamageMitigationSection = ({
     const hasMitigationData = mitigationPlayers.length > 0 || mitigationMinions.length > 0;
     const [selectedMinionTypes, setSelectedMinionTypes] = useState<string[]>([]);
     const {
-        sortState, updateSort,
+        sortState, updateSort, ariaSort,
         denseSort, setDenseSort,
         selectedColumnIds: selectedMitigationColumnIds, setSelectedColumnIds: setSelectedMitigationColumnIds,
         selectedPlayers: selectedMitigationPlayers, setSelectedPlayers: setSelectedMitigationPlayers,
@@ -410,33 +410,27 @@ export const DamageMitigationSection = ({
                                     <StatsTableShell
                                         expanded={expandedSection === 'defense-mitigation'}
                                         animationKey={`${activeDamageMitigationStat}-${damageMitigationViewMode}-${damageMitigationScope}`}
-                                        header={null}
-                                        columns={
-                                            <>
-                                                <div className="grid grid-cols-[0.4fr_1.6fr_1fr_0.9fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
-                                                    <div className="text-center">#</div>
-                                                    <div>Player</div>
-                                                    <button
+                                        cols={['0.4fr', '1.6fr', '1fr', '0.9fr']}
+head={
+<>
+<th scope="col">#</th>
+<th scope="col">Player</th>
+<th scope="col" aria-sort={ariaSort('value')}><button
                                                         type="button"
-                                                        onClick={() => updateSort('value')}
-                                                        className="text-right transition-colors"
-                                                        style={{ color: sortState.key === 'value' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
+                                                        onClick={() => updateSort('value')} className="axi-table__sort"
                                                     >
                                                         {damageMitigationViewMode === 'total' ? 'Total' : damageMitigationViewMode === 'per1s' ? 'Stat/1s' : 'Stat/60s'}
                                                         {sortState.key === 'value' ? (sortState.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                                    </button>
-                                                    <button
+                                                    </button></th>
+<th scope="col" aria-sort={ariaSort('fightTime')}><button
                                                         type="button"
-                                                        onClick={() => updateSort('fightTime')}
-                                                        className="text-right transition-colors"
-                                                        style={{ color: sortState.key === 'fightTime' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
+                                                        onClick={() => updateSort('fightTime')} className="axi-table__sort"
                                                     >
                                                         Fight Time{sortState.key === 'fightTime' ? (sortState.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                                    </button>
-                                                </div>
-                                            </>
-                                        }
-                                        rows={
+                                                    </button></th>
+</>
+}
+rows={
                                             rows.length === 0 ? (
                                                 <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
                                                     No {damageMitigationScope === 'minions' ? 'minion' : 'player'} mitigation stats available
@@ -444,29 +438,23 @@ export const DamageMitigationSection = ({
                                             ) : (
                                                 <>
                                                     {rows.map((row: any, idx: number) => (
-                                                        <div key={`${metric.id}-${row.account}-${row.minion || 'player'}-${idx}`} className="grid grid-cols-[0.4fr_1.6fr_1fr_0.9fr] px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }}>
-                                                            <div className="text-center font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</div>
-                                                            <div className="flex items-center gap-2 min-w-0">
-                                                                {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
+                                                        <tr key={`${metric.id}-${row.account}-${row.minion || 'player'}-${idx}`}>
+<td>{idx + 1}</td>
+<th scope="row"><span className="axi-table__who">{renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
                                                                 <div className="min-w-0">
                                                                     <div className="truncate">{row.account}</div>
                                                                     {row.minion && <div className="text-[10px] truncate" style={{ color: 'var(--text-secondary)' }}>{row.minion}</div>}
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                                {(() => {
+                                                                </div></span></th>
+<td>{(() => {
                                                                     const value = damageMitigationViewMode === 'total'
                                                                         ? row.total
                                                                         : damageMitigationViewMode === 'per1s'
                                                                             ? row.per1s
                                                                             : row.per60s;
                                                                     return formatValue(value);
-                                                                })()}
-                                                            </div>
-                                                            <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                                {row.activeMs ? `${(row.activeMs / 1000).toFixed(1)}s` : '-'}
-                                                            </div>
-                                                        </div>
+                                                                })()}</td>
+<td>{row.activeMs ? `${(row.activeMs / 1000).toFixed(1)}s` : '-'}</td>
+</tr>
                                                     ))}
                                                 </>
                                             )

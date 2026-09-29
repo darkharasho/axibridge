@@ -62,6 +62,14 @@ export type UseMetricSectionStateResult<M extends MetricItem> = {
     // ── Sort (value / fightTime header) ──────────────────────────────────────
     sortState: { key: MetricSortKey; dir: SortDir };
     updateSort: (key: MetricSortKey) => void;
+    /**
+     * The `aria-sort` value for a column's `<th>`. One fact - which column is
+     * sorted and which way - announced and styled by the same attribute, rather
+     * than a class beside it saying the same thing a second time. It lives here
+     * because `sortState` does: a copy of this in every section is a copy that
+     * can disagree with the state it reads.
+     */
+    ariaSort: (key: MetricSortKey) => 'ascending' | 'descending' | undefined;
 
     // ── Dense-table column sort ───────────────────────────────────────────────
     denseSort: { columnId: string; dir: SortDir };
@@ -130,6 +138,12 @@ export function useMetricSectionState<M extends MetricItem>(
         []
     );
 
+    const ariaSort = useMemo(
+        () => (key: MetricSortKey): 'ascending' | 'descending' | undefined =>
+            sortState.key !== key ? undefined : sortState.dir === 'asc' ? 'ascending' : 'descending',
+        [sortState]
+    );
+
     const normalizedSearch = search.trim().toLowerCase();
 
     const filteredMetrics = useMemo(
@@ -177,6 +191,7 @@ export function useMetricSectionState<M extends MetricItem>(
     return {
         sortState,
         updateSort,
+        ariaSort,
         denseSort,
         setDenseSort,
         selectedColumnIds,
