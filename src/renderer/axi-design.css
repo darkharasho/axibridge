@@ -567,9 +567,16 @@
    strip holds, so upstream's .axi-rail replaces the hover-expand CategoryBar
    on that one view and the strip keeps carrying the other four.
 
+   The history tabs keep a second rail - the hover-expand CategoryBar, which
+   collapses to an icon strip because a report tab has less width to spare. It
+   is the same .axi-rail now too, floated, since the report scrolls underneath
+   it rather than beside it.
+
    One line left app-side, and it is a fact about this layout rather than about
    rails: the offset block falls BELOW the rail, so it has to end short of the
-   row's floor or the scroll container clips it. */
+   row's floor or the scroll container clips it. It reaches both rails, and for
+   the same reason in both - the collapsing one is pinned `inset-y-0`, so its
+   floor is the row's floor unless something gives the block the 6px back. */
 [data-axi-accent] body .axi-rail { margin-bottom: var(--axi-offset-panel); }
 
 /* ---------------------------------------------------------------------------

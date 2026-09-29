@@ -1592,23 +1592,20 @@ body.web-report {
    upstream, and upstream answered with .axi-dock, which is on
    --axi-surface-float unconditionally because "the content scrolls under it"
    is what docking means rather than a variant of it. The fill this theme
-   needed and could not name is a token now, and this is the last of the
-   hand-written rgba(15, 18, 25, .97) floats to go but one. */
+   needed and could not name is a token now. */
 
 /* Modals used to be pinned opaque here. They are .axi-modal and
    .axi-panel--float now, and both read --axi-surface-float, which glass
    restates at .97 - this rule turned into a token the whole language can
    reach, the same way the palette's did. */
 
-/* The stats nav panel floats over scrolling content. The search palette used to
-   be listed here too; it is .axi-palette__panel now, and upstream draws it on
-   --axi-surface-float, which is this rule turned into a token the whole
-   language can reach. This panel is the next one that should take it. */
-[data-axi-accent][data-axi-theme="glass"] .stats-dashboard-nav-panel {
-  background: rgba(15, 18, 25, 0.97) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
+/* The stats nav panel was the last one here, and it took the token too: it is an
+   .axi-rail--float now, so the fill and the blur both arrive from
+   --axi-surface-float and --axi-surface-filter. Nothing in this file pins a
+   floating surface opaque any more. The whole block that used to live here -
+   a modal fill, a palette fill, a nav fill, each an rgba literal with an
+   !important behind it - is one theme token declaring what a floating surface
+   is, read by every surface that is one. */
 
 /* Sticky table headers: rows scroll under them, and --bg-card is a glass tint,
    so the tint is layered over a solid dark base rather than used alone. */
@@ -1715,22 +1712,18 @@ body.web-report {
 
 /* Bulk upload turns the blurs off for frame rate. The opaque fills stay - they
    are legibility, not decoration.
+
+   This used to be an enumeration, one selector per surface, and every surface
+   that migrated upstream silently fell off it - the modal, the palette, the
+   popovers, both docks and finally this nav rail all read their blur from
+   --axi-surface-filter, which no selector here was naming. Nulling the token
+   reaches all of them at once and every surface added later, which is the point
+   of the token existing: the theme declares the capability, so the theme is
+   also where it gets switched off.
+
    Two descendant steps rather than one compound selector: the theme attributes
    are on <html> and `bulk-uploading` on <body>, so asking one element to carry
    both would match nothing. */
-[data-axi-accent][data-axi-theme="glass"] body.bulk-uploading .stats-dashboard-nav-panel {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* The rest of the surfaces used to be enumerated above, one selector each, and
-   every one that migrated upstream silently fell off the list - a modal, the
-   palette, the popovers and now both docks read their blur from
-   --axi-surface-filter, which no selector here was naming. Nulling the token
-   reaches all of them at once and every surface added later, which is the
-   point of the token existing: the theme declares the capability, so the theme
-   is also where it gets switched off. The enumerated rule above survives only
-   because the nav panel still writes its own blur literal. */
 [data-axi-accent][data-axi-theme="glass"] body.bulk-uploading {
   --axi-surface-filter: none;
 }

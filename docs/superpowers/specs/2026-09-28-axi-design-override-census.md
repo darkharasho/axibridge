@@ -495,3 +495,89 @@ list.
 rules — the deletions this slice were never in that file. The remaining
 hand-written `rgba(15, 18, 25, .97)` float is `.stats-dashboard-nav-panel`, now
 the last one, and it is the next obvious candidate for `.axi-panel--float`.
+
+## What the stats nav panel slice found
+
+### It was a rail, not a panel
+
+The previous section named `.axi-panel--float` as this surface's destination,
+and that was the wrong object — reached for because the panel is where the
+float modifier was first noticed, not because the surface is a panel. It is the
+stats category navigation: a vertical list of eleven categories and their
+sections, the same thing `AxiRail` renders for the app and the report renders
+for itself. The language already has the word. Calling it a panel to get at a
+float would have been the near-miss this exercise exists to remove.
+
+So: `.axi-rail axi-rail--float`, and no upstream change at all. This is the
+first slice in the run that needed none. `--axi-rail-w` is the hook the rail
+already publishes for a consumer that has to drive its own width, so the
+hover-expand between 72px and 248px is a token flip now; the `width` transition
+still interpolates across it (measured mid-flight at 202.95px, so the
+custom-property substitution does not break the animation the way an
+unregistered property's own discrete flip would).
+
+With the object come the fill, the edge, the corner and the raise. The
+hand-written `--bg-card` background, the `--shadow-card` block, the Tailwind
+`border` and the `rounded-[4px]` all go. The rail squares off under the default
+theme and rounds to 16px under glass, like every other migrated surface.
+
+**One line stays inline, and it is honest:** `overflow: hidden`. `.axi-rail`
+sets `overflow-y: auto` and `axi.css` loads after Tailwind's utilities, so the
+`overflow-hidden` class would lose the cascade at equal specificity. It is also
+a fact about this layout rather than about rails — a rail that collapses to an
+icon strip has to clip its labels on the way in, and the scrolling happens on
+the container inside it.
+
+### The float list is empty
+
+`[data-axi-accent][data-axi-theme="glass"] .stats-dashboard-nav-panel` was the
+last hand-written `rgba(15, 18, 25, .97) !important` in `index.css`. Nothing in
+that file pins a floating surface opaque any more: the modals, the palette, both
+docks and now this rail are all upstream objects reading `--axi-surface-float`.
+
+The `themeCssContract.test.ts` assertion that enumerated those surfaces had run
+out of selectors, so it is retired and replaced by its inverse, which is the more
+useful shape:
+
+- **`hand-writes no floating surface fill any more`** — no `background`
+  declaration carrying `rgba(15, 18, 25, .97)`. That opacity is what every one of
+  the deleted rules used, so a reintroduced float would almost certainly carry it.
+  Scoped to a declaration rather than the bare literal, because the paragraphs in
+  that file explaining what was deleted quote the value, and a substring match
+  fails on its own history note (it did, first run).
+- **`turns the bulk-upload blur off through the token, not a list of surfaces`** —
+  pins the `--axi-surface-filter: none` form, so the fix cannot decay back into
+  the enumeration that had been silently losing a surface per slice.
+
+Both mutation-checked: reinstating a `.97` fill and changing the token's value
+each fail their own guard and nothing else.
+
+### The viewer bundle did need rebuilding
+
+Worth recording because the reasoning is not obvious: `CategoryBar` is not in
+the web report at all, so nothing about this slice's markup reaches the viewer.
+But `docs/view/viewer.js` inlines `index.css`, and this slice deletes two rules
+from it. The bundle diff is exactly those two rules and nothing else. The guard
+added last slice is what makes that check a habit rather than a thing to
+remember.
+
+### What this leaves
+
+`index.css` loses two rules. `axi-design.css` holds at 214 rules; the one edit
+there is a comment, recording that `[data-axi-accent] body .axi-rail
+{ margin-bottom: var(--axi-offset-panel) }` now reaches two rails, and why it is
+right for both — the collapsing one is pinned `inset-y-0`, so its floor is the
+row's floor unless something hands the offset block its 6px back.
+
+The remaining `rgba(15, 18, 25, …)` literals in `index.css` are not floats and
+should not be migrated as if they were: the native `<select>` popup fill (`.9`),
+which exists because Chromium on Linux paints the OS option list from the
+control's own background and no filter applies to an OS-drawn popup, and three
+Fight Comp density fills (`.62`, `.72`, `.58`), which are legibility for compact
+labels rather than a surface standing over content. Neither has an upstream word
+yet, and neither is asking for one.
+
+The next candidates are unchanged: `.stats-dashboard-nav-panel` is done, so the
+largest remaining blocks are recharts (~40 selectors, third-party DOM with no
+upstream chart vocabulary), the Tailwind palette neutering (~50), and the
+`.modal-pane` fullscreen body.
