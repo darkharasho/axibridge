@@ -824,3 +824,118 @@ the palette:
 recharts is smaller than it looked: its tooltips were the largest themeable part of
 it, and they are done. What is left is axis ticks and grid strokes, which are SVG
 attributes on recharts' own elements — a props problem, not a CSS one.
+
+## What the buttons slice found: the `<button>` tag is not a unit of the language
+
+The previous section named Buttons as 121 sites. There are 446 `<button>` tags in
+the app, and counting them was never the question. Classifying each by what it
+actually is gives five different words, only one of which is the button:
+
+| What it is | Tags | Upstream word |
+|---|---|---|
+| A padded box with chrome, one state | 113 | `.axi-btn` |
+| The same, with a pressed state | 25 | `.axi-pill`, which has `aria-pressed` |
+| A bare text link or glyph, no chrome at all | 122 | none yet — a link layer |
+| A full-width row in a list or menu | 51 | `.axi-rail__item`, `.axi-menu` |
+| Already named, or a shape with no chrome | 135 | — |
+
+Only the first group is this slice. The second is deferred on purpose rather than
+on convenience: a control with a pressed state is a thing the language already has
+a word for, and it is not this one. Adopting `.axi-btn` there would have spelled
+"pressed" in a ternary for the twenty-sixth time.
+
+### The language shipped one button size, and the app has three
+
+`.axi-btn` is 12px/20px at 13px type. Not one of the 113 sites was that size. They
+cluster into exactly three steps — 27 at 14px type, 32 at 12px, 26 at 10–11px — plus
+26 icon-only. Every one of them spelled its own padding and font-size in utilities,
+which is what "borrowing the border" looks like: the class was doing a quarter of
+its job and Tailwind was doing the rest.
+
+So `.axi-btn--sm`, `--xs` and `--icon` upstream (1.30.0), written in two new knobs
+so a size the steps do not cover is still sayable. `--icon` is the one that was
+wrong rather than missing: an icon-only button has no label to pad around, so the
+20px sides meant for one produced a wide rectangle around a single glyph — which
+upstream's own gallery has shown, uncommented, in its example titled "Alone in a
+button", for as long as that example has existed.
+
+### The ink layer has been unreachable on hover since it shipped
+
+Found while checking whether a danger button survives adoption. It did not.
+
+`.axi-btn:hover` weighs two classes and `.axi-ink-danger` weighs one, so a button
+written `class="axi-btn axi-ink-danger"` measures `#ff5252` at rest and `#f4f6f9`
+under the cursor — the verdict disappearing at the moment a reader reaches for it.
+Measured in a browser, not inferred. 21 of the 25 status-inked buttons in this app
+rely on the ink alone, so all 21 would have lost their meaning on hover.
+
+This is rule 6's own addendum — *a component's base rules may not out-rank its own
+modifiers* — with a pseudo-class doing the out-ranking instead of an element. The
+rule named `:where()` as the fix and was applied only to base rules; state rules do
+the same arithmetic and were never checked. Nothing said so, because both rules are
+correct in isolation and the failure exists only while the pointer is over the
+element.
+
+`:where()` around the two generic pressables' hover states, the rule extended to
+state rules, and a guard that computes the class column for every same-element
+inked rule on `.axi-btn` and `.axi-pill`. It found `.axi-pill:hover` on its first
+run — a second live instance nobody had looked for. Not applied where the state's
+colour *is* the meaning (a selected rail item, a palette's cursor row, a pressed
+pill) or where it is a fill's contrast pair; both are now written down as the
+exceptions they are rather than left as the absence of a fix.
+
+### Two rules in the bridge turned out to be upstream components, spelled out
+
+`.file-picker-confirm` set an accent fill, accent ink, the control border, radius
+and block, and a brightness hover. That is `.axi-btn--primary`, written by hand
+against an app class name. `.log-card-share-link-btn` was three custom properties
+cancelling a `color-mix` the site declared inline. Both are gone; what is left of
+the first is its disabled state, which `--primary` genuinely has no word for.
+
+Adopting the first exposed one more gap: `.axi-badge-count` fills with the accent,
+and inside `.axi-btn--primary` — also the accent — the count was **invisible, not
+dim**. The bridge had already discovered this and inverted the badge by hand. The
+inversion is upstream now (1.30.1); the gallery never showed it because its only
+badge example pairs it with `--dashed`, which is transparent.
+
+### A third surface no theme had ever reached
+
+The expanded log card's DPS-report button painted `color-mix(in srgb,
+var(--brand-primary) 70%, transparent)` inline, with **no bridge rule over it at
+all** — the same shape as the chart tooltips one slice ago. It is that card's one
+primary action, so it says `.axi-btn--primary` and takes the accent outright. Three
+more legacy custom properties left with it, and four more from the stats header's
+split upload button, which was drawing `--accent-bg-strong`, `--accent-border`,
+`--brand-primary` and `--panel-border-w` inline.
+
+Deliberately not migrated here: **App.tsx's webhook trigger** and
+**CommanderHeader's commander trigger**, which show the value they picked and are
+`.axi-picker__btn`'s word, not the button's; and **SettingsNav's category rows**,
+which are `.axi-rail__item`'s. All three still carry legacy `--bg-input` /
+`--border-default` / `--accent-bg` inline, and are the picker slice's to collect.
+
+**A split button is a shape this language has no word for.** The stats header's
+upload control squares its join with an inline `borderRadius`, because a radius
+utility there loses to `.axi-btn`'s shorthand. One site, recorded rather than
+invented around.
+
+### What came down
+
+17 more dead bridge selectors, found by the liveness guard added in the previous
+slice on its first run after a migration — which is the whole point of it. Plus the
+two hand-drawn components above. 106 bridged selectors → 91.
+
+### What this leaves
+
+- **Pills (81 sites)** — now the largest block, and the one that unblocks the rest
+  of `bg-white/*`. `.axi-pill` already exists with `aria-pressed` and
+  `--axi-pill-fill`, so it is an adoption. `PillToggleGroup.tsx` is a segmented
+  control with a sliding indicator and six legacy custom properties in inline
+  styles; whether that is `.axi-tabs` or a word the language lacks is that slice's
+  question.
+- **Wells and panels (216 sites)** — the `.axi-well` adoption proper.
+- **Links and bare glyphs (122 sites)** — no upstream word yet. A `<button>` with
+  no chrome, `axi-ink-meta` and an underline is a link, and the language has
+  `.axi-prose a` but nothing standalone.
+- **List and menu rows (51 sites)**, **meters and bars (27)**, **chips (6)**,
+  **tables (9)**.

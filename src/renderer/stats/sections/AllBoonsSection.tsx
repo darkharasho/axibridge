@@ -228,7 +228,7 @@ export const AllBoonsSection = ({
                     <div className="relative" ref={dropdownRef}>
                         <button
                             onClick={() => setBoonDropdownOpen(!boonDropdownOpen)}
-                            className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 transition-colors text-xs"
+                            className="axi-btn axi-btn--sm"
                         >
                             {activeBoon?.icon && (
                                 <img src={activeBoon.icon} alt="" className="w-4 h-4 rounded" loading="lazy" />
@@ -290,7 +290,7 @@ export const AllBoonsSection = ({
                     {!expanded && (
                         <button
                             onClick={() => openExpandedSection(sectionId)}
-                            className="p-1 rounded hover:bg-white/5 axi-ink-dim hover:text-slate-200 transition-colors"
+                            className="axi-btn axi-btn--icon axi-ink-dim"
                             title="Expand"
                         >
                             <Maximize2 className="w-3.5 h-3.5" />
@@ -299,7 +299,7 @@ export const AllBoonsSection = ({
                     {expanded && (
                         <button
                             onClick={closeExpandedSection}
-                            className="p-1 rounded hover:bg-white/5 axi-ink-dim hover:text-slate-200 transition-colors"
+                            className="axi-btn axi-btn--icon axi-ink-dim"
                             title="Close"
                         >
                             <X className="w-3.5 h-3.5" />

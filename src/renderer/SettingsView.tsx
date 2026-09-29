@@ -1499,7 +1499,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     <button
                         type="button"
                         onClick={() => window.electronAPI?.openExternal?.('https://discord.gg/UjzMXMGXEg')}
-                        className="flex items-center gap-2 rounded-[4px] border axi-edge-rule bg-white/5 px-3 py-2 text-xs font-semibold axi-ink-dim hover:text-white hover:border-white/30 transition-colors"
+                        className="axi-btn axi-btn--sm axi-edge-rule axi-ink-dim"
                     >
                         <ExternalLink className="w-4 h-4" />
                         Support Discord
@@ -1884,7 +1884,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         <div className="flex flex-wrap items-center gap-3 mb-4">
                             <button
                                 onClick={handleGithubConnect}
-                                className="github-connect-btn flex items-center gap-2 px-4 py-2 rounded-[4px] bg-cyan-600 hover:bg-cyan-500 axi-ink-plain text-sm font-semibold transition-colors"
+                                className="axi-btn axi-btn--primary github-connect-btn"
                             >
                                 <LinkIcon className="w-4 h-4" />
                                 {githubAuthStatus === 'connected' ? 'Re-connect GitHub' : 'Connect GitHub'}
@@ -1907,7 +1907,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         setGithubRepos([]);
                                         setGithubRepoName('');
                                     }}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-[4px] bg-white/5 hover:bg-white/10 axi-ink-dim text-sm font-semibold border axi-edge-rule transition-colors"
+                                    className="axi-btn axi-ink-dim axi-edge-rule"
                                 >
                                     Disconnect
                                 </button>
@@ -1969,7 +1969,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             />
                                             <button
                                                 onClick={refreshGithubRepos}
-                                                className="p-2 rounded-[4px] bg-white/5 border axi-edge-rule hover:bg-white/10 axi-ink-dim"
+                                                className="axi-btn axi-btn--icon axi-edge-rule axi-ink-dim"
                                                 title="Refresh repos"
                                             >
                                                 <RefreshCw className={`w-4 h-4 ${loadingRepos ? 'animate-spin' : ''}`} />
@@ -2068,7 +2068,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         <button
                                             onClick={handleCreateGithubRepo}
                                             disabled={creatingRepo || !!githubRepoError || githubAuthStatus !== 'connected'}
-                                            className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-cyan-600/20 axi-ink-meta axi-edge-meta disabled:opacity-50"
+                                            className="axi-btn axi-btn--sm axi-ink-meta axi-edge-meta disabled:opacity-50"
                                         >
                                             {creatingRepo ? 'Creating...' : 'Create Now'}
                                         </button>
@@ -2112,7 +2112,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     <button
                                         onClick={handleCopyPagesUrl}
                                         disabled={!inferredPagesUrl}
-                                        className="github-pages-url-copy px-3 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 axi-ink-plain axi-edge-rule hover:border-white/30 disabled:opacity-50"
+                                        className="axi-btn axi-btn--sm github-pages-url-copy axi-ink-plain axi-edge-rule disabled:opacity-50"
                                     >
                                         {pagesUrlCopied ? 'Copied' : 'Copy'}
                                     </button>
@@ -2131,14 +2131,14 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             setGithubLogoPath(path);
                                         }
                                     }}
-                                    className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
+                                    className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule"
                                 >
                                     {githubLogoPath ? 'Replace Logo' : 'Choose Logo'}
                                 </button>
                                 {githubLogoPath && (
                                     <button
                                         onClick={() => setGithubLogoPath(null)}
-                                        className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
+                                        className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule"
                                     >
                                         Remove
                                     </button>
@@ -2487,7 +2487,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                             type="button"
                                                             onClick={() => toggleTopStat(def.id)}
                                                             aria-pressed={on}
-                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors"
+                                                            className="axi-btn axi-btn--sm"
                                                             style={on
                                                                 ? { color: meta.color, background: `${meta.color}1f`, borderColor: `${meta.color}66` }
                                                                 : { color: 'var(--text-muted)', background: 'var(--bg-input)', borderColor: 'var(--border-default)' }}
@@ -2884,7 +2884,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             <button
                                 type="button"
                                 onClick={onChangeLogDirectory}
-                                className="shrink-0 rounded-[4px] px-3 py-1.5 text-xs font-medium"
+                                className="axi-btn axi-btn--sm shrink-0"
                                 style={{ background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
                             >
                                 Change Folder
@@ -2922,7 +2922,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         <div className="mt-4 flex flex-wrap items-center gap-3">
                             <button
                                 onClick={handleClearDpsCache}
-                                className="flex items-center gap-2 px-4 py-2 rounded-[4px] bg-white/5 hover:bg-white/10 axi-ink-dim text-sm font-semibold border axi-edge-rule transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="axi-btn axi-ink-dim axi-edge-rule disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled={dpsCacheBusy}
                             >
                                 <Trash2 className="w-4 h-4" />
@@ -3063,7 +3063,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             <button
                                 type="button"
                                 onClick={handleExportSettings}
-                                className="flex items-center justify-center gap-2 rounded-[4px] border axi-edge-meta bg-blue-500/10 px-4 py-3 text-sm font-medium axi-ink-meta hover:bg-blue-500/20 transition-colors"
+                                className="axi-btn justify-center axi-edge-meta axi-ink-meta"
                             >
                                 <Download className="w-4 h-4" />
                                 Export Settings
@@ -3071,7 +3071,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             <button
                                 type="button"
                                 onClick={handleImportSettings}
-                                className="flex items-center justify-center gap-2 rounded-[4px] border axi-edge-ok bg-emerald-500/10 px-4 py-3 text-sm font-medium axi-ink-ok hover:bg-emerald-500/20 transition-colors"
+                                className="axi-btn justify-center axi-edge-ok axi-ink-ok"
                             >
                                 <Upload className="w-4 h-4" />
                                 Import Settings
@@ -3092,21 +3092,21 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             <div className="space-y-2">
                                 <button
                                     onClick={() => setHowToOpen(true)}
-                                    className="w-full flex items-center justify-center gap-2 rounded-[4px] border axi-edge-meta bg-cyan-500/10 px-4 py-3 text-sm font-medium axi-ink-meta hover:bg-cyan-500/20 transition-colors"
+                                    className="axi-btn w-full justify-center axi-edge-meta axi-ink-meta"
                                 >
                                     <BookOpen className="w-4 h-4" />
                                     How To
                                 </button>
                                 <button
                                     onClick={() => onOpenWalkthrough?.()}
-                                    className="w-full flex items-center justify-center gap-2 rounded-[4px] border axi-edge-rule bg-white/5 px-4 py-3 text-sm font-medium axi-ink-plain hover:bg-white/10 transition-colors"
+                                    className="axi-btn w-full justify-center axi-edge-rule axi-ink-plain"
                                 >
                                     <Compass className="w-4 h-4" />
                                     Open Walkthrough
                                 </button>
                                 <button
                                     onClick={() => onOpenWhatsNew?.()}
-                                    className="w-full flex items-center justify-center gap-2 rounded-[4px] border axi-edge-meta bg-blue-500/10 px-4 py-3 text-sm font-medium axi-ink-meta hover:bg-blue-500/20 transition-colors"
+                                    className="axi-btn w-full justify-center axi-edge-meta axi-ink-meta"
                                 >
                                     <Sparkles className="w-4 h-4" />
                                     View What's New
@@ -3192,7 +3192,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                 <div className="flex items-center justify-between gap-2 rounded-[4px] px-3 py-1.5" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
                     <button
                         onClick={() => setSettingsNavOpen((open) => !open)}
-                        className="flex items-center gap-2 px-4 py-1.5 rounded-[4px] bg-white/5 border axi-edge-rule text-[10px] uppercase tracking-widest axi-ink-plain flex-1 justify-between"
+                        className="axi-btn axi-btn--xs axi-edge-rule axi-ink-plain flex-1 justify-between"
                     >
                         <span ref={mobileNavLabelRef} className="truncate max-w-[160px]">
                             {labelForSection(activeSettingsSectionIdRef.current) ?? 'Settings'}
@@ -3201,7 +3201,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     </button>
                     <button
                         onClick={() => stepSettingsSection(1)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-[4px] bg-white/5 border axi-edge-rule text-[10px] uppercase tracking-widest axi-ink-plain"
+                        className="axi-btn axi-btn--xs axi-edge-rule axi-ink-plain"
                     >
                         Next
                         <ChevronDown className="w-4 h-4 -rotate-90 text-[color:var(--accent)]" />
@@ -3229,7 +3229,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 <div className="text-[11px] uppercase tracking-[0.3em] axi-ink-dim">Jump to</div>
                                 <button
                                     onClick={() => setSettingsNavOpen(false)}
-                                    className="p-1.5 rounded-[4px] hover:bg-white/10 axi-ink-dim hover:text-white transition-colors"
+                                    className="axi-btn axi-btn--icon axi-ink-dim"
                                     aria-label="Close navigation"
                                 >
                                     <CloseIcon className="w-4 h-4" />
@@ -3324,14 +3324,14 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         setImportModalOpen(false);
                                         setImportPreviewSettings(null);
                                     }}
-                                    className="px-4 py-2 rounded-[4px] border axi-edge-rule bg-white/5 axi-ink-dim hover:text-white hover:border-white/30 transition-colors"
+                                    className="axi-btn axi-edge-rule axi-ink-dim"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="button"
                                     onClick={confirmImportSettings}
-                                    className="px-4 py-2 rounded-[4px] border axi-edge-ok bg-emerald-500/20 axi-ink-ok hover:bg-emerald-500/30 transition-colors"
+                                    className="axi-btn axi-edge-ok axi-ink-ok"
                                 >
                                     Import
                                 </button>
@@ -3364,7 +3364,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 <button
                                     type="button"
                                     onClick={() => setDevSettingsOpen(false)}
-                                    className="p-2 rounded-[4px] border axi-edge-rule bg-white/5 axi-ink-dim hover:text-white hover:border-white/30 transition-colors"
+                                    className="axi-btn axi-btn--icon axi-edge-rule axi-ink-dim"
                                     aria-label="Close Developer Settings"
                                 >
                                     <CloseIcon className="w-4 h-4" />
@@ -3402,7 +3402,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         <button
                                             type="button"
                                             onClick={handleEnsureGithubTemplate}
-                                            className="w-full flex items-center justify-center gap-2 rounded-[4px] border axi-edge-warn bg-amber-500/10 px-4 py-3 text-sm font-medium axi-ink-warn hover:bg-amber-500/20 transition-colors"
+                                            className="axi-btn w-full justify-center axi-edge-warn axi-ink-warn"
                                         >
                                             <RefreshCw className="w-4 h-4" />
                                             Ensure GitHub Template
@@ -3410,7 +3410,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         <button
                                             type="button"
                                             onClick={handleClearDpsCache}
-                                            className="w-full flex items-center justify-center gap-2 rounded-[4px] border axi-edge-danger bg-rose-500/10 px-4 py-3 text-sm font-medium axi-ink-danger hover:bg-rose-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="axi-btn w-full justify-center axi-edge-danger axi-ink-danger disabled:opacity-50 disabled:cursor-not-allowed"
                                             disabled={dpsCacheBusy}
                                         >
                                             <Trash2 className="w-4 h-4" />
@@ -3565,7 +3565,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 <button
                                     type="button"
                                     onClick={() => setDevSettingsOpen(false)}
-                                    className="px-4 py-2 rounded-[4px] border axi-edge-rule bg-white/5 axi-ink-dim hover:text-white hover:border-white/30 transition-colors"
+                                    className="axi-btn axi-edge-rule axi-ink-dim"
                                 >
                                     Close
                                 </button>
@@ -3663,14 +3663,14 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             </div>
                                             <button
                                                 onClick={() => window.electronAPI?.openExternal?.(report.url)}
-                                                className="p-2 rounded-[4px] bg-white/5 border axi-edge-rule axi-ink-dim hover:text-white"
+                                                className="axi-btn axi-btn--icon axi-edge-rule axi-ink-dim"
                                                 title="Open report"
                                             >
                                                 <ExternalLink className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => toggleReportSelection(report.id)}
-                                                className="p-2 rounded-[4px] bg-red-500/10 border axi-edge-danger axi-ink-danger hover:text-red-200"
+                                                className="axi-btn axi-btn--icon axi-edge-danger axi-ink-danger"
                                                 title="Select for deletion"
                                             >
                                                 <Trash2 className="w-4 h-4" />

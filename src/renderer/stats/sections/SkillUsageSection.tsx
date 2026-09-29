@@ -99,7 +99,7 @@ export const SkillUsageSection = ({
                 <button
                     type="button"
                     onClick={() => (expandedSection === 'skill-usage' ? closeExpandedSection() : openExpandedSection('skill-usage'))}
-                    className="p-1 rounded hover:bg-white/5 axi-ink-dim hover:text-slate-200 transition-colors"
+                    className="axi-btn axi-btn--icon axi-ink-dim"
                     aria-label={expandedSection === 'skill-usage' ? 'Close Skill Usage' : 'Expand Skill Usage'}
                     title={expandedSection === 'skill-usage' ? 'Close' : 'Expand'}
                 >

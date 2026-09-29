@@ -69,7 +69,7 @@ export const FightSliceBanner = ({ onCopyLink, unavailable = false }: { onCopyLi
                     <button
                         type="button"
                         onClick={onCopyLink}
-                        className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] px-2 py-0.5 text-[10px] text-[color:var(--text-secondary)]"
+                        className="axi-btn axi-btn--xs"
                     >
                         Copy slice link
                     </button>
@@ -77,7 +77,7 @@ export const FightSliceBanner = ({ onCopyLink, unavailable = false }: { onCopyLi
                 <button
                     type="button"
                     onClick={clearFightSlice}
-                    className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] px-2 py-0.5 text-[10px] text-[color:var(--text-secondary)]"
+                    className="axi-btn axi-btn--xs"
                 >
                     Clear slice
                 </button>

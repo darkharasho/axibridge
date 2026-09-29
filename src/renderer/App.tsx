@@ -923,7 +923,7 @@ function App() {
                     <ParticleHover className="shrink-0 rounded-[4px]" disabled={!particlesEnabled}>
                         <button
                             onClick={handleSelectDirectory}
-                            className="rounded-[4px] w-8 h-8 flex items-center justify-center border transition-colors"
+                            className="axi-btn axi-btn--icon w-8 h-8 justify-center"
                             style={{ background: 'var(--accent-bg)', borderColor: 'var(--accent-border)', color: 'var(--button-label, var(--brand-primary))' }}
                             title="Browse..."
                         >
@@ -991,7 +991,7 @@ function App() {
                     <ParticleHover className="shrink-0 rounded-[4px]" disabled={!particlesEnabled}>
                         <button
                             onClick={() => setWebhookModalOpen(true)}
-                            className="rounded-[4px] w-8 h-8 flex items-center justify-center gap-2 border transition-colors"
+                            className="axi-btn axi-btn--icon w-8 h-8 justify-center"
                             style={{ background: 'var(--accent-bg)', borderColor: 'var(--accent-border)', color: 'var(--button-label, var(--brand-primary))' }}
                             title="Manage Webhooks"
                         >
@@ -1110,7 +1110,7 @@ function App() {
                     <ParticleHover className="rounded-[4px]" disabled={!particlesEnabled}>
                         <button
                             onClick={() => filePickerState.setFilePickerOpen(true)}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-medium border transition-colors"
+                            className="axi-btn axi-btn--xs"
                             style={{ borderColor: 'var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
                             title="Select logs to upload"
                         >
@@ -1121,7 +1121,7 @@ function App() {
                     <ParticleHover className="rounded-[4px]" disabled={!particlesEnabled} color="#f87171">
                         <button
                             onClick={clearLogsFromActivity}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-medium border transition-colors"
+                            className="axi-btn axi-btn--xs"
                             style={{ borderColor: 'var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--status-error)' }}
                             title="Clear all logs"
                         >
@@ -1170,7 +1170,7 @@ function App() {
                                     type="button"
                                     onClick={handleResumeUploadRetries}
                                     disabled={retryQueueBusy}
-                                    className="rounded-md border axi-edge-danger bg-rose-400/20 px-2.5 py-1 text-[11px] font-semibold axi-ink-danger hover:bg-rose-400/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="axi-btn axi-btn--xs axi-edge-danger axi-ink-danger disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {retryQueueBusy ? 'Resuming...' : 'Resume'}
                                 </button>
@@ -1179,7 +1179,7 @@ function App() {
                                 type="button"
                                 onClick={handleRetryFailedUploads}
                                 disabled={retryQueueBusy || uploadRetryQueue.failed === 0 || uploadRetryQueue.paused}
-                                className="rounded-md border axi-edge-danger bg-rose-400/20 px-2.5 py-1 text-[11px] font-semibold axi-ink-danger hover:bg-rose-400/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="axi-btn axi-btn--xs axi-edge-danger axi-ink-danger disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {retryQueueBusy ? 'Retrying...' : 'Retry failed'}
                             </button>

@@ -276,10 +276,7 @@ export function WebUploadOverlay({
                         <button
                             type="button"
                             onClick={clearOverlay}
-                            className={hasFailure
-                                ? 'px-3 py-1.5 rounded-lg text-xs font-semibold border axi-edge-warn bg-amber-500/10 axi-ink-warn hover:bg-amber-500/20'
-                                : 'px-3 py-1.5 rounded-lg text-xs font-semibold border'}
-                            style={hasFailure ? undefined : { borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                            className={`axi-btn axi-btn--sm ${hasFailure ? 'axi-edge-warn axi-ink-warn' : 'axi-ink-dim'}`}
                         >
                             Dismiss
                         </button>

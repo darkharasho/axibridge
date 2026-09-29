@@ -68,7 +68,7 @@ export const CrashRecoveryBanner = ({ notice, onRecompute, onDismiss }: CrashRec
                 {logCount > 0 && (
                     <button
                         onClick={onRecompute}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-medium border transition-colors"
+                        className="axi-btn axi-btn--xs"
                         style={{ borderColor: 'var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
                         title="Recompute stats from the restored logs"
                     >
@@ -78,7 +78,7 @@ export const CrashRecoveryBanner = ({ notice, onRecompute, onDismiss }: CrashRec
                 )}
                 <button
                     onClick={onDismiss}
-                    className="px-2.5 py-1 rounded-[4px] text-[11px] font-medium border transition-colors"
+                    className="axi-btn axi-btn--xs"
                     style={{ borderColor: 'var(--border-subtle)', background: 'transparent', color: 'var(--text-muted)' }}
                     title="Dismiss this notice"
                 >

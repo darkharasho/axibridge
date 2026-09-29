@@ -169,7 +169,7 @@ export const WebUploadBanner = ({
                         <button
                             type="button"
                             onClick={() => setLogsOpen(false)}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center axi-ink-dim hover:text-white hover:bg-white/[0.08] transition-colors"
+                            className="axi-btn axi-btn--icon w-7 h-7 justify-center axi-ink-dim"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -206,7 +206,7 @@ export const WebUploadBanner = ({
                         <button
                             type="button"
                             onClick={() => setLogsOpen(false)}
-                            className="px-4 py-1.5 rounded-lg text-xs font-semibold border axi-edge-rule bg-white/[0.05] axi-ink-dim hover:bg-white/[0.10] transition-colors"
+                            className="axi-btn axi-btn--sm axi-edge-rule axi-ink-dim"
                         >
                             Close
                         </button>

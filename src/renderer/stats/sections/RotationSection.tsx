@@ -227,7 +227,7 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
                                 key={p.key}
                                 type="button"
                                 onClick={() => setSelectedPlayerKey(p.key)}
-                                className="flex items-center gap-1.5 px-1.5 py-1 text-left text-[11px] rounded-[var(--radius-md)]"
+                                className="axi-btn axi-btn--xs text-left"
                                 style={{
                                     background: selectedPlayer?.key === p.key ? 'var(--bg-hover)' : 'transparent',
                                     color: 'var(--text-primary)',

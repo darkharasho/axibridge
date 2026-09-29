@@ -725,7 +725,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                 <div className="flex justify-end pt-2 border-t axi-edge-rule">
                                                     <button
                                                         onClick={handleApplyDateFilters}
-                                                        className="px-6 py-2 rounded-[4px] text-sm font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white hover:bg-white/10 transition-colors"
+                                                        className="axi-btn axi-ink-dim axi-edge-rule"
                                                     >
                                                         Select Since
                                                     </button>
@@ -770,7 +770,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                 <div className="flex justify-end pt-2 border-t axi-edge-rule">
                                                     <button
                                                         onClick={handleApplyDateFilters}
-                                                        className="px-6 py-2 rounded-[4px] text-sm font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white hover:bg-white/10 transition-colors"
+                                                        className="axi-btn axi-ink-dim axi-edge-rule"
                                                     >
                                                         Select Range
                                                     </button>
@@ -805,7 +805,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                         } else {
                                             handleApplyDateFilters();
                                         }
-                                    }} className="w-full py-1.5 rounded-[4px] text-[11px] font-medium border transition-colors bg-cyan-500/15 axi-ink-meta axi-edge-meta hover:bg-cyan-500/25">
+                                    }} className="axi-btn axi-btn--xs w-full axi-ink-meta axi-edge-meta">
                                         {filePickerSelected.size >= dateFilteredCount && dateFilteredCount > 0 ? 'Deselect All' : `Select All ${dateFilteredCount}`}
                                     </button>
                                 </div>
@@ -821,10 +821,10 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                     Add Logs
                                 </h3>
                                 <div className="flex items-center gap-1.5">
-                                    <button onClick={() => loadLogFiles(logDirectory)} className="p-1.5 rounded-[4px] axi-ink-dim hover:text-white hover:bg-white/10 transition-colors" style={{ border: '1px solid var(--border-subtle)' }} title="Refresh">
+                                    <button onClick={() => loadLogFiles(logDirectory)} className="axi-btn axi-btn--icon axi-ink-dim" style={{ border: '1px solid var(--border-subtle)' }} title="Refresh">
                                         <RefreshCw className="w-3.5 h-3.5" />
                                     </button>
-                                    <button onClick={handleClose} className="p-1.5 rounded-[4px] axi-ink-dim hover:text-white hover:bg-white/10 transition-colors" style={{ border: '1px solid var(--border-subtle)' }} aria-label="Close log picker">
+                                    <button onClick={handleClose} className="axi-btn axi-btn--icon axi-ink-dim" style={{ border: '1px solid var(--border-subtle)' }} aria-label="Close log picker">
                                         <X className="w-3.5 h-3.5" />
                                     </button>
                                 </div>
@@ -854,7 +854,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                     <div className="flex-1 flex flex-col items-center justify-center gap-3 text-sm axi-ink-faint">
                                         <span>{filePickerAvailable.length > 0 || filePickerAll.length > 0 ? 'No logs matching your current filters.' : 'No logs found in this folder.'}</span>
                                         {filePickerHasMore && !hasQuery && (
-                                            <button onClick={() => setFilePickerMonthWindow((prev: number) => prev + 1)} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white transition-colors">
+                                            <button onClick={() => setFilePickerMonthWindow((prev: number) => prev + 1)} className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule">
                                                 Load older logs
                                             </button>
                                         )}
@@ -884,7 +884,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                         </div>
                                         {!filePickerLoading && filePickerHasMore && !hasQuery && filePickerAtBottom && (
                                             <div className="mt-4 pb-4 flex justify-center">
-                                                <button onClick={() => setFilePickerMonthWindow((prev: number) => prev + 1)} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white transition-colors">
+                                                <button onClick={() => setFilePickerMonthWindow((prev: number) => prev + 1)} className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule">
                                                     Load older logs
                                                 </button>
                                             </div>
@@ -904,11 +904,11 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                         {filePickerSelected.size > 0 && (<button onClick={() => setFilePickerSelected(new Set())} className="text-[10px] axi-ink-faint hover:text-gray-300 transition-colors">Clear</button>)}
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <button onClick={handleClose} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white transition-colors">Cancel</button>
+                                        <button onClick={handleClose} className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule">Cancel</button>
                                         {/* Not disabled while busy: disabled:opacity-50 would dim the
                                             button and its spinner the moment you pressed it, which reads
                                             as a dead click. handleAddSelectedFiles ignores a second press. */}
-                                        <button onClick={() => { if (filePickerSelected.size > 0) handleAddSelectedFiles(); }} disabled={filePickerSelected.size === 0} aria-busy={filePickerSubmitting} className="file-picker-confirm px-4 py-2 rounded-[4px] text-xs font-semibold border bg-emerald-500/20 axi-ink-ok axi-edge-ok hover:bg-emerald-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5">
+                                        <button onClick={() => { if (filePickerSelected.size > 0) handleAddSelectedFiles(); }} disabled={filePickerSelected.size === 0} aria-busy={filePickerSubmitting} className="axi-btn axi-btn--sm axi-btn--primary file-picker-confirm disabled:opacity-50 disabled:cursor-not-allowed">
                                             {filePickerSubmitting ? (
                                                 <>
                                                     {/* Adding a few hundred logs takes long enough that the
@@ -920,7 +920,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                             ) : (
                                                 <>
                                                     Add to Recent Activity
-                                                    {filePickerSelected.size > 0 && (<span className="file-picker-confirm__count bg-emerald-500/30 axi-ink-ok px-1.5 py-0.5 rounded-lg text-[10px]">{filePickerSelected.size}</span>)}
+                                                    {filePickerSelected.size > 0 && (<span className="axi-badge-count file-picker-confirm__count">{filePickerSelected.size}</span>)}
                                                 </>
                                             )}
                                         </button>

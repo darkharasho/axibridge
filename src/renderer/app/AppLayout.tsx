@@ -266,7 +266,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 {updateDownloaded ? (
                                     <button
                                         onClick={() => window.electronAPI.restartApp()}
-                                        className="flex items-center gap-2 text-[10px] font-medium px-2 py-0.5 rounded-[4px] border transition-colors"
+                                        className="axi-btn axi-btn--xs"
                                         style={{ background: 'var(--status-success-bg)', color: 'var(--status-success)', borderColor: 'var(--status-success-border)' }}
                                     >
                                         <RefreshCw className="w-3 h-3" />

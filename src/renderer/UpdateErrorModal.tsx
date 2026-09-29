@@ -37,7 +37,7 @@ export function UpdateErrorModal({ isOpen, onClose, onRetry, error }: UpdateErro
                         </h2>
                         <button
                             onClick={onClose}
-                            className="p-1.5 rounded-[4px] hover:bg-white/10 axi-ink-danger hover:text-red-100 transition-colors"
+                            className="axi-btn axi-btn--icon axi-ink-danger"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -57,13 +57,13 @@ export function UpdateErrorModal({ isOpen, onClose, onRetry, error }: UpdateErro
                     <div className="axi-modal__foot">
                         <button
                             onClick={onRetry}
-                            className="px-4 py-2 bg-red-500/15 axi-ink-danger rounded-[4px] text-sm font-medium border axi-edge-danger hover:bg-red-500/25 transition-colors"
+                            className="axi-btn axi-ink-danger axi-edge-danger"
                         >
                             Try Again
                         </button>
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 bg-white/10 axi-ink-plain rounded-[4px] text-sm font-medium hover:bg-white/20 transition-colors"
+                            className="axi-btn axi-ink-plain"
                         >
                             Close
                         </button>

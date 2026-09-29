@@ -100,13 +100,13 @@ export const PublishWebhookPopover = ({ webhooks, initialSelection, onConfirm, o
                 Leave all unchecked to publish the report without posting to Discord.
             </div>
             <div className="flex justify-end gap-2 px-3.5 py-2.5" style={{ borderTop: '1px solid var(--border-default)', background: 'var(--bg-card-inner)' }}>
-                <button type="button" onClick={onCancel} className="px-3.5 py-2 text-[13px] font-semibold rounded-lg" style={{ background: 'transparent', color: 'var(--text-secondary)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
+                <button type="button" onClick={onCancel} className="axi-btn" style={{ background: 'transparent', color: 'var(--text-secondary)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
                     Cancel
                 </button>
                 <button
                     type="button"
                     onClick={() => onConfirm(webhooks.filter((hook) => checked.has(hook.id)).map((hook) => hook.id))}
-                    className="flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-bold rounded-lg"
+                    className="axi-btn"
                     style={{ background: 'var(--brand-primary)', color: 'var(--on-brand, #0b1220)', border: 'none' }}
                 >
                     <UploadCloud className="w-3.5 h-3.5" strokeWidth={2.2} />

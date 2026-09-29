@@ -26,7 +26,7 @@ export class StatsErrorBoundary extends Component<Props, State> {
                     <p className="text-sm axi-ink-danger font-semibold">Stats dashboard encountered an error.</p>
                     <p className="text-xs axi-ink-faint font-mono break-all">{this.state.error.message}</p>
                     <button
-                        className="text-xs px-3 py-1.5 rounded border axi-edge-rule hover:bg-white/10"
+                        className="axi-btn axi-btn--sm axi-edge-rule"
                         onClick={() => this.setState({ error: null })}
                     >
                         Retry

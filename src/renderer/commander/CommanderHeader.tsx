@@ -112,7 +112,7 @@ function FightSelector({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between gap-2 border text-xs rounded pl-2.5 pr-2 py-1.5 cursor-pointer transition-colors"
+        className="axi-btn axi-btn--sm w-full justify-between"
         style={{
           background: 'var(--bg-input)',
           borderColor: open ? 'var(--brand-primary)' : 'var(--border-default)',

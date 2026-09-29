@@ -1050,7 +1050,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     onRemove?.();
                                 }
                             }}
-                            className="p-2 rounded-[4px] border axi-edge-danger bg-red-500/10 axi-ink-danger hover:bg-red-500/20 transition-all"
+                            className="axi-btn axi-btn--icon axi-edge-danger axi-ink-danger"
                             title="Remove log from recent activity"
                             aria-label="Remove log from recent activity"
                         >
@@ -1213,11 +1213,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                         void handleCreateShareLink();
                                     }}
                                     disabled={isSharing}
-                                    className="log-card-share-link-btn w-full py-2.5 rounded-[4px] text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] axi-ink-plain hover:brightness-110 disabled:cursor-not-allowed disabled:text-white/50"
-                                    style={{
-                                        background: 'var(--share-btn-bg, color-mix(in srgb, var(--brand-primary) 30%, transparent))',
-                                        border: 'var(--panel-border-w, 1px) solid var(--share-btn-edge, color-mix(in srgb, var(--brand-primary) 25%, transparent))',
-                                    }}
+                                    className="axi-btn w-full justify-center active:scale-[0.98] disabled:cursor-not-allowed disabled:axi-ink-faint"
                                 >
                                     <Share2 className="w-4 h-4" />
                                     <span>{isSharing ? 'Creating Share Link...' : 'Create Share Link'}</span>
@@ -1249,18 +1245,10 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     }
                                 }}
                                 disabled={!reportUrl}
-                                className={`log-card-dps-link-btn w-full py-2.5 rounded-[4px] text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] ${!reportUrl
+                                className={`axi-btn w-full justify-center active:scale-[0.98] ${!reportUrl
                                     ? 'axi-ink-faint cursor-not-allowed'
-                                    : 'axi-ink-plain hover:brightness-110'
+                                    : 'axi-btn--primary'
                                     }`}
-                                style={{
-                                    background: !reportUrl
-                                        ? 'color-mix(in srgb, var(--brand-primary) 30%, transparent)'
-                                        : 'color-mix(in srgb, var(--brand-primary) 70%, transparent)',
-                                    border: `1px solid ${!reportUrl
-                                        ? 'color-mix(in srgb, var(--brand-primary) 10%, transparent)'
-                                        : 'color-mix(in srgb, var(--brand-primary) 25%, transparent)'}`,
-                                }}
                             >
                                 <ExternalLink className="w-4 h-4" />
                                 <span>{reportUrl ? reportLinkLabel : 'Link Pending...'}</span>

@@ -65,7 +65,7 @@ export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughMo
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-1.5 rounded-[4px] hover:bg-white/10 axi-ink-dim hover:text-white transition-colors"
+                            className="axi-btn axi-btn--icon axi-ink-dim"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -100,7 +100,7 @@ export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughMo
                     <div className="flex justify-end gap-2 px-6 py-4" style={{ borderTop: '1px solid var(--border-default)' }}>
                         <button
                             onClick={() => onLearnMore?.()}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-[4px] axi-ink-plain hover:bg-white/10 transition-colors text-sm font-medium"
+                            className="axi-btn axi-ink-plain"
                             style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                         >
                             <BookOpen className="w-3.5 h-3.5" />
@@ -108,7 +108,7 @@ export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughMo
                         </button>
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 rounded-[4px] bg-blue-500/20 axi-ink-meta border axi-edge-meta hover:bg-blue-500/30 transition-colors text-sm font-medium"
+                            className="axi-btn axi-ink-meta axi-edge-meta"
                         >
                             Get Started
                         </button>

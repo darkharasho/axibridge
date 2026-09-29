@@ -207,14 +207,14 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                                     <div className="flex gap-2">
                                         <button
                                             onClick={handleSaveEdit}
-                                            className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-500/20 axi-ink-ok rounded-[4px] hover:bg-green-500/30 transition-colors text-sm font-medium"
+                                            className="axi-btn flex-1 justify-center axi-ink-ok"
                                         >
                                             <Check className="w-4 h-4" />
                                             Save
                                         </button>
                                         <button
                                             onClick={() => setEditingId(null)}
-                                            className="flex-1 py-2 bg-white/5 axi-ink-dim rounded-[4px] hover:bg-white/10 transition-colors text-sm"
+                                            className="axi-btn flex-1 axi-ink-dim"
                                         >
                                             Cancel
                                         </button>
@@ -259,7 +259,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                                             {!isBridge && (
                                                 <button
                                                     onClick={() => handleEdit(webhook)}
-                                                    className="p-2 rounded-[4px] hover:bg-white/10 axi-ink-dim hover:text-blue-400 transition-colors"
+                                                    className="axi-btn axi-btn--icon axi-ink-dim"
                                                     title="Edit"
                                                 >
                                                     <Edit2 className="w-4 h-4" />
@@ -267,7 +267,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                                             )}
                                             <button
                                                 onClick={() => (isBridge ? handleUnlink(webhook.id) : handleDelete(webhook.id))}
-                                                className="p-2 rounded-[4px] hover:bg-white/10 axi-ink-dim hover:text-red-400 transition-colors"
+                                                className="axi-btn axi-btn--icon axi-ink-dim"
                                                 title={isBridge ? 'Unlink' : 'Delete'}
                                                 aria-label={`${isBridge ? 'Unlink' : 'Delete'} ${webhook.name}`}
                                             >
@@ -323,14 +323,14 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                         <button
                             onClick={handleAdd}
                             disabled={!newName.trim() || !newUrl.trim()}
-                            className="flex-1 flex items-center justify-center gap-2 py-2 bg-blue-500/20 axi-ink-meta rounded-[4px] hover:bg-blue-500/30 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="axi-btn flex-1 justify-center axi-ink-meta disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Plus className="w-4 h-4" />
                             Add
                         </button>
                         <button
                             onClick={() => { setIsAdding(false); setNewName(''); setNewUrl(''); }}
-                            className="flex-1 py-2 bg-white/5 axi-ink-dim rounded-[4px] hover:bg-white/10 transition-colors text-sm"
+                            className="axi-btn flex-1 axi-ink-dim"
                         >
                             Cancel
                         </button>
@@ -372,14 +372,14 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                         <button
                             onClick={handleLinkSubmit}
                             disabled={!bridgeKey.trim() || bridgeLinking}
-                            className="flex-1 flex items-center justify-center gap-2 py-2 bg-purple-500/20 axi-ink-meta rounded-[4px] hover:bg-purple-500/30 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="axi-btn flex-1 justify-center axi-ink-meta disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Zap className="w-4 h-4" />
                             {bridgeLinking ? 'Linking…' : 'Link'}
                         </button>
                         <button
                             onClick={() => { setIsLinking(false); setBridgeKey(''); setBridgeLinkError(null); }}
-                            className="flex-1 py-2 bg-white/5 axi-ink-dim rounded-[4px] hover:bg-white/10 transition-colors text-sm"
+                            className="axi-btn flex-1 axi-ink-dim"
                         >
                             Cancel
                         </button>
@@ -391,14 +391,14 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                 <div className="flex gap-2">
                     <button
                         onClick={() => setIsAdding(true)}
-                        className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-[4px] axi-ink-dim hover:text-blue-300 transition-colors" style={{ borderColor: 'var(--border-default)' }}
+                        className="axi-btn axi-btn--dashed flex-1 justify-center axi-ink-dim" style={{ borderColor: 'var(--border-default)' }}
                     >
                         <Plus className="w-5 h-5" />
                         Add Webhook
                     </button>
                     <button
                         onClick={() => setIsLinking(true)}
-                        className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-[4px] axi-ink-dim hover:text-purple-300 transition-colors" style={{ borderColor: 'var(--border-default)' }}
+                        className="axi-btn axi-btn--dashed flex-1 justify-center axi-ink-dim" style={{ borderColor: 'var(--border-default)' }}
                     >
                         <Zap className="w-5 h-5" />
                         Link AxiTools channel
