@@ -218,7 +218,7 @@ export function CloudflareConnect({ onChanged }: Props) {
                                     href={error.helpUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="inline-flex items-center gap-0.5 axi-ink-meta underline underline-offset-2"
+                                    className="axi-link inline-flex items-center gap-0.5"
                                 >
                                     Open the Cloudflare dashboard <ExternalLink className="w-2.5 h-2.5" />
                                 </a>

@@ -65,7 +65,7 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                                     components={{
                                         a: ({ href, children }) => (
                                             <button
-                                                className="axi-ink-meta underline underline-offset-2"
+                                                className="axi-link"
                                                 onClick={() => href && window.electronAPI.openExternal(href)}
                                             >
                                                 {children}

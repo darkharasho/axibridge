@@ -271,7 +271,7 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                                             a: ({ href, children }) => (
                                                 <button
                                                     type="button"
-                                                    className="axi-ink-meta underline underline-offset-2"
+                                                    className="axi-link"
                                                     onClick={() => href && window.electronAPI?.openExternal?.(href)}
                                                 >
                                                     {children}

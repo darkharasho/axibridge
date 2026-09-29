@@ -90,7 +90,7 @@ export const FightBreakdownSection = ({
                         window.open(fight.permalink, '_blank');
                     }
                 }}
-                className="axi-ink-meta hover:text-cyan-200 underline underline-offset-2 block truncate"
+                className="axi-link block truncate"
             >
                 {label}
             </button>
@@ -118,7 +118,7 @@ export const FightBreakdownSection = ({
                 }}
                 title="Open on dps.report"
                 aria-label="Open on dps.report"
-                className="axi-ink-meta hover:text-cyan-200 underline underline-offset-2 whitespace-nowrap"
+                className="axi-link whitespace-nowrap"
             >
                 Open
             </button>
