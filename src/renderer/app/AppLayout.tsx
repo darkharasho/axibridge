@@ -226,30 +226,33 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 </div>
             </div>
 
-            <div data-nav-strip className="flex items-center px-3 py-1.5 gap-1 border-b shrink-0" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-elevated)' }}>
-                {([
-                    { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
-                    { id: 'stats' as const, label: 'Stats', icon: BarChart3 },
-                    { id: 'commander' as const, label: 'Commander', icon: CommanderIcon },
-                    { id: 'history' as const, label: 'History', icon: Clock3 },
-                    { id: 'settings' as const, label: 'Settings', icon: SettingsIcon },
-                ]).map(({ id, label, icon: Icon }) => (
-                    <button
-                        key={id}
-                        title={label}
-                        data-nav-tab
-                        data-on={activeNavView === id ? '' : undefined}
-                        onClick={() => handleNavViewChange(id)}
-                        className={`relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[4px] transition-colors ${
-                            activeNavView === id
-                                ? 'text-[color:var(--brand-primary)]'
-                                : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
-                        }`}
-                    >
-                        <Icon className="w-3.5 h-3.5" />
-                        {label}
-                    </button>
-                ))}
+            <div data-nav-strip className="flex items-center px-3 py-1.5 border-b shrink-0" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-elevated)' }}>
+                {/* Upstream's tab strip. It marks the current view with
+                    aria-current="page" rather than a class, so what a screen
+                    reader is told and what the fill says cannot disagree - and
+                    the fill, the ink outline and the offset block all arrive
+                    from axi.css. Only the icon row inside each tab is ours. */}
+                <nav className="axi-tabs">
+                    {([
+                        { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
+                        { id: 'stats' as const, label: 'Stats', icon: BarChart3 },
+                        { id: 'commander' as const, label: 'Commander', icon: CommanderIcon },
+                        { id: 'history' as const, label: 'History', icon: Clock3 },
+                        { id: 'settings' as const, label: 'Settings', icon: SettingsIcon },
+                    ]).map(({ id, label, icon: Icon }) => (
+                        <button
+                            key={id}
+                            type="button"
+                            title={label}
+                            aria-current={activeNavView === id ? 'page' : undefined}
+                            onClick={() => handleNavViewChange(id)}
+                            className="inline-flex items-center gap-1.5"
+                        >
+                            <Icon className="w-3.5 h-3.5" />
+                            {label}
+                        </button>
+                    ))}
+                </nav>
                 <div className="ml-auto flex items-center gap-2">
                     <AnimatePresence mode="wait">
                         {(updateAvailable || updateDownloaded) ? (

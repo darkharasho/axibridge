@@ -1,4 +1,4 @@
-import { ChevronDown, Copy, MoreHorizontal, Search, Trash2 } from 'lucide-react';
+import { ChevronDown, Copy, MoreHorizontal, Search, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ParticleHover } from './particles';
@@ -436,33 +436,30 @@ export function FightReportHistoryView() {
 
     return (
         <div className="history-view flex-1 min-h-0 flex flex-col overflow-hidden">
-            {/* Tab bar */}
-            <div className="history-tabs flex items-center gap-0 border-b px-4" style={{ borderColor: 'var(--border-default)' }}>
-                <button type="button" onClick={() => setActiveTab('list')}
-                    className="px-4 py-2 text-xs"
-                    style={{
-                        color: activeTab === 'list' ? 'var(--brand-primary)' : 'var(--text-secondary)',
-                        borderBottom: activeTab === 'list' ? '2px solid var(--brand-primary)' : '2px solid transparent'
-                    }}>
-                    Reports
-                </button>
-                {tabs.map((tab) => (
-                    <div key={tab.id} className="flex items-center max-w-[180px]">
-                        <button type="button" onClick={() => setActiveTab(tab.id)}
-                            className="px-3 py-2 text-xs truncate"
-                            style={{
-                                color: activeTab === tab.id ? 'var(--brand-primary)' : 'var(--text-secondary)',
-                                borderBottom: activeTab === tab.id ? '2px solid var(--brand-primary)' : '2px solid transparent'
-                            }}>
-                            {tab.title}
-                        </button>
-                        <button type="button" onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}
-                            className="px-1 text-[10px] opacity-50 hover:opacity-100"
-                            style={{ color: 'var(--text-secondary)' }}>
-                            ✕
-                        </button>
-                    </div>
-                ))}
+            {/* Tab bar. Upstream's strip: an open report is a closable tab, so
+                each one pairs its label with an .axi-tabs__close, and the tab
+                you are reading is filled rather than underlined - the language
+                has one way to say "this one is on" and the fill is it. */}
+            <div className="history-tabs border-b px-4" style={{ borderColor: 'var(--border-default)' }}>
+                <nav className="axi-tabs items-center">
+                    <button type="button" onClick={() => setActiveTab('list')}
+                        aria-current={activeTab === 'list' ? 'page' : undefined}>
+                        Reports
+                    </button>
+                    {tabs.map((tab) => (
+                        <span key={tab.id} className="axi-tabs__tab max-w-[180px]">
+                            <button type="button" onClick={() => setActiveTab(tab.id)}
+                                aria-current={activeTab === tab.id ? 'page' : undefined}>
+                                {tab.title}
+                            </button>
+                            <button type="button" className="axi-tabs__close"
+                                aria-label={`Close ${tab.title}`}
+                                onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}>
+                                <X className="w-3 h-3" />
+                            </button>
+                        </span>
+                    ))}
+                </nav>
             </div>
 
             {/* Content area */}
