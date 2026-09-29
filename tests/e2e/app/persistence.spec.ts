@@ -43,9 +43,11 @@ test.describe('Data Persistence (PERS-001–008)', () => {
 
     test('PERS-006: color palette applied from settings', async ({ page }) => {
         await setupAppPage(page, { settings: { colorPalette: 'refined-cyan' } });
-        await page.waitForTimeout(500);
-        const bodyClass = await page.locator('body').getAttribute('class');
-        expect(bodyClass).toMatch(/refined-cyan|palette/);
+        // The accent is an attribute on <html>, not a class on <body>: applyAxiTheme
+        // writes `data-axi-accent` at the document element so upstream's unscoped
+        // accents.css cascades over every body-level rule without contesting
+        // specificity. `body` carries no palette class at all any more.
+        await expect(page.locator('html')).toHaveAttribute('data-axi-accent', 'refined-cyan');
     });
 
     test('PERS-007: getWhatsNew called on startup (provides app version)', async ({ page }) => {

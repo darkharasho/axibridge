@@ -32,11 +32,21 @@ export function AxiRail({ unpublishedCategoryIds }: AxiRailProps) {
                                 type="button"
                                 className="axi-rail__item"
                                 aria-current={isActiveCategory ? 'page' : undefined}
+                                title={
+                                    unpublishedCategoryIds?.has(category.id)
+                                        ? `${category.label} — left out of published reports`
+                                        : undefined
+                                }
                                 onClick={() => handleCategoryClick(category.id)}
                             >
                                 {category.label}
+                                {/* aria-hidden, with the omission moved to the button's title:
+                                    the badge is an annotation on the category, not part of its
+                                    name, and letting it into the accessible name renamed the
+                                    button to "Replay Local". Same split CategoryBar already
+                                    uses for its CloudOff marker. */}
                                 {unpublishedCategoryIds?.has(category.id) && (
-                                    <span className="axi-rail__mark" title="Left out of published reports">Local</span>
+                                    <span className="axi-rail__mark" aria-hidden="true">Local</span>
                                 )}
                             </button>
                             {isActiveCategory && category.sections.length > 1 && (
