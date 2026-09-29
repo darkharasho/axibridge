@@ -76227,7 +76227,7 @@ function Cke({ injectedSource: e, assetBase: t } = {}) {
             {
               className: `axi-rail axi-rail--flush fixed inset-y-0 left-0 z-20 ${$r ? "hidden" : ""}`,
               style: { "--axi-rail-w": "16rem", "--axi-rail-pad": "0" },
-              children: /* @__PURE__ */ o.jsxs("div", { className: "flex flex-col w-full", children: [
+              children: /* @__PURE__ */ o.jsxs("div", { className: "flex flex-col w-full flex-1 min-h-0", children: [
                 /* @__PURE__ */ o.jsx("div", { className: "px-6 pt-6 pb-5", children: /* @__PURE__ */ o.jsxs("div", { className: "flex items-center gap-3", children: [
                   /* @__PURE__ */ o.jsx(
                     "div",
@@ -76276,7 +76276,7 @@ function Cke({ injectedSource: e, assetBase: t } = {}) {
                     ]
                   }
                 ) }),
-                /* @__PURE__ */ o.jsx("nav", { className: "px-4 space-y-2 text-sm flex-1 overflow-y-auto [overflow-anchor:none]", onWheel: vt, children: Ct.map((Qe) => {
+                /* @__PURE__ */ o.jsx("nav", { className: "px-4 space-y-2 text-sm flex-1 min-h-0 overflow-y-auto [overflow-anchor:none]", onWheel: vt, children: Ct.map((Qe) => {
                   const sr = Qe.icon, _r = Qe.id === gr, Ir = !!Me[Qe.id];
                   return /* @__PURE__ */ o.jsxs("div", { className: "space-y-1", children: [
                     /* @__PURE__ */ o.jsxs(
@@ -76331,7 +76331,7 @@ function Cke({ injectedSource: e, assetBase: t } = {}) {
                     ) })
                   ] }, Qe.id);
                 }) }),
-                zr && /* @__PURE__ */ o.jsx("div", { className: "border-t border-white/10", children: /* @__PURE__ */ o.jsxs(
+                zr && /* @__PURE__ */ o.jsx("div", { className: "mt-auto shrink-0 border-t border-white/10", children: /* @__PURE__ */ o.jsxs(
                   "a",
                   {
                     href: yr,
