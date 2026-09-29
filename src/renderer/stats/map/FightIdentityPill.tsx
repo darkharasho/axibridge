@@ -23,9 +23,10 @@ const stepBtn = (disabled: boolean): React.CSSProperties => ({
  * `FightPicker` overlay, in ~28px of floating chrome instead of 34px of
  * docked chrome.
  *
- * `className="app-dropdown"` alone only paints a background under the glass
- * theme (`[data-axi-theme="glass"] .app-dropdown` overrides in index.css); the
- * flat theme gives it only an animation. Blur does not work on this platform, so a
+ * `.app-opaque-float` is what paints a background under the glass theme (see
+ * index.css); `.app-dropdown` is the entrance animation and nothing else now
+ * that the real dropdowns are .axi-panel--float. The flat theme gives this
+ * element only the animation. Blur does not work on this platform, so a
  * translucent floating card over the map reads as see-through. We therefore
  * also set an explicit opaque background inline, matching every other floating
  * surface in this codebase (e.g. ColumnFilterDropdown.tsx,
@@ -53,7 +54,7 @@ const FightIdentityPillInner: React.FC<FightIdentityPillProps> = ({ fights, onOp
 
     return (
         <div
-            className="app-dropdown"
+            className="app-dropdown app-opaque-float"
             style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '3px 6px', borderRadius: 16,

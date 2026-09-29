@@ -1151,15 +1151,18 @@
    They take the control step rather than the panel step. A dropdown is chrome
    you open, act in and dismiss; the panel step belongs to the things you are
    reading. The block is what lifts them off the page. */
-[data-axi-accent] body .app-dropdown,
-[data-axi-accent] body .stats-popover {
-  --panel-border-w: var(--axi-border-control);
-  border-radius: var(--axi-radius-sm);
-  /* !important because the webhook dropdown paints --shadow-dropdown inline,
-     and that token is the panel-sized block - so the one dropdown that sets
-     its own shadow was the one dropdown not taking the control step. */
-  box-shadow: var(--axi-shadow-control) !important;
-}
+   Nothing is written here for them any more. The ten dropdowns that hang off a
+   trigger are .axi-panel--tile --float: the tile is the control step this block
+   used to reach for, the float is the opaque fill index.css used to pin with
+   !important, and between them there is no frame left for a lever to move. The
+   !important on the block went with the inline --shadow-dropdown that forced it.
+
+   What still borrows .app-dropdown is the chrome that draws its own frame inline
+   and only wants the entrance animation: the replay map's bars, legends and
+   spine strips, and the fight-slice tray. Those carry .app-opaque-float as well,
+   which is the one thing they genuinely need from the theme - two of them are
+   28px strips with a single border down one side, and an .axi-panel would put a
+   full outline round them. They are the replay-chrome slice, not this one.
 
 /* A dropdown's rows are a list inside a well, not a stack of little panels, so
    they step down to the small radius rather than keeping the panel-sized one
@@ -1817,7 +1820,9 @@
 
 /* A shell card is the only thing on the screen, which makes it a panel rather
    than a control. --panel-border-w is set to the control step globally, so it
-   is raised here the same way .app-modal-card raises it. */
+   is raised here. This is the last lever left in the file: reportShell.css is
+   loaded before the viewer bundle, so it cannot assume axi.css is present and
+   cannot name an upstream object the way the modals now do. */
 [data-axi-accent] body .report-shell-card,
 [data-axi-accent] body .report-shell-banner {
   --panel-border-w: var(--axi-border-panel);

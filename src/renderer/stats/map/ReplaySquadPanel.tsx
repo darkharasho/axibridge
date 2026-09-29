@@ -45,7 +45,7 @@ const ReplaySquadPanelInner: React.FC<ReplaySquadPanelProps> = ({ fight, collaps
                 type="button"
                 title="Expand squad panel"
                 onClick={onToggle}
-                className="app-dropdown"
+                className="app-dropdown app-opaque-float"
                 style={{
                     width: 28, flexShrink: 0,
                     background: 'var(--bg-elevated)',
@@ -67,7 +67,7 @@ const ReplaySquadPanelInner: React.FC<ReplaySquadPanelProps> = ({ fight, collaps
     }
 
     return (
-        <div className="app-dropdown" style={{
+        <div className="app-dropdown app-opaque-float" style={{
             width: 216, maxHeight: '100%',
             background: 'var(--bg-elevated)',
             borderRadius: 10, border: '1px solid var(--border-default)',

@@ -96,7 +96,7 @@ const LayersPanelInner: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
                 type="button"
                 title="Show layers"
                 onClick={onToggle}
-                className="app-dropdown"
+                className="app-dropdown app-opaque-float"
                 style={{
                     width: 28, flexShrink: 0,
                     background: 'var(--bg-elevated)',
@@ -118,7 +118,7 @@ const LayersPanelInner: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
     }
 
     return (
-        <div data-layers-panel className="app-dropdown" style={{
+        <div data-layers-panel className="app-dropdown app-opaque-float" style={{
             width: 216, maxHeight: '100%',
             background: 'var(--bg-elevated)',
             borderRadius: 10, border: '1px solid var(--border-default)',

@@ -90,7 +90,7 @@ const MapLegendInner: React.FC<{ style?: React.CSSProperties }> = ({ style }) =>
 
     return (
         <div
-            className="app-dropdown"
+            className="app-dropdown app-opaque-float"
             style={{
                 width: 132, padding: '6px 8px', borderRadius: 8,
                 border: '1px solid var(--border-default)',

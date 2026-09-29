@@ -127,13 +127,8 @@ function FightSelector({
       </button>
       {open && (
         <div
-          className="app-dropdown absolute right-0 top-[calc(100%+4px)] z-20 max-h-72 overflow-y-auto border rounded shadow-lg"
-          style={{
-            background: 'var(--bg-card)',
-            borderColor: 'var(--border-default)',
-            boxShadow: 'var(--shadow-dropdown)',
-            minWidth: '100%',
-          }}
+          className="app-dropdown axi-panel axi-panel--tile axi-panel--float absolute right-0 top-[calc(100%+4px)] z-20 max-h-72 overflow-y-auto [--axi-panel-pad:0]"
+          style={{ minWidth: '100%' }}
         >
           {options.map((opt) => {
             const isSelected = opt.id === value;

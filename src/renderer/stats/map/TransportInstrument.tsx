@@ -140,9 +140,9 @@ export const TransportInstrument: React.FC<TransportInstrumentProps> = ({ durati
                         data-testid="speed-ladder"
                         // A floating surface over the map: under the glass themes a bare
                         // `--bg-elevated` is translucent (blur is a no-op on Linux), so the
-                        // map reads straight through the ladder. `.app-dropdown` is the
+                        // map reads straight through the ladder. `.app-opaque-float` is the
                         // shared opaque override for exactly this.
-                        className="app-dropdown"
+                        className="app-dropdown app-opaque-float"
                         style={{
                             display: 'flex', flexDirection: 'column-reverse', gap: 2, padding: 3,
                             borderRadius: 7,

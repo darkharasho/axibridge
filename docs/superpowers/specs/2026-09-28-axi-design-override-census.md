@@ -254,3 +254,75 @@ different radii, some with inline frames) belongs to the Modals & menus slice,
 and `.report-shell-card` is drawn by `src/web/reportShell.css` before the
 viewer bundle loads, so it cannot assume `axi.css` is present. Neither is a
 card problem.
+
+## What the modals and dropdowns slice found
+
+**The lever pattern held for a third family.** All thirteen `.app-modal-card`
+sites wrote their frame as an inline `border: 1px solid ...` literal, so the
+override layer could not restate it and instead re-resolved `--panel-border-w`,
+which the literals happened to read. Same for the dropdowns, via
+`--panel-border-w` and `--history-edge-w`. Naming the object deletes the lever
+and the literal together, exactly as the cards slices predicted.
+
+**Upstream had wired `--axi-surface-float` into two of its own floating
+surfaces and missed five.** The token's own comment in `tokens.css` names its
+consumers — "a command palette, a menu popover, a modal" — and only the palette
+had it. `.axi-modal`, `.axi-menu__pop`, `.axi-picker__pop`, `.axi-toast` and
+`.axi-drawer` all still read a translucent fill, so under glass they showed the
+page through their own text. Shipped as **1.24.0**.
+
+The three that read `--axi-surface-raised` were not asking for height. That
+token is the chip-and-hover tint; height is carried by the border and the block,
+and the proof is that `.axi-modal` — the highest surface in the language — sits
+on the plain fill. What `raised` was lending a popover was *opacity*, which is
+the one thing a translucent theme takes away. `.axi-tooltip` was checked and
+left alone: it reads `--axi-ground-deep`, which glass restates opaque on purpose.
+
+### Two rulings
+
+**A modal and a padded box are different objects.** `.axi-modal` owns
+`padding: 0` because its head, body and foot bring their own. Three of the
+thirteen cards are a single padded box (the mobile Jump-to sheet, the
+web-reports manager, the proof-of-work panel); calling those `.axi-modal` would
+have meant re-adding the padding it deliberately drops, so they are
+`.axi-panel--float` with `--axi-panel-pad`. Both paths get the float surface,
+which was the point.
+
+**`.app-dropdown` was serving two unrelated populations.** Ten sites hang off a
+trigger and are now `.axi-panel--tile --float` — the tile is the control step
+the override reached for, the float is the opaque fill `index.css` pinned with
+`!important`. The rest is chrome that draws its own frame inline and only wants
+the entrance animation: the replay map's bars, legends and two 28px spine
+strips, plus the fight-slice tray. Those keep `.app-dropdown` for the animation
+and gained `.app-opaque-float`, which the glass rule now targets instead.
+
+That split was not cosmetic. Glass restates `--axi-surface-float` as a 145deg
+gradient at `.97`, while the old `!important` was a flat `rgba(15,18,25,.97)` —
+leaving the migrated dropdowns in that rule would have cost them the tilt that
+makes a pane read as glass at all.
+
+**Not adopted: `.axi-menu__pop`.** It bakes in `position: absolute`,
+`top: calc(100% + 9px)`, `left: 0` and `z-index: 41`. This app positions its own
+dropdowns and runs a z-index stack up to 74, so `left: 0` would fight `right-0`
+and the z-index would lose to `axi.css` load order. `.axi-panel--tile --float` is
+the adapter for a consumer that owns its positioning, and upstream's modal entry
+now documents the parallel case: `.axi-modal` on a `<div>` beside `.axi-scrim`,
+with the cost — no focus trap, no inertness, no top layer — named rather than
+left to be discovered.
+
+**The `.axi-scrim` z-index trap.** Tailwind's utilities layer is imported at
+`index.css:2-4` and `axi.css` at `:12`, so `.axi-scrim`'s own `z-index: 50`
+outranks a `z-[60]` utility. The app's four-deep modal stack had to move to
+inline `zIndex`, and every `max-w-*` on a modal card had to become
+`--axi-modal-width` for the same reason — left in place they would have sat in
+the bundle and silently lost.
+
+### Still deferred
+
+`.report-shell-card` keeps the last `--panel-border-w` lever in the file, and
+this is now the documented reason rather than an omission: `src/web/reportShell.css`
+is loaded before the viewer bundle, so it cannot assume `axi.css` is present and
+cannot name an upstream object. The replay chrome's own geometry — eight sites
+of inline `borderRadius: 7/8/10` and `border: 1px solid` — is the next slice,
+and two of those sites are 28px strips with a single border down one side, which
+an `.axi-panel` would wrongly wrap in a full outline.

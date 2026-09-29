@@ -48,8 +48,9 @@ export const PublishWebhookPopover = ({ webhooks, initialSelection, onConfirm, o
             ref={ref}
             role="dialog"
             aria-label="Choose webhooks to publish to"
-            className="app-dropdown absolute right-0 top-full mt-2 z-50 w-[320px] rounded-xl overflow-hidden"
-            style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-hover)', boxShadow: 'var(--shadow-dropdown)' }}
+            /* Pad 0: every row inside writes its own px-4, and the footer wants to
+               run edge to edge. */
+            className="app-dropdown axi-panel axi-panel--tile axi-panel--float absolute right-0 top-full mt-2 z-50 w-[320px] overflow-hidden [--axi-panel-pad:0]"
         >
             <div className="flex items-start justify-between gap-2 px-4 pt-3.5 pb-2.5">
                 <div>
