@@ -24,16 +24,16 @@ test.describe('Web Report Navigation (WRPT-010–015, 045–046)', () => {
     });
 
     test('WRPT-010: navigate to Overview group', async ({ page }) => {
-        const sidebar = page.locator('aside.report-nav-sidebar:visible');
-        await sidebar.locator('.report-nav-group-btn', { hasText: /Overview/i }).click();
+        const sidebar = page.locator('aside.axi-rail');
+        await sidebar.locator('.axi-rail__item', { hasText: /Overview/i }).click();
         await expect(page.locator('#overview')).toBeAttached();
     });
 
     test('WRPT-011: navigate to Offense group', async ({ page }) => {
         // Regrouped from "Offensive Stats" to "Offense" under the 10-category
         // taxonomy (report-navigation redesign) — same category, new label.
-        const sidebar = page.locator('aside.report-nav-sidebar:visible');
-        await sidebar.locator('.report-nav-group-btn', { hasText: /^Offense$/i }).click();
+        const sidebar = page.locator('aside.axi-rail');
+        await sidebar.locator('.axi-rail__item', { hasText: /^Offense$/i }).click();
         await expect(page.locator('#group-offense')).toBeAttached();
     });
 
@@ -41,8 +41,8 @@ test.describe('Web Report Navigation (WRPT-010–015, 045–046)', () => {
         // Regrouped from "Defensive Stats" to "Defense". Boons/support content
         // that used to live in this group now has its own categories (Boons &
         // Strips, Support & Healing) — see WRPT-045/046 below.
-        const sidebar = page.locator('aside.report-nav-sidebar:visible');
-        await sidebar.locator('.report-nav-group-btn', { hasText: /^Defense$/i }).click();
+        const sidebar = page.locator('aside.axi-rail');
+        await sidebar.locator('.axi-rail__item', { hasText: /^Defense$/i }).click();
         await expect(page.locator('#group-defense')).toBeAttached();
     });
 
@@ -51,22 +51,22 @@ test.describe('Web Report Navigation (WRPT-010–015, 045–046)', () => {
         // sections (Special Buffs, Sigil/Relic Uptime, Skill Usage, APM
         // Breakdown) now live under the new "Players" category (Fight
         // Comparison, its other old member, moved into Overview instead).
-        const sidebar = page.locator('aside.report-nav-sidebar:visible');
-        await sidebar.locator('.report-nav-group-btn', { hasText: /^Players$/i }).click();
+        const sidebar = page.locator('aside.axi-rail');
+        await sidebar.locator('.axi-rail__item', { hasText: /^Players$/i }).click();
         await expect(page.locator('#group-players')).toBeAttached();
     });
 
     test('WRPT-045: navigate to Boons & Strips group', async ({ page }) => {
         // New category carved out of the old "Defensive Stats" group.
-        const sidebar = page.locator('aside.report-nav-sidebar:visible');
-        await sidebar.locator('.report-nav-group-btn', { hasText: /^Boons & Strips$/i }).click();
+        const sidebar = page.locator('aside.axi-rail');
+        await sidebar.locator('.axi-rail__item', { hasText: /^Boons & Strips$/i }).click();
         await expect(page.locator('#group-boons-strips')).toBeAttached();
     });
 
     test('WRPT-046: navigate to Support & Healing group', async ({ page }) => {
         // New category carved out of the old "Defensive Stats" group.
-        const sidebar = page.locator('aside.report-nav-sidebar:visible');
-        await sidebar.locator('.report-nav-group-btn', { hasText: /^Support & Healing$/i }).click();
+        const sidebar = page.locator('aside.axi-rail');
+        await sidebar.locator('.axi-rail__item', { hasText: /^Support & Healing$/i }).click();
         await expect(page.locator('#group-support-healing')).toBeAttached();
     });
 

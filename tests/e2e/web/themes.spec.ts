@@ -70,7 +70,10 @@ test.describe('Web Report Themes (WRPT-020–022)', () => {
         await expect(
             dashboardReady(page)
         ).toBeVisible({ timeout: 15_000 });
-        const bodyClasses = await page.locator('body').getAttribute('class');
-        expect(bodyClasses).toMatch(/palette-|theme-|refined-cyan/);
+        // The accent is no longer a body class. applyAxiTheme puts it on the
+        // root element as data-axi-accent, which is the attribute every
+        // axi-design token block is keyed on — assert the thing that actually
+        // selects the palette rather than a class the old theme system wrote.
+        await expect(page.locator('html')).toHaveAttribute('data-axi-accent', 'refined-cyan');
     });
 });

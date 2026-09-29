@@ -1694,7 +1694,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                 <aside
                     className={`fixed z-30 top-0 bottom-0 w-64 max-w-[80vw] transition-transform duration-300 ${isNarrowViewport ? '' : 'hidden'} ${tocOpen ? 'translate-x-0' : '-translate-x-full'}`}
                 >
-                    <div className="axi-rail axi-rail--flush h-full" style={{ '--axi-rail-w': '100%', '--axi-rail-pad': '0' } as CSSProperties}>
+                    <div className="axi-rail axi-rail--flush axi-rail--float h-full" style={{ '--axi-rail-w': '100%', '--axi-rail-pad': '0' } as CSSProperties}>
                         <div className="px-5 pt-6 pb-4 flex items-center justify-between">
                             <div className="text-[11px] uppercase tracking-[0.4em] text-gray-400">Contents</div>
                             <button
@@ -1781,8 +1781,17 @@ export function ReportApp({ injectedSource, assetBase }: {
                         </nav>
                     </div>
                 </aside>
-                <aside
-                    className={`axi-rail axi-rail--flush fixed inset-y-0 left-0 z-20 ${isNarrowViewport ? 'hidden' : ''}`}
+                {/* Rendered only on a wide viewport, not merely hidden there. Tailwind's
+                    `hidden` and upstream's `.axi-rail { display: flex }` are both one
+                    class deep, so which of them wins is decided by stylesheet order —
+                    and .axi-rail won, leaving this rail laid out at mobile width with
+                    its "Back to Reports" link over the mobile action bar, swallowing
+                    the taps meant for it. Not rendering it settles the question. */}
+                {!isNarrowViewport && <aside
+                    // --float, not just --flush: this rail is pinned to the viewport and the
+                    // report scrolls behind it, so the translucent --axi-surface a theme
+                    // like glass gives a rail would show the table rows through the nav.
+                    className="axi-rail axi-rail--flush axi-rail--float fixed inset-y-0 left-0 z-20"
                     style={{ '--axi-rail-w': '16rem', '--axi-rail-pad': '0' } as CSSProperties}
                 >
                     <div className="flex flex-col w-full flex-1 min-h-0">
@@ -1902,7 +1911,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                             </a>
                         </div>}
                     </div>
-                </aside>
+                </aside>}
                 <div className={`max-w-[2150px] mx-1 sm:mx-2 px-4 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 mobile-bottom-pad ${isNarrowViewport ? '' : 'lg:mx-auto lg:pl-[17rem] lg:pr-10'}`}>
                     {singleFight ? (
                         <FightHero meta={report.meta} stats={report.stats} className={glassCard} style={glassCardStyle} />
