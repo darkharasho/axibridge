@@ -59,9 +59,14 @@ describe('index.css', () => {
     // just see-through. These overrides were inside the deleted glass block and
     // have to be re-expressed, not dropped.
     //
+    // The search palette is no longer in this list. It is .axi-palette__panel now,
+    // and upstream draws it on --axi-surface-float — this rule promoted to a token
+    // the whole language can reach, which is where it belonged. The surfaces below
+    // are the ones still waiting for the same treatment.
+    //
     // The full two-attribute prefix, not just `[data-axi-theme="glass"]`: axi-design.css
     // styles several of these same surfaces at `[data-axi-accent] body .foo`, some with
-    // `!important` (e.g. .bridge-search-panel), which is (0,2,1) or deeper. A single-attribute
+    // `!important`, which is (0,2,1) or deeper. A single-attribute
     // `[data-axi-theme="glass"] .foo` rule is (0,2,0) — it would sit in the bundle, satisfy a
     // substring check on the bare selector, and still lose the cascade and never paint. Pinning
     // the full `[data-axi-accent][data-axi-theme="glass"]` prefix is what actually catches that.
@@ -70,7 +75,6 @@ describe('index.css', () => {
             '[data-axi-accent][data-axi-theme="glass"] .app-dropdown',
             '[data-axi-accent][data-axi-theme="glass"] .app-sticky-bar',
             '[data-axi-accent][data-axi-theme="glass"] .app-modal-card',
-            '[data-axi-accent][data-axi-theme="glass"] .bridge-search-panel',
             '[data-axi-accent][data-axi-theme="glass"] .stats-dashboard-nav-panel',
         ]) {
             expect(css, selector).toContain(selector);

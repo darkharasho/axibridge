@@ -119,15 +119,22 @@ describe('SearchPalette', () => {
         expect(count()).toBe('1 match');
     });
 
-    it('carries the bridge-search-panel class the glass theme targets for its opaque override', () => {
-        // The search palette floats over scrolling content, and blur is a no-op on
-        // Linux, so it needs an opaque fill of its own under glass. That override
-        // is keyed on this class:
-        //   index.css: `[data-axi-theme="glass"] .bridge-search-panel { … }`
-        // `bridge-` rather than `axi-`: upstream @axiapps/axi-design owns
-        // `.axi-search` and `.axi-search__icon`, and this is not one of those.
+    it('is drawn by the upstream palette classes, not by an app-side reskin', () => {
+        // The palette floats over scrolling content, and blur is a no-op on Linux,
+        // so it needs an opaque fill of its own under glass. That used to be an
+        // app-side !important override keyed on .bridge-search-panel; upstream now
+        // draws .axi-palette__panel on --axi-surface-float and the glass theme
+        // restates that token, so the app carries none of it. This asserts the
+        // markup the upstream rules key on, and that the old class is gone.
         const { container } = render(<SearchPalette open onClose={() => {}} index={INDEX} onSelect={() => {}} />);
-        expect(container.querySelector('.bridge-search-panel')).toBeTruthy();
-        expect(container.querySelector('.axi-search-panel')).toBeNull();
+        expect(container.querySelector('.axi-scrim.axi-palette')).toBeTruthy();
+        expect(container.querySelector('.axi-palette__panel')).toBeTruthy();
+        expect(container.querySelector('.axi-palette__bar .axi-search .axi-input')).toBeTruthy();
+        // .bridge-search-flash is deliberately excluded: it is the jump-target
+        // highlight useSearchJump applies elsewhere in the page, which is
+        // behaviour rather than a surface, and it never lands inside the panel.
+        for (const dead of ['panel', 'bar', 'field', 'icon', 'trigger', 'results', 'group', 'empty', 'filters']) {
+            expect(container.querySelector(`.bridge-search-${dead}`), dead).toBeNull();
+        }
     });
 });

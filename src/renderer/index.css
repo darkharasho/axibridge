@@ -1670,28 +1670,6 @@ body.web-report {
     background-color: var(--scrollbar-thumb-hover);
 }
 
-/* The search trigger is the palette's field at rest: the same recessed well,
-   the same accent magnifier inside it, and the shortcut sitting where the
-   panel puts its Esc key. Both entry points — the app header and the report
-   sidebar — wear this, so opening the palette looks like the button growing
-   rather than a different object appearing. Hover brightens the outline
-   instead of filling, because a field does not light up when you point at it. */
-.bridge-search-trigger {
-    background: var(--bg-base);
-    border: var(--panel-border-w, 1px) solid var(--border-default);
-    color: var(--text-secondary);
-}
-
-.bridge-search-trigger:hover {
-    border-color: var(--border-hover, rgba(255, 255, 255, 0.18));
-    color: var(--text-primary);
-}
-
-.bridge-search-trigger kbd {
-    border: 1px solid var(--border-subtle);
-    color: var(--text-secondary);
-}
-
 /* ---------------------------------------------------------------------------
    FLAT APP SURFACE TOKENS UNDER GLASS
 
@@ -1830,10 +1808,10 @@ body.web-report {
   background: rgba(15, 18, 25, 0.92) !important;
 }
 
-/* The search palette and the stats nav panel both float over scrolling content.
-   The search palette is the one axi-design.css pins with !important, which is
-   why this block needs the specificity rather than just the flag. */
-[data-axi-accent][data-axi-theme="glass"] .bridge-search-panel,
+/* The stats nav panel floats over scrolling content. The search palette used to
+   be listed here too; it is .axi-palette__panel now, and upstream draws it on
+   --axi-surface-float, which is this rule turned into a token the whole
+   language can reach. This panel is the next one that should take it. */
 [data-axi-accent][data-axi-theme="glass"] .stats-dashboard-nav-panel {
   background: rgba(15, 18, 25, 0.97) !important;
   backdrop-filter: blur(12px);
@@ -1961,7 +1939,6 @@ body.web-report {
    both would match nothing. */
 [data-axi-accent][data-axi-theme="glass"] body.bulk-uploading .app-dropdown,
 [data-axi-accent][data-axi-theme="glass"] body.bulk-uploading .app-sticky-bar,
-[data-axi-accent][data-axi-theme="glass"] body.bulk-uploading .bridge-search-panel,
 [data-axi-accent][data-axi-theme="glass"] body.bulk-uploading .stats-dashboard-nav-panel {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
