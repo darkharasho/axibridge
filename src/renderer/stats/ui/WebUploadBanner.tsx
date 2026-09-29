@@ -120,7 +120,7 @@ export const WebUploadBanner = ({
                     <button
                         type="button"
                         onClick={() => setLogsOpen(true)}
-                        className="px-3 py-1 rounded-full text-[10px] font-medium border bg-white/[0.04] axi-ink-dim axi-edge-rule hover:text-white hover:bg-white/[0.08] transition-colors"
+                        className="axi-btn axi-btn--xs"
                     >
                         Logs
                     </button>
@@ -134,14 +134,14 @@ export const WebUploadBanner = ({
                             setTimeout(() => setWebCopyStatus('idle'), 1200);
                         }
                     }}
-                    className="px-3 py-1 rounded-full text-[10px] font-medium border bg-white/[0.05] axi-ink-dim axi-edge-rule hover:text-white transition-colors"
+                    className="axi-btn axi-btn--xs"
                 >
                     {webCopyStatus === 'copied' ? 'Copied' : 'Copy'}
                 </button>
                 <button
                     type="button"
                     onClick={openUrl}
-                    className="px-3 py-1 rounded-full text-[10px] font-medium border bg-cyan-500/[0.08] axi-ink-meta axi-edge-meta hover:bg-cyan-500/15 transition-colors"
+                    className="axi-btn axi-btn--xs axi-ink-meta axi-edge-meta"
                 >
                     Open ↗
                 </button>

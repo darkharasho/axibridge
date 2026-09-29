@@ -95,8 +95,6 @@ export const BoonStripComparisonSection = () => {
                             value={mode}
                             onChange={setMode}
                             options={MODE_OPTIONS}
-                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                            inactiveClassName="border border-transparent text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
                         />
                     </div>
                     <div className={isExpanded ? 'h-[400px]' : 'h-[300px]'}>

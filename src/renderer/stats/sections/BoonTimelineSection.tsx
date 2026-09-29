@@ -232,8 +232,6 @@ export const BoonTimelineSection = ({
                         { value: 'groupBuffs', label: 'Group' },
                         { value: 'totalBuffs', label: 'All' }
                     ]}
-                    activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                    inactiveClassName="text-[color:var(--text-secondary)]"
                 />
             </>}
             drilldownExtras={<>
@@ -318,10 +316,8 @@ export const BoonTimelineSection = ({
                                                     key={boon.id}
                                                     type="button"
                                                     onClick={() => { setActiveBoonId(boon.id); setBoonDropdownOpen(false); }}
-                                                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${isActive
-                                                        ? 'bg-indigo-500/15 ring-1 ring-indigo-500/30 border-transparent axi-ink-plain'
-                                                        : 'bg-white/5 border-transparent axi-ink-dim hover:text-slate-300'
-                                                    }`}
+                                                    aria-pressed={isActive}
+                                                    className="axi-pill axi-pill--sm"
                                                 >
                                                     {boon.icon ? (
                                                         <img src={boon.icon} alt="" className="h-3.5 w-3.5 object-contain" loading="lazy" />

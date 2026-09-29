@@ -15,33 +15,31 @@ const formatClock = (timestamp: number) => {
 };
 
 /**
- * `prominent` is for the published report, where this pill is alone in the
- * header rather than sitting in a row of buttons. The quiet resting style
- * disappears there — under the glass palette `--bg-card` is
- * rgba(255, 255, 255, 0.035), so the pill has no fill at all and reads as a
- * caption. Promoted, it borrows the accent treatment plus a glyph.
+ * `prominent` now means only "show the glyph". It used to carry a second resting
+ * style as well, and the comment here explained why: alone in the published
+ * report's header, the quiet resting fill vanished, because under the glass
+ * palette `--bg-card` was rgba(255, 255, 255, 0.035) and the pill read as a
+ * caption rather than a control. `.axi-pill` rests on an opaque ground behind a
+ * full ink edge, so that cannot happen and the workaround has nothing left to
+ * do. The two heights it also varied — 26px against 28px — were never a step.
  *
- * Only the resting state changes. The active state keeps `--accent-bg-strong`
- * and, more importantly, its "Slice: N of M fights" label — that label, not the
- * fill, is what tells the user a slice is applied.
+ * What always mattered is unchanged: the "Slice: N of M fights" label, not the
+ * fill, is what tells the reader a slice is applied. The fill now says it in the
+ * language's own words, through aria-pressed.
  */
 export const FightSlicePill = ({ onClick, prominent = false }: { onClick: () => void; prominent?: boolean }) => {
     const roster = useStatsStore((s) => s.fightRoster);
     const excluded = useStatsStore((s) => s.excludedFightKeys);
     const included = roster.length - roster.filter((f) => excluded.has(f.id)).length;
     const active = excluded.size > 0;
-    const resting = prominent
-        ? 'border-[color:var(--accent-border)] bg-[var(--accent-bg)] text-[color:var(--text-primary)]'
-        : 'border-[color:var(--border-default)] bg-[var(--bg-card)] text-[color:var(--text-secondary)]';
     return (
         <button
             type="button"
             onClick={onClick}
-            className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-3.5 font-semibold transition-colors ${prominent ? 'h-[28px] text-[11.5px]' : 'h-[26px] text-[11px]'} ${active
-                ? 'border-[color:var(--accent-border)] bg-[var(--accent-bg-strong)] text-[color:var(--text-primary)]'
-                : resting}`}
+            aria-pressed={active}
+            className="axi-pill axi-pill--xs whitespace-nowrap"
         >
-            {prominent && <SlidersHorizontal className="w-3.5 h-3.5" style={{ color: 'var(--brand-primary)' }} aria-hidden="true" />}
+            {prominent && <SlidersHorizontal className="w-3.5 h-3.5" aria-hidden="true" />}
             {active
                 ? `Slice: ${included} of ${roster.length} fights`
                 : 'Slice fights'}

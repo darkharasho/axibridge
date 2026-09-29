@@ -95,8 +95,6 @@ export const BoonOutputSection = ({
                             { value: 'squadBuffs', label: 'Squad' },
                             { value: 'totalBuffs', label: 'Total' }
                         ]}
-                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                        inactiveClassName="text-[color:var(--text-secondary)]"
                     />
                 )}
                 {!isExpanded && (
@@ -108,8 +106,6 @@ export const BoonOutputSection = ({
                             { value: 'average', label: 'Gen/Sec' },
                             { value: 'uptime', label: 'Uptime' }
                         ]}
-                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                        inactiveClassName="text-[color:var(--text-secondary)]"
                     />
                 )}
                 <button
@@ -187,8 +183,6 @@ export const BoonOutputSection = ({
                                 { value: 'squadBuffs', label: 'Squad' },
                                 { value: 'totalBuffs', label: 'Total' }
                             ]}
-                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                            inactiveClassName="text-[color:var(--text-secondary)]"
                         />
                         <PillToggleGroup
                             value={activeBoonMetric}
@@ -198,8 +192,6 @@ export const BoonOutputSection = ({
                                 { value: 'average', label: 'Gen/Sec' },
                                 { value: 'uptime', label: 'Uptime' }
                             ]}
-                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                            inactiveClassName="text-[color:var(--text-secondary)]"
                         />
                     </div>
                     {(selectedBoonColumnIds.length > 0 || selectedBoonPlayers.length > 0) && (
@@ -210,8 +202,7 @@ export const BoonOutputSection = ({
                                     setSelectedBoonColumnIds([]);
                                     setSelectedBoonPlayers([]);
                                 }}
-                                className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                style={{ border: '1px solid var(--border-default)', background: 'var(--bg-hover)', color: 'var(--text-primary)' }}
+                                className="axi-btn axi-btn--xs"
                             >
                                 Clear All
                             </button>
@@ -222,11 +213,10 @@ export const BoonOutputSection = ({
                                         key={id}
                                         type="button"
                                         onClick={() => setSelectedBoonColumnIds((prev) => prev.filter((entry) => entry !== id))}
-                                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
+                                        className="axi-chip axi-chip--accent axi-chip--action"
                                     >
                                         <span>{label}</span>
-                                        <span style={{ color: 'var(--text-secondary)' }}>×</span>
+                                        <span>×</span>
                                     </button>
                                 );
                             })}
@@ -235,11 +225,10 @@ export const BoonOutputSection = ({
                                     key={id}
                                     type="button"
                                     onClick={() => setSelectedBoonPlayers((prev) => prev.filter((entry) => entry !== id))}
-                                    className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                    style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
+                                    className="axi-chip axi-chip--accent axi-chip--action"
                                 >
                                     <span>{id}</span>
-                                    <span style={{ color: 'var(--text-secondary)' }}>×</span>
+                                    <span>×</span>
                                 </button>
                             ))}
                         </div>

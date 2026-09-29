@@ -939,3 +939,145 @@ two hand-drawn components above. 106 bridged selectors → 91.
   `.axi-prose a` but nothing standalone.
 - **List and menu rows (51 sites)**, **meters and bars (27)**, **chips (6)**,
   **tables (9)**.
+
+## What the pills slice found
+
+### The census was counting corners
+
+"Pills (81 sites)" came from the shape. Classifying all 102 `rounded-full`
+sites by what each one *is* gives five different objects, and only a handful of
+them are pills:
+
+| What it is | Sites | Object |
+|---|---|---|
+| A row of filters the reader picked, each dismissable | 38 | `.axi-chip --accent --action`, plus one `.axi-btn--xs` per row |
+| A one-state action in a banner | 12 | `.axi-btn--xs` - the button slice could not take these, and the capsule was the only reason |
+| A press that holds a state | 4 | `.axi-pill` with `aria-pressed` |
+| A legend swatch, a status dot | ~12 | Not a control at all |
+| A progress trough and its fill | ~10 | The meters slice |
+| A calendar's day cells and month arrows | ~14 | A date picker, which the language has no word for |
+
+The corner told us nothing: a 2px legend dot, a progress bar and a filter token
+are all `rounded-full`, and none of them is the same object as the other two.
+
+### One row, written four different ways, in inline styles
+
+The filter row above a table - `[Clear all] [Damage x] [Boon uptime x]` - is
+rendered by 14 stats sections, and every one of them spells it out by hand. The
+25 tokens carry **no colour in any class**: border, fill and label are an inline
+`style` object reading `--accent-border`, `--accent-bg` and `--button-label`.
+That is why no sweep over Tailwind utilities ever found them, and why this block
+holds more legacy custom properties than anything else the census had listed.
+
+The dismiss glyph inside them is spelled three ways across those same 25 sites -
+`style` with a literal `x`, `style` with `&times;`, and a `text-[color:...]`
+utility - and a fourth copy of the whole row lives in `SkillUsageSection` as a
+`<span>` with a nested icon button. Four spellings, one object.
+
+### The glyph a reader clicks was the least visible thing in the token
+
+Measured in the app's own cascade: the dismiss glyph at
+`rgb(167, 176, 190)` on the accent fill `rgb(255, 197, 61)` is **1.39:1**. The
+label beside it is **12.24:1**. A neutral from the ramp inside a fill is not
+quieter, it is gone - and it is the part you are meant to aim at.
+
+This is the second slice running to trip over the same thing; `.axi-badge-count`
+inside `.axi-btn--primary` was the accent on the accent until 1.30.1. So rule 5
+now states it generally - **inside a fill, the only inks are that fill's own
+pair** - and the fix in both cases is to say nothing at all, because
+`currentColor` already *is* the pair. The trap is that saying nothing looks like
+an omission while `--axi-text-dim` looks like a decision. After adoption the
+glyph measures 5.25:1 under this app's electric-blue accent.
+
+**Recorded as a non-fix, with the reason.** The obvious static guard - no
+descendant rule inside a fillable component may set a neutral `color` - was
+written and then discarded, because it flags `.axi-tabs .axi-tabs__close`, which
+is correct. Measured: every ancestor of that control is transparent down to
+`body`, since the tab's fill sits on its *sibling* anchor. Whether a nested
+element is on a fill is a fact about the paint chain, and a stylesheet does not
+contain it. This one is checked by eye on purpose.
+
+### A chip may be a press (1.31.0)
+
+A chip is a mark - it states a value about the thing it sits on - and a mark has
+no cursor and does not move. The filter token is still a chip, because "DAMAGE"
+is data and "Clear all" is an action, which is exactly the distinction rule 5
+exists to let a reader make. So `.axi-chip--action` adds the hand and the block
+and **nothing else**: `--accent` and the three status fills each weigh one class
+and set their own contrast pair, so a hover brighten would tie with them and win
+on source order, putting a neutral back over a saturated ground. Guarded in both
+directions - no colour on any `--action` rule, and the affordances it exists for
+must still be there.
+
+### The pill was not on its own scale (1.32.0)
+
+The same finding as 1.30.0's, one component over. That release gave the button
+three sizes because the app had three and the language had one. Here the language
+had one size that was not on the scale at all: measured, `.axi-btn` at
+`12px 20px` and 43px tall against `.axi-pill` at `10px 9px` and 39px - the pill's
+sides less than half the button's. The only thing a pill has that a button does
+not is a state, so two of them carrying the same label being different shapes is
+just drift.
+
+`--axi-pill-pad` and `--axi-pill-size`, and `--sm` / `--xs` with the button's
+numbers verbatim. Nothing in either rule had ever said the two were meant to
+match, which is how they drifted, so a test holds them in step now.
+
+### PillToggleGroup is a row of pills, which is what its name says
+
+50 call sites, a sliding indicator positioned by reading `offsetLeft` in a layout
+effect, an enclosing bordered trough, and seven custom properties in inline
+styles. Three things came out of reading it:
+
+- **`activeClassName` was dead.** The component destructured it to `_` and never
+  used it. All 50 call sites passed the same string.
+- **`inactiveClassName` was three spellings of "dim text"** - which is what an
+  unpressed pill already is.
+- **The trough and the indicator were a second frame** drawn around controls that
+  carry their own edge, and a fill whose position had to be measured because it
+  was not attached to the thing it marked.
+
+`.axi-pill --xs` with `aria-pressed` says all of it, and the appearance and the
+accessibility tree can no longer disagree. `.axi-tabs` was considered and
+rejected: it is the app's primary nav strip, and a four-option selector inside a
+card is not that. The language's own comment says the two share a grammar - the
+current tab is filled and blocked "the same treatment a pressed pill gets" - so
+picking the pill costs nothing and keeps the hierarchy.
+
+100 dead prop lines across 26 files, the whole `--pill-group-*` /
+`--pill-indicator-*` bridge block, the ref, the state and the effect.
+
+### What came down
+
+Five more dead bridge selectors, again surfaced by the liveness guard on its
+first run after the migration - `bg-white/[0.05]`, `bg-white/[0.08]`,
+`bg-cyan-500/15`, `bg-cyan-500/[0.08]`, `bg-white/20`. The whole
+`--pill-group-*` / `--pill-indicator-*` block and its two ink rules went with the
+component. Counting the way the guard itself counts - distinct Tailwind
+utilities bridged under `[data-axi-accent] body` - that is **89 -> 84**.
+
+And the number that matters most for the remaining distance: **references to
+legacy custom properties in the markup went 2,614 -> 2,214**. 400 in one slice,
+because this is where they were living - not in class names any sweep could see,
+but in inline `style` objects on 38 filter tokens, 50 toggle groups and the
+seven levers the group's trough needed.
+
+### What this leaves
+
+- **Wells and panels (216 sites)** - the `.axi-well` adoption proper, and now the
+  largest block by a wide margin.
+- **Links and bare glyphs (122 sites)** - still no upstream word. A `<button>`
+  with no chrome, `axi-ink-meta` and an underline is a link; the language has
+  `.axi-prose a` and nothing standalone.
+- **The metric picker list (~30 sites)** - found while censusing this slice, and
+  not on the census before. Every stats section renders the same
+  `w-full text-left px-3 py-1.5` row with an active state of
+  `bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)]`. That is
+  `.axi-rail__item`'s word, and it is where `--accent-bg-strong` and
+  `--brand-primary` actually live.
+- **A calendar (~14 sites)** - `FilePickerModal`'s day grid and month arrows. A
+  date picker is a shape the language has no word for, and inventing one for a
+  single consumer is not obviously right.
+- **List and menu rows (51)**, **meters and bars (27)**, **chips (6)**,
+  **tables (9)**.
+

@@ -39,7 +39,7 @@ export const DevMockBanner = ({
                                 window.electronAPI.openMobilePreview(url);
                             }
                         }}
-                        className="px-3 py-1 rounded-full text-[10px] border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
+                        className="axi-btn axi-btn--xs"
                     >
                         Mobile
                     </button>
@@ -50,7 +50,7 @@ export const DevMockBanner = ({
                                 navigator.clipboard.writeText(url).catch(() => {});
                             }
                         }}
-                        className="px-3 py-1 rounded-full text-[10px] border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
+                        className="axi-btn axi-btn--xs"
                     >
                         Copy Link
                     </button>

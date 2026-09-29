@@ -629,7 +629,7 @@ const ExpandedView = ({
                                 setSelectedColumnIds([]);
                                 setSelectedPlayers([]);
                             }}
-                            className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-default)] bg-[var(--bg-hover)] px-2 py-1 text-[11px] text-[color:var(--text-primary)] hover:text-[color:var(--text-primary)]"
+                            className="axi-btn axi-btn--xs"
                         >
                             Clear All
                         </button>
@@ -640,11 +640,10 @@ const ExpandedView = ({
                                     key={id}
                                     type="button"
                                     onClick={() => setSelectedColumnIds((prev) => prev.filter((e) => e !== id))}
-                                    className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                    style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
+                                    className="axi-chip axi-chip--accent axi-chip--action"
                                 >
                                     <span>{label}</span>
-                                    <span style={{ color: 'var(--text-secondary)' }}>&times;</span>
+                                    <span>&times;</span>
                                 </button>
                             );
                         })}
@@ -653,11 +652,10 @@ const ExpandedView = ({
                                 key={id}
                                 type="button"
                                 onClick={() => setSelectedPlayers((prev) => prev.filter((e) => e !== id))}
-                                className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
+                                className="axi-chip axi-chip--accent axi-chip--action"
                             >
                                 <span>{id}</span>
-                                <span style={{ color: 'var(--text-secondary)' }}>&times;</span>
+                                <span>&times;</span>
                             </button>
                         ))}
                     </div>

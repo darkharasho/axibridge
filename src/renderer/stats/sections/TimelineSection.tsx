@@ -31,8 +31,6 @@ export const TimelineSection = ({
                         { value: 'squad', label: 'Squad' },
                         { value: 'squadAllies', label: 'Squad + Allies' }
                     ]}
-                    activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                    inactiveClassName="border border-transparent text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
                 />
             </div>
         </div>

@@ -241,8 +241,6 @@ export const SpikeDamageSection = ({
                         value={useTotalDamage ? 'allDamage' : 'peak'}
                         onChange={(value) => setUseTotalDamage(value === 'allDamage')}
                         options={[{ value: 'peak', label: 'Peak' }, { value: 'allDamage', label: 'All Damage' }]}
-                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                        inactiveClassName="text-[color:var(--text-secondary)]"
                     />
                 )}
                 {showDamageBasisToggle && setDamageBasis && (
@@ -250,8 +248,6 @@ export const SpikeDamageSection = ({
                         value={damageBasis}
                         onChange={(value) => setDamageBasis(value as 'all' | 'downContribution')}
                         options={[{ value: 'all', label: 'Damage' }, { value: 'downContribution', label: 'Down Contrib' }]}
-                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                        inactiveClassName="text-[color:var(--text-secondary)]"
                     />
                 )}
             </>}

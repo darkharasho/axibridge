@@ -929,8 +929,6 @@ export const CommanderStatsSection = ({
                                                     { value: 'incomingDamage' as const, label: 'Incoming Damage' },
                                                     { value: 'incomingBoons' as const, label: 'Incoming Boons' },
                                                 ]}
-                                                activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                                                inactiveClassName="text-[color:var(--text-secondary)]"
                                             />
                                         </div>
                                     </div>

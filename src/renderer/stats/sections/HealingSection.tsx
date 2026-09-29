@@ -85,8 +85,6 @@ export const HealingSection = ({
                                 }))
                             ]}
                             className="flex-wrap"
-                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                            inactiveClassName="text-[color:var(--text-secondary)]"
                         />
                     ) : (
                         <PillToggleGroup
@@ -100,8 +98,6 @@ export const HealingSection = ({
                                 { value: 'offSquad', label: 'OffSquad' }
                             ]}
                             className="flex-wrap"
-                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                            inactiveClassName="text-[color:var(--text-secondary)]"
                         />
                     );
                 })()}
@@ -177,8 +173,6 @@ export const HealingSection = ({
                                 { value: 'offSquad', label: 'OffSquad' }
                             ]}
                             className="flex-wrap"
-                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                            inactiveClassName="text-[color:var(--text-secondary)]"
                         />
                         <PillToggleGroup
                             value={activeResUtilitySkill}
@@ -191,8 +185,6 @@ export const HealingSection = ({
                                 }))
                             ]}
                             className="flex-wrap"
-                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                            inactiveClassName="text-[color:var(--text-secondary)]"
                         />
                     </div>
                     {(selectedHealingColumnIds.length > 0 || selectedHealingPlayers.length > 0) && (
@@ -203,8 +195,7 @@ export const HealingSection = ({
                                     setSelectedHealingColumnIds([]);
                                     setSelectedHealingPlayers([]);
                                 }}
-                                className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                style={{ border: '1px solid var(--border-default)', background: 'var(--bg-hover)', color: 'var(--text-primary)' }}
+                                className="axi-btn axi-btn--xs"
                             >
                                 Clear All
                             </button>
@@ -215,11 +206,10 @@ export const HealingSection = ({
                                         key={id}
                                         type="button"
                                         onClick={() => setSelectedHealingColumnIds((prev) => prev.filter((entry) => entry !== id))}
-                                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
+                                        className="axi-chip axi-chip--accent axi-chip--action"
                                     >
                                         <span>{label}</span>
-                                        <span style={{ color: 'var(--text-secondary)' }}>×</span>
+                                        <span>×</span>
                                     </button>
                                 );
                             })}
@@ -228,11 +218,10 @@ export const HealingSection = ({
                                     key={id}
                                     type="button"
                                     onClick={() => setSelectedHealingPlayers((prev) => prev.filter((entry) => entry !== id))}
-                                    className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                    style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
+                                    className="axi-chip axi-chip--accent axi-chip--action"
                                 >
                                     <span>{id}</span>
-                                    <span style={{ color: 'var(--text-secondary)' }}>×</span>
+                                    <span>×</span>
                                 </button>
                             ))}
                         </div>
