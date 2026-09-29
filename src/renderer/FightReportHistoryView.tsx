@@ -543,19 +543,14 @@ export function FightReportHistoryView() {
                             transition={{ duration: 0.25, delay: 0.1 }}
                             className="mb-3 flex gap-2"
                         >
-                            <div className="relative flex-1">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: 'var(--text-secondary)' }} />
+                            <div className="axi-search flex-1">
+                                <Search className="axi-search__icon w-3.5 h-3.5" aria-hidden="true" />
                                 <input
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     placeholder="Search by title, commander, or date..."
-                                    className="w-full rounded-[4px] pl-8 pr-3 py-2 text-sm outline-none"
-                                    style={{
-                                        background: 'var(--bg-input)',
-                                        border: 'var(--history-edge-w, 1px) solid var(--border-default)',
-                                        color: 'var(--text-primary)',
-                                    }}
+                                    className="axi-input"
                                 />
                             </div>
                             {allCommanders.length > 1 && (

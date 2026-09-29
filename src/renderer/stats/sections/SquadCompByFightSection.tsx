@@ -84,7 +84,7 @@ export const SquadCompByFightSection = ({
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
                         placeholder="Search player or class (highlight matches)..."
-                        className="w-full sm:w-[360px] bg-[var(--bg-card-inner)] border border-[color:var(--border-default)] rounded-[var(--radius-md)] px-3 py-2 text-xs text-[color:var(--text-primary)] placeholder:text-[color:var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[color:var(--brand-primary)]"
+                        className="axi-input"
                     />
                 </div>
                 {fights.length === 0 ? (

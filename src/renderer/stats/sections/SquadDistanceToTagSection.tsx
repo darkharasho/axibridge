@@ -128,13 +128,8 @@ export const SquadDistanceToTagSection = (props: Props) => {
                                 setFilterEnabled(true);
                                 setMinFights(Math.max(1, Number(e.target.value) || 1));
                             }}
-                            className="shrink-0 w-10 px-1 py-0.5 rounded text-center font-mono text-[11px]"
-                            style={{
-                                background: 'var(--bg-card-inner)',
-                                border: '1px solid var(--border-subtle)',
-                                color: 'var(--text-primary)',
-                                opacity: filterEnabled ? 1 : 0.55,
-                            }}
+                            className="axi-input shrink-0 text-center font-mono"
+                            style={{ width: '3.25rem', opacity: filterEnabled ? 1 : 0.55 }}
                             aria-label="Minimum fight count"
                         />
                         <span className="shrink-0">fights</span>

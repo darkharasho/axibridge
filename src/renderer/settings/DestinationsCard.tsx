@@ -195,14 +195,14 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                                         value={editName}
                                         onChange={(e) => setEditName(e.target.value)}
                                         placeholder="Webhook name"
-                                        className="w-full rounded-[4px] px-3 py-2 text-sm axi-ink-plain placeholder-gray-500 focus:outline-none focus:border-blue-500/50" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
+                                        className="axi-input"
                                     />
                                     <input
                                         type="text"
                                         value={editUrl}
                                         onChange={(e) => setEditUrl(e.target.value)}
                                         placeholder="https://discord.com/api/webhooks/..."
-                                        className="w-full rounded-[4px] px-3 py-2 text-sm axi-ink-plain placeholder-gray-500 focus:outline-none focus:border-blue-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
+                                        className="axi-input font-mono"
                                     />
                                     <div className="flex gap-2">
                                         <button
@@ -309,7 +309,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
                         placeholder="Webhook name (e.g., My Guild)"
-                        className="w-full rounded-[4px] px-3 py-2 text-sm axi-ink-plain placeholder-gray-500 focus:outline-none focus:border-blue-500/50" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
+                        className="axi-input"
                         autoFocus
                     />
                     <input
@@ -317,7 +317,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                         value={newUrl}
                         onChange={(e) => setNewUrl(e.target.value)}
                         placeholder="https://discord.com/api/webhooks/..."
-                        className="w-full rounded-[4px] px-3 py-2 text-sm axi-ink-plain placeholder-gray-500 focus:outline-none focus:border-blue-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
+                        className="axi-input font-mono"
                     />
                     <div className="flex gap-2">
                         <button
@@ -349,7 +349,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                             value={bridgeKey}
                             onChange={(e) => { setBridgeKey(e.target.value); setBridgeLinkError(null); }}
                             placeholder="axb1.…"
-                            className="w-full rounded-[4px] px-3 py-2 text-sm axi-ink-plain placeholder-gray-500 focus:outline-none focus:border-purple-500/50 font-mono text-xs" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
+                            className="axi-input font-mono"
                             autoFocus
                         />
                         <p className="mt-1.5 text-xs axi-ink-faint">

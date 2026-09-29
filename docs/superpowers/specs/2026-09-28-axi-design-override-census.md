@@ -1222,3 +1222,54 @@ upstream fix and is not yet made.
   well is free-standing, edged all the way round and cornered. The drawer's fill
   and cut stay in `axi-design.css` with that reason written down.
 - `.axi-scrim`'s fixed z-index, above.
+
+## The fields the fill was hiding (28 sites)
+
+`.axi-input`, `.axi-select` and `.axi-search` all existed upstream and none was
+in use. What the 28 sites had instead:
+
+**Nine different focus treatments.** `focus:border-white/30`,
+`focus:border-cyan-400/50`, `focus:border-blue-500/50`, `focus:border-blue-500`,
+`focus:border-purple-500/50`, `focus:border-rose-500/80`,
+`focus:ring-sky-500/60`, `focus:ring-emerald-500/60`, `focus:ring-cyan-500/30` —
+and `focus:ring-[color:var(--brand-primary)]`, the only one that followed
+anything. Every one of them sat behind a `focus:outline-none`, and axi.css
+carries a global `:focus-visible { outline: 1px solid var(--axi-accent);
+outline-offset: 2px }`. So each field was switching off an accent ring at
+control weight, 2px clear of the box, and substituting a border tint — several
+of them at low alpha, all of them a fixed hue. `focus:outline-none` in the
+renderer went **50 -> 23**, and none of the remaining 23 is on a field.
+
+**Two hand-drawn selects.** `.stats-view .fight-diff-select` and the unscoped
+`.app-native-select` did the same job — strip the native chrome, supply a
+chevron — with SVG data URLs whose strokes were hard-coded `#cbd5e1` and
+`#8d95a0`. `.axi-select` draws its caret as two gradients in `var(--axi-accent)`:
+no image, and it follows the accent.
+
+**A deliberate non-migration that stopped being necessary.** The census recorded
+the native `<select>` popup fill as something to leave alone: Chromium on Linux
+paints the OS option popup from the control's own background, so a translucent
+control gives an unreadable list, and the app pinned both selects to
+`rgba(15,18,25,.9) !important` with ten
+`<option className="bg-slate-900">` in the web report to match. **`.axi-select`
+fills with `--axi-ground`, which is `#0a0c10` under glass — fully opaque.** The
+workaround had nothing left to work around; the override and all ten option
+literals are gone. (Upstream's own `option` styling is real but sits behind
+`@supports (appearance: base-select)`, which this Electron does not have, so the
+list is still native — the control's opacity is what makes it readable.)
+
+**The width trap.** `.axi-input` declares `width: 100%`, which outranks a
+Tailwind `w-32` for the same reason `.axi-well` outranks `p-3`. Five narrow
+fields state a width; one turned out to already sit in a `w-52` rail, where full
+width was the right answer all along.
+
+Four web-report selects also lost `bg-white/5` — rule 2 again.
+
+Liveness guard, **fifth** catch: `bg-black/50` died with the GitHub owner
+select. Bridged utilities **83 -> 82**. Legacy custom-property references
+**2,410 -> 2,324**.
+
+*Not* claimed: that the focus ring renders. `:focus-visible` does not match on
+programmatic focus in a headless render, so the probe written for it proved
+nothing either way. What is checked is the source fact — the rule exists in
+axi.css and no migrated field suppresses it.

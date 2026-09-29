@@ -916,7 +916,7 @@ export const CommanderStatsSection = ({
                                             <select
                                                 value={selectedFight.id}
                                                 onChange={(event) => setSelectedFightId(event.target.value)}
-                                                className="bg-[var(--bg-card-inner)] border border-[color:var(--border-default)] rounded-md px-2 py-1 text-xs text-[color:var(--text-primary)]"
+                                                className="axi-select"
                                             >
                                                 {newestFirst(selectedCommander.fightsData).map((fight) => (
                                                     <option key={fight.id} value={fight.id}>{fight.shortLabel} • {fight.fullLabel || fight.mapName || 'Unknown'}</option>

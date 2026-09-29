@@ -1517,15 +1517,14 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         style={{ willChange: 'transform, opacity' }}
                     >
                         <div className="axi-well axi-well--sm">
-                            <div className="relative">
-                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 axi-ink-faint pointer-events-none" />
+                            <div className="axi-search">
+                                <Search className="axi-search__icon w-3.5 h-3.5" aria-hidden="true" />
                                 <input
                                     type="text"
                                     value={settingsSearch}
                                     onChange={(e) => setSettingsSearch(e.target.value)}
                                     placeholder="Search settings…"
-                                    className="w-full pl-8 pr-7 py-2 rounded-[4px] border axi-edge-rule text-xs axi-ink-plain placeholder-gray-500 focus:outline-none focus:border-white/30 transition-colors"
-                                    style={{ background: 'var(--bg-input)' }}
+                                    className="axi-input pr-7"
                                 />
                                 {settingsSearch && (
                                     <button
@@ -2040,7 +2039,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 <select
                                                     value={githubCreateOwner}
                                                     onChange={(event) => setGithubCreateOwner(event.target.value)}
-                                                    className="w-full h-full appearance-none bg-black/50 border axi-edge-rule rounded-[4px] pl-3 pr-8 py-2 text-xs axi-ink-plain focus:outline-none focus:border-cyan-400/50"
+                                                    className="axi-select w-full h-full"
                                                     aria-label="Repository owner"
                                                 >
                                                     <option value="">Personal account</option>
@@ -2060,7 +2059,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 setGithubRepoError(validateRepoName(next));
                                             }}
                                             placeholder="New repository name"
-                                            className={`flex-1 bg-black/40 border rounded-[4px] px-3 py-2 text-xs axi-ink-dim placeholder-gray-600 focus:outline-none ${githubRepoError ? 'axi-edge-danger focus:border-rose-500/80' : 'axi-edge-rule focus:border-cyan-400/50'}`}
+                                            className={`axi-input flex-1 ${githubRepoError ? 'axi-edge-danger' : ''}`}
                                         />
                                         <div className="text-xs axi-ink-faint flex items-center gap-1">
                                             <Plus className="w-4 h-4 axi-ink-meta" />
@@ -2832,7 +2831,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                         setCommanderThresholds((prev) => ({ ...prev, bombFloor: next as number | 'auto' }));
                                                     }
                                                 }}
-                                                className="w-32 bg-black/30 border axi-edge-rule rounded px-2 py-1 text-xs axi-ink-plain"
+                                                className="axi-input" style={{ width: '8rem' }}
                                             />
                                         ) : (
                                             <input
@@ -2845,7 +2844,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                         setCommanderThresholds((prev) => ({ ...prev, [key]: n } as CommanderThresholds));
                                                     }
                                                 }}
-                                                className="w-32 bg-black/30 border axi-edge-rule rounded px-2 py-1 text-xs axi-ink-plain"
+                                                className="axi-input" style={{ width: '8rem' }}
                                             />
                                         )}
                                         <button
@@ -2913,8 +2912,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             value={dpsReportToken}
                             onChange={(e) => setDpsReportToken(e.target.value)}
                             placeholder="Enter your dps.report token..."
-                            className="w-full rounded-[4px] px-4 py-3 text-sm axi-ink-dim placeholder-gray-600 focus:border-blue-500/50 focus:outline-none transition-colors"
-                            style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
+                            className="axi-input"
+                           
                         />
                         <div className="mt-4 flex flex-wrap items-center gap-3">
                             <button

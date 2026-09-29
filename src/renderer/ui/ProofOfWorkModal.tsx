@@ -84,7 +84,7 @@ export function ProofOfWorkModal<TToc extends ProofOfWorkTocItem, TResult extend
                                         }
                                     }}
                                     placeholder="Search spec..."
-                                    className="proof-of-work-search w-56 rounded-lg border axi-edge-rule bg-black/30 px-3 py-2 text-xs axi-ink-plain placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                                    className="proof-of-work-search axi-input" style={{ width: '14rem' }}
                                 />
                                 {searchFocused && searchResults.length > 0 && searchValue.trim().length >= 2 && (
                                     <div className="proof-of-work-search-results absolute right-0 mt-2 w-80 max-h-64 overflow-y-auto rounded-lg border axi-edge-rule bg-[var(--bg-base)]/95 shadow-2xl z-10">

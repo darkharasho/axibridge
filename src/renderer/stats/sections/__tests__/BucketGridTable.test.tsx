@@ -135,7 +135,7 @@ describe('FightPicker', () => {
         );
         const select = container.querySelector('select');
         expect(select).not.toBeNull();
-        expect(select?.className).toContain('fight-diff-select');
+        expect(select?.className).toContain('axi-select');
     });
     it('caps its height and sticks the header once the roster outgrows the cap', () => {
         const { container } = render(

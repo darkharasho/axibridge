@@ -166,8 +166,8 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
                         value={wrapMs}
                         onChange={(event) => setWrapMs(Number(event.target.value))}
                         aria-label="Row width"
-                        className="fight-diff-select rounded-[var(--radius-md)] border border-[color:var(--border-default)] px-2 py-1 text-xs focus:outline-none"
-                        style={{ background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                        className="axi-select"
+                       
                     >
                         {WRAP_OPTIONS.map(opt => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -218,8 +218,7 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
                         value={playerFilter}
                         onChange={(event) => setPlayerFilter(event.target.value)}
                         placeholder="Filter players"
-                        className="rounded-[var(--radius-md)] border px-2 py-1 text-xs focus:outline-none"
-                        style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', borderColor: 'var(--border-default)' }}
+                        className="axi-input"
                     />
                     <div className="flex flex-col gap-0.5 max-h-64 overflow-y-auto">
                         {filteredPlayers.map(p => (
