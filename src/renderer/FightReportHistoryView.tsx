@@ -783,8 +783,15 @@ export function FightReportHistoryView() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
                             transition={{ duration: 0.2, ease: 'easeOut' }}
-                            className="app-sticky-bar sticky bottom-0 px-4 -mx-4 py-3"
-                            style={{ borderTop: '1px solid var(--border-default)' }}
+                            // The other dock, on the other edge: this bar IS
+                            // the bottom of the report list, so its border
+                            // faces up at the cards scrolling under it.
+                            // `-mx-4` is what makes it flush - it cancels the
+                            // page gutter so the bar runs to the container's
+                            // edges - and the padding it used to write inline
+                            // (px-4 py-3) is exactly --axi-dock-pad's default,
+                            // so it is not restated here.
+                            className="axi-dock axi-dock--end sticky bottom-0 -mx-4"
                         >
                             <div className="flex items-center justify-between">
                                 <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>

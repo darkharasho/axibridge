@@ -408,3 +408,90 @@ the contract test keeps pinning it.
 Eight unit tests asserted `style.background` was non-empty on these elements —
 they were pinning the reskin. Repointed to assert the class that carries the
 float token, which is what jsdom can see.
+
+## What the docked-bar slice found
+
+The threshold set in the section above was met, so the question went upstream
+and came back with a new object rather than a modifier.
+
+### One shape, two names, no word for it
+
+`.app-opaque-float` and `.app-sticky-bar` were the same thing described twice: a
+full-width bar that IS one edge of its scroll container — flush at both ends,
+one border facing the content, the content travelling under it. Each had a flat
+fill and a glass `!important` fill, four rules for one idea, and neither could be
+named in the design language: a rail is vertical, a toolbar stands in the layout
+with space around it, and `.axi-rail--flush` is the vertical case of exactly this
+idea and nothing else.
+
+`.axi-dock` (axi-design 1.26.0) is the horizontal case. It drops the radius,
+because its two ends are the container's own edges and a corner there is a corner
+cut out of the page, and the offset block, because a block needs somewhere to
+fall and a dock has content on one side and the container's edges on the other
+three.
+
+**The surface is not a modifier.** Every other surface upstream can go either
+way — a panel may sit still on the page or be pinned over a scrolling table — so
+each needs a `--float` to say which. A dock does not: *"the content scrolls under
+it"* is the definition of docking rather than a variant of it. So `.axi-dock`
+reads `--axi-surface-float` unconditionally, with no modifier for a consumer to
+forget. This is the first surface in the language where the float is structural.
+
+**It can say which edge it is on.** `.axi-dock` draws the seam on its block-end
+side, facing the content below; `.axi-dock--end` flips it for a bar pinned
+beneath its list. Both are logical properties. This is the pair `.axi-rail--flush`
+still lacks — it assumes the leading edge, documented as a limitation last slice
+— and the difference is only that the rail grew from one consumer and the dock
+from two arriving together. A speculative API for the rail was declined again.
+
+**What a dock deliberately does not say** is how its contents are arranged or how
+it is pinned. `FightSliceTray` puts a head above a scrolling body inside one at
+`--axi-dock-pad: 0`; the history bar puts a flex row inside one and keeps its own
+`sticky bottom-0 -mx-4`. A dock that answered either would be two objects under
+one name.
+
+### Rulings
+
+| Site | Ruling |
+| --- | --- |
+| `FightSliceTray` | `.axi-dock`, pad 0. Keeps `.app-dropdown` for the entrance only. |
+| History bulk-delete bar | `.axi-dock--end`. Its `px-4 py-3` was exactly `--axi-dock-pad`'s default, so it is not restated. |
+| The tray's `shadow-[var(--shadow-dropdown)]` | **Dropped.** The seam is how this language says one surface is above another, and the entrance animation still says the tray arrives. Keeping a hand-written drop shadow would be the lever this exercise removes. |
+| `.axi-rail--flush` trailing-edge API | **Declined again.** No consumer. The dock's pair is the shape it should grow into. |
+
+### The bulk-upload blur-off had been quietly shrinking
+
+`body.bulk-uploading` turned `backdrop-filter` off for frame rate by naming each
+surface: `.app-opaque-float`, `.app-sticky-bar`, `.stats-dashboard-nav-panel`.
+Every surface that migrated upstream fell off that list without a word — the
+modal, the palette, the popovers, the drawer and now both docks read their blur
+from `--axi-surface-filter`, which no selector there was naming. The enumeration
+is replaced by nulling the token under `body.bulk-uploading`, which reaches all of
+them at once and every surface added later. That is the point of the token: the
+theme declares the capability, so the theme is where it gets switched off. The
+nav panel's rule survives only because it still writes its own blur literal.
+
+### The published viewer bundle had been stale for two slices
+
+`docs/view/viewer.js` is a build artifact committed to the repo and served from
+GitHub Pages, and it is produced by its *own* vite config (`npm run build:viewer`)
+— not by `npm run build`, and **not** by `scripts/copy-viewer-assets.mjs`, which
+copies static files beside it and never touches the bundle. The replay-chrome
+slice ran the copy script, saw a clean `git status docs/`, and concluded the
+bundle was current. It proved nothing: the committed bundle carried zero
+occurrences of `axi-toolbar--float` and twelve of the classes this slice deleted.
+
+Rebuilt here, which catches up both slices. A guard now lives in
+`themeCssContract.test.ts`: a list of retired class names that must be absent from
+the bundle, plus a list of adopted ones that must be present — the second half
+catching a bundle that predates an adoption while happening to carry none of the
+retired names. Mutation-checked against the previously committed bundle: 3 of 25
+tests fail. The fix when it fails is `npm run build:viewer`, never an edit to the
+list.
+
+### What this leaves
+
+`index.css` loses three rules and gains one. `axi-design.css` is untouched at 214
+rules — the deletions this slice were never in that file. The remaining
+hand-written `rgba(15, 18, 25, .97)` float is `.stats-dashboard-nav-panel`, now
+the last one, and it is the next obvious candidate for `.axi-panel--float`.

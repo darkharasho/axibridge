@@ -59,6 +59,14 @@ describe('index.css', () => {
     // just see-through. These overrides were inside the deleted glass block and
     // have to be re-expressed, not dropped.
     //
+    // .app-opaque-float and .app-sticky-bar are no longer in this list either.
+    // They were one object under two names - a full-width bar that IS an edge of
+    // its scroll container - and upstream named it .axi-dock, which is on
+    // --axi-surface-float unconditionally. Pinning either here would now assert
+    // on a rule this migration deleted. The assertion that replaces them is in
+    // axi-design's own suite: .axi-dock reads --axi-surface-float, mutation-
+    // checked, so the wiring cannot rot the way it did before the token existed.
+    //
     // The search palette is no longer in this list. It is .axi-palette__panel now,
     // and upstream draws it on --axi-surface-float — this rule promoted to a token
     // the whole language can reach, which is where it belonged. The modals have
@@ -74,8 +82,6 @@ describe('index.css', () => {
     // the full `[data-axi-accent][data-axi-theme="glass"]` prefix is what actually catches that.
     it('re-expresses the opaque floating surfaces under the glass theme, at the specificity that wins', () => {
         for (const selector of [
-            '[data-axi-accent][data-axi-theme="glass"] .app-opaque-float',
-            '[data-axi-accent][data-axi-theme="glass"] .app-sticky-bar',
             '[data-axi-accent][data-axi-theme="glass"] .stats-dashboard-nav-panel',
         ]) {
             expect(css, selector).toContain(selector);
@@ -262,6 +268,48 @@ describe('flat app surface tokens under glass', () => {
         for (const [file, css] of [['index.css', indexCss], ['axi-design.css', axiDesign]] as const) {
             expect(css, `${file}: fill: var(--axi-surface…) is invalid and inherits instead`)
                 .not.toMatch(/fill:\s*var\(--axi-surface(-raised)?\)/);
+        }
+    });
+});
+
+/**
+ * The published viewer bundle is a build artifact committed to the repo, served
+ * from GitHub Pages at /view/viewer.js, and produced by its OWN vite config
+ * (`npm run build:viewer`) — not by `npm run build`, and not by
+ * `scripts/copy-viewer-assets.mjs`, which copies static files beside it and
+ * touches the bundle itself never. So a migration can land, the whole suite can
+ * go green, the app can be correct, and the published reports can keep rendering
+ * the class names the migration deleted. That has now happened twice: the
+ * replay-chrome slice shipped believing a clean `git status docs/` after running
+ * the copy script proved the bundle current, and it proved nothing at all.
+ *
+ * This is the check that would have caught it. Each name below was deleted from
+ * the app's stylesheets, so a bundle still carrying one is a bundle built before
+ * the deletion. Add to the list whenever a class is retired; the fix when it
+ * fails is `npm run build:viewer`, never an edit here.
+ */
+describe('docs/view/viewer.js', () => {
+    const RETIRED = ['app-opaque-float', 'app-sticky-bar'];
+    const bundle = fs.readFileSync(
+        path.resolve(__dirname, '..', '..', '..', 'docs', 'view', 'viewer.js'),
+        'utf8',
+    );
+
+    for (const name of RETIRED) {
+        it(`was rebuilt since .${name} was retired`, () => {
+            expect(
+                bundle.includes(name),
+                `docs/view/viewer.js still ships .${name}. Run \`npm run build:viewer\` and commit the result.`,
+            ).toBe(false);
+        });
+    }
+
+    // The same check from the other side: a name the app HAS adopted must be
+    // present, or the bundle predates the adoption even though it happens to
+    // carry none of the retired ones.
+    it('carries the classes the app has adopted since', () => {
+        for (const name of ['axi-dock', 'axi-toolbar--float', 'axi-panel--tile']) {
+            expect(bundle.includes(name), `docs/view/viewer.js does not ship .${name}`).toBe(true);
         }
     });
 });

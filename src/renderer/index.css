@@ -115,16 +115,6 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Sticky action bars (report-history bulk delete) — cards scroll underneath,
-   so the bar needs an opaque fill of its own. Same rule as .app-dropdown: a
-   surface with content moving behind it never inherits a translucent glass
-   background, because blur is a no-op on Linux and alpha alone reads as
-   see-through. This is the flat theme's fill; the glass theme's is in the
-   FLOATING SURFACES block at the foot of this file. */
-.app-sticky-bar {
-  background: var(--bg-card);
-}
-
 html,
 body {
     height: 100%;
@@ -1592,32 +1582,18 @@ body.web-report {
    (0,3,0), which clears the whole remap layer. The deleted rules did the same
    job by being two body classes deep. */
 
-/* One consumer left: the fight-slice tray. The replay map's bars, legends,
-   strips and side panels have joined the ten dropdowns on upstream objects that
-   read --axi-surface-float, which glass restates as a gradient at .97 rather
-   than the flat colour below - leaving any of them in this rule would cost them
-   the 145deg tilt that makes a pane read as glass.
-
-   The tray is not one of them because it is a different shape: full width,
-   flush left and right, one border along the bottom, and the content scrolls
-   under it. That is the same object as .app-sticky-bar below, and the language
-   has no word for it - a rail is vertical, a toolbar stands in the layout with
+/* .app-opaque-float and .app-sticky-bar used to be pinned opaque here, and
+   both are gone. They were the same object under two names - a full-width bar
+   that IS one edge of its scroll container, flush at both ends, one border
+   facing the content, the content travelling under it - and the language had
+   no word for it: a rail is vertical, a toolbar stands in the layout with
    space around it, and .axi-rail--flush is the vertical case of exactly this
-   idea. Two consumers in one app is the threshold for asking upstream for a
-   horizontal one; until then the fill stays here, honestly, as a fill this
-   theme needs and cannot yet name. */
-[data-axi-accent][data-axi-theme="glass"] .app-opaque-float {
-  background: rgba(15, 18, 25, 0.97) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-/* Sticky action bars (report-history bulk delete): cards scroll underneath. */
-[data-axi-accent][data-axi-theme="glass"] .app-sticky-bar {
-  background: rgba(15, 18, 25, 0.97) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
+   idea. Two consumers in one app was the threshold stated here for asking
+   upstream, and upstream answered with .axi-dock, which is on
+   --axi-surface-float unconditionally because "the content scrolls under it"
+   is what docking means rather than a variant of it. The fill this theme
+   needed and could not name is a token now, and this is the last of the
+   hand-written rgba(15, 18, 25, .97) floats to go but one. */
 
 /* Modals used to be pinned opaque here. They are .axi-modal and
    .axi-panel--float now, and both read --axi-surface-float, which glass
@@ -1742,9 +1718,19 @@ body.web-report {
    Two descendant steps rather than one compound selector: the theme attributes
    are on <html> and `bulk-uploading` on <body>, so asking one element to carry
    both would match nothing. */
-[data-axi-accent][data-axi-theme="glass"] body.bulk-uploading .app-opaque-float,
-[data-axi-accent][data-axi-theme="glass"] body.bulk-uploading .app-sticky-bar,
 [data-axi-accent][data-axi-theme="glass"] body.bulk-uploading .stats-dashboard-nav-panel {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+
+/* The rest of the surfaces used to be enumerated above, one selector each, and
+   every one that migrated upstream silently fell off the list - a modal, the
+   palette, the popovers and now both docks read their blur from
+   --axi-surface-filter, which no selector here was naming. Nulling the token
+   reaches all of them at once and every surface added later, which is the
+   point of the token existing: the theme declares the capability, so the theme
+   is also where it gets switched off. The enumerated rule above survives only
+   because the nav panel still writes its own blur literal. */
+[data-axi-accent][data-axi-theme="glass"] body.bulk-uploading {
+  --axi-surface-filter: none;
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { SlidersHorizontal } from 'lucide-react';
 import { useStatsStore } from '../statsStore';
 import { renderProfessionIcon } from '../ui/StatsViewShared';
@@ -154,7 +154,20 @@ export const FightSliceTray = ({ onClose }: { onClose: () => void }) => {
 
     return (
         <div
-            className="app-dropdown app-opaque-float border-b border-[color:var(--border-default)] bg-[var(--bg-card)] shadow-[var(--shadow-dropdown)]"
+            // A dock: the tray IS the top edge of the list it drops into, not a
+            // panel standing over it. That is why it has no corners (its two
+            // ends are the container's) and one border along the bottom, facing
+            // the fights that scroll under it. The opaque fill arrives with the
+            // object - a dock is on --axi-surface-float unconditionally,
+            // because "the content scrolls under it" is what docking means.
+            //
+            // The drop shadow it used to carry is gone with the rest. The seam
+            // is how this language says one surface is above another, and
+            // .app-dropdown still supplies the entrance, so the tray arrives
+            // rather than appearing. Padding is 0 because the head and the
+            // scrolling list below bring their own.
+            className="app-dropdown axi-dock"
+            style={{ '--axi-dock-pad': '0' } as CSSProperties}
             onKeyDown={handleKeyDown}
         >
             <div className="flex items-center gap-2 border-b border-[color:var(--border-subtle)] px-3 py-2">
