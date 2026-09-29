@@ -726,21 +726,14 @@
 
 /* ---------------------------------------------------------------------------
    THE MODALS
-   Every modal in the app shares two classes, so they only need saying once.
-   A modal is the most raised thing on the screen while it is open, which makes
-   it a panel with a panel's block. The overlay is the scrim - opaque, because
-   a modal that you can read the app through is a modal you have to squint
-   past. */
-[data-axi-accent] body .app-modal-overlay { background: var(--axi-scrim); }
-[data-axi-accent] body .app-modal-card {
-  /* The inline `border: 1px solid ...` on every one of these is a literal, so
-     no rule here could reach it - hence --panel-border-w, which the components
-     read with their old 1px as the fallback. It is set to the control step
-     globally and raised to the panel step on the modal itself. */
-  --panel-border-w: var(--axi-border-panel);
-  border-radius: var(--axi-radius);
-  box-shadow: var(--axi-shadow-panel);
-}
+   Nothing, now. Every overlay wears .axi-scrim and every card is either an
+   .axi-modal (a head, a body and a foot, which is why upstream gives it
+   padding: 0) or an .axi-panel--float (one padded box), so the frame, the
+   scrim and the opaque fill all arrive from the package. The lever that used
+   to live here - --panel-border-w, re-resolved so it could reach through the
+   inline `border: 1px solid ...` each card wrote for itself - went when the
+   literals did. .app-modal-card and .app-modal-overlay survive as hooks for
+   the tests and for the z-index stack, and carry no styling. */
 
 /* A quantity bar. At 6px tall with a soft rounded cap it was a progress
    indicator borrowed from somewhere else; here a measured length gets an

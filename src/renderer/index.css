@@ -1607,10 +1607,10 @@ body.web-report {
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* Modals sit over the whole app; the scrim darkens it but does not hide it. */
-[data-axi-accent][data-axi-theme="glass"] .app-modal-card {
-  background: rgba(15, 18, 25, 0.92) !important;
-}
+/* Modals used to be pinned opaque here. They are .axi-modal and
+   .axi-panel--float now, and both read --axi-surface-float, which glass
+   restates at .97 - this rule turned into a token the whole language can
+   reach, the same way the palette's did. */
 
 /* The stats nav panel floats over scrolling content. The search palette used to
    be listed here too; it is .axi-palette__panel now, and upstream draws it on

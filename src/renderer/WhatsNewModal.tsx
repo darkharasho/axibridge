@@ -19,7 +19,8 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="app-modal-overlay fixed inset-0 z-[70] flex items-center justify-center bg-black/60"
+                className="app-modal-overlay axi-scrim flex items-center justify-center"
+                style={{ zIndex: 70 }}
                 onClick={(e) => e.target === e.currentTarget && onClose()}
             >
                 <motion.div
@@ -27,10 +28,10 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.96, y: 18 }}
                     transition={{ duration: 0.2 }}
-                    className="app-modal-card whats-new-modal w-full max-w-4xl mx-4 overflow-hidden rounded-[4px]"
-                    style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+                    className="app-modal-card whats-new-modal axi-modal mx-4 overflow-hidden"
+                    style={{ '--axi-modal-width': '896px' } as React.CSSProperties}
                 >
-                    <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
+                    <div className="axi-modal__head justify-between">
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-[4px] bg-blue-500/20 border axi-edge-meta">
                                 <Sparkles className="w-5 h-5 axi-ink-meta" />
@@ -47,7 +48,7 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                             <X className="w-5 h-5" />
                         </button>
                     </div>
-                    <div className="whats-new-modal__body p-6">
+                    <div className="whats-new-modal__body axi-modal__body">
                         <div className="whats-new-modal__scroll max-h-[65vh] overflow-y-auto pr-2">
                             <div className="space-y-4 text-sm axi-ink-plain">
                                 <ReactMarkdown

@@ -162,7 +162,8 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                 initial={isBulkUploadActive ? undefined : { opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={isBulkUploadActive ? undefined : { opacity: 0 }}
-                className="app-modal-overlay fixed inset-0 z-[74] flex items-center justify-center bg-black/70"
+                className="app-modal-overlay axi-scrim flex items-center justify-center"
+                style={{ zIndex: 74 }}
                 onClick={(e) => e.target === e.currentTarget && onClose()}
             >
                 <motion.div
@@ -170,10 +171,12 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={isBulkUploadActive ? undefined : { opacity: 0, scale: 0.96, y: 18 }}
                     transition={{ duration: 0.2 }}
-                    className="app-modal-card w-full max-w-6xl mx-4 h-[min(82vh,860px)] overflow-hidden rounded-[4px] flex flex-col"
-                    style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+                    /* No __body: the content is a two-column grid with its own rule down
+                       the middle, which is a layout rather than the modal's text block. */
+                    className="app-modal-card axi-modal mx-4 h-[min(82vh,860px)] overflow-hidden flex flex-col"
+                    style={{ '--axi-modal-width': '1152px' } as React.CSSProperties}
                 >
-                    <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
+                    <div className="axi-modal__head justify-between">
                         <div className="flex items-center gap-3">
                             <div className="rounded-[4px] border axi-edge-meta bg-blue-500/20 p-2">
                                 <ListTree className="h-5 w-5 axi-ink-meta" />

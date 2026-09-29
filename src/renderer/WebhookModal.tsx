@@ -48,7 +48,7 @@ export function WebhookModal({ isOpen, onClose, webhooks, enabledWebhookIds, onS
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+                className="app-modal-overlay axi-scrim flex items-center justify-center"
                 onClick={(e) => e.target === e.currentTarget && onClose()}
             >
                 <motion.div
@@ -56,11 +56,11 @@ export function WebhookModal({ isOpen, onClose, webhooks, enabledWebhookIds, onS
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                     transition={{ duration: 0.2 }}
-                    className="app-modal-card rounded-[4px] w-full max-w-lg mx-4 overflow-hidden"
-                    style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+                    className="app-modal-card axi-modal mx-4 overflow-hidden"
+                    style={{ '--axi-modal-width': '512px' } as React.CSSProperties}
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
+                    <div className="axi-modal__head justify-between">
                         <h2 className="text-lg font-bold axi-ink-plain flex items-center gap-2">
                             <Link className="w-5 h-5 axi-ink-meta" />
                             Manage Webhooks
@@ -74,7 +74,7 @@ export function WebhookModal({ isOpen, onClose, webhooks, enabledWebhookIds, onS
                     </div>
 
                     {/* Content */}
-                    <div className="p-6 max-h-[60vh] overflow-y-auto">
+                    <div className="axi-modal__body max-h-[60vh] overflow-y-auto">
                         <DestinationsCard
                             webhooks={webhooks}
                             enabledWebhookIds={enabledWebhookIds}

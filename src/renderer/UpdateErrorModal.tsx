@@ -17,7 +17,8 @@ export function UpdateErrorModal({ isOpen, onClose, onRetry, error }: UpdateErro
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="app-modal-overlay fixed inset-0 z-[60] flex items-center justify-center bg-black/60"
+                className="app-modal-overlay axi-scrim flex items-center justify-center"
+                style={{ zIndex: 60 }}
                 onClick={(e) => e.target === e.currentTarget && onClose()}
             >
                 <motion.div
@@ -25,11 +26,11 @@ export function UpdateErrorModal({ isOpen, onClose, onRetry, error }: UpdateErro
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                     transition={{ duration: 0.2 }}
-                    className="app-modal-card rounded-[4px] w-full max-w-md mx-4 overflow-hidden"
-                    style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+                    className="app-modal-card axi-modal mx-4 overflow-hidden"
+                    style={{ '--axi-modal-width': '448px' } as React.CSSProperties}
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
+                    <div className="axi-modal__head justify-between">
                         <h2 className="text-lg font-bold axi-ink-danger flex items-center gap-2">
                             <AlertCircle className="w-5 h-5 axi-ink-danger" />
                             Update Error
@@ -43,7 +44,7 @@ export function UpdateErrorModal({ isOpen, onClose, onRetry, error }: UpdateErro
                     </div>
 
                     {/* Content */}
-                    <div className="p-6">
+                    <div className="axi-modal__body">
                         <p className="axi-ink-dim mb-6">
                             An error occurred while checking for updates or downloading the update.
                         </p>
@@ -53,7 +54,7 @@ export function UpdateErrorModal({ isOpen, onClose, onRetry, error }: UpdateErro
                     </div>
 
                     {/* Footer */}
-                    <div className="flex justify-end gap-3 px-6 py-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                    <div className="axi-modal__foot">
                         <button
                             onClick={onRetry}
                             className="px-4 py-2 bg-red-500/15 axi-ink-danger rounded-[4px] text-sm font-medium border axi-edge-danger hover:bg-red-500/25 transition-colors"
