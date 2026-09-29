@@ -135,9 +135,8 @@ bucket was really EXTEND then DELETE, and it split three ways rather than one:
 
 - *Colour* (1445 sites, 55 files) — `text-*` and `border-*`, a pure substitution
   once `.axi-ink-*` and `.axi-edge-*` existed. Done.
-- *Surfaces* (~400 sites) — `bg-white/5 border-white/10 rounded-lg p-3` is an
-  `.axi-well`, and naming it one is a markup change per site, not a substitution.
-  Still outstanding.
+- *Surfaces* (578 sites, counted properly) — and this one was not a slice at all.
+  See "There is no surfaces slice" below.
 - *Geometry* (`.border`, `.rounded-*`, 1175 sites) — never colour, never bridged.
   It belongs to the component-adoption slices.
 
@@ -151,3 +150,61 @@ slices rather than by a parallel hover vocabulary.
 
 Also outstanding, independent of all of the above: we are pinned at **1.13.0**
 and upstream is at **1.15.0**. *(Both stale: 1.22.0 as of 2026-09-28.)*
+
+
+## There is no surfaces slice
+
+The colour slice deferred "the `bg-*` half" to a surfaces slice. Counted
+properly that is 578 sites, and it does not hold together as one piece of work.
+It splits by *what the language says about each kind*, and the three answers are
+different in kind:
+
+- **312 neutral surfaces** — `bg-white/5` (128 on its own), `bg-white/10`,
+  `bg-black/2x–4x`, `bg-slate-900`, and the arbitrary `bg-white/[0.0x]` forms.
+  The bridge already lands these on the ramp correctly: `/5` → ground, `/10` →
+  raised, `slate-900` → surface. The language's answer is *name the object* —
+  `.axi-well`, `.axi-panel`, `.axi-scrim` — and naming the object is what the
+  component-adoption slices already do. This third has no separate existence; it
+  dissolves into Cards, Modals, Shell & page. This slice took the first bite of
+  it.
+
+- **156 status tints** — `bg-red-500/15`, `bg-emerald-500/20` and their kin. The
+  language's answer is that **the tint is wrong**, and it says so twice
+  independently. `.axi-notice--danger` does not tint its background at any
+  status: the surface stays `--axi-surface` and the status lives in an opaque
+  26px icon square, because (upstream's words) "a whole paragraph in the danger
+  ink is the tinted-everything failure rule 2 exists to prevent." `.axi-meter`
+  says the same thing about bars: "a tinted or faded bar is the same lie as a
+  tinted surface." So these 156 are not a substitution and not an upstream gap —
+  they are a visual change the app owes, per site, and they need reviewing rather
+  than codemodding.
+
+- **103 opaque colour fills** — `bg-emerald-500` on a bar, `bg-white` on a dot.
+  The language does have a mechanism, and it is a custom property rather than a
+  class: `.axi-meter__fill` and `.axi-bars__part` both paint
+  `var(--axi-series, var(--axi-accent))`. That is deliberate — `src/utilities.css`
+  explains why there is no `.axi-fill-*` family to match the inks. These belong
+  to the Meters & bars slice.
+
+The lesson is the same one the Tailwind bucket taught: a bucket named after a CSS
+property is not a unit of work. `bg-*` is a property; "a well", "a status panel"
+and "a bar segment" are three different questions with three different answers.
+
+## What the tile slice found
+
+Migrating the MVP and commander cards (2026-09-28, axi-design 1.23.0) turned up
+two things worth recording:
+
+- **Half the MVP colour scheme was inert.** `TopPlayersSection` built a
+  sixteen-key style object per group — `accentBg`, `accentBlob`, `goldCardBorder`,
+  `goldIconWrap`, `goldStatRow` and so on. Eight of the sixteen were fully
+  overruled by the theme and had been since it landed: the app computed them, React
+  wrote them into the DOM, and no pixel ever changed. Deleting an override *and*
+  the thing it overrides is the safest edit in this whole programme, and it is
+  worth looking for the pattern deliberately in the remaining slices.
+
+- **The language had no second step for a raised thing.** `.axi-panel` was the
+  only one, so a grid of six panels read as six page regions, and an app that
+  wanted to rank them had exactly one tool: spend a hue. That is why the MVP cards
+  were gold/silver/bronze-tinted in the first place. `.axi-panel--tile` gives the
+  ramp its second step, and rank becomes a form question instead of a colour one.

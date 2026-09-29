@@ -816,14 +816,67 @@ body.web-report .stats-view .fight-comp-class-icon--squad {
 }
 
 /* Keep MVP crown icon wrappers circular in web report across theme overrides. */
+/* ---------------------------------------------------------------------------
+   THE MVP ORNAMENTS
+   Four marks the language has no component for - a label straddling a group's
+   edge, and the crown a first place wears. They are written here rather than in
+   axi-design.css because that file is the override layer and these are not
+   overrides: nothing upstream styles them, so this is the app drawing its own
+   ornament in the language's tokens, which is what a consumer is supposed to
+   do. Anything in this block that upstream later grows a word for should move
+   to that word and leave. */
+
+/* The group's name, sitting on its edge: outlined, because it annotates the
+   group rather than measuring anything in it (rule 5). Centred on the edge
+   rather than nudged by a fixed offset, so the border weight can change
+   without dropping the label onto the card below. */
+.mvp-group-label {
+  background: var(--axi-surface);
+  border-width: var(--axi-border-control);
+  border-radius: var(--axi-radius-sm);
+  padding: 2px 8px;
+  top: -14px;
+}
+
+/* A profession beside an MVP's name is a label on the player, not a reading
+   about them: outlined, in the annotation colour, at the hairline weight. */
+.mvp-profession-chip {
+  background: transparent;
+  color: var(--axi-text-dim);
+  border-width: var(--axi-border-hairline);
+  border-color: var(--axi-rule);
+  border-radius: var(--axi-radius-sm);
+}
+
+/* The crown. The ring is the raised step a chip sits at; the badge on it is
+   the one place in this view the accent is spent, because a crown is the app
+   saying "first" about a thing the reader did not pick - and rule 1 takes the
+   glow that used to be here. */
+.mvp-gold-icon-ring {
+  background: var(--axi-surface-raised);
+  border-width: var(--axi-border-control);
+  border-color: var(--axi-ink-line);
+  box-shadow: none;
+}
+.mvp-gold-icon-badge {
+  background: var(--axi-accent);
+  color: var(--axi-accent-ink);
+  border-width: var(--axi-border-control);
+  border-color: var(--axi-ink-line);
+}
+.mvp-gold-icon-badge svg { color: var(--axi-accent-ink); }
+
 body.web-report #top-players .mvp-gold-icon-ring,
 body.web-report #top-players .mvp-gold-icon-badge {
     border-radius: 9999px !important;
 }
 
 @media (min-width: 640px) {
+    /* The published report runs these tighter than the app does. Said through
+       the well's own knob now that it has one, which is why the padding line
+       no longer needs !important to beat the class it is adjusting. */
     body.web-report #top-players .mvp-stat-pill {
-        padding: 0.2rem 0.45rem !important;
+        --axi-well-pad: 0.2rem 0.45rem;
         font-size: 0.65rem !important;
         line-height: 1.15 !important;
     }
