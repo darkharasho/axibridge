@@ -100,19 +100,20 @@ export function WebUploadOverlay({
 
     return (
         <div
-            className={`app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg transition-opacity duration-700 ${closing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            className={`app-modal-overlay axi-scrim flex items-center justify-center transition-opacity duration-700 ${closing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             onClick={hasFailure || webUploadState.postStatus === 'pending' ? clearOverlay : undefined}
         >
             <div
-                className={`app-modal-card w-full rounded-2xl shadow-2xl backdrop-blur-2xl ${hasErrorDetail && hasFailure ? 'max-w-2xl' : 'max-w-md'}`}
-                style={{
-                    background: 'var(--bg-card)',
-                    border: `var(--panel-border-w, 1px) solid ${hasFailure ? 'var(--status-error-border)' : 'var(--border-default)'}`,
-                }}
+                /* A failure recolours the edge, which is what .axi-edge-danger is for -
+                   the inline border literal here was the only reason --panel-border-w had
+                   to exist. The width is the knob rather than a max-w utility because
+                   .axi-modal owns max-width and would outrank one. */
+                className={`app-modal-card axi-modal ${hasFailure ? 'axi-edge-danger' : ''}`}
+                style={{ '--axi-modal-width': hasErrorDetail && hasFailure ? '672px' : '448px' } as React.CSSProperties}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* ── Topbar ── */}
-                <div className="flex items-start justify-between px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="axi-modal__head justify-between items-start">
                     <div>
                         <div className="text-[9px] font-bold tracking-[.15em] uppercase" style={{ color: 'var(--brand-primary)' }}>
                             Web Upload

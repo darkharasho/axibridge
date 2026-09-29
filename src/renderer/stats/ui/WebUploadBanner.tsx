@@ -150,19 +150,16 @@ export const WebUploadBanner = ({
 
         {logsOpen && logEntries && createPortal(
             <div
-                className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg"
+                className="app-modal-overlay axi-scrim flex items-center justify-center"
                 onClick={() => setLogsOpen(false)}
             >
                 <div
-                    className="app-modal-card w-full max-w-lg rounded-2xl shadow-2xl"
-                    style={{
-                        background: 'var(--bg-card)',
-                        border: 'var(--panel-border-w, 1px) solid var(--border-default)',
-                    }}
+                    className="app-modal-card axi-modal"
+                    style={{ '--axi-modal-width': '512px' } as React.CSSProperties}
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <div className="axi-modal__head justify-between">
                         <div>
                             <div className="text-[9px] font-bold tracking-[.15em] uppercase" style={{ color: 'var(--brand-primary)' }}>
                                 Web Upload

@@ -379,7 +379,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
         <AnimatePresence initial={false}>
             {filePickerOpen && (
                 <motion.div
-                    className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 file-picker-modal focus:outline-none"
+                    className="app-modal-overlay axi-scrim flex items-center justify-center file-picker-modal focus:outline-none"
                     initial={isBulkUploadActive ? undefined : { opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={isBulkUploadActive ? undefined : { opacity: 0 }}
@@ -389,8 +389,10 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                     ref={containerRef}
                 >
                     <motion.div
-                        className="app-modal-card file-picker-card relative isolate w-full max-w-[1100px] max-h-[92vh] flex flex-row rounded-[4px] overflow-hidden"
-                        style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+                        /* Two panes side by side rather than a head and a body, so
+                           .axi-modal's padding: 0 is exactly right here. */
+                        className="app-modal-card file-picker-card axi-modal relative isolate max-h-[92vh] flex flex-row overflow-hidden"
+                        style={{ '--axi-modal-width': '1100px' } as React.CSSProperties}
                         initial={{ opacity: 0, y: 20, scale: 0.98 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 20, scale: 0.98 }}

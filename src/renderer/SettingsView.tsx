@@ -3211,14 +3211,20 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             {
                 settingsNavOpen && (
                     <div
-                        className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center px-4 lg:hidden"
+                        className="app-modal-overlay axi-scrim flex items-center justify-center px-4 lg:hidden"
                         onClick={(event) => {
                             if (event.target === event.currentTarget) {
                                 setSettingsNavOpen(false);
                             }
                         }}
                     >
-                        <div className="app-modal-card w-full max-w-sm max-h-[85vh] rounded-[4px] p-4 flex flex-col" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+                        <div
+                            /* One padded box rather than a head, a body and a foot, so it is a
+                               floating panel and not an .axi-modal - which owns padding: 0 and
+                               expects those three parts to bring their own. --float is what
+                               makes the fill opaque over the settings page behind it. */
+                            className="app-modal-card axi-panel axi-panel--float w-full max-w-sm max-h-[85vh] flex flex-col [--axi-panel-pad:16px]"
+                        >
                             <div className="flex items-center justify-between mb-3">
                                 <div className="text-[11px] uppercase tracking-[0.3em] axi-ink-dim">Jump to</div>
                                 <button
@@ -3263,13 +3269,14 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             <AnimatePresence>
                 {importModalOpen && (
                     <motion.div
-                        className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+                        className="app-modal-overlay axi-scrim flex items-center justify-center"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            className="app-modal-card w-full max-w-3xl rounded-[4px]" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+                            className="app-modal-card axi-modal"
+                            style={{ '--axi-modal-width': '768px' } as React.CSSProperties}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
@@ -3337,13 +3344,14 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             <AnimatePresence>
                 {devSettingsOpen && (
                     <motion.div
-                        className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+                        className="app-modal-overlay axi-scrim flex items-center justify-center"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            className="app-modal-card w-full max-w-4xl rounded-[4px]" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
+                            className="app-modal-card axi-modal"
+                            style={{ '--axi-modal-width': '896px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' } as React.CSSProperties}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
@@ -3570,13 +3578,13 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             <AnimatePresence>
                 {githubManageOpen && (
                     <motion.div
-                        className="app-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+                        className="app-modal-overlay axi-scrim flex items-center justify-center"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            className="app-modal-card web-reports-modal w-full max-w-3xl rounded-[4px] p-6" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+                            className="app-modal-card web-reports-modal axi-panel axi-panel--float w-full max-w-3xl [--axi-panel-pad:24px]"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}

@@ -61,8 +61,10 @@ describe('index.css', () => {
     //
     // The search palette is no longer in this list. It is .axi-palette__panel now,
     // and upstream draws it on --axi-surface-float — this rule promoted to a token
-    // the whole language can reach, which is where it belonged. The surfaces below
-    // are the ones still waiting for the same treatment.
+    // the whole language can reach, which is where it belonged. The modals have
+    // followed it: they are .axi-modal and .axi-panel--float, both of which read
+    // that same token, so pinning .app-modal-card here would now be asserting on a
+    // rule we deliberately deleted. The surfaces below are the ones still waiting.
     //
     // The full two-attribute prefix, not just `[data-axi-theme="glass"]`: axi-design.css
     // styles several of these same surfaces at `[data-axi-accent] body .foo`, some with
@@ -74,7 +76,6 @@ describe('index.css', () => {
         for (const selector of [
             '[data-axi-accent][data-axi-theme="glass"] .app-dropdown',
             '[data-axi-accent][data-axi-theme="glass"] .app-sticky-bar',
-            '[data-axi-accent][data-axi-theme="glass"] .app-modal-card',
             '[data-axi-accent][data-axi-theme="glass"] .stats-dashboard-nav-panel',
         ]) {
             expect(css, selector).toContain(selector);
