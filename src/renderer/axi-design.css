@@ -782,40 +782,18 @@
 
 /* ---------------------------------------------------------------------------
    THE TAB STRIP
-   Four of the five views are a handful of things each, so the strip stays and
-   carries them. Its underline is gone: an underline is a third way of saying
-   "this one is on" next to the fill and the block, and the language only has
-   one. */
+   The tabs themselves are .axi-tabs now, so everything that drew one - the
+   weight, the transparent resting edge, the accent fill and offset block on the
+   current one - is upstream's and gone from here. What is left is the strip
+   these tabs sit in, which is chrome between the titlebar and the view and has
+   no upstream component yet: it belongs with .axi-window and .axi-titlebar
+   whenever the shell migrates. Until then the band's own fill and cut live
+   here. */
 [data-axi-accent] body [data-nav-strip] {
-  gap: 6px;
   padding: 8px 12px;
   border-bottom: var(--axi-border-panel) solid var(--axi-ink-line) !important;
   border-color: var(--axi-ink-line) !important;
   background: var(--axi-surface) !important;
-}
-[data-axi-accent] body [data-nav-tab] {
-  padding: 7px 12px;
-  font: 800 12.5px/1 var(--axi-sans);
-  color: var(--axi-text-dim);
-  border: var(--axi-border-control) solid transparent;
-  border-radius: 8px;
-}
-[data-axi-accent] body [data-nav-tab]:hover { color: var(--axi-text); background: var(--axi-surface-raised); }
-/* The same treatment the rail's current category gets, and a pressed pill, and
-   a current tab anywhere else: fill, ink text, ink outline, offset block.
-
-   All five tabs, including the two that draw their own nav inside. Holding
-   Stats and Settings back to a raised ground so the inner nav could own the
-   gold was a distinction about scale that nobody reads as one: in a row of
-   five, the two that answer differently look broken, not subordinate. The
-   strip answers which view; the rail answers which section of it. Different
-   questions, so two gold marks are not two claims about the same thing. */
-[data-axi-accent] body [data-nav-tab][data-on],
-[data-axi-accent] body [data-nav-tab][data-on]:hover {
-  background: var(--axi-accent);
-  color: var(--axi-accent-ink);
-  border-color: var(--axi-ink-line);
-  box-shadow: var(--axi-shadow-control);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1691,17 +1669,15 @@
 }
 
 /* The strip's own cut goes to the control step so the tabs sit on something.
-   The accent underline that marks the active tab is inline and stays as it is
-   - it is the one gold item here, and it is the one saying "you are here". */
+   The tabs are .axi-tabs now, which brought the fill with it: the inline accent
+   underline that used to mark the open report is gone, along with the rules
+   here that gave these buttons a top-cornered radius and a hover fill. The band
+   is all that is left, for the same reason the view strip's is. */
 [data-axi-accent] body .history-tabs {
   border-bottom-width: var(--axi-border-control);
   background: var(--axi-ground);
-  gap: 2px;
   padding-top: 6px;
 }
-[data-axi-accent] body .history-tabs button { border-radius: var(--axi-radius-sm) var(--axi-radius-sm) 0 0; }
-[data-axi-accent] body .history-tabs > button:hover,
-[data-axi-accent] body .history-tabs > div:hover { background: var(--axi-surface); }
 
 /* ---------------------------------------------------------------------------
    THE WEB UPLOAD OVERLAY
