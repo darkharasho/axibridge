@@ -107,7 +107,7 @@ export const WebUploadBanner = ({
                 <button
                     type="button"
                     onClick={openUrl}
-                    className="text-[11px] underline underline-offset-2 truncate block max-w-full text-left"
+                    className="axi-link text-[11px] truncate block max-w-full text-left"
                     style={{ color: 'var(--brand-primary)' }}
                 >
                     {displayUrl}

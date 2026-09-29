@@ -1066,9 +1066,8 @@ seven levers the group's trough needed.
 
 - ~~**Wells and panels (216 sites)**~~ - done; the count was a fill, and the
   160 tags under it were ten different objects. See the wells section below.
-- **Links and bare glyphs (122 sites)** - still no upstream word. A `<button>`
-  with no chrome, `axi-ink-meta` and an underline is a link; the language has
-  `.axi-prose a` and nothing standalone.
+- ~~**Links and bare glyphs (122 sites)**~~ - censused and split; see "What the
+  chromeless count was counting" below. The link half is done.
 - ~~**The metric picker list (~30 sites)**~~ - done, see "The rail the app had
   already derived" below.
 - **A calendar (~14 sites)** - `FilePickerModal`'s day grid and month arrows. A
@@ -1407,3 +1406,85 @@ once its card moved upstream.
 Bridged utilities unchanged at **81** - this slice removed rules that name app
 classes, not Tailwind ones. Legacy custom-property references **2,248 -> 2,085**
 (one method, both trees).
+
+
+## What the chromeless count was counting (145 pressables)
+
+Parsing whole JSX tags for `<button>` and `<a>` and dropping every one that
+carries a fill, an edge, a corner or an upstream component class leaves **145**
+with no chrome at all. The census called them "links and bare glyphs". They are
+not one thing either - the count is of an *absence* this time, which is the
+fourth distinct way this document has managed to count a property instead of an
+object:
+
+| Count | Object | Word |
+|---|---|---|
+| 17 | A link | `.axi-link` (new, 1.36.0) |
+| ~37 | A sortable column heading | `.axi-table__sort` + `aria-sort` (exists) |
+| ~30 | A quiet text action - "Test", "Add webhook" | open |
+| ~14 | A bare glyph - a clear-field x, a stepper arrow | open |
+| rest | Segmented text toggles, marker-classed buttons, one-offs | open |
+
+### The link, and the trap it walked into second
+
+`.axi-prose a` was the language's only word for a link, and it is reachable only
+by adopting a whole typography layer. That is the exact failure `docs/RULES.md`
+wrote down when `.axi-code` shipped - *"A style only reachable through a layer
+will be re-invented"* - and this is the second instance, so the section now says
+so and carries the general form.
+
+What makes the drift concrete rather than theoretical here: **a third of the 17
+were `<button>`s** calling the `openExternal` bridge rather than anchors. An
+`<a href>` draws its own underline and a `<button>` does not, so the two
+spellings had not merely been allowed to come apart - they already had. The
+upstream rule therefore states `text-decoration` rather than inheriting it, a
+declaration that does nothing on the anchor and is the whole thing on the
+button. The lesson generalised into RULES.md: when lifting a layer-scoped style
+out, look for what the layer was getting free from its element.
+
+Writing the hover exposed a hole in an existing upstream guard. `.axi-link`'s
+hover is `:where(:hover)` so an ink utility still lands on top - but the guard
+that enforces that could not see a rule whose selector is a *group*, and read
+`.axi-link` as having no inked rule at all. Its own inert-guard assertion caught
+it. The guard now splits selector groups.
+
+### The sortable heading: a measured keyboard defect
+
+Upstream's `.axi-table__sort` already exists, and its comment says why:
+
+> A sortable heading is a button, because sorting is an action and **a `<th>`
+> you can click but not tab to is a column the keyboard cannot sort.**
+
+Measured against the app: **14 clickable `<th>` elements, 0 of them
+keyboard-reachable.** Not one has a nested button, a `tabIndex` or a role. Every
+table in the app that sorts by clicking a heading cannot be sorted without a
+mouse. One component (`DenseStatsTable`) uses the upstream word correctly; the
+other 16 files do not.
+
+This is deferred to the table slice rather than done here, because `aria-sort`
+is the styling hook as well as the announcement and `.axi-table th[aria-sort]`
+needs the ancestor - and the app's tables are not `.axi-table`.
+
+## Next slice: the table (30 sites)
+
+Only one `<table>` in the app carries `.axi-table`. The other ~30 say
+`.stats-table`, which `axi-design.css` reskins in twelve rules. Two things about
+that reskin:
+
+**It argues against upstream, by accident.** `.axi-table`'s own comment says row
+rules are the hairline *"because either form step would turn a list of numbers
+into a grid of boxes."* The reskin draws a control-weight border around the
+table, a radius on the frame, vertical rules between heading cells and a zebra
+fill - which is that grid of boxes, item by item.
+
+**It copied a bug and then missed the fix.** The zebra is
+`tbody tr:nth-of-type(odd) > td { background: var(--axi-ground) }` - the page
+colour. That is exactly the conflation upstream's `fix(well)` release corrected
+across its own components: under glass `--axi-ground` is opaque, so every other
+row is a near-black stripe inside a translucent panel. Upstream fixed its
+copies; this hand-written one is still holding the old value, because it lives
+in the app where that release could not reach it.
+
+That is the argument for the whole exercise, stated by a defect rather than by a
+preference: a reskin does not just duplicate the component, it duplicates the
+component's bugs, and then only one of the two copies ever gets fixed.

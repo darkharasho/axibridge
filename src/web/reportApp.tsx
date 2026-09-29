@@ -1402,7 +1402,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                     href="https://www.arena.net/en/legal/content-terms-of-use"
                     target="_blank"
                     rel="noreferrer"
-                    className="text-[color:var(--brand-primary)] hover:text-white underline underline-offset-2"
+                    className="axi-link"
                 >
                     Content Terms of Use
                 </a>
@@ -1418,7 +1418,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                     href="https://github.com/darkharasho/axibridge/blob/main/LICENSE"
                     target="_blank"
                     rel="noreferrer"
-                    className="text-[color:var(--brand-primary)] hover:text-white underline underline-offset-2"
+                    className="axi-link"
                 >
                     LICENSE
                 </a>
@@ -1427,7 +1427,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                     href="https://github.com/darkharasho/axibridge/blob/main/THIRD_PARTY_NOTICES.md"
                     target="_blank"
                     rel="noreferrer"
-                    className="text-[color:var(--brand-primary)] hover:text-white underline underline-offset-2"
+                    className="axi-link"
                 >
                     THIRD_PARTY_NOTICES.md
                 </a>

@@ -139,8 +139,7 @@ export const PinPressureSection = ({ result }: Props) => {
                         <button
                             type="button"
                             onClick={() => setShowAll(v => !v)}
-                            className="mt-2 text-[10px] underline"
-                            style={{ color: 'var(--text-secondary)', background: 'transparent', border: 'none' }}
+                            className="axi-link axi-ink-dim mt-2 text-[10px]"
                         >
                             {showAll
                                 ? `Hide the ${noComparison} unscored ${noComparison === 1 ? 'fight' : 'fights'}`

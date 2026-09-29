@@ -2192,7 +2192,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             <button
                                 type="button"
                                 onClick={() => setR2ManualOpen(true)}
-                                className="text-xs axi-ink-dim underline underline-offset-2 hover:text-gray-200"
+                                className="axi-link axi-ink-dim text-xs"
                             >
                                 Enter R2 credentials manually instead
                             </button>
@@ -2894,7 +2894,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             You can find your token at{' '}
                             <button
                                 onClick={() => window.electronAPI?.openExternal?.('https://dps.report/getUserToken')}
-                                className="axi-ink-meta hover:text-blue-300 underline transition-colors"
+                                className="axi-link transition-colors"
                             >
                                 dps.report/getUserToken
                             </button>
@@ -3134,7 +3134,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             <button
                                 type="button"
                                 onClick={() => window.electronAPI?.openExternal?.('https://www.arena.net/en/legal/content-terms-of-use')}
-                                className="axi-ink-meta hover:text-blue-200 underline underline-offset-2"
+                                className="axi-link"
                             >
                                 Content Terms of Use
                             </button>
@@ -3149,7 +3149,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             <button
                                 type="button"
                                 onClick={() => window.electronAPI?.openExternal?.('https://github.com/darkharasho/axibridge/blob/main/LICENSE')}
-                                className="axi-ink-meta hover:text-blue-200 underline underline-offset-2"
+                                className="axi-link"
                             >
                                 LICENSE
                             </button>
@@ -3157,7 +3157,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             <button
                                 type="button"
                                 onClick={() => window.electronAPI?.openExternal?.('https://github.com/darkharasho/axibridge/blob/main/THIRD_PARTY_NOTICES.md')}
-                                className="axi-ink-meta hover:text-blue-200 underline underline-offset-2"
+                                className="axi-link"
                             >
                                 THIRD_PARTY_NOTICES.md
                             </button>
@@ -3762,7 +3762,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         ])),
                         a: ({ href, children }) => (
                             <button
-                                className="axi-ink-meta underline underline-offset-2"
+                                className="axi-link"
                                 onClick={() => href && window.electronAPI.openExternal(href)}
                             >
                                 {children}

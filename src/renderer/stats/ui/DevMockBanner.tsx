@@ -22,7 +22,7 @@ export const DevMockBanner = ({
                                 window.electronAPI.openExternal(url);
                             }
                         }}
-                        className="axi-ink-warn hover:text-amber-100 underline underline-offset-2"
+                        className="axi-link axi-ink-warn"
                     >
                         {devMockUploadState.url}
                     </button>
