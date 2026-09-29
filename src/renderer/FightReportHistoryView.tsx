@@ -1,4 +1,4 @@
-import { ChevronDown, Copy, MoreHorizontal, Search, Trash2, X } from 'lucide-react';
+import { Copy, MoreHorizontal, Search, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { ParticleHover } from './particles';
@@ -105,13 +105,11 @@ function RepoDropdown({ options, selected, onSelect }: { options: HistoryRepoOpt
             <button
                 type="button"
                 onClick={() => setOpen((v) => !v)}
-                className="w-full flex items-center justify-between rounded-[4px] pl-3 pr-3 py-2.5 text-sm text-left"
-                style={{ background: 'var(--bg-input)', border: 'var(--history-edge-w, 1px) solid var(--border-default)', color: 'var(--text-primary)' }}
+                className="axi-picker__btn justify-between"
                 aria-label="Select GitHub Pages history source"
                 aria-expanded={open}
             >
                 <span className="truncate">{selected.label}</span>
-                <ChevronDown className={`w-4 h-4 shrink-0 ml-2 transition-transform ${open ? 'rotate-180' : ''}`} style={{ color: 'var(--text-secondary)' }} />
             </button>
             {open && (
                 <div className="app-dropdown axi-panel axi-panel--tile axi-panel--float absolute z-50 mt-1 w-full overflow-auto max-h-60 [--axi-panel-pad:4px_0]">
@@ -513,23 +511,15 @@ export function FightReportHistoryView() {
                             {deleteMode && filteredEntries.length > 0 && (
                                 <button type="button"
                                     onClick={handleToggleSelectAll}
-                                    className="axi-btn axi-btn--sm"
-                                    style={{
-                                        background: 'var(--bg-input)',
-                                        color: allFilteredSelected ? 'var(--brand-primary)' : 'var(--text-secondary)',
-                                        border: `var(--history-edge-w, 1px) solid ${allFilteredSelected ? 'var(--brand-primary)' : 'var(--border-default)'}`
-                                    }}>
+                                    aria-pressed={allFilteredSelected}
+                                    className="axi-pill axi-pill--sm">
                                     {allFilteredSelected ? 'Deselect All' : `Select All (${filteredEntries.length})`}
                                 </button>
                             )}
                             <button type="button"
                                 onClick={() => { setDeleteMode((v) => !v); setSelectedForDelete(new Set()); }}
-                                className="axi-btn axi-btn--sm"
-                                style={{
-                                    background: deleteMode ? 'var(--brand-primary)' : 'var(--bg-input)',
-                                    color: deleteMode ? 'var(--on-brand, #fff)' : 'var(--text-secondary)',
-                                    border: 'var(--history-edge-w, 1px) solid var(--border-default)'
-                                }}>
+                                aria-pressed={deleteMode}
+                                className="axi-pill axi-pill--sm">
                                 {deleteMode ? 'Cancel' : 'Manage'}
                             </button>
                         </div>
@@ -558,15 +548,9 @@ export function FightReportHistoryView() {
                                     <button
                                         type="button"
                                         onClick={() => setCommanderDropdownOpen((v) => !v)}
-                                        className="axi-btn"
-                                        style={{
-                                            background: commanderFilter ? 'var(--history-filter-on-bg, color-mix(in srgb, var(--brand-primary) 15%, var(--bg-input)))' : 'var(--bg-input)',
-                                            border: `var(--history-edge-w, 1px) solid ${commanderFilter ? 'var(--brand-primary)' : 'var(--border-default)'}`,
-                                            color: commanderFilter ? 'var(--brand-primary)' : 'var(--text-secondary)',
-                                        }}
+                                        className={`axi-picker__btn justify-between ${commanderFilter ? 'axi-edge-accent' : ''}`}
                                     >
                                         <span className="truncate max-w-[140px]">{commanderFilter || 'Commander'}</span>
-                                        <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${commanderDropdownOpen ? 'rotate-180' : ''}`} />
                                     </button>
                                     {commanderDropdownOpen && (
                                         <div

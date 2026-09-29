@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParticleEffect, PRESETS, ParticleHover } from './particles';
 import { useStatsStore, hashAggregationSettings } from './stats/statsStore';
 import { AnimatePresence, motion } from 'framer-motion';
-import { FolderOpen, UploadCloud, FileText, Settings, ChevronDown, Trash2, FilePlus2, Clipboard, Check, AlertTriangle, Zap } from 'lucide-react';
+import { FolderOpen, UploadCloud, FileText, Settings, Trash2, FilePlus2, Clipboard, Check, AlertTriangle, Zap } from 'lucide-react';
 import { ExpandableLogCard } from './ExpandableLogCard';
 import { useStatsAggregationWorker } from './stats/hooks/useStatsAggregationWorker';
 import { AppLayout } from './app/AppLayout';
@@ -969,8 +969,7 @@ function App() {
                             type="button"
                             onClick={() => setWebhookDropdownOpen((prev) => !prev)}
                             ref={webhookDropdownButtonRef}
-                            className="w-full rounded-[4px] border px-2.5 h-8 flex items-center justify-between gap-2 text-[11px] transition-colors"
-                            style={{ background: 'var(--bg-input)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                            className="axi-picker__btn justify-between gap-2"
                             aria-haspopup="listbox"
                             aria-expanded={webhookDropdownOpen}
                         >
@@ -985,7 +984,6 @@ function App() {
                                     : enabledWebhookIds.length === 1 && selectedWebhook?.kind === 'bridge' && <Zap className="w-3.5 h-3.5 shrink-0 axi-ink-meta" />}
                                 <span className="truncate">{summarizeEnabledDestinations(webhooks, enabledWebhookIds)}</span>
                             </span>
-                            <ChevronDown className={`w-4 h-4 axi-ink-faint shrink-0 transition-transform ${webhookDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
                     </div>
                     <ParticleHover className="shrink-0 rounded-[4px]" disabled={!particlesEnabled}>

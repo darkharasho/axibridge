@@ -1273,3 +1273,54 @@ select. Bridged utilities **83 -> 82**. Legacy custom-property references
 programmatic focus in a headless render, so the probe written for it proved
 nothing either way. What is checked is the source fact — the rule exists in
 axi.css and no migrated field suppresses it.
+
+## The presses (35 sites)
+
+The last block the fill was hiding, and the one where the most upstream
+vocabulary already existed unused.
+
+**`--axi-pill-fill` was built for the case the app hand-wrote.** The pill's own
+comment says its pressed state "fills with whatever colour the consumer has put
+on it, so the control reads as the thing it filters to rather than as a generic
+selected", set through `--axi-pill-fill`. The top-stat toggles in Settings did
+exactly that by hand: `${meta.color}1f` over the ground with a `${meta.color}66`
+edge — a colour at partial opacity over the ground, which is rule 2.
+
+Inside it was the same defect this migration keeps finding. The on-state swatch
+was painted `meta.color` on a pill about to be filled `meta.color` — invisible —
+and its check was stroked `#0f1115`, a near-black hand-picked to read against one
+of the two states. Both are `currentColor` now, which is rule 5's *inside a fill,
+the only inks are that fill's own pair*, written upstream two releases ago.
+
+**A selected card takes the accent edge, not the accent fill.** Five option
+cards (three metric choices, two close-behaviour choices) are `.axi-card`, which
+was already a pressable card — `cursor: pointer`, `text-align: left`,
+`width: 100%` — and had no consumer. Their selected state does *not* reuse
+`.axi-pill[aria-pressed]`'s accent fill: a reading-sized card filled accent puts
+a summary paragraph inside a fill, which is the trap above. `.axi-edge-accent`
+already exists in the ink layer, so this needed no upstream change. Same ruling
+as the Cloudflare panel earlier in this slice.
+
+**Three dropdown triggers, deferred since the buttons slice, are closed.**
+`.axi-picker__btn` shares every declaration with `.axi-select` — the same box
+worn by a button instead of a `<select>` — so the caret comes with it and each
+site's hand-placed `ChevronDown` was deleted as a second arrow.
+
+Also: eight round calendar arrows onto `.axi-btn--icon` (adopting the language
+means taking its corner, so they are control-radius now, not circles); the
+how-to tree's two levels onto `.axi-rail__item` with `aria-current`; four more
+two-state controls onto `.axi-pill[aria-pressed]`.
+
+**Three tests were asserting a hue, not a state.** `expect(quitBtn.className)
+.toMatch(/red/)` passed because the markup happened to spell `bg-red-500/20`. It
+tested which Tailwind colour was written, not which option is chosen. All three
+now assert `aria-pressed`, which the markup did not previously carry and which
+is the thing those tests were always about; the status edge is checked
+separately.
+
+Liveness guard, **sixth** catch: `bg-black/20`. Bridged utilities **82 -> 81**.
+Legacy custom-property references **2,335 -> 2,278**.
+
+Left deliberately: `RotationTrack`'s cast blocks, which are data marks in a
+timeline rather than controls, and the five replay-map controls written entirely
+in inline style objects — those belong with the replay chrome, not here.

@@ -101,7 +101,6 @@ export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughMo
                         <button
                             onClick={() => onLearnMore?.()}
                             className="axi-btn axi-ink-plain"
-                            style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                         >
                             <BookOpen className="w-3.5 h-3.5" />
                             How-To Guide

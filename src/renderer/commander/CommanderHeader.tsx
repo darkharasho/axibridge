@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
 import type { CommanderFightData, VerdictChip } from '../../shared/commanderTypes';
 import { normalizeMapLabel } from '../stats/utils/labelUtils';
 
@@ -112,18 +111,9 @@ function FightSelector({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="axi-btn axi-btn--sm w-full justify-between"
-        style={{
-          background: 'var(--bg-input)',
-          borderColor: open ? 'var(--brand-primary)' : 'var(--border-default)',
-          color: 'var(--text-primary)',
-        }}
+        className={`axi-picker__btn justify-between ${open ? 'axi-edge-accent' : ''}`}
       >
         <span className="truncate">{selected?.label}</span>
-        <ChevronDown
-          className={`w-3.5 h-3.5 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
-          style={{ color: 'var(--text-secondary)' }}
-        />
       </button>
       {open && (
         <div
