@@ -8,6 +8,7 @@ import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { HEALING_METRICS } from '../statsMetrics';
+import { expandedPaneProps } from './expandedPane';
 
 type HealingSectionProps = {
     activeHealingMetric: string;
@@ -52,16 +53,7 @@ export const HealingSection = ({
         </span>
     );
     return (
-    <div
-        className={`${
-            expandedSection === 'healing-stats'
-                ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${
-                    expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
-                }`
-                : ''
-        }`}
-        style={expandedSection === 'healing-stats' ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
-    >
+    <div {...expandedPaneProps(expandedSection === 'healing-stats', expandedSectionClosing)}>
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
             <HeartPulse className="w-4 h-4 shrink-0" style={{ color: 'var(--section-healing)' }} />
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>

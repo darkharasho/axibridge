@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Maximize2, X, GitCompareArrows } from 'lucide-react';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
+import { expandedPaneProps } from './expandedPane';
 
 type DiffFightRow = {
     id: string;
@@ -144,10 +145,7 @@ export const FightDiffModeSection = () => {
     );
 
     return (
-        <div
-            className={`${expandedSection === 'fight-diff-mode' ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
-            style={expandedSection === 'fight-diff-mode' ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
-        >
+        <div {...expandedPaneProps(expandedSection === 'fight-diff-mode', expandedSectionClosing)}>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <GitCompareArrows className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Fight Comparison</h3>

@@ -13,6 +13,7 @@ import {
     type ModSummary,
     type ModTotals,
 } from './damageModifierSummaries';
+import { expandedPaneProps } from './expandedPane';
 
 type DamageModifiersSectionProps = {
     search: string;
@@ -145,10 +146,7 @@ export const DamageModifiersSection = ({
     ]), [selectedColumnIds, selectedPlayers]);
 
     return (
-        <div
-            className={`${isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
-            style={isExpanded ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
-        >
+        <div {...expandedPaneProps(isExpanded, expandedSectionClosing)}>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 {incoming
                     ? <ShieldOff className="w-4 h-4 shrink-0" style={{ color: 'var(--section-defense)' }} />

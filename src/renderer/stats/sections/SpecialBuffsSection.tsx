@@ -9,6 +9,7 @@ import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { InlineIconLabel } from '../ui/StatsViewShared';
 import { useStatsSharedContext } from '../StatsViewContext';
+import { expandedPaneProps } from './expandedPane';
 
 type SpecialBuffsSectionProps = {
     specialSearch: string;
@@ -107,13 +108,7 @@ export const SpecialBuffsSection = ({
     };
 
     return (
-        <div
-            className={`${expandedSection === 'special-buffs'
-                ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}`
-                : ''
-            }`}
-            style={expandedSection === 'special-buffs' ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
-        >
+        <div {...expandedPaneProps(expandedSection === 'special-buffs', expandedSectionClosing)}>
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
             <Star className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>

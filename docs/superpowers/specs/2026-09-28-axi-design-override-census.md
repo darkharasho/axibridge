@@ -581,3 +581,125 @@ The next candidates are unchanged: `.stats-dashboard-nav-panel` is done, so the
 largest remaining blocks are recharts (~40 selectors, third-party DOM with no
 upstream chart vocabulary), the Tailwind palette neutering (~50), and the
 `.modal-pane` fullscreen body.
+
+## What the expanded-pane slice found
+
+### The two stylesheets were arguing, and both were wrong
+
+`index.css` drew a modal's chrome on `.modal-pane` — a 1px outline, a
+`--radius-md` corner and a `--shadow-card` block — and `axi-design.css` then
+spent five declarations taking all three back off. That pair had been sitting
+there through every slice of this exercise. Reading them together is what named
+the object: rule 3 outlines a raised element and rule 5 gives it a block, and
+both are claims about an **edge**. A pane pinned to all four sides has no edge on
+screen to outline and nothing behind it this language is entitled to cast on. So
+the cancelling block was right about the design and wrong about where to say it,
+and the drawing block was simply wrong.
+
+Upstream had no word for the object. Three were close and all three miss, which
+is the test for whether a new one is earned:
+
+- **Not `.axi-modal`.** A `<dialog>` in the top layer, with a scrim and the page
+  inert behind it. A sheet is *in* the page, and what it replaces is the view,
+  not the reader's attention.
+- **Not `.axi-drawer--full`.** A drawer is pinned to three edges with the page
+  live beside it, and that live strip is what pays for its float fill, its
+  leading outline and its scrim. Widen it to the fourth edge and all three go
+  away — a different object wearing a modifier, not a wider drawer.
+- **Not `.axi-panel`.** See above: no edge, so no outline and no block.
+
+So `.axi-sheet`, released as axi-design 1.27.0, on its own rung in the layer
+stack (45: above the masthead and the popovers, because a sheet covers the view
+and those are part of the view; below the scrim, because a modal opened *from* a
+sheet has to land on top of it).
+
+### The app had a real glass bug, and the naming exposed it
+
+`axi-design.css` set `--pane-bg: var(--axi-ground)` — a flat colour. Under glass
+the page's light is `--axi-ground-image`, three radial gradients on `body`. So
+expanding a stats section switched the page light **off**, and closing it
+switched the light back on. Nobody had reported it; it took writing down what a
+sheet *is* to see it. A sheet is the page for as long as it is open, so it paints
+the ground's image as well as the ground's colour.
+
+### The shorthand trap, which shipped broken
+
+1.27.0's sheet read the ground as `background: var(--axi-ground)
+var(--axi-ground-image)`, and **painted nothing at all, in either theme**. The
+`background` shorthand only accepts a colour in its *final* layer;
+`--axi-ground-image` is a comma-separated list of three gradients under glass, so
+the colour lands in the first layer, the whole declaration is invalid, and it
+drops. A sheet with no fill over a live page.
+
+Nothing in 423 upstream tests noticed, and nothing could have: the CSS parses and
+the tokens resolve. Only a browser computing the value shows the loss, which is
+what found it — the in-browser probe reported `backgroundColor: rgba(0, 0, 0, 0)`
+and `backgroundImage: none`. Fixed in 1.27.1 with the two longhands `base.css`
+already uses for `body`, plus a text-level guard with the same reach as the bug:
+`--axi-ground-image` is only ever read through `background-image`, asserted
+across every source file, both polarities pinned.
+
+**The lesson generalises past this token.** A design language that hands consumers
+a token whose value may be a multi-layer image cannot also let them reach for the
+shorthand. The two-token split the token block already documents
+(`--axi-ground` stays a colour because the plot and the select read it as
+`background-color`) has a second half nobody had written down: the *image* half
+has a property it must be read by, too.
+
+### Thirty copies of one string
+
+Every one of the 30 expanded stats sections spelled the pane out by hand:
+
+```
+fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 …
+```
+
+plus an inline `style` shim threaded through all thirty, because when the fill
+moved to a custom property there was no single place to change. `expandedPane.ts`
+is that place now; the call sites are one spread each, and the slice is −99 lines
+net across the thirty files.
+
+None of those utilities could have survived even if we had wanted them: `axi.css`
+is imported *after* Tailwind's utilities, so at equal specificity `.axi-sheet`
+wins every property they set. A `p-4` left on the element would silently do
+nothing — which is why the three sections that want 16px pass it through
+`--axi-sheet-pad` instead of a class.
+
+### What stays app-side, and why
+
+- **`.modal-pane`** stays on the element. It is not chrome any more; it is the
+  hook the grow/shrink animation, the horizontal-scrollbar rules for dense tables
+  inside a pane, and three test locators all key on. It must not go on the
+  viewer guard's `RETIRED` list.
+- **The motion.** A pane grows out of the card it replaced and shrinks back into
+  it. The language rations that kind of thing rather than shipping it.
+- **Two structural aliases.** Upstream ships `.axi-sheet__head` and
+  `.axi-sheet__body`, and the app cannot use either class: both elements are the
+  section's own heading row and content block in the *collapsed* state too, so
+  each is only a sheet part while the sheet is open, and no static class can say
+  that. `> :first-child` and `> :last-child` alias them, matching the upstream
+  rules property for property.
+- **The two knobs.** `--axi-sheet-top` (the app has a custom title bar above the
+  pane; the web report does not) and `--axi-sheet-pad` (the web report runs on
+  phones, where the bottom of the viewport can sit under a home indicator).
+
+### What this leaves
+
+`index.css` loses roughly 30 lines of pane geometry and gains two knob rules.
+`axi-design.css` drops to 213 rules — the whole cancelling block is gone and only
+the heading alias survives. Two new contract guards, both mutation-checked: the
+pane rule may draw no chrome for anything to cancel, and the pane's position must
+come through the sheet knobs rather than its own `top`/`height` pair. The second
+one had to be narrowed once: scoped to selectors that *end* at `.modal-pane`,
+because the dense tables inside a pane legitimately set their own height.
+
+Still open, and now the largest blocks: recharts (~40 selectors, third-party DOM
+with no upstream chart vocabulary), the Tailwind palette neutering (~50, a
+codemod rather than an adoption), and `.report-shell-card`, which holds the last
+`--panel-border-w` lever deliberately — `src/web/reportShell.css` loads before the
+viewer bundle, so it cannot assume `axi.css` is present.
+
+One thing this slice noticed and did not do: the pane's close button
+(`[aria-label^="Close "]`) is still reskinned in `axi-design.css` and written with
+inline styles at each site. It is a control, and it belongs to the Buttons family
+slice along with the other 16 — not here.

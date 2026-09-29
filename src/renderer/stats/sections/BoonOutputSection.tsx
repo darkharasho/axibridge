@@ -10,6 +10,7 @@ import { StatsTableShell } from '../ui/StatsTableShell';
 import { InlineIconLabel } from '../ui/StatsViewShared';
 import { useMetricSectionState } from '../hooks/useMetricSectionState';
 import { useStatsSharedContext } from '../StatsViewContext';
+import { expandedPaneProps } from './expandedPane';
 
 type BoonOutputSectionProps = {
     activeBoonCategory: string;
@@ -77,13 +78,7 @@ export const BoonOutputSection = ({
         icon: boon.icon ? <img src={boon.icon} alt="" className="h-4 w-4 object-contain" /> : undefined
     }));
     return (
-    <div
-        className={`${expandedSection === 'boon-output'
-            ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}`
-            : ''
-        }`}
-        style={expandedSection === 'boon-output' ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
-    >
+    <div {...expandedPaneProps(expandedSection === 'boon-output', expandedSectionClosing)}>
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
             <span className="flex shrink-0" style={{ color: 'var(--section-boon)' }}><Gw2BoonIcon className="w-4 h-4" /></span>
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
