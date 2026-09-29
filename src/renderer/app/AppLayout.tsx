@@ -481,8 +481,12 @@ export function AppLayout({ ctx }: { ctx: any }) {
             {webhookDropdownOpen && webhookDropdownStyle && createPortal(
                 <div
                     ref={webhookDropdownPortalRef}
-                    className="app-dropdown rounded-[4px] overflow-hidden border"
-                    style={{ ...webhookDropdownStyle, background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-dropdown)' } as React.CSSProperties}
+                    /* The inline --shadow-dropdown here is what the override layer needed
+                       !important for: that token is the panel-sized block, so the one
+                       dropdown painting its own shadow was the one not taking the control
+                       step. The tile brings the right block, so the literal goes. */
+                    className="app-dropdown axi-panel axi-panel--tile axi-panel--float overflow-hidden [--axi-panel-pad:0]"
+                    style={webhookDropdownStyle as React.CSSProperties}
                     role="listbox"
                 >
                     <div className="relative z-10 max-h-64 overflow-y-auto">

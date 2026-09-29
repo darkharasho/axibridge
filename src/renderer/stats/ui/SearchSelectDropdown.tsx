@@ -126,13 +126,7 @@ export const SearchSelectDropdown = ({
             />
             {open && (
                 <div
-                    className="app-dropdown stats-popover absolute z-30 mt-2 w-64 border p-2 text-xs"
-                    style={{
-                        borderRadius: 'var(--radius-md)',
-                        borderColor: 'var(--border-default)',
-                        background: 'var(--bg-elevated)',
-                        boxShadow: 'var(--shadow-dropdown)',
-                    }}
+                    className="app-dropdown axi-panel axi-panel--tile axi-panel--float stats-popover absolute z-30 mt-2 w-64 text-xs [--axi-panel-pad:8px]"
                 >
                     {filteredOptions.length === 0 ? (
                         <div className="px-2 py-2 italic" style={{ color: 'var(--text-muted)' }}>No matches</div>

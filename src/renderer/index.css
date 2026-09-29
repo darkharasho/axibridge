@@ -1592,9 +1592,14 @@ body.web-report {
    (0,3,0), which clears the whole remap layer. The deleted rules did the same
    job by being two body classes deep. */
 
-/* Dropdowns, popovers and tooltips - the page moves behind all of them. */
-[data-axi-accent][data-axi-theme="glass"] .app-dropdown,
-[data-axi-accent][data-axi-theme="glass"] .stats-popover {
+/* The chrome that still draws its own frame inline: the replay map's bars and
+   legends, its two 28px spine strips, and the fight-slice tray. The ten real
+   dropdowns are gone from here - they are .axi-panel--float now and read
+   --axi-surface-float, which glass restates as a gradient at .97 rather than
+   the flat colour below, so leaving them in this rule would have cost them the
+   145deg tilt that makes a pane read as glass. .app-opaque-float is what is
+   left, and it retires with the replay chrome. */
+[data-axi-accent][data-axi-theme="glass"] .app-opaque-float {
   background: rgba(15, 18, 25, 0.97) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -1730,7 +1735,7 @@ body.web-report {
    Two descendant steps rather than one compound selector: the theme attributes
    are on <html> and `bulk-uploading` on <body>, so asking one element to carry
    both would match nothing. */
-[data-axi-accent][data-axi-theme="glass"] body.bulk-uploading .app-dropdown,
+[data-axi-accent][data-axi-theme="glass"] body.bulk-uploading .app-opaque-float,
 [data-axi-accent][data-axi-theme="glass"] body.bulk-uploading .app-sticky-bar,
 [data-axi-accent][data-axi-theme="glass"] body.bulk-uploading .stats-dashboard-nav-panel {
   backdrop-filter: none !important;

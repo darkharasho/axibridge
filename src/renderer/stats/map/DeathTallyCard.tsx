@@ -58,7 +58,7 @@ const DeathTallyCardInner: React.FC<{ members: SquadMemberMovement[]; timeMs: nu
             data-death-tally
             title="Players lying dead right now, hidden from the map. Click to show them."
             onClick={() => setReplayLayer('showDead', true)}
-            className="app-dropdown"
+            className="app-dropdown app-opaque-float"
             style={{
                 display: 'flex', flexDirection: 'column', gap: 2,
                 padding: '5px 8px', borderRadius: 8,

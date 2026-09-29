@@ -74,7 +74,7 @@ describe('index.css', () => {
     // the full `[data-axi-accent][data-axi-theme="glass"]` prefix is what actually catches that.
     it('re-expresses the opaque floating surfaces under the glass theme, at the specificity that wins', () => {
         for (const selector of [
-            '[data-axi-accent][data-axi-theme="glass"] .app-dropdown',
+            '[data-axi-accent][data-axi-theme="glass"] .app-opaque-float',
             '[data-axi-accent][data-axi-theme="glass"] .app-sticky-bar',
             '[data-axi-accent][data-axi-theme="glass"] .stats-dashboard-nav-panel',
         ]) {

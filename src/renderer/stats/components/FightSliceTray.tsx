@@ -154,7 +154,7 @@ export const FightSliceTray = ({ onClose }: { onClose: () => void }) => {
 
     return (
         <div
-            className="app-dropdown border-b border-[color:var(--border-default)] bg-[var(--bg-card)] shadow-[var(--shadow-dropdown)]"
+            className="app-dropdown app-opaque-float border-b border-[color:var(--border-default)] bg-[var(--bg-card)] shadow-[var(--shadow-dropdown)]"
             onKeyDown={handleKeyDown}
         >
             <div className="flex items-center gap-2 border-b border-[color:var(--border-subtle)] px-3 py-2">

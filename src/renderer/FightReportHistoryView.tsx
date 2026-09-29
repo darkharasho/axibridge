@@ -114,7 +114,7 @@ function RepoDropdown({ options, selected, onSelect }: { options: HistoryRepoOpt
                 <ChevronDown className={`w-4 h-4 shrink-0 ml-2 transition-transform ${open ? 'rotate-180' : ''}`} style={{ color: 'var(--text-secondary)' }} />
             </button>
             {open && (
-                <div className="app-dropdown absolute z-50 mt-1 w-full rounded-[4px] py-1 overflow-auto max-h-60" style={{ background: 'var(--bg-card)', border: 'var(--history-edge-w, 1px) solid var(--border-hover)', boxShadow: 'var(--shadow-dropdown)' }}>
+                <div className="app-dropdown axi-panel axi-panel--tile axi-panel--float absolute z-50 mt-1 w-full overflow-auto max-h-60 [--axi-panel-pad:4px_0]">
                     {options.map((option) => (
                         <button
                             key={option.key}
@@ -575,8 +575,7 @@ export function FightReportHistoryView() {
                                     </button>
                                     {commanderDropdownOpen && (
                                         <div
-                                            className="app-dropdown absolute z-50 mt-1 right-0 w-56 rounded-[4px] py-1 overflow-auto max-h-60"
-                                            style={{ background: 'var(--bg-card)', border: 'var(--history-edge-w, 1px) solid var(--border-hover)', boxShadow: 'var(--shadow-dropdown)' }}
+                                            className="app-dropdown axi-panel axi-panel--tile axi-panel--float absolute z-50 mt-1 right-0 w-56 overflow-auto max-h-60 [--axi-panel-pad:4px_0]"
                                         >
                                             <button
                                                 type="button"
@@ -690,12 +689,7 @@ export function FightReportHistoryView() {
                                             </button>
                                             {menuOpenId === entry.id && (
                                                 <div
-                                                    className="app-dropdown absolute right-0 top-full mt-1 w-36 rounded-[4px] py-1 z-50"
-                                                    style={{
-                                                        background: 'var(--bg-card)',
-                                                        border: 'var(--history-edge-w, 1px) solid var(--border-hover)',
-                                                        boxShadow: 'var(--shadow-dropdown)',
-                                                    }}
+                                                    className="app-dropdown axi-panel axi-panel--tile axi-panel--float absolute right-0 top-full mt-1 w-36 z-50 [--axi-panel-pad:4px_0]"
                                                 >
                                                     <button
                                                         type="button"

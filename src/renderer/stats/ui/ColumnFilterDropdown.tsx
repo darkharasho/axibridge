@@ -57,7 +57,7 @@ export const ColumnFilterDropdown = ({
                 )}
             </button>
             {open && (
-                <div className="absolute z-20 mt-2 w-56 p-2 text-xs app-dropdown" style={{ border: 'var(--panel-border-w, 1px) solid var(--border-default)', borderRadius: 'var(--radius-md)', background: 'var(--bg-elevated)', boxShadow: 'var(--shadow-dropdown)' }}>
+                <div className="absolute z-20 mt-2 w-56 text-xs app-dropdown axi-panel axi-panel--tile axi-panel--float [--axi-panel-pad:8px]">
                     <div className="flex items-center justify-between px-2 pb-2 text-[11px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
                         <span>Filter Columns</span>
                         <button

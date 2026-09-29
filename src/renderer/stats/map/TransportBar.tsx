@@ -51,7 +51,7 @@ const LanesGlyph: React.FC = () => (
  * keeps that true of the entire plot surface, with no corner where a click
  * toggles instead of seeking.
  *
- * `.app-dropdown` only paints a background under the glass themes (see
+ * `.app-opaque-float` only paints a background under the glass themes (see
  * index.css) — the default theme leaves it transparent, which would make
  * this bar see-through over the map since blur doesn't work on this
  * platform. An explicit `background` keeps it opaque everywhere while
@@ -65,7 +65,7 @@ const TransportBarInner: React.FC<TransportBarProps> = ({ fight, style }) => {
 
     return (
         <div
-            className="app-dropdown"
+            className="app-dropdown app-opaque-float"
             style={{
                 display: 'flex', alignItems: 'center', gap: 9,
                 padding: '4px 7px', borderRadius: 10,
