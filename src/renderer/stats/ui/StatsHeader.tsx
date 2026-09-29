@@ -193,19 +193,19 @@ export const StatsHeader = ({
                         onClick={onSearchClick}
                         title="Search (Ctrl+K)"
                         aria-label="Search"
-                        className="bridge-search-trigger flex h-[30px] w-full items-center gap-2.5 rounded-[4px] px-2.5 text-[12px] transition-colors"
+                        className="axi-palette__trigger h-[30px]"
                     >
-                        {/* Its own element so the axi language can cap the well with
-                            an accent block instead of floating a glyph in the fill. */}
-                        <span className="bridge-search-trigger__mark flex shrink-0 items-center self-stretch">
-                            <Search className="w-3.5 h-3.5" style={{ color: 'var(--brand-primary)' }} />
+                        {/* Its own element so the language can cap the well with the
+                            glyph instead of floating it in the fill. */}
+                        <span className="axi-palette__mark">
+                            <Search className="w-3.5 h-3.5" />
                         </span>
-                        {/* Now that there is room, the trigger says what the panel's
-                            own placeholder says, so the two read as one field. */}
-                        <span className="truncate">Search sections, metrics, players</span>
+                        {/* The trigger says what the panel's own placeholder says, so
+                            the two read as one field. */}
+                        <span className="axi-palette__label">Search sections, metrics, players</span>
                         {/* The shortcut was title-attribute-only, which is to say
                             invisible on the one platform where it matters most. */}
-                        <kbd className="ml-auto shrink-0 rounded-[3px] px-1.5 py-px text-[10px] font-sans tracking-[0.04em]">Ctrl K</kbd>
+                        <kbd className="axi-kbd">Ctrl K</kbd>
                     </button>
                 )}
                 <div className="flex items-center justify-end gap-3">

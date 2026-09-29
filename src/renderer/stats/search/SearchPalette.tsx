@@ -36,7 +36,7 @@ for (const category of STATS_CATEGORIES) {
 // in the web report bundle.
 const FLASH_STYLE = `
 @keyframes axiSearchFlash {
-  0% { box-shadow: 0 0 0 3px var(--brand-primary); }
+  0% { box-shadow: 0 0 0 3px var(--axi-accent); }
   100% { box-shadow: 0 0 0 3px transparent; }
 }
 .bridge-search-flash { animation: axiSearchFlash 1.6s ease-out 2; border-radius: 4px; }
@@ -131,13 +131,13 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
     let body: ReactNode;
     if (query.trim() === '') {
         body = (
-            <div className="bridge-search-empty px-3 py-6 text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <div className="axi-palette__empty">
                 Type to search sections, metrics, and players.
             </div>
         );
     } else if (results.length === 0) {
         body = (
-            <div className="bridge-search-empty px-3 py-6 text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <div className="axi-palette__empty">
                 No results for &ldquo;{query}&rdquo;{typeFilter ? ` in ${GROUP_LABELS[typeFilter].toLowerCase()}` : ''}.
             </div>
         );
@@ -146,13 +146,8 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
             const items = results.filter((entry) => entry.type === type);
             if (items.length === 0) return null;
             return (
-                <div key={type}>
-                    <div
-                        className="bridge-search-group px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
-                        style={{ color: 'var(--text-secondary)' }}
-                    >
-                        {GROUP_LABELS[type]}
-                    </div>
+                <div key={type} className="axi-palette__section">
+                    <div className="axi-palette__group">{GROUP_LABELS[type]}</div>
                     {items.map((entry) => {
                         const idx = resultOrder.get(entry) ?? 0;
                         const isActive = idx === clampedActiveIdx;
@@ -164,16 +159,12 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
                                 type="button"
                                 onMouseEnter={() => setActiveIdx(idx)}
                                 onClick={() => selectAt(idx)}
-                                data-search-row
                                 data-active={isActive ? '' : undefined}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs"
-                                style={{ background: isActive ? 'var(--bg-hover)' : 'transparent', color: 'var(--text-primary)' }}
+                                className="axi-palette__row"
                             >
-                                {Icon && <Icon className="w-3.5 h-3.5 shrink-0 text-[color:var(--brand-primary)]" />}
+                                {Icon && <Icon className="w-3.5 h-3.5 shrink-0 text-[color:var(--axi-accent)]" />}
                                 <span className="truncate font-medium">{entry.label}</span>
-                                <span className="truncate ml-auto shrink-0 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                                    {entry.sublabel}
-                                </span>
+                                <span className="axi-palette__meta truncate">{entry.sublabel}</span>
                             </button>
                         );
                     })}
@@ -187,27 +178,27 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
             // z-[10000]: must sit above FullscreenPortal's zIndex 9999 (replay's
             // in-app fullscreen host), or Ctrl+K opens the palette invisibly
             // underneath its opaque, click-intercepting background.
-            className="fixed inset-0 z-[10000] flex items-start justify-center px-4 pt-[12vh] bg-black/60"
+            // z-[10000] overrides .axi-scrim's own z-index: 50. It has to sit
+            // above FullscreenPortal's 9999 (replay's in-app fullscreen host),
+            // or Ctrl+K opens the palette invisibly underneath its opaque,
+            // click-intercepting background.
+            className="axi-scrim axi-palette z-[10000]"
             onClick={(e) => e.target === e.currentTarget && onClose()}
         >
             {flashStyle}
             <div
-                className="bridge-search-panel w-full max-w-lg flex flex-col rounded-[4px] overflow-hidden"
-                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)', maxHeight: '70vh' }}
+                className="axi-palette__panel"
                 role="dialog"
                 aria-modal="true"
                 aria-label="Search"
             >
-                <div className="bridge-search-bar px-3 py-2.5 shrink-0" style={{ borderBottom: '1px solid var(--border-default)' }}>
+                <div className="axi-palette__bar">
                     <div className="flex items-center gap-2">
-                        {/* The glyph sits in the well rather than beside it, so the
-                            field reads as one object the way it does on the site. */}
-                        <div className="bridge-search-field relative flex-1 min-w-0">
-                            <Search
-                                className="bridge-search-icon absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-                                style={{ color: 'var(--brand-primary)' }}
-                                aria-hidden="true"
-                            />
+                        {/* .axi-search is the wrapper that reserves the room for the
+                            glyph inside the field, so the magnifier sits in the well
+                            rather than beside it and the two read as one object. */}
+                        <div className="axi-search flex-1 min-w-0">
+                            <Search className="axi-search__icon w-4 h-4" aria-hidden="true" />
                             <input
                                 ref={inputRef}
                                 type="text"
@@ -215,49 +206,34 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
                                 onChange={(e) => { setQuery(e.target.value); setActiveIdx(0); }}
                                 onKeyDown={handleKeyDown}
                                 placeholder="Search sections, metrics, players..."
-                                className="w-full bg-transparent text-sm pl-9 focus:outline-none"
-                                style={{ color: 'var(--text-primary)' }}
+                                className="axi-input"
                             />
                         </div>
-                        <kbd
-                            className="text-[10px] px-1.5 py-0.5 rounded-sm shrink-0"
-                            style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)' }}
-                        >
-                            Esc
-                        </kbd>
+                        <kbd className="axi-kbd shrink-0">Esc</kbd>
                     </div>
-                    <div className="bridge-search-filters flex items-center gap-1.5 mt-2">
+                    <div className="axi-palette__filters">
                         {GROUP_ORDER.map((type) => {
                             const pressed = typeFilter === type;
                             return (
                                 <button
                                     key={type}
                                     type="button"
-                                    data-search-pill
                                     aria-pressed={pressed}
                                     // Pressing the live pill clears it, so the filter
                                     // is its own way out and needs no reset control.
                                     onClick={() => { setTypeFilter(pressed ? null : type); setActiveIdx(0); }}
-                                    className="px-2 py-1 rounded-sm text-[10px] font-semibold uppercase tracking-[0.16em]"
-                                    style={pressed
-                                        ? { background: 'var(--brand-primary)', color: 'var(--bg-base)' }
-                                        : { color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)' }}
+                                    className="axi-pill"
                                 >
                                     {GROUP_LABELS[type]}
                                 </button>
                             );
                         })}
-                        <span
-                            data-search-count
-                            aria-live="polite"
-                            className="ml-auto shrink-0 text-[10px] uppercase tracking-[0.16em]"
-                            style={{ color: 'var(--text-secondary)' }}
-                        >
+                        <span data-search-count aria-live="polite" className="axi-palette__count">
                             {countLabel}
                         </span>
                     </div>
                 </div>
-                <div className="bridge-search-results overflow-y-auto py-1">
+                <div className="axi-palette__list">
                     {body}
                 </div>
             </div>
