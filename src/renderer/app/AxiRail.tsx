@@ -22,31 +22,31 @@ export function AxiRail({ unpublishedCategoryIds }: AxiRailProps) {
     const { activeCategory, activeSectionId, handleCategoryClick, handleSectionClick } = useCategoryNavigation();
 
     return (
-        <aside className="bridge-rail">
-            <nav className="bridge-rail__nav">
+        <aside className="axi-rail">
+            <nav className="axi-rail__nav">
                 {STATS_CATEGORIES.map((category) => {
                     const isActiveCategory = category.id === activeCategory;
                     return (
                         <div key={category.id}>
                             <button
                                 type="button"
-                                className="bridge-rail__item"
+                                className="axi-rail__item"
                                 aria-current={isActiveCategory ? 'page' : undefined}
                                 onClick={() => handleCategoryClick(category.id)}
                             >
                                 {category.label}
                                 {unpublishedCategoryIds?.has(category.id) && (
-                                    <span className="bridge-rail__mark" title="Left out of published reports">Local</span>
+                                    <span className="axi-rail__mark" title="Left out of published reports">Local</span>
                                 )}
                             </button>
                             {isActiveCategory && category.sections.length > 1 && (
-                                <div className="bridge-rail__sections">
+                                <div className="axi-rail__sub">
                                     {category.sections.map((section) => (
                                         <button
                                             key={section.id}
                                             type="button"
-                                            className="bridge-rail__section"
-                                            data-on={activeSectionId === section.id ? '' : undefined}
+                                            className="axi-rail__subitem"
+                                            aria-current={activeSectionId === section.id ? 'location' : undefined}
                                             onClick={() => handleSectionClick(section.id)}
                                         >
                                             {section.label}
