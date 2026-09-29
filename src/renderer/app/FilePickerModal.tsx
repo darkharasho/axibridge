@@ -444,7 +444,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                             transition={{ duration: 0.15 }}
                                         >
                                             <div className="flex flex-col gap-4">
-                                                <div className="file-picker-panel flex-1 rounded-[4px] p-4 w-full" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
+                                                <div className="file-picker-panel axi-well axi-well--sm flex-1 w-full" style={{ '--axi-well-pad': '16px' } as React.CSSProperties}>
                                                     <div className="flex items-center justify-between mb-2">
                                                         <button
                                                             onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
@@ -565,7 +565,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                         >
                                             <div className="flex flex-col gap-4">
                                                 <div className="flex flex-col gap-3">
-                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
+                                                    <div className="file-picker-panel axi-well axi-well--sm flex-1" style={{ '--axi-well-pad': '16px' } as React.CSSProperties}>
                                                         <div className="flex items-center justify-between mb-2">
                                                             <button
                                                                 onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
@@ -665,7 +665,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                             );
                                                         })()}
                                                     </div>
-                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
+                                                    <div className="file-picker-panel axi-well axi-well--sm flex-1" style={{ '--axi-well-pad': '16px' } as React.CSSProperties}>
                                                         <div className="text-xs uppercase tracking-widest axi-ink-meta mb-2">Time</div>
                                                         <div className="grid grid-cols-3 gap-2">
                                                             <div>
@@ -744,7 +744,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                         >
                                             <div className="flex flex-col gap-4">
                                                 <div className="flex flex-col gap-3">
-                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
+                                                    <div className="file-picker-panel axi-well axi-well--sm flex-1" style={{ '--axi-well-pad': '16px' } as React.CSSProperties}>
                                                         <div className="text-[10px] axi-ink-dim mb-1">Start</div>
                                                         <input
                                                             type="datetime-local"
@@ -755,7 +755,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                             style={{ colorScheme: 'dark', background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                                                         />
                                                     </div>
-                                                    <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
+                                                    <div className="file-picker-panel axi-well axi-well--sm flex-1" style={{ '--axi-well-pad': '16px' } as React.CSSProperties}>
                                                         <div className="text-[10px] axi-ink-dim mb-1">End</div>
                                                         <input
                                                             type="datetime-local"
@@ -840,7 +840,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                             )}
 
                             {/* File list */}
-                            <div className="file-picker-panel min-h-[140px] flex-1 overflow-hidden flex flex-col relative mx-3 my-3 rounded-[4px]" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
+                            <div className="file-picker-panel axi-well axi-well--sm min-h-[140px] flex-1 overflow-hidden flex flex-col relative mx-3 my-3" style={{ '--axi-well-pad': '0' } as React.CSSProperties}>
                                 {filePickerLoading ? (
                                     <div className="flex-1 flex items-center justify-center text-sm axi-ink-faint">
                                         <motion.div

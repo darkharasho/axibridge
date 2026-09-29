@@ -836,27 +836,27 @@ export const CommanderStatsSection = ({
                     {selectedCommander && (
                         <div className="space-y-4 min-w-0">
                             <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2">
-                                <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2">
+                                <div className="axi-well axi-well--sm" style={{ '--axi-well-pad': '8px 12px' } as React.CSSProperties}>
                                     <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Time Tagged</div>
                                     <div className="text-sm font-semibold axi-ink-plain">{formatDuration(selectedCommander.totalDurationMs)}</div>
                                 </div>
-                                <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2">
+                                <div className="axi-well axi-well--sm" style={{ '--axi-well-pad': '8px 12px' } as React.CSSProperties}>
                                     <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Inc. Strips</div>
                                     <div className="text-sm font-semibold axi-ink-plain">{formatInt(selectedCommander.incomingStrips)}</div>
                                 </div>
-                                <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2">
+                                <div className="axi-well axi-well--sm" style={{ '--axi-well-pad': '8px 12px' } as React.CSSProperties}>
                                     <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Inc. CC</div>
                                     <div className="text-sm font-semibold axi-ink-plain">{formatInt(selectedCommander.incomingCC)}</div>
                                 </div>
-                                <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2">
+                                <div className="axi-well axi-well--sm" style={{ '--axi-well-pad': '8px 12px' } as React.CSSProperties}>
                                     <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Damage Taken</div>
                                     <div className="text-sm font-semibold axi-ink-plain">{formatInt(selectedCommander.damageTaken)}</div>
                                 </div>
-                                <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2">
+                                <div className="axi-well axi-well--sm" style={{ '--axi-well-pad': '8px 12px' } as React.CSSProperties}>
                                     <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Barrier Absorbed</div>
                                     <div className="text-sm font-semibold axi-ink-plain">{formatInt(selectedCommander.incomingBarrierAbsorbed)}</div>
                                 </div>
-                                <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-3 py-2">
+                                <div className="axi-well axi-well--sm" style={{ '--axi-well-pad': '8px 12px' } as React.CSSProperties}>
                                     <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Boon Uptime</div>
                                     <div className="text-sm font-semibold axi-ink-plain">{formatRate(selectedCommander.boonUptimePct, 1)}%</div>
                                 </div>

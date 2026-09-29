@@ -75,12 +75,12 @@ export function HistoryReparseCard({
     const busy = healState.running;
 
     return (
-        <div className="bg-black/30 border axi-edge-rule rounded-[4px] p-4 mb-4" data-testid="history-reparse-card">
+        <div className="axi-well axi-well--sm mb-4" style={{ '--axi-well-pad': '16px' } as React.CSSProperties} data-testid="history-reparse-card">
             <div className="text-xs uppercase tracking-widest axi-ink-faint mb-3">Log History</div>
             <p className="text-sm axi-ink-dim mb-3">
                 Logs parsed before Axilog — or by the Elite Insights engine — carry no Axilog data, so damage,
                 positioning, boons and replay come out empty for them. Re-parsing reads the original
-                <code className="mx-1 axi-ink-dim">.zevtc</code> files again and fills that back in.
+                <code className="axi-code mx-1">.zevtc</code> files again and fills that back in.
             </p>
 
 

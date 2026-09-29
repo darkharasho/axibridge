@@ -1,4 +1,4 @@
-import type { ReactNode, Ref } from 'react';
+import type { CSSProperties, ReactNode, Ref } from 'react';
 import { X as CloseIcon } from 'lucide-react';
 
 export type ProofOfWorkTocItem = {
@@ -142,8 +142,23 @@ export function ProofOfWorkModal<TToc extends ProofOfWorkTocItem, TResult extend
                                     })}
                                 </div>
                             </div>
-                            <div className="proof-of-work-content h-full overflow-y-auto pr-2 rounded-xl border axi-edge-rule bg-black/30 p-4" ref={contentRef} id="metrics-spec-content">
-                                <div className="space-y-4 text-sm axi-ink-plain">
+                            {/* A well at page-column scale — a reading pane sunk into the
+                                modal — so it keeps the base radius rather than `--sm`, and
+                                states its pad because a column of prose wants more room than
+                                the well's 10px default, which is sized for a container of
+                                objects that bring their own padding.
+
+                                `.axi-prose` inside it is the language's markdown typography.
+                                Both of this modal's callers render a ReactMarkdown here, and
+                                before this each had spelled out its own h1-h3/p/ul/ol/li/
+                                blockquote/table/th/td/pre/code map. */}
+                            <div
+                                className="proof-of-work-content axi-well h-full overflow-y-auto pr-2"
+                                style={{ '--axi-well-pad': '16px' } as CSSProperties}
+                                ref={contentRef}
+                                id="metrics-spec-content"
+                            >
+                                <div className="axi-prose">
                                     {children}
                                 </div>
                             </div>

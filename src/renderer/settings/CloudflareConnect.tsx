@@ -16,13 +16,18 @@ interface Props {
     onChanged?: () => void;
 }
 
+// Not `.axi-notice`: that is a page-level banner at panel weight with a block,
+// and its tone modifiers only tint the icon and the bold run inside it. This is a
+// status strip inside a settings card, so it is a reading-scale well wearing a
+// status edge — which is rule 5's own answer for saying status on an outlined
+// thing. The tinted fills it replaces (`bg-emerald-400/5`, `bg-amber-400/5`) were
+// rule 2 exactly: a colour at partial opacity over the ground.
 const Panel = ({ children, tone }: { children: React.ReactNode; tone: 'neutral' | 'good' | 'bad' }) => (
     <div
-        className={`mb-4 rounded-[6px] border px-3.5 py-3 ${
-            tone === 'good' ? 'axi-edge-ok bg-emerald-400/5'
-                : tone === 'bad' ? 'axi-edge-warn bg-amber-400/5'
-                    : 'axi-edge-rule bg-black/20'
+        className={`axi-well axi-well--sm mb-4 ${
+            tone === 'good' ? 'axi-edge-ok' : tone === 'bad' ? 'axi-edge-warn' : ''
         }`}
+        style={{ '--axi-well-pad': '12px 14px' } as React.CSSProperties}
     >
         {children}
     </div>
@@ -128,7 +133,7 @@ export function CloudflareConnect({ onChanged }: Props) {
                         </p>
                         <p className="mt-1 text-[11px] axi-ink-dim truncate">
                             Bucket <span className="axi-ink-dim">{status.bucketName}</span> at{' '}
-                            <code className="rounded-[3px] border axi-edge-rule bg-black/40 px-1 axi-ink-meta">{status.publicUrl}</code>
+                            <code className="axi-code">{status.publicUrl}</code>
                         </p>
                         {adopted && (
                             <p className="mt-1 text-[11px] axi-ink-faint">

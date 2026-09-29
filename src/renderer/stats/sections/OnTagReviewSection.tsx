@@ -87,14 +87,12 @@ export const OnTagReviewSection = ({ result }: Props) => {
                 {shown.map((r, i) => (
                     <span
                         key={`${r}-${i}`}
-                        className="inline-block px-1.5 py-0.5 rounded text-[10px] font-mono"
-                        style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)', color: 'var(--status-warning)' }}
+                        className="axi-chip axi-ink-warn font-mono"
                     >{formatWithCommas(r, 0)}</span>
                 ))}
                 {rest.length > 0 && (
                     <span
-                        className="inline-block px-1.5 py-0.5 rounded text-[10px]"
-                        style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
+                        className="axi-chip"
                         title={rest.map(r => formatWithCommas(r, 0)).join(', ')}
                     >+{rest.length}</span>
                 )}

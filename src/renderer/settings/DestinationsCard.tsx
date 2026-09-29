@@ -185,8 +185,8 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                     return (
                         <div
                             key={webhook.id}
-                            className="rounded-[4px] p-4 group transition-colors"
-                            style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
+                            className="axi-well axi-well--sm group transition-colors"
+                            style={{ '--axi-well-pad': '16px' } as React.CSSProperties}
                         >
                             {editingId === webhook.id ? (
                                 <div className="space-y-3">
@@ -277,13 +277,13 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                                     </div>
                                     {isBridge && needsRelink && (
                                         <p className="mt-2 text-[11px] axi-ink-warn">
-                                            This link was revoked. Run <code className="rounded-[3px] border axi-edge-rule bg-black/40 px-1 axi-ink-meta">/bridge pair</code> in Discord again and paste the new key below to restore delivery.
+                                            This link was revoked. Run <code className="axi-code">/bridge pair</code> in Discord again and paste the new key below to restore delivery.
                                         </p>
                                     )}
                                     {isBridge && !needsRelink && (
                                         <>
                                             <p className="mt-2 text-[11px] axi-ink-faint">
-                                                Also run <code className="rounded-[3px] border axi-edge-rule bg-black/40 px-1 axi-ink-meta">/bridge revoke</code> in Discord to invalidate the key.
+                                                Also run <code className="axi-code">/bridge revoke</code> in Discord to invalidate the key.
                                             </p>
                                             {/* Fix round 1, items 6/7: this note lived only inside the
                                                 isLinking form, so it vanished the moment linking
@@ -302,7 +302,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
 
             {/* Add New Webhook Form */}
             {isAdding && (
-                <div className="rounded-[4px] p-4 space-y-3 mb-3" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
+                <div className="axi-well axi-well--sm space-y-3 mb-3" style={{ '--axi-well-pad': '16px' } as React.CSSProperties}>
                     <div className="text-sm font-medium axi-ink-meta mb-2">New Webhook</div>
                     <input
                         type="text"
@@ -340,7 +340,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
 
             {/* Link AxiTools Channel Form */}
             {isLinking && (
-                <div className="rounded-[4px] p-4 space-y-3 mb-3" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
+                <div className="axi-well axi-well--sm space-y-3 mb-3" style={{ '--axi-well-pad': '16px' } as React.CSSProperties}>
                     <div className="text-sm font-medium axi-ink-meta mb-2">Link AxiTools channel</div>
                     <div>
                         <label className="block text-xs axi-ink-dim mb-1">AxiTools bridge key</label>
@@ -353,7 +353,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                             autoFocus
                         />
                         <p className="mt-1.5 text-xs axi-ink-faint">
-                            In Discord, run <code className="rounded-[3px] border axi-edge-rule bg-black/40 px-1 axi-ink-meta">/bridge pair</code> in the channel that should receive reports, then paste the key here.
+                            In Discord, run <code className="axi-code">/bridge pair</code> in the channel that should receive reports, then paste the key here.
                         </p>
                     </div>
                     {/* Fix round 1 (task 8 review): the "posted by the Axi bot" note used

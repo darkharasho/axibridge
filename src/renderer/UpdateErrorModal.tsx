@@ -48,7 +48,7 @@ export function UpdateErrorModal({ isOpen, onClose, onRetry, error }: UpdateErro
                         <p className="axi-ink-dim mb-6">
                             An error occurred while checking for updates or downloading the update.
                         </p>
-                        <div className="rounded-[4px] p-4 font-mono text-sm axi-ink-danger overflow-x-auto" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
+                        <div className="axi-well axi-well--sm font-mono text-sm axi-ink-danger overflow-x-auto" style={{ '--axi-well-pad': '16px' } as React.CSSProperties}>
                             {error || 'Unknown error'}
                         </div>
                     </div>

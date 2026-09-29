@@ -84,8 +84,7 @@ export const SquadDistanceToTagSection = (props: Props) => {
         return (
             <span
                 title={tip}
-                className="inline-block px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wide"
-                style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
+                className="axi-chip"
             >{label}</span>
         );
     };
@@ -141,8 +140,7 @@ export const SquadDistanceToTagSection = (props: Props) => {
                         <span className="shrink-0">fights</span>
                         {filterEnabled && hiddenCount > 0 && (
                             <span
-                                className="shrink-0 px-1.5 py-0.5 rounded text-[10px]"
-                                style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}
+                                className="axi-chip shrink-0"
                             >{hiddenCount} hidden</span>
                         )}
                     </div>
