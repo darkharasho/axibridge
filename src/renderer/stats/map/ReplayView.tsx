@@ -404,20 +404,13 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
 
                         {/* 3. Member hover tooltip */}
                         {tooltip && (
-                            <div className="app-dropdown replay-member-tooltip" style={{
-                                position: 'absolute',
+                            <div className="axi-tooltip axi-tooltip--anchored" style={{
                                 left: tooltip.x + 14,
                                 top: tooltip.y - 10,
+                                /* Below the transport and the picker, above the map. Upstream's
+                                   layer 70 is for a tooltip appended to <body>; this one lives
+                                   inside the canvas wrapper and only has to clear the map. */
                                 zIndex: 40,
-                                background: 'var(--bg-elevated)',
-                                border: 'var(--panel-border-w, 1px) solid var(--border-default)',
-                                borderRadius: 6,
-                                padding: '5px 9px',
-                                fontSize: 12,
-                                color: 'var(--text-primary)',
-                                pointerEvents: 'none',
-                                whiteSpace: 'nowrap',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
                             }}>
                                 <div style={{ fontWeight: 600 }}>{tooltip.name}</div>
                                 {tooltip.account && <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 1 }}>{tooltip.account}</div>}

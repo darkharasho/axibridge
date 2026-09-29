@@ -27,10 +27,11 @@ export function ProcessingStrip({ tone = 'busy', children, className = '' }: {
             data-role="processing-strip"
             data-tone={tone}
         >
-            {/* Counts in beats rather than sweeping, and marches on the
-                compositor - which matters most here, because the thread this
-                is reporting on is the one that would otherwise freeze it. */}
-            <span className="bridge-step-spinner" aria-hidden="true"><i /><i /><i /><i /></span>
+            {/* Turns on the compositor rather than repainting - which matters
+                most here, because the thread this is reporting on is the one
+                that would otherwise freeze it. Upstream animates transform
+                only, so the mark keeps turning through a blocked render. */}
+            <span className="axi-spinner" aria-hidden="true" style={{ '--axi-spinner-size': '12px' } as CSSProperties} />
             <span>{children}</span>
         </div>
     );

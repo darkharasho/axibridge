@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import { memo, useCallback, useMemo, useRef, useState, useEffect, type CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Swords, Shield, Hammer, Wind, MessageSquare, FolderOpen } from 'lucide-react';
 import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeightProfiles, DEFAULT_MVP_WEIGHT_PROFILES, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, IParserSettings, IParserStatus } from './global.d';
@@ -1682,7 +1682,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     step={1}
                                     value={embedStats.maxTopListRows}
                                     onChange={(e) => updateMaxTopRows(Number(e.target.value))}
-                                    className="flex-1 accent-blue-400"
+                                    className="flex-1"
+                                    style={{ accentColor: 'var(--axi-accent)' }}
                                 />
                                 <div className="min-w-8 shrink-0 text-right text-sm text-gray-300 font-mono">
                                     {embedStats.maxTopListRows}
@@ -2423,7 +2424,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     step={5}
                                     value={statsViewSettings.minParticipationPercent}
                                     onChange={(e) => updateStatsViewSettingValue('minParticipationPercent', Number(e.target.value))}
-                                    className="w-full accent-blue-500"
+                                    className="w-full"
+                                    style={{ accentColor: 'var(--axi-accent)' }}
                                 />
                                 <div className="flex justify-between text-[10px] text-gray-600 mt-0.5">
                                     <span>0% (all players)</span>
@@ -3633,7 +3635,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 type="checkbox"
                                                 checked={githubReportsSelected.has(report.id)}
                                                 onChange={() => toggleReportSelection(report.id)}
-                                                className="h-4 w-4 accent-cyan-400"
+                                                className="axi-check"
+                                                style={{ '--axi-check-size': '16px' } as CSSProperties}
                                             />
                                             <div className="flex-1 min-w-0">
                                                 <div className="text-sm font-semibold text-white truncate">

@@ -250,15 +250,8 @@ const ProfessionIcon = ({
                     </span>
                     <div
                         ref={tooltipRef}
-                        style={{
-                            ...tooltipStyle,
-                            background: 'var(--bg-elevated)',
-                            border: 'var(--panel-border-w, 1px) solid var(--border-default)',
-                            borderRadius: 'var(--radius-md)',
-                            boxShadow: 'var(--shadow-dropdown)',
-                            color: 'var(--text-primary)'
-                        }}
-                        className={`app-dropdown profession-multi-tooltip absolute left-1/2 z-50 w-max px-2 py-1 text-[10px] pointer-events-none ${placementClass} ${open ? 'block' : 'hidden'}`}
+                        style={tooltipStyle}
+                        className={`axi-tooltip axi-tooltip--anchored left-1/2 ${placementClass} ${open ? 'block' : 'hidden'}`}
                     >
                         <div className="mb-1 text-[9px] uppercase tracking-wider text-amber-200">Multi</div>
                         <div className="space-y-1">
@@ -323,15 +316,8 @@ export const CountClassTooltip = ({
             {hasTooltip && typeof document !== 'undefined' && createPortal(
                 <div
                     ref={tooltipRef}
-                    style={{
-                        ...tooltipStyle,
-                        background: 'var(--bg-elevated)',
-                        border: 'var(--panel-border-w, 1px) solid var(--border-default)',
-                        borderRadius: 'var(--radius-md)',
-                        boxShadow: 'var(--shadow-dropdown)',
-                        color: 'var(--text-primary)'
-                    }}
-                    className={`app-dropdown count-class-tooltip z-[9999] w-max px-2 py-1 text-[10px] pointer-events-none ${open ? 'block' : 'hidden'}`}
+                    style={tooltipStyle}
+                    className={`axi-tooltip ${open ? 'block' : 'hidden'}`}
                 >
                     <div className="mb-1 text-[9px] uppercase tracking-wider text-amber-200">
                         {label}
@@ -456,17 +442,10 @@ export const SkillBreakdownTooltip = ({
             {hasTooltip && typeof document !== 'undefined' && createPortal(
                 <div
                     ref={tooltipRef}
-                    style={{
-                        ...tooltipStyle,
-                        background: 'var(--bg-elevated)',
-                        border: 'var(--panel-border-w, 1px) solid var(--border-default)',
-                        borderRadius: 'var(--radius-md)',
-                        boxShadow: 'var(--shadow-dropdown)',
-                        color: 'var(--text-primary)'
-                    }}
+                    style={tooltipStyle}
                     onMouseEnter={cancelClose}
                     onMouseLeave={scheduleClose}
-                    className={`app-dropdown skill-breakdown-tooltip z-[9999] w-64 px-3 py-2 text-[10px] pointer-events-auto ${open ? 'block' : 'hidden'}`}
+                    className={`axi-tooltip axi-tooltip--wrap w-64 pointer-events-auto ${open ? 'block' : 'hidden'}`}
                 >
                     <div className="text-[9px] uppercase tracking-wider text-amber-200 mb-1">{label}</div>
                     <div

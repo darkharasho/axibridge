@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import {
     coerceReportPostStyle,
@@ -103,6 +103,8 @@ export function ReportWebhooksCard({
                                 <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
                                     <input
                                         type="checkbox"
+                                        className="axi-check"
+                                        style={{ '--axi-check-size': '18px' } as CSSProperties}
                                         aria-label="Enabled"
                                         checked={hook.enabled}
                                         onChange={(e) => patch(hook.id, { enabled: e.target.checked })}
@@ -112,6 +114,8 @@ export function ReportWebhooksCard({
                                 <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
                                     <input
                                         type="checkbox"
+                                        className="axi-check"
+                                        style={{ '--axi-check-size': '18px' } as CSSProperties}
                                         aria-label="Forum channel"
                                         checked={hook.isForum}
                                         onChange={(e) => patch(hook.id, { isForum: e.target.checked })}

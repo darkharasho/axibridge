@@ -1,6 +1,6 @@
 import { ChevronDown, Copy, MoreHorizontal, Search, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { ParticleHover } from './particles';
 import type { ReportIndexEntry, ReportPayload } from '../shared/reportTypes';
 import { normalizeReportPayload } from '../shared/reportNormalization';
@@ -724,7 +724,7 @@ export function FightReportHistoryView() {
 
                                     {deleteMode && (
                                         <div className="mb-2">
-                                            <input type="checkbox" checked={selectedForDelete.has(entry.id)} readOnly className="accent-blue-500" />
+                                            <input type="checkbox" checked={selectedForDelete.has(entry.id)} readOnly className="axi-check" style={{ '--axi-check-size': '18px' } as CSSProperties} />
                                         </div>
                                     )}
                                     <div className="text-sm font-semibold pr-6 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>

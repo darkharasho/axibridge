@@ -100,7 +100,7 @@ export const SquadDamageComparisonSection = () => {
                                         const point = payload?.[0]?.payload;
                                         if (!point) return null;
                                         return (
-                                            <div className="chart-tooltip" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', borderRadius: '0.5rem', padding: '10px 12px', fontSize: '12px' }}>
+                                            <div className="axi-panel axi-panel--float" style={{ '--axi-panel-pad': '10px 12px', fontSize: '12px' } as React.CSSProperties}>
                                                 <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
                                                     {point.fullLabel}{' '}
                                                     {point.isWin === true && <span style={{ color: 'var(--status-success)', fontWeight: 700 }}>W</span>}

@@ -282,8 +282,8 @@
    app writes amber in a hundred places and meant "highlight" in every one of
    them, but in this language gold means the thing you picked, so it stays out
    of the blanket translation and is only ever spent by a rule written on
-   purpose. The one exception is accent-color on checkboxes and ranges, where
-   gold is exactly the claim being made.
+   purpose - and the two range inputs that do want gold now say accentColor at
+   the call site rather than borrowing a Tailwind palette class to mean it.
 
    Collapsing eight cool hues onto one ink is deliberate. Where a hue really is
    data - boon colours, profession colours - it comes from JS, not from a class,
@@ -302,10 +302,6 @@
 [data-axi-accent] body .ring-emerald-500\/60 { --tw-ring-color: var(--axi-ok); }
 
 [data-axi-accent] body .ring-white\/20 { --tw-ring-color: var(--axi-rule); }
-
-[data-axi-accent] body .accent-blue-400,
-[data-axi-accent] body .accent-blue-500,
-[data-axi-accent] body .accent-cyan-400 { accent-color: var(--axi-accent); }
 
 [data-axi-accent] body .bg-red-400,
 [data-axi-accent] body .bg-red-500,
@@ -1433,16 +1429,6 @@
 [data-axi-accent] body .recharts-cartesian-axis-tick text { fill: var(--axi-text-faint); }
 [data-axi-accent] body .recharts-label, [data-axi-accent] body .recharts-legend-item-text { fill: var(--axi-text-dim); color: var(--axi-text-dim); }
 
-/* Five charts hand-rolled their own tooltip instead of using recharts', and
-   those five are outside every selector below. They share one class now, so
-   the two kinds of tooltip in the app look like one thing. */
-[data-axi-accent] body .chart-tooltip {
-  --panel-border-w: var(--axi-border-control);
-  background: var(--axi-surface);
-  border-radius: var(--axi-radius-sm);
-  box-shadow: var(--axi-shadow-control);
-}
-
 /* recharts' own tooltip, for the charts that did not hand-roll one. */
 [data-axi-accent] body .recharts-default-tooltip {
   background: var(--axi-surface) !important;
@@ -1566,13 +1552,6 @@
   box-shadow: var(--axi-shadow-control) !important;
 }
 
-/* The one exception: a tooltip is not a surface you act in, it is a label that
-   follows the cursor. It keeps the edge so it stays legible over a chart, and
-   loses the block, which on something that moves reads as lag. */
-[data-axi-accent] body .profession-multi-tooltip,
-[data-axi-accent] body .count-class-tooltip,
-[data-axi-accent] body .skill-breakdown-tooltip { box-shadow: none; }
-
 /* A dropdown's rows are a list inside a well, not a stack of little panels, so
    they step down to the small radius rather than keeping the panel-sized one
    the named scale gives them. The separation is carried by the fill. */
@@ -1597,7 +1576,6 @@
 [data-axi-accent] body .replay-picker-card.is-active {
   box-shadow: var(--axi-shadow-control);
 }
-[data-axi-accent] body .replay-member-tooltip { box-shadow: none; }
 
 /* ---------------------------------------------------------------------------
    THE SETTINGS VIEW
@@ -1910,109 +1888,6 @@
 }
 
 /* ---------------------------------------------------------------------------
-   THE CHECKBOX
-   Left to the browser, these were the one native widget the language never
-   touched: a rounded platform box in platform blue, sitting inside panels that
-   had been redrawn down to the last hairline. `accent-color` alone only
-   repaints the fill and still leaves the platform's shape.
-
-   So it is built as a plate. Square corners rather than the control radius,
-   because at this size a 6px round is most of the box and the thing stops
-   reading as a plate; the ink edge and the block carry it instead. It is
-   raised whether or not it is ticked - an empty box is still a control you can
-   press, and dropping the block when off made the off state look disabled next
-   to a row of on ones.
-
-   Checking it is a colour claim, not a brightness one: the plate goes from
-   surface to gold and takes a stamped ink tick that runs corner to corner. The
-   label it sits in stops being one of the dim ones in the row at the same time,
-   so a setting that is on reads as on from across the panel. Colour only, not
-   weight: these labels sit in a row beside each other, and reflowing one of
-   them on every click makes the whole row twitch.
-
-   The tick is a background image because ::after does not render on an input
-   outside Chromium, and this sheet also ships inside the published report. Its
-   stroke is the literal ink line - the one place in the file a token is spelled
-   out, because a data URI cannot read one. */
-[data-axi-accent] body input[type='checkbox'] {
-  appearance: none;
-  -webkit-appearance: none;
-  flex: none;
-  /* Sized against the text it labels rather than in fixed pixels. A 22px plate
-     is right beside 14px text and looks like a misplaced button beside the 12px
-     rows the webhook list and the settings toggles are built from; 1.5em is the
-     same plate everywhere and lands at 18px there. The floor keeps it a plate
-     in the few places the type goes smaller still. */
-  width: 1.5em;
-  height: 1.5em;
-  min-width: 16px;
-  min-height: 16px;
-  /* The block sits bottom-right, so the box reserves that much room and keeps
-     its optical centre on the label's baseline instead of riding high. */
-  margin: 0 var(--axi-offset-control) var(--axi-offset-control) 0;
-  border: var(--axi-border-control) solid var(--axi-ink-line);
-  border-radius: 3px;
-  /* Shorthand: --axi-surface-raised is a gradient under glass. Safe against
-     the repeat/position/size lines right below — `background:` would reset
-     them too, but they are declared AFTER it in this same rule, so they
-     reassert their own values regardless. The separate `:checked` rule below
-     sets its own background-color/background-image and never touches
-     repeat/position/size, so it is unaffected either way. */
-  background: var(--axi-surface-raised);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 68% 68%;
-  box-shadow: var(--axi-shadow-control);
-  cursor: pointer;
-}
-
-[data-axi-accent] body input[type='checkbox']:checked {
-  background-color: var(--axi-accent);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M1.5 6.1 L4.6 9.4 L10.6 2.4' fill='none' stroke='%230c0e12' stroke-width='3.4' stroke-linecap='butt'/%3E%3C/svg%3E");
-}
-
-/* Hover lifts the plate rather than tinting it - the same move the buttons
-   make, at the size a 22px control can carry. */
-[data-axi-accent] body input[type='checkbox']:hover:not(:disabled) { filter: brightness(1.12); }
-
-[data-axi-accent] body input[type='checkbox']:focus-visible {
-  outline: 2px solid var(--axi-accent);
-  outline-offset: 3px;
-}
-
-/* A setting that is on is a setting you chose, so its label stops being one of
-   the dim ones in the row. Marked !important because most of these labels carry
-   their colour inline. Only a label holding the box itself answers to this - a
-   row that merely contains one somewhere deeper is not making the claim. */
-[data-axi-accent] body label:has(> input[type='checkbox']:checked) {
-  color: var(--axi-text) !important;
-}
-
-/* A plate you cannot press is not a dimmed gold one: it loses the block and
-   sits flat in the surface, the edge drops to the rule, and a locked tick sits
-   on faint rather than on the accent at half strength. */
-[data-axi-accent] body input[type='checkbox']:disabled {
-  border-color: var(--axi-rule);
-  box-shadow: none;
-  cursor: default;
-}
-[data-axi-accent] body input[type='checkbox']:disabled:checked { background-color: var(--axi-text-faint); }
-
-/* The fight slice card puts a full-bleed transparent checkbox over the whole
-   card and draws the state as a badge beside the label. That input is a hit
-   target, not a plate, so the rules above have to let go of it. */
-[data-axi-accent] body .slice-card > input[type='checkbox'] {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  border: 0;
-  border-radius: var(--axi-radius);
-  background-color: transparent;
-  background-image: none;
-  box-shadow: none;
-}
-
-/* ---------------------------------------------------------------------------
    THE PUBLISHED REPORT ON A PHONE
    The report's desktop frame came into the language with the left nav, but a
    narrow viewport swaps that frame for two pieces of floating glass that the
@@ -2090,37 +1965,6 @@
 }
 [data-axi-accent] body .mobile-action-bar > div > a svg,
 [data-axi-accent] body .mobile-action-bar > div > button svg { color: var(--axi-text-faint); }
-
-/* The two step spinners, redrawn. Nothing in this language sweeps, blurs or
-   eases, so a spinner here cannot be a rotating arc with a fading tail - it
-   has to count. Both forms keep their base markup and take the ink edge:
-
-   - the cell march is a sunken well with four cells, the accent occupying one
-     at a time, which is the shape of a queue draining;
-   - the quarter snap is one accent mark with an ink notch, turning 90 degrees
-     a beat.
-
-   The cell march is what the log picker uses; the snap is here as the other
-   option for a spot too narrow for four cells. */
-[data-axi-accent] body .bridge-step-spinner {
-  /* Off cells sit on the ground, and --border-default is the ink line here -
-     black on black. The rule is the line a well gets, so it is the one that
-     reads. */
-  --step-off: var(--axi-rule);
-  background: var(--axi-ground);
-  border: var(--axi-border-hairline) solid var(--axi-ink-line);
-  border-radius: 2px;
-}
-[data-axi-accent] body .bridge-step-spinner > i,
-[data-axi-accent] body .bridge-step-spinner::after { border-radius: 0; }
-
-[data-axi-accent] body .axi-snap-spinner {
-  border: var(--axi-border-hairline) solid var(--axi-ink-line);
-  border-radius: 2px;
-}
-/* The notch is cut in ink rather than in the surface behind it, so the mark
-   keeps its shape wherever it is placed. */
-[data-axi-accent] body .axi-snap-spinner::after { background: var(--axi-ink-line); }
 
 /* ---------------------------------------------------------------------------
    CHARTS

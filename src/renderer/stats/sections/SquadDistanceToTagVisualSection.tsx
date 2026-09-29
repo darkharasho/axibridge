@@ -235,22 +235,18 @@ export const SquadDistanceToTagVisualSection = (props: Props) => {
                         </svg>
                         {hovered && (
                             <div
-                                className="chart-tooltip"
+                                className="axi-panel axi-panel--float"
                                 style={{
                                     position: 'absolute',
                                     left: '50%',
                                     bottom: 0,
                                     transform: 'translate(-50%, calc(100% + 6px))',
-                                    background: 'var(--bg-card)',
-                                    border: 'var(--panel-border-w, 1px) solid var(--border-default)',
-                                    borderRadius: '0.5rem',
-                                    padding: '8px 10px',
+                                    '--axi-panel-pad': '8px 10px',
                                     fontSize: 11,
-                                    color: 'var(--text-primary)',
                                     minWidth: 180,
                                     pointerEvents: 'none',
                                     zIndex: 5,
-                                }}
+                                } as React.CSSProperties}
                             >
                                 <div style={{ fontWeight: 700 }}>{hovered.row.account}</div>
                                 <div style={{ color: 'var(--text-secondary)' }}>{hovered.row.profession} · {hovered.row.fightCount} fights</div>
