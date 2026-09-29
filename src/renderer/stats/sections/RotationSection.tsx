@@ -198,12 +198,7 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
                         type="button"
                         onClick={() => setSelectedPlayerKey(p.key)}
                         aria-pressed={selectedPlayer?.key === p.key}
-                        className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5 text-[11px] whitespace-nowrap rounded-full"
-                        style={{
-                            background: selectedPlayer?.key === p.key ? 'var(--bg-hover)' : 'var(--bg-input)',
-                            color: 'var(--text-primary)',
-                            border: `1px solid ${selectedPlayer?.key === p.key ? 'var(--brand-primary)' : 'var(--border-default)'}`,
-                        }}
+                        className="axi-pill axi-pill--xs whitespace-nowrap"
                     >
                         {renderProfessionIcon(p.profession, undefined, 'w-3.5 h-3.5 shrink-0')}
                         {p.displayName}

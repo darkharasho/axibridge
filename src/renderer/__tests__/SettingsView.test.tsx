@@ -261,7 +261,7 @@ describe('SettingsView', () => {
             selectSettingsCategory('Application');
             await waitFor(() => {
                 const quitButton = screen.getByRole('button', { name: /Quit Application/i });
-                expect(quitButton.className).toMatch(/red/);
+                expect(quitButton.getAttribute('aria-pressed')).toBe('true');
             });
         });
 
@@ -665,7 +665,7 @@ describe('SettingsView', () => {
     // -----------------------------------------------------------------------
 
     describe('Window & Close Behavior', () => {
-        it('Quit Application button becomes active (red) when clicked', async () => {
+        it('Quit Application button becomes the pressed choice when clicked', async () => {
             renderSettings();
             selectSettingsCategory('Application');
             await screen.findByRole('heading', { name: /Window & Close Behavior/i });
@@ -673,7 +673,12 @@ describe('SettingsView', () => {
             const quitBtn = screen.getByRole('button', { name: /Quit Application/i });
             fireEvent.click(quitBtn);
 
-            expect(quitBtn.className).toMatch(/red/);
+            // Asserts the state, not the hue. This used to match /red/ against the
+            // class list, which passed because the markup said `bg-red-500/20` —
+            // a test of which Tailwind colour was spelled, not of which option is
+            // chosen. The danger edge is still checked, separately from the state.
+            expect(quitBtn.getAttribute('aria-pressed')).toBe('true');
+            expect(quitBtn.className).toContain('axi-edge-danger');
         });
 
         it('saves closeBehavior=quit in the next auto-save', async () => {
@@ -698,7 +703,8 @@ describe('SettingsView', () => {
             await screen.findByRole('heading', { name: /Window & Close Behavior/i });
 
             const minimizeBtn = screen.getByRole('button', { name: /Minimize to Tray/i });
-            expect(minimizeBtn.className).toMatch(/blue/);
+            expect(minimizeBtn.getAttribute('aria-pressed')).toBe('true');
+            expect(minimizeBtn.className).toContain('axi-edge-accent');
         });
     });
 

@@ -448,7 +448,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                     <div className="flex items-center justify-between mb-2">
                                                         <button
                                                             onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
-                                                            className="h-6 w-6 rounded-full border axi-edge-rule bg-black/30 axi-ink-dim hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
+                                                            className="axi-btn axi-btn--icon"
                                                         >
                                                             <ChevronLeft className="w-3.5 h-3.5" />
                                                         </button>
@@ -464,7 +464,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                     <div className="flex items-center justify-between mb-2">
                                                                         <button
                                                                             onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear() - 1, prev.getMonth(), 1))}
-                                                                            className="h-5 w-5 rounded-full border axi-edge-rule bg-black/30 axi-ink-dim hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
+                                                                            className="axi-btn axi-btn--icon [--axi-btn-pad:4px]"
                                                                         >
                                                                             <ChevronLeft className="w-3 h-3" />
                                                                         </button>
@@ -473,7 +473,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                         </div>
                                                                         <button
                                                                             onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear() + 1, prev.getMonth(), 1))}
-                                                                            className="h-5 w-5 rounded-full border axi-edge-rule bg-black/30 axi-ink-dim hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
+                                                                            className="axi-btn axi-btn--icon [--axi-btn-pad:4px]"
                                                                         >
                                                                             <ChevronRight className="w-3 h-3" />
                                                                         </button>
@@ -500,7 +500,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                         </div>
                                                         <button
                                                             onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
-                                                            className="h-6 w-6 rounded-full border axi-edge-rule bg-black/30 axi-ink-dim hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
+                                                            className="axi-btn axi-btn--icon"
                                                         >
                                                             <ChevronRight className="w-3.5 h-3.5" />
                                                         </button>
@@ -569,7 +569,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                         <div className="flex items-center justify-between mb-2">
                                                             <button
                                                                 onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
-                                                                className="h-6 w-6 rounded-full border axi-edge-rule bg-black/30 axi-ink-dim hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
+                                                                className="axi-btn axi-btn--icon"
                                                             >
                                                                 <ChevronLeft className="w-3.5 h-3.5" />
                                                             </button>
@@ -585,7 +585,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                         <div className="flex items-center justify-between mb-2">
                                                                             <button
                                                                                 onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear() - 1, prev.getMonth(), 1))}
-                                                                                className="h-5 w-5 rounded-full border axi-edge-rule bg-black/30 axi-ink-dim hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
+                                                                                className="axi-btn axi-btn--icon [--axi-btn-pad:4px]"
                                                                             >
                                                                                 <ChevronLeft className="w-3 h-3" />
                                                                             </button>
@@ -594,7 +594,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                             </div>
                                                                             <button
                                                                                 onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear() + 1, prev.getMonth(), 1))}
-                                                                                className="h-5 w-5 rounded-full border axi-edge-rule bg-black/30 axi-ink-dim hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
+                                                                                className="axi-btn axi-btn--icon [--axi-btn-pad:4px]"
                                                                             >
                                                                                 <ChevronRight className="w-3 h-3" />
                                                                             </button>
@@ -621,7 +621,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                             </div>
                                                             <button
                                                                 onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
-                                                                className="h-6 w-6 rounded-full border axi-edge-rule bg-black/30 axi-ink-dim hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
+                                                                className="axi-btn axi-btn--icon"
                                                             >
                                                                 <ChevronRight className="w-3.5 h-3.5" />
                                                             </button>

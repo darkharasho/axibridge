@@ -194,7 +194,6 @@ const PlayerSelect = ({
                 type="button"
                 onClick={() => setOpen(!open)}
                 className="axi-btn axi-btn--sm w-full"
-                style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)' }}
             >
                 {selected ? (
                     <>

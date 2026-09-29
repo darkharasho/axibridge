@@ -120,11 +120,8 @@ const renderTree = (node: HelpNode, selectedId: string, onSelect: (id: string) =
             <button
                 type="button"
                 onClick={() => onSelect(node.id)}
-                className={`w-full rounded-[4px] px-2 py-2 text-left text-xs transition-colors ${active
-                    ? 'axi-edge-meta bg-blue-500/15 axi-ink-meta'
-                    : 'axi-ink-dim hover:text-white'
-                    }`}
-                style={{ border: active ? undefined : '1px solid var(--border-subtle)', background: active ? undefined : 'var(--bg-card-inner)' }}
+                aria-current={active ? 'location' : undefined}
+                className="axi-rail__item flex-col items-start"
             >
                 <div className="font-semibold">{node.title}</div>
                 {node.summary && depth < 2 && (
@@ -296,8 +293,7 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                                                 key={child.id}
                                                 type="button"
                                                 onClick={() => setSelectedId(child.id)}
-                                                className="w-full rounded-[4px] px-3 py-3 text-left transition-colors"
-                                                style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
+                                                className="axi-rail__item flex-col items-start"
                                             >
                                                 <div className="text-sm font-medium axi-ink-plain">{child.title}</div>
                                                 {child.summary && <div className="text-xs axi-ink-dim mt-1">{child.summary}</div>}

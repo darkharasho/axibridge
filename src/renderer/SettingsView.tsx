@@ -1694,28 +1694,22 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             <div className="grid grid-cols-3 gap-2">
                                 <button
                                     onClick={() => updateClassDisplay('off')}
-                                    className={`rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors ${embedStats.classDisplay === 'off'
-                                        ? 'bg-blue-500/20 axi-ink-meta axi-edge-meta'
-                                        : 'bg-black/20 axi-ink-dim axi-edge-rule hover:text-gray-200'
-                                        }`}
+                                    aria-pressed={embedStats.classDisplay === 'off'}
+                                    className="axi-pill axi-pill--sm justify-center"
                                 >
                                     Off
                                 </button>
                                 <button
                                     onClick={() => updateClassDisplay('short')}
-                                    className={`rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors ${embedStats.classDisplay === 'short'
-                                        ? 'bg-blue-500/20 axi-ink-meta axi-edge-meta'
-                                        : 'bg-black/20 axi-ink-dim axi-edge-rule hover:text-gray-200'
-                                        }`}
+                                    aria-pressed={embedStats.classDisplay === 'short'}
+                                    className="axi-pill axi-pill--sm justify-center"
                                 >
                                     Short name
                                 </button>
                                 <button
                                     onClick={() => updateClassDisplay('emoji')}
-                                    className={`rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors ${embedStats.classDisplay === 'emoji'
-                                        ? 'bg-blue-500/20 axi-ink-meta axi-edge-meta'
-                                        : 'bg-black/20 axi-ink-dim axi-edge-rule hover:text-gray-200'
-                                        }`}
+                                    aria-pressed={embedStats.classDisplay === 'emoji'}
+                                    className="axi-pill axi-pill--sm justify-center"
                                 >
                                     Emoji
                                 </button>
@@ -2486,17 +2480,21 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                             type="button"
                                                             onClick={() => toggleTopStat(def.id)}
                                                             aria-pressed={on}
-                                                            className="axi-btn axi-btn--sm"
-                                                            style={on
-                                                                ? { color: meta.color, background: `${meta.color}1f`, borderColor: `${meta.color}66` }
-                                                                : { color: 'var(--text-muted)', background: 'var(--bg-input)', borderColor: 'var(--border-default)' }}
+                                                            /* This is what `--axi-pill-fill` exists for: a pill whose pressed
+                                                               state fills with the thing it filters to, so it reads as that
+                                                               rather than as a generic "selected". It was hand-built here as
+                                                               `${meta.color}1f` over the ground with a `${meta.color}66` edge —
+                                                               a colour at partial opacity over the ground, which is rule 2. */
+                                                            className="axi-pill axi-pill--sm"
+                                                            style={{ '--axi-pill-fill': meta.color } as React.CSSProperties}
                                                         >
-                                                            <span
-                                                                className="w-3 h-3 rounded-sm inline-flex items-center justify-center border"
-                                                                style={{ borderColor: on ? meta.color : 'var(--border-hover)', background: on ? meta.color : 'transparent' }}
-                                                            >
+                                                            {/* currentColor, not the stat's colour: inside a fill the only inks
+                                                                are that fill's own pair. A swatch painted `meta.color` on a pill
+                                                                filled `meta.color` is invisible, and the check's `#0f1115` was a
+                                                                hand-picked partner for one of the two states. */}
+                                                            <span className="w-3 h-3 rounded-sm inline-flex items-center justify-center border border-current">
                                                                 {on && (
-                                                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#0f1115" strokeWidth={4}><path d="M20 6L9 17l-5-5" /></svg>
+                                                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={4}><path d="M20 6L9 17l-5-5" /></svg>
                                                                 )}
                                                             </span>
                                                             {def.category === 'boon' && <BoonGlyph className="w-3 h-3" />}
@@ -2564,10 +2562,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 key={option.id}
                                                 type="button"
                                                 onClick={() => updateStatsViewSettingValue('topSkillDamageSource', option.id)}
-                                                className={`text-left rounded-[4px] border px-4 py-3 transition-colors ${isActive
-                                                    ? 'bg-blue-500/15 axi-edge-meta axi-ink-meta'
-                                                    : 'bg-black/20 axi-edge-rule axi-ink-dim hover:text-white hover:border-white/20'
-                                                    }`}
+                                                aria-pressed={isActive}
+                                                className={`axi-card ${isActive ? 'axi-edge-accent' : ''}`}
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="text-sm font-semibold">{option.label}</div>
@@ -2618,10 +2614,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 key={option.id}
                                                 type="button"
                                                 onClick={() => updateStatsViewSettingValue('topSkillsMetric', option.id)}
-                                                className={`text-left rounded-[4px] border px-4 py-3 transition-colors ${isActive
-                                                    ? 'bg-blue-500/15 axi-edge-meta axi-ink-meta'
-                                                    : 'bg-black/20 axi-edge-rule axi-ink-dim hover:text-white hover:border-white/20'
-                                                    }`}
+                                                aria-pressed={isActive}
+                                                className={`axi-card ${isActive ? 'axi-edge-accent' : ''}`}
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="text-sm font-semibold">{option.label}</div>
@@ -2655,10 +2649,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             <button
                                                 key={key}
                                                 onClick={() => setDisruptionMethod(key as DisruptionMethod)}
-                                                className={`text-left rounded-[4px] border px-4 py-3 transition-colors ${isActive
-                                                    ? 'bg-blue-500/15 axi-edge-meta axi-ink-meta'
-                                                    : 'bg-black/20 axi-edge-rule axi-ink-dim hover:text-white hover:border-white/20'
-                                                    }`}
+                                                aria-pressed={isActive}
+                                                className={`axi-card ${isActive ? 'axi-edge-accent' : ''}`}
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="text-sm font-semibold">{method.label}</div>
@@ -3023,10 +3015,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         <div className="grid grid-cols-2 gap-3">
                             <button
                                 onClick={() => setCloseBehavior('minimize')}
-                                className={`flex flex-col items-center justify-center gap-3 py-4 rounded-[4px] border transition-all ${closeBehavior === 'minimize'
-                                    ? 'bg-blue-500/20 axi-edge-meta axi-ink-meta'
-                                    : 'bg-black/20 axi-edge-rule axi-ink-faint hover:text-gray-300'
-                                    }`}
+                                aria-pressed={closeBehavior === 'minimize'}
+                                className={`axi-card items-center text-center ${closeBehavior === 'minimize' ? 'axi-edge-accent' : ''}`}
                             >
                                 <Minimize className="w-6 h-6" />
                                 <div className="text-center">
@@ -3037,10 +3027,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
                             <button
                                 onClick={() => setCloseBehavior('quit')}
-                                className={`flex flex-col items-center justify-center gap-3 py-4 rounded-[4px] border transition-all ${closeBehavior === 'quit'
-                                    ? 'bg-red-500/20 axi-edge-danger axi-ink-danger'
-                                    : 'bg-black/20 axi-edge-rule axi-ink-faint hover:text-gray-300'
-                                    }`}
+                                aria-pressed={closeBehavior === 'quit'}
+                                className={`axi-card items-center text-center ${closeBehavior === 'quit' ? 'axi-edge-danger' : ''}`}
                             >
                                 <CloseIcon className="w-6 h-6" />
                                 <div className="text-center">

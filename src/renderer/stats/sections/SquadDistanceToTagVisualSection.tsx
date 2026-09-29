@@ -142,10 +142,8 @@ export const SquadDistanceToTagVisualSection = (props: Props) => {
                                     type="button"
                                     aria-pressed={active}
                                     onClick={() => setMetric(opt.key)}
-                                    className="axi-btn axi-btn--xs"
+                                    className="axi-pill axi-pill--xs"
                                     style={{
-                                        background: active ? 'var(--brand-primary)' : 'var(--bg-card-inner)',
-                                        color: active ? 'var(--bg-elevated)' : 'var(--text-secondary)',
                                         border: '1px solid var(--border-subtle)',
                                         fontWeight: active ? 700 : 500,
                                     }}
