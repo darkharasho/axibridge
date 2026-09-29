@@ -279,7 +279,6 @@ export const ConditionsSection = ({
                                             {
                                                 id: 'all',
                                                 label: 'All',
-                                                align: 'right' as const,
                                                 minWidth: 90
                                             },
                                             ...visibleConditionEntries.map((entry: any) => ({

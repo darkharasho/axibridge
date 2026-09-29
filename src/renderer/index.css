@@ -598,11 +598,15 @@ body:not(.web-report) .modal-pane button[aria-label^="Close "] {
     gap: 0.75rem;
 }
 
+/* Layout only. Everything this table LOOKS like - the surface it sits on, the
+   head's lid, the pinned column's edge, the zebra that used to be here - comes
+   from upstream's .axi-panel and .axi-table--sticky/--pinned/--dense. */
 .dense-table__container {
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
+    overflow: hidden;
 }
 
 .dense-table__header {
@@ -610,30 +614,13 @@ body:not(.web-report) .modal-pane button[aria-label^="Close "] {
     align-items: baseline;
     justify-content: space-between;
     gap: 1rem;
-    padding: 0.75rem 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .dense-table__title {
-    font-size: var(--font-size-lg);
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.dense-table__subtitle {
-    font-size: var(--font-size-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.3em;
-    color: var(--text-secondary);
-}
-
-.dense-table__controls {
-    padding: 0 1rem;
+    font: var(--axi-t-h3);
 }
 
 .dense-table__scroll {
-    overflow: auto;
     max-height: 70vh;
     flex: 1 1 auto;
     min-height: 0;
@@ -705,144 +692,7 @@ body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-tabl
     border-radius: 9999px;
 }
 
-.dense-table__grid {
-    display: grid;
-    align-items: stretch;
-    min-width: max-content;
-    font-size: var(--font-size-xs);
-}
-
-.dense-table__row {
-    display: contents;
-}
-
-.dense-table__head,
-.dense-table__cell {
-    padding: 0.45rem 0.6rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    color: var(--text-secondary);
-    background: rgba(255, 255, 255, 0.015);
-}
-
-.dense-table__row:nth-of-type(odd)>.dense-table__cell {
-    background: rgba(255, 255, 255, 0.015);
-}
-
-.dense-table__cell {
-    transition: background-color var(--duration-fast) ease-out, box-shadow var(--duration-fast) ease-out;
-}
-
-.dense-table__row:hover>.dense-table__cell {
-    background: rgba(255, 255, 255, 0.06);
-}
-
-.dense-table__row:hover>.dense-table__cell--pinned {
-    background: rgba(255, 255, 255, 0.06);
-    box-shadow: inset 2px 0 0 var(--brand-primary);
-}
-
-.dense-table__row:nth-of-type(odd)>.dense-table__cell--pinned {
-    background: var(--bg-elevated, #0d1117);
-}
-
-.dense-table__row:hover>.dense-table__cell--pinned {
-    background: rgba(255, 255, 255, 0.06);
-    box-shadow: inset 2px 0 0 var(--brand-primary);
-}
-
-.dense-table__head {
-    font-size: var(--font-size-2xs);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-secondary);
-    background: var(--bg-elevated);
-    border-bottom: 2px solid rgba(255, 255, 255, 0.12);
-    position: sticky;
-    top: 0;
-    z-index: 3;
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
-    transition: box-shadow var(--duration-normal) ease-out;
-}
-
-/* Enhanced shadow when content is scrolled beneath the sticky header */
-.dense-table__scroll--scrolled .dense-table__head {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-}
-
-.dense-table__head:not(:last-child)::after {
-    content: "";
-    position: absolute;
-    top: 25%;
-    right: 0;
-    width: 1px;
-    height: 50%;
-    background: rgba(148, 163, 184, 0.35);
-    pointer-events: none;
-}
-
-.dense-table__head-inner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0 0.5rem;
-}
-
-.dense-table__head--sticky {
-    z-index: 4;
-}
-
-.dense-table__head--pinned,
-.dense-table__cell--pinned {
-    position: sticky;
-    left: 0;
-    z-index: 3;
-    background: var(--bg-elevated, #0d1117);
-    background-clip: padding-box;
-    box-shadow: 6px 0 12px rgba(0, 0, 0, 0.25);
-}
-
-.dense-table__head--pinned {
-    z-index: 5;
-}
-
-.dense-table__cell--label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: var(--font-size-xs);
-    color: var(--text-primary);
-    background: var(--bg-elevated, #0d1117);
-}
-
-.dense-table__cell--right {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-}
-
-
 /* Group container entrance animation on nav switch */
-
-.dense-table__head.dense-table__head--active {
-    background: var(--accent-bg-strong);
-    color: var(--brand-primary);
-    border-bottom-color: color-mix(in srgb, var(--brand-primary) 50%, transparent);
-}
-
-.dense-table__cell.dense-table__cell--active {
-    background: var(--accent-bg);
-    color: var(--text-primary);
-    font-weight: 500;
-}
-
-.dense-table__row:nth-of-type(odd)>.dense-table__cell.dense-table__cell--active {
-    background: color-mix(in srgb, var(--brand-primary) 9%, transparent);
-}
-
-.dense-table__row:hover>.dense-table__cell.dense-table__cell--active {
-    background: color-mix(in srgb, var(--brand-primary) 14%, transparent);
-}
 
 .stats-table-sidebar> :last-child {
     flex: 1 1 auto;
