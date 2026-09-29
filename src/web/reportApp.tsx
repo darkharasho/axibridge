@@ -1689,24 +1689,7 @@ export function ReportApp({ injectedSource, assetBase }: {
         return (
             <div
                 className="min-h-screen text-white relative overflow-x-hidden"
-                style={{
-                    backgroundColor: 'var(--bg-base)'
-                }}
             >
-                <div className="fixed inset-0 pointer-events-none">
-                    <div
-                        className="absolute rounded-full"
-                        style={{ backgroundColor: 'var(--glow-primary)', width: 'clamp(320px, 30vw, 800px)', height: 'clamp(320px, 30vw, 800px)', filter: 'blur(clamp(140px, 12vw, 320px))', top: '-5%', right: '5%' }}
-                    />
-                    <div
-                        className="absolute rounded-full"
-                        style={{ backgroundColor: 'var(--glow-secondary)', width: 'clamp(288px, 28vw, 750px)', height: 'clamp(288px, 28vw, 750px)', filter: 'blur(clamp(120px, 11vw, 300px))', top: '30%', left: '2%' }}
-                    />
-                    <div
-                        className="absolute rounded-full"
-                        style={{ backgroundColor: 'var(--glow-secondary)', width: 'clamp(256px, 25vw, 700px)', height: 'clamp(256px, 25vw, 700px)', filter: 'blur(clamp(120px, 11vw, 300px))', bottom: '5%', right: '15%' }}
-                    />
-                </div>
                 <div className={`fixed inset-0 z-20 bg-black/40 backdrop-blur-sm transition-opacity ${isNarrowViewport ? '' : 'hidden'} ${tocOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setTocOpen(false)} />
                 <aside
                     className={`fixed z-30 top-0 bottom-0 w-64 max-w-[80vw] transition-transform duration-300 ${isNarrowViewport ? '' : 'hidden'} ${tocOpen ? 'translate-x-0' : '-translate-x-full'}`}
@@ -2098,26 +2081,9 @@ export function ReportApp({ injectedSource, assetBase }: {
         return (
             <div
                 className="min-h-screen text-white relative overflow-x-hidden"
-                style={{
-                    backgroundColor: 'var(--bg-base)'
-                }}
             >
-                <div className="fixed inset-0 pointer-events-none">
-                    <div
-                        className="absolute rounded-full"
-                        style={{ backgroundColor: 'var(--glow-primary)', width: 'clamp(320px, 30vw, 800px)', height: 'clamp(320px, 30vw, 800px)', filter: 'blur(clamp(140px, 12vw, 320px))', top: '-5%', right: '5%' }}
-                    />
-                    <div
-                        className="absolute rounded-full"
-                        style={{ backgroundColor: 'var(--glow-secondary)', width: 'clamp(288px, 28vw, 750px)', height: 'clamp(288px, 28vw, 750px)', filter: 'blur(clamp(120px, 11vw, 300px))', top: '30%', left: '2%' }}
-                    />
-                    <div
-                        className="absolute rounded-full"
-                        style={{ backgroundColor: 'var(--glow-secondary)', width: 'clamp(256px, 25vw, 700px)', height: 'clamp(256px, 25vw, 700px)', filter: 'blur(clamp(120px, 11vw, 300px))', bottom: '5%', right: '15%' }}
-                    />
-                </div>
                 <div className="max-w-[2150px] mx-auto px-4 pt-4 pb-8 sm:px-6 sm:pt-5 sm:pb-10">
-                    <div className="rounded-2xl border border-white/5 bg-black/20 p-4 sm:p-6">
+                    <div className="p-4 sm:p-6">
                         <div className={`${glassCard} p-5 sm:p-6 mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between`} style={glassCardStyle}>
                             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 min-h-[56px] text-center sm:text-left">
                                 {logoUrl && (
@@ -2447,26 +2413,9 @@ export function ReportApp({ injectedSource, assetBase }: {
     return (
         <div
             className="min-h-screen text-white relative overflow-x-hidden"
-            style={{
-                backgroundColor: 'var(--bg-base)'
-            }}
         >
-            <div className="fixed inset-0 pointer-events-none">
-                <div
-                    className="absolute rounded-full"
-                    style={{ backgroundColor: 'var(--glow-primary)', width: 'clamp(320px, 28vw, 700px)', height: 'clamp(320px, 28vw, 700px)', filter: 'blur(clamp(140px, 10vw, 280px))', top: '-8rem', right: '-6rem' }}
-                />
-                <div
-                    className="absolute rounded-full"
-                    style={{ backgroundColor: 'var(--glow-secondary)', width: 'clamp(288px, 25vw, 640px)', height: 'clamp(288px, 25vw, 640px)', filter: 'blur(clamp(120px, 9vw, 260px))', top: '10rem', left: '-5rem' }}
-                />
-                <div
-                    className="absolute rounded-full"
-                    style={{ backgroundColor: 'var(--glow-secondary)', width: 'clamp(256px, 22vw, 580px)', height: 'clamp(256px, 22vw, 580px)', filter: 'blur(clamp(120px, 9vw, 260px))', bottom: '2.5rem', right: '2.5rem' }}
-                />
-            </div>
             <div className="max-w-[2150px] mx-auto px-4 pt-4 pb-8 sm:px-6 sm:pt-5 sm:pb-10">
-                <div id="report-list-container" className="rounded-2xl border border-white/5 bg-black/20 p-4 sm:p-6">
+                <div id="report-list-container" className="p-4 sm:p-6">
                     <div id="report-top" className={`${glassCard} p-5 sm:p-6 mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between`} style={glassCardStyle}>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 min-h-[56px] text-center sm:text-left">
                             {logoUrl && !logoIsDefault ? (

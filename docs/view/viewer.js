@@ -76129,33 +76129,7 @@ function Cke({ injectedSource: e, assetBase: t } = {}) {
       "div",
       {
         className: "min-h-screen text-white relative overflow-x-hidden",
-        style: {
-          backgroundColor: "var(--bg-base)"
-        },
         children: [
-          /* @__PURE__ */ o.jsxs("div", { className: "fixed inset-0 pointer-events-none", children: [
-            /* @__PURE__ */ o.jsx(
-              "div",
-              {
-                className: "absolute rounded-full",
-                style: { backgroundColor: "var(--glow-primary)", width: "clamp(320px, 30vw, 800px)", height: "clamp(320px, 30vw, 800px)", filter: "blur(clamp(140px, 12vw, 320px))", top: "-5%", right: "5%" }
-              }
-            ),
-            /* @__PURE__ */ o.jsx(
-              "div",
-              {
-                className: "absolute rounded-full",
-                style: { backgroundColor: "var(--glow-secondary)", width: "clamp(288px, 28vw, 750px)", height: "clamp(288px, 28vw, 750px)", filter: "blur(clamp(120px, 11vw, 300px))", top: "30%", left: "2%" }
-              }
-            ),
-            /* @__PURE__ */ o.jsx(
-              "div",
-              {
-                className: "absolute rounded-full",
-                style: { backgroundColor: "var(--glow-secondary)", width: "clamp(256px, 25vw, 700px)", height: "clamp(256px, 25vw, 700px)", filter: "blur(clamp(120px, 11vw, 300px))", bottom: "5%", right: "15%" }
-              }
-            )
-          ] }),
           /* @__PURE__ */ o.jsx("div", { className: `fixed inset-0 z-20 bg-black/40 backdrop-blur-sm transition-opacity ${$r ? "" : "hidden"} ${ae ? "opacity-100" : "opacity-0 pointer-events-none"}`, onClick: () => Q(!1) }),
           /* @__PURE__ */ o.jsx(
             "aside",
@@ -76563,35 +76537,9 @@ function Cke({ injectedSource: e, assetBase: t } = {}) {
     "div",
     {
       className: "min-h-screen text-white relative overflow-x-hidden",
-      style: {
-        backgroundColor: "var(--bg-base)"
-      },
       children: [
-        /* @__PURE__ */ o.jsxs("div", { className: "fixed inset-0 pointer-events-none", children: [
-          /* @__PURE__ */ o.jsx(
-            "div",
-            {
-              className: "absolute rounded-full",
-              style: { backgroundColor: "var(--glow-primary)", width: "clamp(320px, 30vw, 800px)", height: "clamp(320px, 30vw, 800px)", filter: "blur(clamp(140px, 12vw, 320px))", top: "-5%", right: "5%" }
-            }
-          ),
-          /* @__PURE__ */ o.jsx(
-            "div",
-            {
-              className: "absolute rounded-full",
-              style: { backgroundColor: "var(--glow-secondary)", width: "clamp(288px, 28vw, 750px)", height: "clamp(288px, 28vw, 750px)", filter: "blur(clamp(120px, 11vw, 300px))", top: "30%", left: "2%" }
-            }
-          ),
-          /* @__PURE__ */ o.jsx(
-            "div",
-            {
-              className: "absolute rounded-full",
-              style: { backgroundColor: "var(--glow-secondary)", width: "clamp(256px, 25vw, 700px)", height: "clamp(256px, 25vw, 700px)", filter: "blur(clamp(120px, 11vw, 300px))", bottom: "5%", right: "15%" }
-            }
-          )
-        ] }),
         /* @__PURE__ */ o.jsxs("div", { className: "max-w-[2150px] mx-auto px-4 pt-4 pb-8 sm:px-6 sm:pt-5 sm:pb-10", children: [
-          /* @__PURE__ */ o.jsxs("div", { className: "rounded-2xl border border-white/5 bg-black/20 p-4 sm:p-6", children: [
+          /* @__PURE__ */ o.jsxs("div", { className: "p-4 sm:p-6", children: [
             /* @__PURE__ */ o.jsxs("div", { className: `${ei} p-5 sm:p-6 mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between`, style: cr, children: [
               /* @__PURE__ */ o.jsxs("div", { className: "flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 min-h-[56px] text-center sm:text-left", children: [
                 ee && (oe ? /* @__PURE__ */ o.jsx(
@@ -76878,35 +76826,9 @@ function Cke({ injectedSource: e, assetBase: t } = {}) {
     "div",
     {
       className: "min-h-screen text-white relative overflow-x-hidden",
-      style: {
-        backgroundColor: "var(--bg-base)"
-      },
       children: [
-        /* @__PURE__ */ o.jsxs("div", { className: "fixed inset-0 pointer-events-none", children: [
-          /* @__PURE__ */ o.jsx(
-            "div",
-            {
-              className: "absolute rounded-full",
-              style: { backgroundColor: "var(--glow-primary)", width: "clamp(320px, 28vw, 700px)", height: "clamp(320px, 28vw, 700px)", filter: "blur(clamp(140px, 10vw, 280px))", top: "-8rem", right: "-6rem" }
-            }
-          ),
-          /* @__PURE__ */ o.jsx(
-            "div",
-            {
-              className: "absolute rounded-full",
-              style: { backgroundColor: "var(--glow-secondary)", width: "clamp(288px, 25vw, 640px)", height: "clamp(288px, 25vw, 640px)", filter: "blur(clamp(120px, 9vw, 260px))", top: "10rem", left: "-5rem" }
-            }
-          ),
-          /* @__PURE__ */ o.jsx(
-            "div",
-            {
-              className: "absolute rounded-full",
-              style: { backgroundColor: "var(--glow-secondary)", width: "clamp(256px, 22vw, 580px)", height: "clamp(256px, 22vw, 580px)", filter: "blur(clamp(120px, 9vw, 260px))", bottom: "2.5rem", right: "2.5rem" }
-            }
-          )
-        ] }),
         /* @__PURE__ */ o.jsxs("div", { className: "max-w-[2150px] mx-auto px-4 pt-4 pb-8 sm:px-6 sm:pt-5 sm:pb-10", children: [
-          /* @__PURE__ */ o.jsxs("div", { id: "report-list-container", className: "rounded-2xl border border-white/5 bg-black/20 p-4 sm:p-6", children: [
+          /* @__PURE__ */ o.jsxs("div", { id: "report-list-container", className: "p-4 sm:p-6", children: [
             /* @__PURE__ */ o.jsxs("div", { id: "report-top", className: `${ei} p-5 sm:p-6 mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between`, style: cr, children: [
               /* @__PURE__ */ o.jsxs("div", { className: "flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 min-h-[56px] text-center sm:text-left", children: [
                 ee && !oe ? /* @__PURE__ */ o.jsx(
