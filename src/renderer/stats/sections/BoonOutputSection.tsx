@@ -329,8 +329,8 @@ export const BoonOutputSection = ({
                             value={boonSearch}
                             onChange={(e) => setBoonSearch(e.target.value)}
                             placeholder="Search..."
-                            className="w-full px-2 py-1 text-xs focus:outline-none mb-2"
-                            style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
+                            className="axi-input mb-2"
+                            style={{ '--axi-input-pad': '5px 8px', '--axi-input-size': '12px' } as React.CSSProperties}
                         />
                         <div className={`${sidebarListClass} ${expandedSection === 'boon-output' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                             {filteredBoonTables.length === 0 ? (
@@ -340,11 +340,8 @@ export const BoonOutputSection = ({
                                     <button
                                         key={boon.id}
                                         onClick={() => setActiveBoonTab(boon.id)}
-                                        className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeBoonTab === boon.id
-                                            ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
-                                            : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
-                                            }`}
-                                        style={activeBoonTab !== boon.id ? { color: 'var(--text-secondary)' } : undefined}
+                                        className="axi-rail__item"
+                                        aria-current={activeBoonTab === boon.id ? 'location' : undefined}
                                     >
                                         <InlineIconLabel name={boon.name} iconUrl={boon.icon} iconClassName="h-3.5 w-3.5" />
                                     </button>

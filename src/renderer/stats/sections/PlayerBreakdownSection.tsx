@@ -86,7 +86,7 @@ export const PlayerBreakdownSection = ({
         return player.skills.find((skill) => skill.id === skillId) || null;
     };
     const sidebarBodyClass = isExpanded
-        ? 'overflow-y-auto space-y-1 pr-1 flex-1 min-h-0'
+        ? 'axi-rail__nav axi-rail__nav--quiet overflow-y-auto pr-1 flex-1 min-h-0'
         : `${sidebarListClass} max-h-72 overflow-y-auto`;
     const sortedClassRows = useMemo(() => {
         if (!activeClassBreakdown || !activeClassSkill) return activeClassRows;
@@ -160,8 +160,8 @@ export const PlayerBreakdownSection = ({
                                     value={skillSearch}
                                     onChange={(event) => setSkillSearch(event.target.value)}
                                     placeholder="Search skills..."
-                                    className="w-full px-2.5 py-1.5 text-xs text-[color:var(--text-primary)] placeholder-gray-500 focus:outline-none mb-1"
-                                    style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)' }}
+                                    className="axi-input mb-1"
+                                    style={{ '--axi-input-pad': '5px 8px', '--axi-input-size': '12px' } as React.CSSProperties}
                                 />
                             </div>
                             <div className={sidebarBodyClass}>
@@ -184,15 +184,11 @@ export const PlayerBreakdownSection = ({
                                                         : (expandedPlayerKey === player.key ? null : player.key)
                                                 );
                                             }}
-                                            className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${
-                                                activePlayerKey === player.key
-                                                    ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
-                                                    : 'hover:bg-[var(--bg-hover)]'
-                                            }`}
-                                            style={activePlayerKey !== player.key ? { color: 'var(--text-secondary)' } : undefined}
+                                            className="axi-rail__item"
+                                            aria-current={activePlayerKey === player.key ? 'location' : undefined}
                                             title={player.displayName}
                                         >
-                                            <div className="flex items-center justify-between gap-2">
+                                            <div className="flex w-full min-w-0 items-center justify-between gap-2">
                                                 <div className="flex items-center gap-2 min-w-0">
                                                     {renderProfessionIcon(player.profession, player.professionList, 'w-4 h-4')}
                                                     <span className="truncate min-w-0">{player.displayName}</span>
@@ -203,7 +199,7 @@ export const PlayerBreakdownSection = ({
                                             </div>
                                             </button>
                                             {!isExpanded && expandedPlayerKey === player.key && (
-                                                <div className="ml-2 space-y-1 border-l border-[color:var(--border-default)] pl-2">
+                                                <div className="axi-rail__sub">
                                                     <input
                                                         type="text"
                                                         value={subSkillSearchByPlayer[player.key] || ''}
@@ -212,8 +208,8 @@ export const PlayerBreakdownSection = ({
                                                             setSubSkillSearchByPlayer((prev) => ({ ...prev, [player.key]: value }));
                                                         }}
                                                         placeholder="Filter this player's skills..."
-                                                        className="w-full px-2 py-1 text-[11px] text-[color:var(--text-primary)] placeholder-gray-500 focus:outline-none mb-1"
-                                                        style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)' }}
+                                                        className="axi-input mb-1"
+                                                        style={{ '--axi-input-pad': '4px 7px', '--axi-input-size': '11px' } as React.CSSProperties}
                                                     />
                                                     {player.skills
                                                         .filter((skill) => {
@@ -229,12 +225,8 @@ export const PlayerBreakdownSection = ({
                                                                     setActivePlayerKey(player.key);
                                                                     setActivePlayerSkillId(skill.id);
                                                                 }}
-                                                                className={`w-full min-h-[30px] text-left px-2 py-1.5 rounded-md text-[11px] transition-colors ${
-                                                                    activePlayerKey === player.key && activePlayerSkillId === skill.id
-                                                                        ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
-                                                                        : 'hover:bg-[var(--bg-hover)]'
-                                                                }`}
-                                                                style={!(activePlayerKey === player.key && activePlayerSkillId === skill.id) ? { color: 'var(--text-secondary)' } : undefined}
+                                                                className="axi-rail__subitem"
+                                                                aria-current={activePlayerKey === player.key && activePlayerSkillId === skill.id ? 'location' : undefined}
                                                                 title={skill.name}
                                                             >
                                                                 <div className="flex items-center gap-2 min-w-0">
@@ -273,14 +265,10 @@ export const PlayerBreakdownSection = ({
                                                             : (expandedClassKey === bucket.profession ? null : bucket.profession)
                                                     );
                                                 }}
-                                                className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${
-                                                    activeClassKey === bucket.profession
-                                                        ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
-                                                        : 'hover:bg-[var(--bg-hover)]'
-                                                }`}
-                                                style={activeClassKey !== bucket.profession ? { color: 'var(--text-secondary)' } : undefined}
+                                                className="axi-rail__item"
+                                                aria-current={activeClassKey === bucket.profession ? 'location' : undefined}
                                             >
-                                                <div className="flex items-center justify-between gap-2">
+                                                <div className="flex w-full min-w-0 items-center justify-between gap-2">
                                                     <div className="flex items-center gap-2 min-w-0">
                                                         {renderProfessionIcon(bucket.profession, undefined, 'w-4 h-4')}
                                                         <span className="truncate">{bucket.profession}</span>
@@ -291,7 +279,7 @@ export const PlayerBreakdownSection = ({
                                                 </div>
                                             </button>
                                             {!isExpanded && expandedClassKey === bucket.profession && (
-                                                <div className="ml-2 space-y-1 border-l border-[color:var(--border-default)] pl-2">
+                                                <div className="axi-rail__sub">
                                                     <input
                                                         type="text"
                                                         value={subSkillSearchByClass[bucket.profession] || ''}
@@ -300,8 +288,8 @@ export const PlayerBreakdownSection = ({
                                                             setSubSkillSearchByClass((prev) => ({ ...prev, [bucket.profession]: value }));
                                                         }}
                                                         placeholder="Filter this class's skills..."
-                                                        className="w-full px-2 py-1 text-[11px] text-[color:var(--text-primary)] placeholder-gray-500 focus:outline-none mb-1"
-                                                        style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)' }}
+                                                        className="axi-input mb-1"
+                                                        style={{ '--axi-input-pad': '4px 7px', '--axi-input-size': '11px' } as React.CSSProperties}
                                                     />
                                                     {bucket.skills
                                                         .filter((skill) => {
@@ -317,12 +305,8 @@ export const PlayerBreakdownSection = ({
                                                                     setActiveClassKey(bucket.profession);
                                                                     setActiveClassSkillId(skill.id);
                                                                 }}
-                                                                className={`w-full min-h-[30px] text-left px-2 py-1.5 rounded-md text-[11px] transition-colors ${
-                                                                    activeClassKey === bucket.profession && activeClassSkillId === skill.id
-                                                                        ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
-                                                                        : 'hover:bg-[var(--bg-hover)]'
-                                                                }`}
-                                                                style={!(activeClassKey === bucket.profession && activeClassSkillId === skill.id) ? { color: 'var(--text-secondary)' } : undefined}
+                                                                className="axi-rail__subitem"
+                                                                aria-current={activeClassKey === bucket.profession && activeClassSkillId === skill.id ? 'location' : undefined}
                                                                 title={skill.name}
                                                             >
                                                                 <div className="flex items-center gap-2 min-w-0">

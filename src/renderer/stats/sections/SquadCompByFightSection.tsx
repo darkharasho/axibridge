@@ -100,12 +100,13 @@ export const SquadCompByFightSection = ({
                                         <button
                                             key={fight.id}
                                             onClick={() => setActiveFightId(fight.id)}
-                                            className={`squad-comp-fight-nav-item w-full text-left px-3 py-2 rounded-[var(--radius-md)] text-xs font-semibold border transition-colors ${isActive
-                                                ? 'bg-[var(--accent-bg-strong)] border-[color:var(--accent-border)] text-[color:var(--brand-primary)] squad-comp-fight-nav-item--active'
-                                                : 'bg-[var(--bg-hover)] text-[color:var(--text-secondary)] border-[color:var(--border-default)] hover:text-[color:var(--text-primary)]'
-                                                }`}
+                                            /* Three stacked lines, not a label - so this is a card you
+                                               press, not a rail row, and a selected card takes the
+                                               accent edge rather than the accent fill. */
+                                            className={`axi-card w-full text-left ${isActive ? 'axi-edge-accent' : ''}`}
+                                            aria-pressed={isActive}
                                         >
-                                            <div className={`text-[10px] uppercase tracking-widest ${isActive ? 'text-[color:var(--accent-border)]' : 'text-[color:var(--text-secondary)]'}`}>{fight.label}</div>
+                                            <div className={`text-[10px] uppercase tracking-widest ${isActive ? 'axi-ink-accent' : 'axi-ink-dim'}`}>{fight.label}</div>
                                             <div className="text-xs font-semibold truncate">{fight.mapName || 'Unknown Map'}</div>
                                             <div className="text-[10px] text-[color:var(--text-secondary)] truncate">{fight.duration || '--:--'} · {formatTimestamp(fight.timestamp)}</div>
                                         </button>

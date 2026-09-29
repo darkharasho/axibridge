@@ -63,7 +63,7 @@ export const ApmSection = ({
     const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
     const [subSkillSearchBySpec, setSubSkillSearchBySpec] = useState<Record<string, string>>({});
     const sidebarBodyClass = isExpanded
-        ? 'overflow-y-auto space-y-1 pr-1 flex-1 min-h-0'
+        ? 'axi-rail__nav axi-rail__nav--quiet overflow-y-auto pr-1 flex-1 min-h-0'
         : `${sidebarListClass} max-h-72 overflow-y-auto`;
 
     const toggleAllSkillsSort = (key: 'apm' | 'apmNoAuto' | 'apmNoProcs') => {
@@ -119,8 +119,8 @@ export const ApmSection = ({
                                 value={apmSkillSearch}
                                 onChange={(event) => setApmSkillSearch(event.target.value)}
                                 placeholder="Search skills..."
-                                className="w-full px-2.5 py-1.5 text-xs focus:outline-none"
-                                style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
+                                className="axi-input"
+                                style={{ '--axi-input-pad': '5px 8px', '--axi-input-size': '12px' } as React.CSSProperties}
                             />
                         </div>
                         <div className={sidebarBodyClass}>
@@ -141,13 +141,10 @@ export const ApmSection = ({
                                                 setSelectedPlayers([]);
                                             }
                                         }}
-                                        className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeApmSpec === spec.profession
-                                                ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
-                                                : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
-                                            }`}
-                                        style={activeApmSpec !== spec.profession ? { color: 'var(--text-secondary)' } : undefined}
+                                        className="axi-rail__item"
+                                        aria-current={activeApmSpec === spec.profession ? 'location' : undefined}
                                     >
-                                        <div className="flex items-center justify-between gap-2">
+                                        <div className="flex w-full min-w-0 items-center justify-between gap-2">
                                             <div className="flex items-center gap-2 min-w-0">
                                                 {renderProfessionIcon(spec.profession, undefined, 'w-4 h-4')}
                                                 <span className="truncate">{spec.profession}</span>
@@ -158,7 +155,7 @@ export const ApmSection = ({
                                         </div>
                                     </button>
                                     {!isExpanded && expandedApmSpec === spec.profession && (
-                                        <div className="ml-2 space-y-1 pl-2" style={{ borderLeft: '1px solid var(--border-subtle)' }}>
+                                        <div className="axi-rail__sub">
                                             <input
                                                 type="text"
                                                 value={subSkillSearchBySpec[spec.profession] || ''}
@@ -167,8 +164,8 @@ export const ApmSection = ({
                                                     setSubSkillSearchBySpec((prev) => ({ ...prev, [spec.profession]: value }));
                                                 }}
                                                 placeholder="Filter this spec..."
-                                                className="w-full px-2 py-1 text-[11px] focus:outline-none mb-1"
-                                                style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
+                                                className="axi-input mb-1"
+                                                style={{ '--axi-input-pad': '4px 7px', '--axi-input-size': '11px' } as React.CSSProperties}
                                             />
                                             <button
                                                 type="button"
@@ -176,12 +173,8 @@ export const ApmSection = ({
                                                     setActiveApmSpec(spec.profession);
                                                     setActiveApmSkillId(ALL_SKILLS_KEY);
                                                 }}
-                                                className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] transition-colors ${
-                                                    activeApmSpec === spec.profession && isAllApmSkills
-                                                        ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
-                                                        : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
-                                                }`}
-                                                style={!(activeApmSpec === spec.profession && isAllApmSkills) ? { color: 'var(--text-secondary)' } : undefined}
+                                                className="axi-rail__subitem"
+                                                aria-current={activeApmSpec === spec.profession && isAllApmSkills ? 'location' : undefined}
                                             >
                                                 All Skills
                                             </button>
@@ -199,12 +192,8 @@ export const ApmSection = ({
                                                             setActiveApmSpec(spec.profession);
                                                             setActiveApmSkillId(skill.id);
                                                         }}
-                                                        className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] transition-colors ${
-                                                            activeApmSpec === spec.profession && activeApmSkillId === skill.id
-                                                                ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
-                                                                : 'hover:bg-[var(--bg-hover)] hover:text-[color:var(--text-primary)]'
-                                                        }`}
-                                                        style={!(activeApmSpec === spec.profession && activeApmSkillId === skill.id) ? { color: 'var(--text-secondary)' } : undefined}
+                                                        className="axi-rail__subitem"
+                                                        aria-current={activeApmSpec === spec.profession && activeApmSkillId === skill.id ? 'location' : undefined}
                                                         title={skill.name}
                                                     >
                                                         <div className="flex items-center gap-2 min-w-0">

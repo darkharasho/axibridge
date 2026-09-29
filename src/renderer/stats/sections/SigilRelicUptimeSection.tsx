@@ -77,8 +77,8 @@ export const SigilRelicUptimeSection = ({
                                 value={sigilRelicSearch}
                                 onChange={(e) => setSigilRelicSearch(e.target.value)}
                                 placeholder="Search..."
-                                className="w-full px-2 py-1 text-xs text-[color:var(--text-primary)] focus:outline-none mb-2"
-                                style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)' }}
+                                className="axi-input mb-2"
+                                style={{ '--axi-input-pad': '5px 8px', '--axi-input-size': '12px' } as React.CSSProperties}
                             />
                             <div className={`${sidebarListClass} ${isExpanded ? 'max-h-none flex-1 min-h-0' : ''}`}>
                                 {filteredSigilRelicTables.length === 0 ? (

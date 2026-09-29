@@ -1069,12 +1069,8 @@ seven levers the group's trough needed.
 - **Links and bare glyphs (122 sites)** - still no upstream word. A `<button>`
   with no chrome, `axi-ink-meta` and an underline is a link; the language has
   `.axi-prose a` and nothing standalone.
-- **The metric picker list (~30 sites)** - found while censusing this slice, and
-  not on the census before. Every stats section renders the same
-  `w-full text-left px-3 py-1.5` row with an active state of
-  `bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)]`. That is
-  `.axi-rail__item`'s word, and it is where `--accent-bg-strong` and
-  `--brand-primary` actually live.
+- ~~**The metric picker list (~30 sites)**~~ - done, see "The rail the app had
+  already derived" below.
 - **A calendar (~14 sites)** - `FilePickerModal`'s day grid and month arrows. A
   date picker is a shape the language has no word for, and inventing one for a
   single consumer is not obviously right.
@@ -1324,3 +1320,90 @@ Legacy custom-property references **2,335 -> 2,278**.
 Left deliberately: `RotationTrack`'s cast blocks, which are data marks in a
 timeline rather than controls, and the five replay-map controls written entirely
 in inline style objects — those belong with the replay chrome, not here.
+
+
+## The rail the app had already derived (23 rows, 15 fields)
+
+`--accent-bg-strong` was the last of the big legacy colour properties, and like
+`--bg-card-inner` before it, counting it counted a *property*. The 23 Tailwind
+spellings of `bg-[var(--accent-bg-strong)]` across seventeen stats sections were
+not 23 of one thing. They were:
+
+| Count | Object | Word |
+|---|---|---|
+| 15 | A metric picker row | `.axi-rail__item` |
+| 4 | A skill under an open spec or player | `.axi-rail__subitem` |
+| 2 | A damage-modifier row, reached through a config object | `.axi-rail__item` |
+| 1 | A fight card with three stacked lines | `.axi-card` + `.axi-edge-accent` |
+| 1 | A "Hypothetical" on/off toggle | `.axi-pill` + `aria-pressed` |
+
+The last two are the interesting ones. The fight card is a picker by function
+and a card by form - three lines of text in a bordered box - so it takes the
+accent *edge*, the same ruling the Settings option cards took. The Hypothetical
+toggle is not a picker at all; it is a two-state press, and it had been wearing
+the picker's selected colours because both were spelled out of the same
+property. Three slices running, the census has counted a fill, a corner and a
+tag, and every time the count was of a property and the objects underneath were
+plural.
+
+### The defect the language's own docs already named
+
+Four of the pickers have two levels: a spec or player, and the skills under it
+behind a `borderLeft` indent. **Both levels were drawn identically** - the same
+fill, the same accent text. Upstream's rail manifest says, in as many words,
+that this is wrong:
+
+> the two levels are not drawn alike. A category is a place, so
+> `.axi-rail__item` takes the fill. A section under it is only where the page is
+> scrolled to - a smaller claim - so `.axi-rail__subitem` is brightened text
+> with no fill and no edge. **Two fills at two levels would leave the reader
+> deciding which of them is the answer.**
+
+### The rule both sides derived independently
+
+`axi-design.css` had three rules reskinning exactly these rows, with this
+comment:
+
+> The picked row is the ancestor treatment, not the accent: the table beside it
+> already carries the gold in its own controls, and two gold claims on one panel
+> is one too many.
+
+That is upstream's refusal, restated one container further out, by a consumer
+that had never read it. Two parties deriving the same rule independently is the
+signal the rule belongs in the language rather than in either party's override
+file - so it went upstream as `.axi-rail__nav--quiet` (1.35.0), and the three
+bridge rules are gone.
+
+What the modifier must *not* do is reach for the weaker treatment that already
+exists. A subitem drops the fill **and** the weight, which is right for a few
+leaves under an open category and wrong for a twenty-row picker that is the
+primary control of its own panel. Standing down is one step, not two: the row
+rises as a hovered row does, and the accent arrives on its leading edge.
+
+The mark is the item's own border. `.axi-rail__item` already reserves one at the
+control weight and draws it transparent, so lighting the leading edge costs no
+shadow, no pseudo-element and no reflow. The first draft composed an inset
+`box-shadow` instead - the same spelling the app had used - and **upstream's own
+guard rejected it**: a component asks for a named block and never assembles one.
+The guard was right, and the answer it forced is better than the one it refused.
+
+### The fields in the same wells
+
+The 15 sidebar filter fields were underlines in the markup (`focus:outline-none`
+plus a `borderBottom`) and controls on screen, because `axi-design.css` reskinned
+them. They are `.axi-input` now, sized through `--axi-input-pad` and
+`--axi-input-size` - the knobs `.axi-palette__bar` already uses for the same
+reason - and the bridge rule is gone with its sibling.
+
+### Also retired
+
+`SECTION_CONFIG` in `DamageModifiersSection` carried `accentBg`, `accentText`
+and `accentBorder`, **identical in both of its two configs**. They were never
+configuration; they were rule 2 wearing an indirection. `accentText` became
+`.axi-ink-accent` at its six other call sites and all three keys are deleted.
+`.squad-comp-fight-nav-item` in `index.css` styled a transition and nothing else
+once its card moved upstream.
+
+Bridged utilities unchanged at **81** - this slice removed rules that name app
+classes, not Tailwind ones. Legacy custom-property references **2,248 -> 2,085**
+(one method, both trees).

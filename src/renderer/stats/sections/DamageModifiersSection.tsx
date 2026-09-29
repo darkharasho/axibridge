@@ -27,17 +27,11 @@ const SECTION_CONFIG = {
     outgoing: {
         sectionId: 'damage-modifiers',
         title: 'Damage Modifiers',
-        accentBg: 'bg-[var(--accent-bg-strong)]',
-        accentText: 'text-[color:var(--brand-primary)]',
-        accentBorder: 'border-[color:var(--accent-border)]',
         barGradientStyle: 'linear-gradient(to right, rgba(244,63,94,0.4), rgba(244,63,94,0.15))',
     },
     incoming: {
         sectionId: 'incoming-damage-modifiers',
         title: 'Incoming Damage Modifiers',
-        accentBg: 'bg-[var(--accent-bg-strong)]',
-        accentText: 'text-[color:var(--brand-primary)]',
-        accentBorder: 'border-[color:var(--accent-border)]',
         barGradientStyle: 'linear-gradient(to right, rgba(59,130,246,0.4), rgba(59,130,246,0.15))',
     },
 };
@@ -157,12 +151,8 @@ export const DamageModifiersSection = ({
                     {canFilterHypothetical && <button
                         type="button"
                         onClick={() => setShowHypothetical((v) => !v)}
-                        className={`px-2.5 py-1 rounded-[var(--radius-md)] border text-[10px] uppercase tracking-widest transition-colors ${
-                            showHypothetical
-                                ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border-[color:var(--accent-border)]'
-                                : 'text-[color:var(--text-secondary)]'
-                        }`}
-                        style={{ borderColor: showHypothetical ? undefined : 'var(--border-default)' }}
+                        className="axi-pill axi-pill--sm uppercase tracking-widest"
+                        aria-pressed={showHypothetical}
                         title={showHypothetical ? 'Showing all modifiers including shared squad buffs (banners, spirits, etc.) that are attributed to every benefiting player — not just the provider' : 'Show hypothetical shared modifiers — squad-wide buffs where damage gain is attributed to all benefiting players, not the buff source'}
                     >
                         Hypothetical
@@ -359,8 +349,8 @@ const CollapsedView = ({
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search modifiers..."
-                        className="w-full px-2 py-1 text-xs text-[color:var(--text-primary)] focus:outline-none mb-2"
-                        style={{ background: 'transparent', borderBottom: '1px solid var(--border-subtle)' }}
+                        className="axi-input mb-2"
+                        style={{ '--axi-input-pad': '5px 8px', '--axi-input-size': '12px' } as React.CSSProperties}
                     />
                     <div className={`${sidebarListClass} ${expandedSection === config.sectionId ? 'max-h-none flex-1 min-h-0' : ''}`}>
                         {filteredMods.length === 0 ? (
@@ -370,16 +360,16 @@ const CollapsedView = ({
                                 <button
                                     key={mod.id}
                                     onClick={() => setActiveMod(mod.id)}
-                                    className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors flex items-center gap-2 ${
-                                        effectiveActiveMod === mod.id
-                                            ? `${config.accentBg} ${config.accentText} font-semibold`
-                                            : 'hover:bg-[var(--bg-hover)] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
-                                    } ${!mod.isPersonal ? 'opacity-50' : ''}`}
+                                    className={`axi-rail__item ${!mod.isPersonal ? 'opacity-50' : ''}`}
+                                    aria-current={effectiveActiveMod === mod.id ? 'location' : undefined}
                                 >
                                     {mod.icon && (
                                         <img src={mod.icon} alt="" className="w-4 h-4 object-contain flex-shrink-0" />
                                     )}
-                                    <span className="flex flex-col min-w-0">
+                                    {/* Two lines in a row the rail sizes with a `font` shorthand,
+                                        which sets line-height to 1 - fine for a label, too tight
+                                        for a stacked pair. */}
+                                    <span className="flex flex-col min-w-0 gap-0.5 leading-normal">
                                         <span className="truncate">{mod.name}</span>
                                         <span className={`text-[10px] font-normal ${mod.squadDamageGain < 0 ? 'axi-ink-ok' : 'text-[color:var(--text-muted)]'}`}>
                                             {mod.squadDamageGain >= 0 ? '+' : ''}{formatWithCommas(mod.squadDamageGain, 0)} squad total
@@ -419,28 +409,28 @@ const CollapsedView = ({
                                     <button
                                         type="button"
                                         onClick={() => updateCollapsedSort('damageGain')}
-                                        className={`text-right transition-colors ${collapsedSort.key === 'damageGain' ? config.accentText : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
+                                        className={`text-right transition-colors ${collapsedSort.key === 'damageGain' ? 'axi-ink-accent' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
                                     >
                                         Dmg Gain{collapsedSort.key === 'damageGain' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => updateCollapsedSort('pctTotal')}
-                                        className={`text-right transition-colors ${collapsedSort.key === 'pctTotal' ? config.accentText : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
+                                        className={`text-right transition-colors ${collapsedSort.key === 'pctTotal' ? 'axi-ink-accent' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
                                     >
                                         % Total{collapsedSort.key === 'pctTotal' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => updateCollapsedSort('hitCoverage')}
-                                        className={`text-right transition-colors ${collapsedSort.key === 'hitCoverage' ? config.accentText : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
+                                        className={`text-right transition-colors ${collapsedSort.key === 'hitCoverage' ? 'axi-ink-accent' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
                                     >
                                         Hits{collapsedSort.key === 'hitCoverage' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => updateCollapsedSort('fightTime')}
-                                        className={`text-right transition-colors ${collapsedSort.key === 'fightTime' ? config.accentText : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
+                                        className={`text-right transition-colors ${collapsedSort.key === 'fightTime' ? 'axi-ink-accent' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
                                     >
                                         Fight Time{collapsedSort.key === 'fightTime' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                     </button>
@@ -482,7 +472,7 @@ const CollapsedView = ({
                                                             {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
                                                             <span className="truncate">{row.account}</span>
                                                         </div>
-                                                        <div className={`text-right font-mono ${isNegative ? 'axi-ink-ok' : incoming ? 'axi-ink-danger' : config.accentText}`}>
+                                                        <div className={`text-right font-mono ${isNegative ? 'axi-ink-ok' : incoming ? 'axi-ink-danger' : 'axi-ink-accent'}`}>
                                                             {row.damageGain >= 0 ? '+' : ''}{formatWithCommas(row.damageGain, 0)}
                                                         </div>
                                                         <div className="text-right font-mono text-[color:var(--text-secondary)]">

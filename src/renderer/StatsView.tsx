@@ -171,7 +171,11 @@ interface StatsViewProps {
     sliceUnavailable?: boolean;
 }
 
-const sidebarListClass = 'space-y-0.5 max-h-72 overflow-y-auto';
+/* Every metric picker in the stats view is a rail nested inside a panel whose
+ * table already spends the accent, which is what --quiet is for: the picked row
+ * rises and takes the accent on its leading edge instead of filling with it.
+ * The nav supplies its own gap, so the spacing utility goes. */
+const sidebarListClass = 'axi-rail__nav axi-rail__nav--quiet max-h-72 overflow-y-auto';
 const ORDERED_SECTION_IDS = [
     'overview',
     'fight-breakdown',

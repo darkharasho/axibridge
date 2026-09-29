@@ -138,12 +138,10 @@ export const DamageBreakdownSection = ({
                                                 key={player.key}
                                                 type="button"
                                                 onClick={() => setSelectedPlayerKey(player.key)}
-                                                className={`w-full text-left px-3 py-2 rounded-[var(--radius-md)] text-xs transition-colors ${isSelected
-                                                    ? 'bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] font-semibold'
-                                                    : 'text-[color:var(--text-secondary)] hover:bg-[var(--bg-hover)]'
-                                                    }`}
+                                                className="axi-rail__item"
+                                                aria-current={isSelected ? 'location' : undefined}
                                             >
-                                                <div className="flex items-center justify-between gap-2">
+                                                <div className="flex w-full min-w-0 items-center justify-between gap-2">
                                                     <div className="min-w-0">
                                                         <div className="flex items-center gap-2 min-w-0">
                                                             {renderProfessionIcon(player.profession, player.professionList, 'w-3.5 h-3.5')}
