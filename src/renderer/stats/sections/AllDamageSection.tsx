@@ -152,8 +152,6 @@ export const AllDamageSection = ({
                         options={MODES.map((m) => ({ value: m.value, label: m.label }))}
                         value={mode}
                         onChange={(v) => setMode(v as 'damage' | 'downContribution')}
-                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                        inactiveClassName="text-[color:var(--text-secondary)]"
                     />
                     {!expanded && (
                         <button
@@ -300,8 +298,6 @@ export const AllDamageSection = ({
                                         ]}
                                         value={percentileFilter}
                                         onChange={(v) => setPercentileFilter(v as typeof percentileFilter)}
-                                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                                        inactiveClassName="text-[color:var(--text-secondary)]"
                                     />
                                     <span className="text-[10px] axi-ink-faint">
                                         {drilldownPlayers.length}/{drilldownPlayersAll.length} players

@@ -108,7 +108,7 @@ export const AxilogCoverageBanner = ({
                     <button
                         type="button"
                         onClick={() => setDetailsOpen((open) => !open)}
-                        className="px-3 py-1 rounded-full text-[10px] font-medium border bg-white/[0.04] axi-ink-dim axi-edge-rule hover:text-white hover:bg-white/[0.08] transition-colors"
+                        className="axi-btn axi-btn--xs"
                     >
                         {detailsOpen ? 'Hide' : `Show ${missing.length}`}
                     </button>
@@ -116,18 +116,13 @@ export const AxilogCoverageBanner = ({
                         <button
                             type="button"
                             onClick={onHeal}
-                            className="px-3 py-1 rounded-full text-[10px] font-medium border transition-colors"
-                            style={{
-                                background: 'var(--status-warning-bg)',
-                                borderColor: 'var(--status-warning-border)',
-                                color: 'var(--status-warning)',
-                            }}
+                            className="axi-btn axi-btn--xs axi-ink-warn axi-edge-warn"
                         >
                             Re-parse {healable.length}
                         </button>
                     )}
                     {healState.running && (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: 'var(--status-warning)' }} />
+                        <Loader2 className="w-3.5 h-3.5 animate-spin axi-ink-warn" />
                     )}
                 </div>
             </div>

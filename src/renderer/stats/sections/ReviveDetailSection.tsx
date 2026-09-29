@@ -327,8 +327,6 @@ export const ReviveDetailSection = ({ reviveDetail }: ReviveDetailSectionProps) 
                                 { value: 'per1s', label: 'Stat/1s' },
                                 { value: 'per60s', label: 'Stat/60s' },
                             ]}
-                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                            inactiveClassName="text-[color:var(--text-secondary)]"
                         />
                     </div>
                 )}

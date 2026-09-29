@@ -411,7 +411,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                             {/* Quick preset chips */}
                             <div className="px-3 pt-2.5 flex flex-wrap gap-1.5">
                                 {['Today', 'Yesterday', 'Last 3 days', 'This week'].map((preset) => (
-                                    <button key={preset} onClick={() => handleApplyPreset(preset)} className={`px-2.5 py-1 rounded-full text-[10px] font-medium border transition-colors ${activePreset === preset ? 'bg-cyan-500/20 axi-ink-meta axi-edge-meta' : 'bg-white/5 axi-ink-dim axi-edge-rule hover:text-white hover:bg-white/10'}`}>
+                                    <button key={preset} type="button" onClick={() => handleApplyPreset(preset)} aria-pressed={activePreset === preset} className="axi-pill axi-pill--xs">
                                         {preset}
                                     </button>
                                 ))}

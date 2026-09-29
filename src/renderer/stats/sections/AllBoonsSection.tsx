@@ -284,8 +284,6 @@ export const AllBoonsSection = ({
                         options={SCOPE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
                         value={scope}
                         onChange={(v) => setScope(v as BoonScope)}
-                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                        inactiveClassName="text-[color:var(--text-secondary)]"
                     />
                     {!expanded && (
                         <button
@@ -415,8 +413,6 @@ export const AllBoonsSection = ({
                                         ]}
                                         value={percentileFilter}
                                         onChange={(v) => setPercentileFilter(v as typeof percentileFilter)}
-                                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                                        inactiveClassName="text-[color:var(--text-secondary)]"
                                     />
                                     <span className="text-[10px] axi-ink-faint">
                                         {drilldownPlayers.length}/{drilldownPlayersAll.length} players

@@ -90,8 +90,6 @@ export const TopSkillsSection = ({
                                 { value: 'damage' as const, label: 'Damage' },
                                 { value: 'downContribution' as const, label: 'Down Contrib' }
                             ]}
-                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                            inactiveClassName="text-[color:var(--text-secondary)]"
                         />
                     )}
                     {!showMetricToggle && <span className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{metricLabel}</span>}
@@ -154,8 +152,6 @@ export const TopSkillsSection = ({
                                 { value: 'all' as const, label: 'All' },
                                 { value: 'players' as const, label: 'Players' }
                             ]}
-                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                            inactiveClassName="text-[color:var(--text-secondary)]"
                         />
                     ) : (
                         <span className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>Damage</span>

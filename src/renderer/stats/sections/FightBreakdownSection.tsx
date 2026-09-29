@@ -254,8 +254,6 @@ export const FightBreakdownSection = ({
                                     { value: 'damage', label: 'Damage' },
                                     { value: 'barrier', label: 'Barrier' }
                                 ]}
-                                activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                                inactiveClassName="text-[color:var(--text-secondary)]"
                             />
                         )}
                         <span className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>

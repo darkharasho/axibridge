@@ -98,8 +98,6 @@ export const HealingBreakdownSection = ({
                             { value: 'healing', label: 'Healing' },
                             { value: 'barrier', label: 'Barrier' }
                         ]}
-                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                        inactiveClassName="text-[color:var(--text-secondary)]"
                     />
                     <button
                         type="button"

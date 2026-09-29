@@ -88,8 +88,6 @@ export const DamageBreakdownSection = ({
                             { value: 'damage', label: 'Damage' },
                             { value: 'downContribution', label: 'Down Contrib' }
                         ]}
-                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                        inactiveClassName="text-[color:var(--text-secondary)]"
                     />
                     <button
                         type="button"

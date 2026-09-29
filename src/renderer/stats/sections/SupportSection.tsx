@@ -148,8 +148,6 @@ export const SupportSection = ({
                         value={effectiveCleanseScope}
                         onChange={setCleanseScope}
                         options={cleanseScopeOptions}
-                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                        inactiveClassName="text-[color:var(--text-secondary)]"
                     />
                 )}
                 {!isExpanded && (
@@ -161,8 +159,6 @@ export const SupportSection = ({
                             { value: 'per1s', label: 'Stat/1s' },
                             { value: 'per60s', label: 'Stat/60s' }
                         ]}
-                        activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                        inactiveClassName="text-[color:var(--text-secondary)]"
                     />
                 )}
                 <button
@@ -234,16 +230,12 @@ export const SupportSection = ({
                                 { value: 'per1s', label: 'Stat/1s' },
                                 { value: 'per60s', label: 'Stat/60s' }
                             ]}
-                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                            inactiveClassName="text-[color:var(--text-secondary)]"
                         />
                         {activeSupportStat === 'condiCleanse' && (
                             <PillToggleGroup
                                 value={effectiveCleanseScope}
                                 onChange={setCleanseScope}
                                 options={cleanseScopeOptions}
-                                activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                                inactiveClassName="text-[color:var(--text-secondary)]"
                             />
                         )}
                     </div>
@@ -255,8 +247,7 @@ export const SupportSection = ({
                                     setSelectedSupportColumnIds([]);
                                     setSelectedSupportPlayers([]);
                                 }}
-                                className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                style={{ border: '1px solid var(--border-default)', background: 'var(--bg-hover)', color: 'var(--text-primary)' }}
+                                className="axi-btn axi-btn--xs"
                             >
                                 Clear All
                             </button>
@@ -267,11 +258,10 @@ export const SupportSection = ({
                                         key={id}
                                         type="button"
                                         onClick={() => setSelectedSupportColumnIds((prev) => prev.filter((entry) => entry !== id))}
-                                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                        style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
+                                        className="axi-chip axi-chip--accent axi-chip--action"
                                     >
                                         <span>{label}</span>
-                                        <span style={{ color: 'var(--text-secondary)' }}>×</span>
+                                        <span>×</span>
                                     </button>
                                 );
                             })}
@@ -280,11 +270,10 @@ export const SupportSection = ({
                                     key={id}
                                     type="button"
                                     onClick={() => setSelectedSupportPlayers((prev) => prev.filter((entry) => entry !== id))}
-                                    className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px]"
-                                    style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
+                                    className="axi-chip axi-chip--accent axi-chip--action"
                                 >
                                     <span>{id}</span>
-                                    <span style={{ color: 'var(--text-secondary)' }}>×</span>
+                                    <span>×</span>
                                 </button>
                             ))}
                         </div>

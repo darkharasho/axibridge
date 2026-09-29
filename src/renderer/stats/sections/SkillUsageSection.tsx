@@ -93,8 +93,6 @@ export const SkillUsageSection = ({
                         { value: 'total', label: 'Total' },
                         { value: 'perSecond', label: 'Per Sec' }
                     ]}
-                    activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                    inactiveClassName="axi-ink-faint"
                 />
                 <button
                     type="button"
@@ -112,7 +110,7 @@ export const SkillUsageSection = ({
                 <button
                     type="button"
                     onClick={() => setSelectedPlayers([])}
-                    className="px-3 py-1 rounded-full border axi-edge-rule bg-white/5 text-[10px] uppercase tracking-widest axi-ink-faint hover:text-slate-200"
+                    className="axi-btn axi-btn--xs"
                 >
                     Clear All
                 </button>
@@ -120,10 +118,10 @@ export const SkillUsageSection = ({
                     const player = playerMapByKey.get(playerKey);
                     if (!player) return null;
                     return (
-                        <span key={player.key} className="max-w-full flex items-center gap-1 rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-bg)] px-3 py-1 text-xs text-[color:var(--brand-primary)]">
+                        <span key={player.key} className="axi-chip axi-chip--accent max-w-full">
                             <span className="truncate max-w-[140px]">{player.displayName}</span>
-                            <span className="text-[10px] text-[color:var(--brand-primary)] opacity-70">{player.logs} {player.logs === 1 ? 'log' : 'logs'}</span>
-                            <button type="button" onClick={() => removeSelectedPlayer(player.key)} className="rounded-full p-1 text-[color:var(--brand-primary)] hover:bg-white/20">
+                            <span className="text-[10px]">{player.logs} {player.logs === 1 ? 'log' : 'logs'}</span>
+                            <button type="button" onClick={() => removeSelectedPlayer(player.key)} className="p-1">
                                 <XCircle className="w-3 h-3" />
                             </button>
                         </span>
@@ -150,7 +148,7 @@ export const SkillUsageSection = ({
                             });
                         }}
                         disabled={allPlayerKeys.length === 0}
-                        className="skill-usage-player-list-item px-2 py-0.5 rounded-full border axi-edge-rule bg-white/5 text-[10px] uppercase tracking-widest axi-ink-faint hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="skill-usage-player-list-item axi-btn axi-btn--xs disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {hasAllPlayersSelected ? 'Clear All' : 'Select All'}
                     </button>
@@ -216,7 +214,7 @@ export const SkillUsageSection = ({
                                                             return Array.from(next);
                                                         });
                                                     }}
-                                                        className="skill-usage-player-list-item px-2 py-0.5 rounded-full border axi-edge-rule bg-white/5 text-[10px] uppercase tracking-widest axi-ink-faint hover:text-slate-200"
+                                                        className="skill-usage-player-list-item axi-btn axi-btn--xs"
                                                     >
                                                         {allSelected ? 'Clear All' : 'Select All'}
                                                     </button>

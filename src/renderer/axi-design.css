@@ -302,9 +302,7 @@
 [data-axi-accent] body .bg-white\/\[0\.03\],
 [data-axi-accent] body .bg-white\/\[0\.035\],
 [data-axi-accent] body .bg-white\/\[0\.04\],
-[data-axi-accent] body .bg-white\/\[0\.05\],
-[data-axi-accent] body .bg-white\/\[0\.07\],
-[data-axi-accent] body .bg-white\/\[0\.08\] { background-color: var(--axi-ground); }
+[data-axi-accent] body .bg-white\/\[0\.07\] { background-color: var(--axi-ground); }
 
 [data-axi-accent] body .bg-blue-400\/90 { background-color: var(--axi-meta); }
 
@@ -328,11 +326,9 @@
 [data-axi-accent] body .bg-cyan-400\/10,
 [data-axi-accent] body .bg-cyan-400\/15,
 [data-axi-accent] body .bg-cyan-500\/10,
-[data-axi-accent] body .bg-cyan-500\/15,
 [data-axi-accent] body .bg-cyan-500\/20,
 [data-axi-accent] body .bg-cyan-500\/30,
 [data-axi-accent] body .bg-cyan-500\/8,
-[data-axi-accent] body .bg-cyan-500\/\[0\.08\],
 [data-axi-accent] body .bg-emerald-400\/5,
 [data-axi-accent] body .bg-emerald-500\/10,
 [data-axi-accent] body .bg-emerald-500\/15,
@@ -351,8 +347,7 @@
 [data-axi-accent] body .bg-slate-500\/10,
 [data-axi-accent] body .bg-slate-500\/20,
 [data-axi-accent] body .bg-violet-500\/15,
-[data-axi-accent] body .bg-white\/10,
-[data-axi-accent] body .bg-white\/20 {
+[data-axi-accent] body .bg-white\/10 {
   /* Shorthand: --axi-surface-raised is a gradient under glass, invalid at
      computed-value time as background-color for every literal above. */
   background: var(--axi-surface-raised);
@@ -570,19 +565,6 @@
 }
 [data-axi-accent] body .stats-group-container { border-radius: var(--axi-radius); }
 
-/* A pill group is a well with one control in it. The sliding indicator is the
-   fill, so the option riding on top of it has to be ink, not accent. */
-[data-axi-accent] body {
-  --pill-group-bg: var(--axi-ground);
-  --pill-group-border: var(--axi-well-line);
-  --pill-group-border-w: var(--axi-border-control);
-  --pill-group-radius: 8px;
-  --pill-indicator-bg: var(--axi-accent);
-  --pill-indicator-border: var(--axi-ink-line);
-  --pill-indicator-border-w: var(--axi-border-control);
-}
-[data-axi-accent] body .pill-toggle-option { color: var(--axi-text-dim); }
-[data-axi-accent] body .pill-toggle-option--active { color: var(--axi-accent-ink); }
 
 /* ---------------------------------------------------------------------------
    THE MVP CARDS

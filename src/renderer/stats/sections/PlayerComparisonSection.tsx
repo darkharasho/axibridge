@@ -117,8 +117,6 @@ export const PlayerComparisonSection = ({
                                 { value: 'vs-average', label: 'vs Squad Avg' },
                             ]}
                             className="inline-flex w-auto"
-                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                            inactiveClassName="text-[color:var(--text-secondary)]"
                         />
                         <div className="ml-auto">
                             <PillToggleGroup
@@ -126,8 +124,6 @@ export const PlayerComparisonSection = ({
                                 onChange={(v) => setComparisonCategory(v as ComparisonCategory)}
                                 options={COMPARISON_CATEGORIES}
                                 className="inline-flex w-auto"
-                                activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                                inactiveClassName="text-[color:var(--text-secondary)]"
                             />
                         </div>
                     </div>

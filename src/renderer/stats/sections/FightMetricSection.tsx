@@ -173,8 +173,6 @@ export const FightMetricSection = ({
                             options={modes.map((m) => ({ value: m.id, label: m.label }))}
                             value={activeMode}
                             onChange={setActiveMode}
-                            activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                            inactiveClassName="text-[color:var(--text-secondary)]"
                         />
                     )}
                     {headerExtras}
