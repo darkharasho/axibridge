@@ -170,7 +170,7 @@ export const DamageBreakdownSection = ({
                                 </div>
                             ) : (
                                 <div className="h-full flex flex-col">
-                                    <div className="stats-table-shell__head-stack">
+                                    <div className="stats-table-shell__header">
                                         <div className="flex items-center justify-between px-4 py-3">
                                             <div className="min-w-0 text-sm text-[color:var(--text-primary)]">
                                                 <div className="flex items-center gap-2 min-w-0">
@@ -183,41 +183,53 @@ export const DamageBreakdownSection = ({
                                                 {(metricMode === 'damage' ? 'Damage' : 'Down Contrib')} / {skillRows.length} {skillRows.length === 1 ? 'skill' : 'skills'}
                                             </div>
                                         </div>
-                                        <div className="stats-table-column-header grid grid-cols-[2fr_0.8fr_0.7fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
-                                            <div>Skill</div>
-                                            <div className="text-right">{metricMode === 'damage' ? 'Damage' : 'Down Contrib'}</div>
-                                            <div className="text-right">% Total</div>
-                                        </div>
                                     </div>
-                                    <div className="stats-table-shell__rows flex-1 min-h-0 overflow-y-auto">
-                                        {skillRows.length === 0 ? (
-                                            <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">
-                                                No skill totals for this player and metric.
-                                            </div>
-                                        ) : (
-                                            skillRows.map((row, idx) => (
-                                                <div
-                                                    key={`${row.id}-${idx}`}
-                                                    className="grid grid-cols-[2fr_0.8fr_0.7fr] gap-2 px-3 py-2 text-xs text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]"
-                                                >
-                                                    <div className="min-w-0">
-                                                        <InlineIconLabel
-                                                            name={row.name}
-                                                            iconUrl={row.icon}
-                                                            iconClassName="h-4 w-4"
-                                                        />
-                                                    </div>
-                                                    <div className="text-right font-mono text-[color:var(--text-secondary)]">
-                                                        {formatWithCommas(Number(row.value || 0), 0)}
-                                                    </div>
-                                                    <div className="text-right font-mono text-[color:var(--text-secondary)]">
-                                                        {selectedPlayerMetricTotal > 0
-                                                            ? `${formatWithCommas((Number(row.value || 0) / selectedPlayerMetricTotal) * 100, 1)}%`
-                                                            : '0.0%'}
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
+                                    <div className="axi-table__scroll flex-1 min-h-0">
+                                        <table className="axi-table axi-table--fixed axi-table--sticky axi-table--dense">
+                                            <colgroup>
+                                                <col style={{ width: '57.1429%' }} />
+                                                <col style={{ width: '22.8571%' }} />
+                                                <col style={{ width: '20%' }} />
+                                            </colgroup>
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col">Skill</th>
+                                                    <th scope="col">{metricMode === 'damage' ? 'Damage' : 'Down Contrib'}</th>
+                                                    <th scope="col">% Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {skillRows.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan={3} className="axi-ink-muted text-center">
+                                                            No skill totals for this player and metric.
+                                                        </td>
+                                                    </tr>
+                                                ) : (
+                                                    skillRows.map((row, idx) => (
+                                                        <tr key={`${row.id}-${idx}`}>
+                                                            <th scope="row">
+                                                                <span className="axi-table__who">
+                                                                    <InlineIconLabel
+                                                                        name={row.name}
+                                                                        iconUrl={row.icon}
+                                                                        iconClassName="h-4 w-4"
+                                                                    />
+                                                                </span>
+                                                            </th>
+                                                            <td className="axi-table__num">
+                                                                {formatWithCommas(Number(row.value || 0), 0)}
+                                                            </td>
+                                                            <td>
+                                                                {selectedPlayerMetricTotal > 0
+                                                                    ? `${formatWithCommas((Number(row.value || 0) / selectedPlayerMetricTotal) * 100, 1)}%`
+                                                                    : '0.0%'}
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                )}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             )}
