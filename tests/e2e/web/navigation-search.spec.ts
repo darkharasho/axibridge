@@ -95,7 +95,7 @@ test.describe('Web Report Taxonomy Navigation + Search', () => {
         // Same pre-existing duplicate-id card (see above) — .first() is the
         // SectionPanel wrapper, which is also the element useSearchJump flashes.
         await expect(page.locator('#stab-performance').first()).toBeVisible();
-        await expect(page.locator('.axi-search-flash')).toHaveCount(1);
+        await expect(page.locator('.bridge-search-flash')).toHaveCount(1);
     });
 
     test('player search lands on their breakdown row', async ({ page }) => {
@@ -144,13 +144,13 @@ test.describe('Web Report Taxonomy Navigation + Search', () => {
             'Squad Cohesion', 'Commander', 'Players', 'Roster', 'Replay',
         ];
         for (const label of categories) {
-            // Scope to the group-level buttons (.report-nav-group-btn), the same
+            // Scope to the group-level buttons (.axi-rail__item), the same
             // convention used by the other web nav specs. A bare role query would
             // also match the "Overview" *section* item nested in the expanded
             // "Overview" *category* (their labels happen to coincide).
             const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             await expect(
-                drawer.locator('.report-nav-group-btn', { hasText: new RegExp(`^${escaped}$`, 'i') })
+                drawer.locator('.axi-rail__item', { hasText: new RegExp(`^${escaped}$`, 'i') })
             ).toBeVisible();
         }
     });

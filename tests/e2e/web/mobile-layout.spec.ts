@@ -165,7 +165,7 @@ async function navigateToGroup(page: Page, groupPattern: RegExp) {
     // Wait for the translate to complete (aside becomes translate-x-0).
     const drawerAside = page.locator('aside.fixed.translate-x-0');
     await expect(drawerAside).toBeVisible({ timeout: 3000 });
-    await drawerAside.locator('.report-nav-group-btn', { hasText: groupPattern }).click();
+    await drawerAside.locator('.axi-rail__item', { hasText: groupPattern }).click();
     // Wait for section to load and animate in
     await page.waitForTimeout(2500);
 }

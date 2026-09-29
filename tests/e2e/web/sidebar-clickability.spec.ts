@@ -23,8 +23,8 @@ test.describe('Sidebar sub-item clickability (WRPT-040–048)', () => {
     });
 
     test('WRPT-040: offense sub-items are clickable', async ({ page }) => {
-        const sidebar = page.locator('aside.report-nav-sidebar:visible');
-        await sidebar.locator('.report-nav-group-btn', { hasText: /^Offense$/i }).click();
+        const sidebar = page.locator('aside.axi-rail');
+        await sidebar.locator('.axi-rail__item', { hasText: /^Offense$/i }).click();
 
         // 'Player Breakdown' moved to the new "Players" category (WRPT-043 below)
         // under the 10-category taxonomy; 'All Damage' is a new sibling section here.
@@ -38,11 +38,14 @@ test.describe('Sidebar sub-item clickability (WRPT-040–048)', () => {
         ];
 
         for (const label of subItems) {
-            const btn = sidebar.locator('.report-nav-item-btn', { hasText: new RegExp(label, 'i') });
+            const btn = sidebar.locator('.axi-rail__subitem', { hasText: new RegExp(label, 'i') });
             await expect(btn).toBeVisible({ timeout: 5_000 });
             await btn.click();
-            // After click the item should become the active (white text) item
-            await expect(btn).toHaveCSS('color', /rgb\(255,\s*255,\s*255\)/);
+            // After the click the item is the current one. Assert that through
+            // aria-current — which is also what upstream's
+            // .axi-rail__subitem[aria-current] paints from. The old assertion
+            // pinned a literal white, which the rail's current colour is not.
+            await expect(btn).toHaveAttribute('aria-current', 'location');
         }
     });
 
@@ -50,8 +53,8 @@ test.describe('Sidebar sub-item clickability (WRPT-040–048)', () => {
         // Boons and Support/Healing split out of "Defensive Stats" into their own
         // categories (WRPT-041b/041c below) — Defense now only covers incoming
         // damage/mitigation.
-        const sidebar = page.locator('aside.report-nav-sidebar:visible');
-        await sidebar.locator('.report-nav-group-btn', { hasText: /^Defense$/i }).click();
+        const sidebar = page.locator('aside.axi-rail');
+        await sidebar.locator('.axi-rail__item', { hasText: /^Defense$/i }).click();
 
         const subItems = [
             'Defense Detailed',
@@ -61,17 +64,17 @@ test.describe('Sidebar sub-item clickability (WRPT-040–048)', () => {
         ];
 
         for (const label of subItems) {
-            const btn = sidebar.locator('.report-nav-item-btn', { hasText: new RegExp(label, 'i') });
+            const btn = sidebar.locator('.axi-rail__subitem', { hasText: new RegExp(label, 'i') });
             await expect(btn).toBeVisible({ timeout: 5_000 });
             await btn.click();
-            await expect(btn).toHaveCSS('color', /rgb\(255,\s*255,\s*255\)/);
+            await expect(btn).toHaveAttribute('aria-current', 'location');
         }
     });
 
     test('WRPT-041b: boons & strips sub-items are clickable', async ({ page }) => {
         // Carved out of the old "Defensive Stats" group.
-        const sidebar = page.locator('aside.report-nav-sidebar:visible');
-        await sidebar.locator('.report-nav-group-btn', { hasText: /^Boons & Strips$/i }).click();
+        const sidebar = page.locator('aside.axi-rail');
+        await sidebar.locator('.axi-rail__item', { hasText: /^Boons & Strips$/i }).click();
 
         const subItems = [
             'Boon Output',
@@ -84,17 +87,17 @@ test.describe('Sidebar sub-item clickability (WRPT-040–048)', () => {
         ];
 
         for (const label of subItems) {
-            const btn = sidebar.locator('.report-nav-item-btn', { hasText: new RegExp(label, 'i') });
+            const btn = sidebar.locator('.axi-rail__subitem', { hasText: new RegExp(label, 'i') });
             await expect(btn).toBeVisible({ timeout: 5_000 });
             await btn.click();
-            await expect(btn).toHaveCSS('color', /rgb\(255,\s*255,\s*255\)/);
+            await expect(btn).toHaveAttribute('aria-current', 'location');
         }
     });
 
     test('WRPT-041c: support & healing sub-items are clickable', async ({ page }) => {
         // Carved out of the old "Defensive Stats" group.
-        const sidebar = page.locator('aside.report-nav-sidebar:visible');
-        await sidebar.locator('.report-nav-group-btn', { hasText: /^Support & Healing$/i }).click();
+        const sidebar = page.locator('aside.axi-rail');
+        await sidebar.locator('.axi-rail__item', { hasText: /^Support & Healing$/i }).click();
 
         const subItems = [
             'Support Detailed',
@@ -104,20 +107,20 @@ test.describe('Sidebar sub-item clickability (WRPT-040–048)', () => {
         ];
 
         for (const label of subItems) {
-            const btn = sidebar.locator('.report-nav-item-btn', { hasText: new RegExp(label, 'i') });
+            const btn = sidebar.locator('.axi-rail__subitem', { hasText: new RegExp(label, 'i') });
             await expect(btn).toBeVisible({ timeout: 5_000 });
             await btn.click();
-            await expect(btn).toHaveCSS('color', /rgb\(255,\s*255,\s*255\)/);
+            await expect(btn).toHaveAttribute('aria-current', 'location');
         }
     });
 
     test('WRPT-042: overview sub-items are clickable', async ({ page }) => {
-        const sidebar = page.locator('aside.report-nav-sidebar:visible');
+        const sidebar = page.locator('aside.axi-rail');
         // Overview is the default active group and already expanded.
         // Switch away first so we can re-expand it cleanly without toggling it closed.
-        await sidebar.locator('.report-nav-group-btn', { hasText: /^Offense$/i }).click();
+        await sidebar.locator('.axi-rail__item', { hasText: /^Offense$/i }).click();
         await page.waitForTimeout(300);
-        await sidebar.locator('.report-nav-group-btn', { hasText: /^Overview$/i }).click();
+        await sidebar.locator('.axi-rail__item', { hasText: /^Overview$/i }).click();
 
         // 'KDR' is now labelled 'Overview' (its section id is unchanged; see the
         // legacy '#kdr' alias test in navigation-search.spec.ts). 'Classes' moved
@@ -134,10 +137,10 @@ test.describe('Sidebar sub-item clickability (WRPT-040–048)', () => {
         ];
 
         for (const label of subItems) {
-            const btn = sidebar.locator('.report-nav-item-btn', { hasText: new RegExp(label, 'i') });
+            const btn = sidebar.locator('.axi-rail__subitem', { hasText: new RegExp(label, 'i') });
             await expect(btn).toBeVisible({ timeout: 5_000 });
             await btn.click({ timeout: 5_000 });
-            await expect(btn).toHaveCSS('color', /rgb\(255,\s*255,\s*255\)/);
+            await expect(btn).toHaveAttribute('aria-current', 'location');
         }
     });
 
@@ -146,8 +149,8 @@ test.describe('Sidebar sub-item clickability (WRPT-040–048)', () => {
         // Special Buffs / Sigil-Relic Uptime / Skill Usage / APM Breakdown
         // members now live under the new "Players" category (its other old
         // member, Fight Comparison, moved into Overview — covered by WRPT-042).
-        const sidebar = page.locator('aside.report-nav-sidebar:visible');
-        await sidebar.locator('.report-nav-group-btn', { hasText: /^Players$/i }).click();
+        const sidebar = page.locator('aside.axi-rail');
+        await sidebar.locator('.axi-rail__item', { hasText: /^Players$/i }).click();
 
         const subItems = [
             'Player Breakdown',
@@ -158,18 +161,18 @@ test.describe('Sidebar sub-item clickability (WRPT-040–048)', () => {
         ];
 
         for (const label of subItems) {
-            const btn = sidebar.locator('.report-nav-item-btn', { hasText: new RegExp(label, 'i') });
+            const btn = sidebar.locator('.axi-rail__subitem', { hasText: new RegExp(label, 'i') });
             await expect(btn).toBeVisible({ timeout: 5_000 });
             await btn.click();
-            await expect(btn).toHaveCSS('color', /rgb\(255,\s*255,\s*255\)/);
+            await expect(btn).toHaveAttribute('aria-current', 'location');
         }
     });
 
     test('WRPT-048: roster sub-items are clickable', async ({ page }) => {
         // 'Classes' (squad + enemy comp) is back in Overview per user request —
         // see the WRPT-042 list. Roster keeps the attendance/per-fight comps.
-        const sidebar = page.locator('aside.report-nav-sidebar:visible');
-        await sidebar.locator('.report-nav-group-btn', { hasText: /^Roster$/i }).click();
+        const sidebar = page.locator('aside.axi-rail');
+        await sidebar.locator('.axi-rail__item', { hasText: /^Roster$/i }).click();
 
         const subItems = [
             'Attendance Ledger',
@@ -178,19 +181,19 @@ test.describe('Sidebar sub-item clickability (WRPT-040–048)', () => {
         ];
 
         for (const label of subItems) {
-            const btn = sidebar.locator('.report-nav-item-btn', { hasText: new RegExp(label, 'i') });
+            const btn = sidebar.locator('.axi-rail__subitem', { hasText: new RegExp(label, 'i') });
             await expect(btn).toBeVisible({ timeout: 5_000 });
             await btn.click();
-            await expect(btn).toHaveCSS('color', /rgb\(255,\s*255,\s*255\)/);
+            await expect(btn).toHaveAttribute('aria-current', 'location');
         }
     });
 
     test('WRPT-044: clicking sub-item scrolls its section into view', async ({ page }) => {
-        const sidebar = page.locator('aside.report-nav-sidebar:visible');
+        const sidebar = page.locator('aside.axi-rail');
 
         // Navigate to Boons & Strips > Boon Output (moved out of "Defensive Stats")
-        await sidebar.locator('.report-nav-group-btn', { hasText: /^Boons & Strips$/i }).click();
-        const boonBtn = sidebar.locator('.report-nav-item-btn', { hasText: /Boon Output/i });
+        await sidebar.locator('.axi-rail__item', { hasText: /^Boons & Strips$/i }).click();
+        const boonBtn = sidebar.locator('.axi-rail__subitem', { hasText: /Boon Output/i });
         await expect(boonBtn).toBeVisible({ timeout: 5_000 });
         await boonBtn.click();
 
@@ -202,8 +205,8 @@ test.describe('Sidebar sub-item clickability (WRPT-040–048)', () => {
         }
 
         // Navigate to Offense > Conditions
-        await sidebar.locator('.report-nav-group-btn', { hasText: /^Offense$/i }).click();
-        const conditionsBtn = sidebar.locator('.report-nav-item-btn', { hasText: /Conditions/i });
+        await sidebar.locator('.axi-rail__item', { hasText: /^Offense$/i }).click();
+        const conditionsBtn = sidebar.locator('.axi-rail__subitem', { hasText: /Conditions/i });
         await expect(conditionsBtn).toBeVisible({ timeout: 5_000 });
         await conditionsBtn.click();
 
