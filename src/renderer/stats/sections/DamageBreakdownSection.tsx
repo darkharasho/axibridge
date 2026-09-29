@@ -116,7 +116,7 @@ export const DamageBreakdownSection = ({
                    component's class hooks so the picker treatment - the well, the
                    search control, the picked row - reaches it too. */
                 <div className="stats-table-layout grid lg:grid-cols-[280px_1fr] gap-0 h-[480px]">
-                    <div className="stats-table-layout__sidebar pr-3 flex flex-col overflow-y-auto" style={{ borderRight: 'var(--stats-sidebar-edge-w, 1px) solid var(--border-subtle)' }}>
+                    <div className="axi-well stats-table-layout__sidebar flex flex-col overflow-y-auto">
                         <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-3">
                             Squad Players
                         </div>

@@ -138,20 +138,13 @@ describe('axi-design.css', () => {
         expect(block).not.toMatch(/(?<!-)background:\s*var\(--axi-ground\)/);
     });
 
-    it('still declares the two tokens upstream does not ship', () => {
-        for (const token of ['--axi-well-line:', '--axi-grid:']) {
-            expect(css, token).toContain(token);
-        }
-    });
-
-    // --axi-rail-w is READ with a fallback and declared nowhere — it is the
-    // caller's override hook, not a token this file owns. Asserting it is
-    // *declared* would be asserting something that has never been true. The
-    // bridge-* rename in the previous task covered class names only, so the
-    // renamed token would be a silent no-op: guard against it.
-    it('reads the rail width as an overridable usage, un-renamed', () => {
-        expect(css).toContain('var(--axi-rail-w, 208px)');
-        expect(css).not.toContain('--bridge-rail-w');
+    // Was two tokens. --axi-well-line went upstream with .axi-well in 1.17.0,
+    // and a local redeclaration of a token the package now owns is exactly the
+    // drift this file exists to prevent — so it is asserted absent rather than
+    // present. --axi-grid still has no upstream equivalent.
+    it('declares --axi-grid, and no longer restates --axi-well-line', () => {
+        expect(css).toContain('--axi-grid:');
+        expect(css).not.toContain('--axi-well-line:');
     });
 });
 

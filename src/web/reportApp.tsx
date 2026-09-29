@@ -1711,7 +1711,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                 <aside
                     className={`fixed z-30 top-0 bottom-0 w-64 max-w-[80vw] transition-transform duration-300 ${isNarrowViewport ? '' : 'hidden'} ${tocOpen ? 'translate-x-0' : '-translate-x-full'}`}
                 >
-                    <div className="report-nav-sidebar h-full bg-black/20 border-r border-white/10 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.45)] flex flex-col">
+                    <div className="axi-rail axi-rail--flush h-full" style={{ '--axi-rail-w': '100%', '--axi-rail-pad': '0' } as CSSProperties}>
                         <div className="px-5 pt-6 pb-4 flex items-center justify-between">
                             <div className="text-[11px] uppercase tracking-[0.4em] text-gray-400">Contents</div>
                             <button
@@ -1745,20 +1745,17 @@ export function ReportApp({ injectedSource, assetBase }: {
                                     <div key={group.id} className="space-y-1">
                                         <button
                                             onClick={() => handleGroupHeaderClick(group.id)}
-                                            data-on={isActive ? '' : undefined}
-                                            className={`report-nav-group-btn w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors ${isActive
-                                                ? 'bg-white/10 text-white border-white/20'
-                                                : 'text-gray-300 border-transparent hover:border-white/10 hover:bg-white/10'
-                                                }`}
+                                            aria-current={isActive ? 'page' : undefined}
+                                            className="axi-rail__item"
                                         >
-                                            <GroupIcon className="report-nav-group-icon w-5 h-5 shrink-0 text-[color:var(--brand-primary)]" />
-                                            <span className="report-nav-group-label text-[11px] uppercase tracking-[0.22em] whitespace-nowrap min-w-0 truncate">{group.label}</span>
+                                            <GroupIcon className="axi-icon" />
+                                            <span className="whitespace-nowrap min-w-0 truncate">{group.label}</span>
                                             <motion.span
-                                                className="report-nav-chevron ml-auto inline-flex shrink-0"
+                                                className="ml-auto inline-flex shrink-0"
                                                 animate={{ rotate: isExpanded ? 0 : -90 }}
                                                 transition={navFastSpring}
                                             >
-                                                <ChevronDown className="w-4 h-4 text-gray-300" />
+                                                <ChevronDown className="axi-icon" />
                                             </motion.span>
                                         </button>
                                         <AnimatePresence initial={false}>
@@ -1770,7 +1767,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                     transition={navSpring}
                                                     className="overflow-hidden"
                                                 >
-                                                    <div className="report-nav-submenu space-y-1 pl-2 pt-1" data-nav-submenu-content>
+                                                    <div className="axi-rail__sub" data-nav-submenu-content>
                                                         {group.items.map((item, index) => {
                                                             const ItemIcon = item.icon;
                                                             return (
@@ -1783,10 +1780,10 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                                         handleSubNavClick(group.id, item.id);
                                                                         setTocOpen(false);
                                                                     }}
-                                                                    data-on={activeSectionId === item.id ? '' : undefined}
-                                                                    className={`report-nav-item-btn w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] border transition-colors ${activeSectionId === item.id ? 'text-white border-white/20 bg-white/10' : 'text-gray-200 border-transparent hover:border-white/10 hover:bg-white/10'}`}
+                                                                    aria-current={activeSectionId === item.id ? 'location' : undefined}
+                                                                    className="axi-rail__subitem w-full flex items-center gap-2"
                                                                 >
-                                                                    <ItemIcon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                                                                    <ItemIcon className="axi-icon" />
                                                                     {item.label}
                                                                 </motion.button>
                                                             );
@@ -1801,7 +1798,10 @@ export function ReportApp({ injectedSource, assetBase }: {
                         </nav>
                     </div>
                 </aside>
-                <aside className={`report-nav-sidebar fixed inset-y-0 left-0 w-64 border-r border-white/10 bg-black/20 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] z-20 ${isNarrowViewport ? 'hidden' : 'flex'}`}>
+                <aside
+                    className={`axi-rail axi-rail--flush fixed inset-y-0 left-0 z-20 ${isNarrowViewport ? 'hidden' : ''}`}
+                    style={{ '--axi-rail-w': '16rem', '--axi-rail-pad': '0' } as CSSProperties}
+                >
                     <div className="flex flex-col w-full">
                         <div className="px-6 pt-6 pb-5">
                             <div className="flex items-center gap-3">
@@ -1856,20 +1856,17 @@ export function ReportApp({ injectedSource, assetBase }: {
                                     <div key={group.id} className="space-y-1">
                                         <button
                                             onClick={() => handleGroupHeaderClick(group.id)}
-                                            data-on={isActive ? '' : undefined}
-                                            className={`report-nav-group-btn w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors ${isActive
-                                                ? 'bg-white/10 text-white border-white/20'
-                                                : 'text-gray-300 border-transparent hover:border-white/10 hover:bg-white/10'
-                                                }`}
+                                            aria-current={isActive ? 'page' : undefined}
+                                            className="axi-rail__item"
                                         >
-                                            <GroupIcon className="report-nav-group-icon w-5 h-5 shrink-0 text-[color:var(--brand-primary)]" />
-                                            <span className="report-nav-group-label text-[11px] uppercase tracking-[0.22em] whitespace-nowrap min-w-0 truncate">{group.label}</span>
+                                            <GroupIcon className="axi-icon" />
+                                            <span className="whitespace-nowrap min-w-0 truncate">{group.label}</span>
                                             <motion.span
-                                                className="report-nav-chevron ml-auto inline-flex shrink-0"
+                                                className="ml-auto inline-flex shrink-0"
                                                 animate={{ rotate: isExpanded ? 0 : -90 }}
                                                 transition={navFastSpring}
                                             >
-                                                <ChevronDown className="w-4 h-4 text-gray-300" />
+                                                <ChevronDown className="axi-icon" />
                                             </motion.span>
                                         </button>
                                         <AnimatePresence initial={false}>
@@ -1881,7 +1878,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                     transition={navSpring}
                                                     className="overflow-hidden"
                                                 >
-                                                    <div className="report-nav-submenu space-y-1 pl-2 pt-1" data-nav-submenu-content>
+                                                    <div className="axi-rail__sub" data-nav-submenu-content>
                                                         {group.items.map((item, index) => {
                                                             const ItemIcon = item.icon;
                                                             return (
@@ -1891,10 +1888,10 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                                     animate={{ opacity: 1, x: 0 }}
                                                                     transition={{ ...navFastSpring, delay: index * 0.03 }}
                                                                     onClick={() => handleSubNavClick(group.id, item.id)}
-                                                                    data-on={activeSectionId === item.id ? '' : undefined}
-                                                                    className={`report-nav-item-btn w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] border transition-colors ${activeSectionId === item.id ? 'text-white border-white/20 bg-white/10' : 'text-gray-200 border-transparent hover:border-white/10 hover:bg-white/10'}`}
+                                                                    aria-current={activeSectionId === item.id ? 'location' : undefined}
+                                                                    className="axi-rail__subitem w-full flex items-center gap-2"
                                                                 >
-                                                                    <ItemIcon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                                                                    <ItemIcon className="axi-icon" />
                                                                     {item.label}
                                                                 </motion.button>
                                                             );

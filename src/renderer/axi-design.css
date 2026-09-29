@@ -41,16 +41,6 @@
      and each needs a reason. Everything else in the palette is taken as
      shipped. */
 
-  /* The line around a well, and an addition rather than an override - axi has
-     no token for this because it has no case for it. axi draws its outlines in
-     near-black, which works because the language assumes a ground the lines
-     can be darker than. AxiBridge's ground IS near-black, so an ink outline
-     round a ground-filled element - a toggle track, a bar's trough, a stat row
-     - is a black line on a black field, and those elements came out looking
-     like the untouched old ones. The rule holds: ink outlines something raised
-     above the ground (it reads, because the fill is lighter than the line),
-     and a well that sits at ground level is outlined by the rule instead. */
-  --axi-well-line: var(--axi-rule);
 
   /* The app ships Inter and the rest of the suite does not. Overriding the
      type stack is leaving the language rather than theming it, which is worth
@@ -247,7 +237,7 @@
    app's content read as sitting inside the outline rather than under a second
    toolbar.
 
-   !important on both, same reason as .app-content and .dashboard-rail: the
+   !important on both, same reason as .app-content: the
    titlebar's fill and border are painted inline, so until now it rendered at
    ground with a --border-subtle rule under it and the strip was never a
    strip. It is the frame rather than a field, which is why ink is right here
@@ -747,15 +737,6 @@
 
    The conic gradient in StatsViewShared and the theme swatches in Settings are
    left alone on purpose: in both, the gradient is the data. */
-[data-axi-accent] body .stats-sections {
-  background-image: none !important;
-  background-color: var(--axi-ground) !important;
-  /* The sections field is a well sunk one step below the panel around it, and
-     that step is the edge. Its own border was a third vertical rule inside the
-     35px between the report nav's ink edge and the first section's accent
-     stripe. Transparent rather than 0 so nothing shifts. */
-  border-color: transparent;
-}
 [data-axi-accent] body .squad-comp-board {
   background-image: none;
   background-color: var(--axi-ground);
@@ -799,93 +780,13 @@
 /* ---------------------------------------------------------------------------
    THE RAIL
    Stats only. Eleven categories and their sections are more than the top tab
-   strip holds, so this replaces the hover-expand CategoryBar on that one view
-   and the strip keeps carrying the other four. It is a panel like any other
-   panel on the page - the same border weight and the same offset block - and
-   nothing inside it is outlined except the item that is on. */
-[data-axi-accent] body .bridge-rail {
-  display: flex;
-  flex-direction: column;
-  /* THE PREFIX SPLIT, stated once where a reader meets it: AxiBridge's own
-     components are `bridge-*` CLASSES, but the variables they read keep the
-     `axi-*` prefix. The two namespaces answer to different owners. A class name
-     is ours, and `.axi-search` / `.axi-rail` are real components in upstream's
-     stylesheet, so reusing those names would collide with the package. A token
-     name is the language's public vocabulary - `--axi-rail-w` is read here with a
-     fallback and declared nowhere, i.e. it is the hook a caller overrides - and
-     renaming it would break that contract for no gain. Hence `.bridge-rail`
-     styled with `--axi-rail-w`, and the same everywhere else. */
-  width: var(--axi-rail-w, 208px);
-  flex: none;
-  padding: 10px;
-  /* The offset block falls below the rail, so end short of the row's floor to
-     keep it from being clipped by the scroll container. */
-  margin-bottom: var(--axi-offset-panel);
-  overflow-y: auto;
-  background: var(--axi-surface);
-  border: var(--axi-border-panel) solid var(--axi-ink-line);
-  border-radius: var(--axi-radius);
-  box-shadow: var(--axi-shadow-panel);
-}
-[data-axi-accent] body .bridge-rail__nav { display: flex; flex-direction: column; gap: 2px; }
-[data-axi-accent] body .bridge-rail__item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 8px 10px;
-  font: 800 12.5px/1 var(--axi-sans);
-  color: var(--axi-text-dim);
-  text-align: left;
-  background: transparent;
-  border: var(--axi-border-control) solid transparent;
-  border-radius: 8px;
-  cursor: pointer;
-}
-[data-axi-accent] body .bridge-rail__item:hover { color: var(--axi-text); background: var(--axi-surface-raised); }
-/* Same treatment as a pressed pill and a current tab: this one is on. Only
-   ever one of these on screen. */
-[data-axi-accent] body .bridge-rail__item[aria-current='page'],
-[data-axi-accent] body .bridge-rail__item[aria-current='page']:hover {
-  background: var(--axi-accent);
-  color: var(--axi-accent-ink);
-  border-color: var(--axi-ink-line);
-  box-shadow: var(--axi-shadow-control);
-}
-/* The sections inside the open category. No well and no fill: the gold
-   category answers "where am I"; a section is where the page happens to be
-   scrolled to, which is a smaller claim and is drawn as one - brightened text
-   against the dim list around it. */
-[data-axi-accent] body .bridge-rail__sections {
-  display: flex;
-  flex-direction: column;
-  margin: 3px 0 5px 10px;
-}
-[data-axi-accent] body .bridge-rail__section {
-  padding: 5px 8px;
-  font: 700 11.5px/1.3 var(--axi-sans);
-  text-align: left;
-  color: var(--axi-text-faint);
-  background: transparent;
-  border: 0;
-  border-radius: var(--axi-radius-sm);
-  cursor: pointer;
-}
-[data-axi-accent] body .bridge-rail__section:hover { color: var(--axi-text-dim); background: var(--axi-surface-raised); }
-[data-axi-accent] body .bridge-rail__section[data-on] { color: var(--axi-text); }
+   strip holds, so upstream's .axi-rail replaces the hover-expand CategoryBar
+   on that one view and the strip keeps carrying the other four.
 
-/* An annotation, not a status: rule 5 says an outline is what marks something
-   the app knows *about* the data rather than a measurement of it. */
-[data-axi-accent] body .bridge-rail__mark {
-  margin-left: auto;
-  padding: 2px 5px;
-  font: var(--axi-t-micro, 800 11px/1 var(--axi-sans));
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  color: var(--axi-meta);
-  border: var(--axi-border-hairline) solid var(--axi-meta);
-  border-radius: 4px;
-}
+   One line left app-side, and it is a fact about this layout rather than about
+   rails: the offset block falls BELOW the rail, so it has to end short of the
+   row's floor or the scroll container clips it. */
+[data-axi-accent] body .axi-rail { margin-bottom: var(--axi-offset-panel); }
 
 /* ---------------------------------------------------------------------------
    THE CUT
@@ -1107,24 +1008,15 @@
    was scrolling because the language's own weight pushed it over: thicker
    borders, larger radii, the block under each card. The column buys that
    height back out of its own padding rather than out of the content, and then
-   stops scrolling entirely. */
+   stops scrolling entirely.
+
+   No fill and no edge of its own. The column and the activity panel beside it
+   are the same ground, and the cards in one and the panel in the other are
+   already objects standing on it; a rule between two identical fields
+   separates nothing. This used to be said twice in !important, because
+   AppLayout painted both inline - the markup now simply doesn't. */
 [data-axi-accent] body .dashboard-rail {
   overflow: hidden;
-  /* The rail and the activity column are the same ground, and the cards in
-     one and the panel in the other are already objects standing on it. A rule
-     between two identical fields separates nothing - it just ran a second
-     vertical line beside the activity panel's own edge. */
-  border-right: none !important;
-  /* The rail was the same surface as the cards standing on it, so five panels
-     and the strip behind them were all one colour and the only thing telling
-     them apart was a near-black line. A panel sits on the ground, not on
-     another panel.
-
-     !important on both because AppLayout paints the rail's fill AND its right
-     border inline, the same way it paints .app-content, and nothing but
-     !important beats an inline style - which is why these two rules were
-     written long ago and have never once been on screen. */
-  background: var(--axi-ground) !important;
   padding: 8px;
 }
 [data-axi-accent] body .dashboard-rail .rail-stack { gap: 8px; }
@@ -1264,59 +1156,21 @@
 }
 
 /* ---------------------------------------------------------------------------
-   THE WEB REPORT'S LEFT NAV
-   A published report ships its own sidebar - the desktop app's rail and
-   CategoryBar are not used there - and it had none of this language: black at
-   20% behind frosted glass, a 60px soft drop shadow down its edge, and its
-   items drawn as rounded capsules outlined in white at 10-20%. Every one of
-   those is a thing the language does not do, which is why it kept reading as
-   the old app next to the sections it was scrolling.
+   THE REPORT'S NAVIGATION
+   The published report navigates by a rail rather than a strip, for the same
+   reason Stats does - eleven groups and their sections - so it is upstream's
+   .axi-rail, flush against the page edge. Nothing left to say here: what used
+   to be in this block was that component written out a second time, under
+   different class names, over a 20%-black fill behind a blur that does nothing
+   on Linux and so read as see-through.
 
-   Same grammar as the desktop rail: the strip is a surface with an ink edge,
-   a category you are reading is filled with the accent and takes the control
-   block, and a section is brightened text because it is a smaller claim. */
-[data-axi-accent] body .report-nav-sidebar {
-  background: var(--axi-surface);
-  border-right: var(--axi-border-panel) solid var(--axi-ink-line);
-  backdrop-filter: none;
-  box-shadow: none;
-}
-/* The nav list scrolls; it just stops carving a channel down the strip to say
-   so, the same way the table-picker wells do. The groove was reading as one
-   more vertical line next to the strip's own edge, and it was eating the width
-   the category labels needed. */
-[data-axi-accent] body .report-nav-sidebar nav { scrollbar-width: none; }
-[data-axi-accent] body .report-nav-sidebar nav::-webkit-scrollbar { width: 0; height: 0; }
-[data-axi-accent] body .report-nav-sidebar .report-nav-group-btn,
-[data-axi-accent] body .report-nav-sidebar .report-nav-item-btn {
-  border: var(--axi-border-control) solid transparent;
-  border-radius: var(--axi-radius-sm);
-  color: var(--axi-text-dim);
-  background: transparent;
-}
-[data-axi-accent] body .report-nav-sidebar .report-nav-group-btn:hover,
-[data-axi-accent] body .report-nav-sidebar .report-nav-item-btn:hover {
-  color: var(--axi-text);
-  background: var(--axi-surface-raised);
-  border-color: transparent;
-}
-[data-axi-accent] body .report-nav-sidebar .report-nav-group-btn[data-on],
-[data-axi-accent] body .report-nav-sidebar .report-nav-group-btn[data-on]:hover {
-  background: var(--axi-accent);
-  color: var(--axi-accent-ink);
-  border-color: var(--axi-ink-line);
-  box-shadow: var(--axi-shadow-control);
-}
-[data-axi-accent] body .report-nav-sidebar .report-nav-group-btn[data-on] .report-nav-group-icon,
-[data-axi-accent] body .report-nav-sidebar .report-nav-group-btn[data-on] .report-nav-chevron { color: var(--axi-accent-ink); }
-/* The icon beside a category is a label for it, not a second accent. */
-[data-axi-accent] body .report-nav-sidebar .report-nav-group-icon { color: var(--axi-text-faint); }
-[data-axi-accent] body .report-nav-sidebar .report-nav-item-btn[data-on],
-[data-axi-accent] body .report-nav-sidebar .report-nav-item-btn[data-on]:hover {
-  color: var(--axi-text);
-  background: var(--axi-surface-raised);
-  border-color: transparent;
-}
+   One rule survives, and it is about this layout rather than about rails: the
+   report scrolls its nav list inside the rail instead of scrolling the rail,
+   and that list's scrollbar was carving a channel down a 16rem strip - one
+   more vertical line beside the rail's own edge, eating the width the group
+   labels need. */
+[data-axi-accent] body .axi-rail nav { scrollbar-width: none; }
+[data-axi-accent] body .axi-rail nav::-webkit-scrollbar { width: 0; height: 0; }
 
 /* ---------------------------------------------------------------------------
    THE TABLE-WITH-A-PICKER SECTIONS
@@ -1324,24 +1178,14 @@
    on the right shows. It read flat because nothing in it was an object - the
    list and the table were the same field, parted by a hairline, and the list's
    scrollbar cut a groove down the middle of the panel. Two objects instead:
-   the picker is a well sunk into the panel, the table is a surface standing on
-   it, and the hairline between them is redundant once both have edges. */
-[data-axi-accent] body .stats-table-layout {
-  --stats-sidebar-edge-w: 0;
-  gap: 10px;
-}
-[data-axi-accent] body .stats-table-layout__sidebar,
+   the picker is upstream's .axi-well, the table is a surface standing on it,
+   and the hairline between them is redundant once both have edges. */
+[data-axi-accent] body .stats-table-layout { gap: 10px; }
 [data-axi-accent] body .stats-table-layout__content { padding-left: 0; padding-right: 0; }
 
-[data-axi-accent] body .stats-table-layout__sidebar {
-  background: var(--axi-ground);
-  border: var(--axi-border-control) solid var(--axi-well-line);
-  border-radius: var(--axi-radius);
-  padding: 10px;
-  /* The list scrolls; it just stops carving a channel to say so. The well's
-     own edge already tells you where the list ends. */
-  scrollbar-width: none;
-}
+/* The list scrolls; it just stops carving a channel to say so. The well's own
+   edge already tells you where the list ends. */
+[data-axi-accent] body .stats-table-layout__sidebar { scrollbar-width: none; }
 [data-axi-accent] body .stats-table-layout__sidebar::-webkit-scrollbar { width: 0; height: 0; }
 /* Some of these sidebars scroll on an inner list rather than on the well
    itself, which put the channel back one level in. */

@@ -1,4 +1,4 @@
-import { CSSProperties, memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ShieldAlert, Eraser } from 'lucide-react';
 
 
@@ -4367,17 +4367,9 @@ type SpikeFight = {
         ? 'stats-view min-h-screen flex flex-col p-0 w-full max-w-none'
         : 'stats-view h-full flex flex-col p-1 w-full max-w-none overflow-hidden';
     const scrollContainerClass = embedded
-        ? `stats-sections space-y-0 min-h-0 px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-4 rounded-xl border border-white/5 ${expandedSection ? '' : 'backdrop-blur-xl'
-        }`
+        ? 'stats-sections space-y-0 min-h-0 px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-4'
         : `flex-1 overflow-y-auto pr-2 space-y-6 min-h-0 ${expandedSection ? '' : 'backdrop-blur-2xl'
         }`;
-    const scrollContainerStyle: CSSProperties | undefined = useMemo(() => embedded
-        ? {
-            backgroundColor: 'rgba(3, 7, 18, 0.75)',
-            backgroundImage: 'linear-gradient(160deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.04) 70%)'
-        }
-        : undefined, [embedded]);
-    const resolvedScrollContainerStyle = scrollContainerStyle;
 
 
     const formatSkillUsageValue = (val: number) => {
@@ -4597,7 +4589,6 @@ type SpikeFight = {
                     id="stats-dashboard-container"
                     ref={scrollContainerRef}
                     className={`${scrollContainerClass} ${embedded ? '' : 'flex-1'}`}
-                    style={resolvedScrollContainerStyle}
                 >
                 <StatsSharedContext.Provider value={sharedCtxValue}>
                 {useModernLayout ? (
