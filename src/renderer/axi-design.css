@@ -631,72 +631,26 @@
    THE MVP CARDS
    These were the loudest thing on the Stats screen: a blurred colour blob
    behind each card, a glowing ring around each crown, and every surface a
-   tinted wash. Rule 1 takes the blobs, rule 2 takes the washes, and what is
-   left is a card that says who won by being a card with a name in it. */
-[data-axi-accent] body .mvp-card__glow { display: none; }
-[data-axi-accent] body .mvp-group {
-  background: var(--axi-ground);
-  border-width: var(--axi-border-control);
-  border-color: var(--axi-well-line);
-  border-radius: var(--axi-radius);
-  /* The label straddles this edge, and at the control weight it is 12px
-     taller than the hairline version the classic pt-4 was measured against.
-     Pad for the half that hangs inside, plus a clear gap to the first card. */
-  padding-top: 22px;
-}
-/* The group's name, sitting on its edge: outlined, because it annotates the
-   group rather than measuring anything in it (rule 5). Centred on the edge
-   rather than nudged by a fixed 9px, so the border weight can change without
-   dropping it onto the card below. */
-[data-axi-accent] body .mvp-group-label {
-  background: var(--axi-surface);
-  border-width: var(--axi-border-control);
-  border-radius: var(--axi-radius-sm);
-  padding: 2px 8px;
-  top: -14px;
-}
-[data-axi-accent] body .mvp-card {
-  background: var(--axi-surface);
-  border-width: var(--axi-border-control);
-  border-color: var(--axi-ink-line);
-  border-radius: var(--axi-radius);
-  box-shadow: var(--axi-shadow-control);
-}
-/* First place is said with weight, not with hue. The accent was the obvious
-   choice and it was wrong twice over: there are two MVP groups on screen, so
-   an accent outline puts two golds in front of you, and gold in this language
-   is the thing you picked - nobody picked the MVP, the data did. A rank is an
-   ordering, and the panel step above its neighbours' control step reads as
-   one without spending a colour. */
-[data-axi-accent] body .mvp-card--gold { border-width: var(--axi-border-panel); }
-[data-axi-accent] body .mvp-gold-icon-ring {
-  background: var(--axi-surface-raised);
-  border-width: var(--axi-border-control);
-  border-color: var(--axi-ink-line);
-  box-shadow: none;
-}
-[data-axi-accent] body .mvp-gold-icon-badge {
-  background: var(--axi-accent);
-  color: var(--axi-accent-ink);
-  border-width: var(--axi-border-control);
-  border-color: var(--axi-ink-line);
-}
-[data-axi-accent] body .mvp-gold-icon-badge svg { color: var(--axi-accent-ink); }
+   tinted wash. Rule 1 took the blobs, rule 2 took the washes - and the markup
+   now simply doesn't write any of them, so there is nothing here to undo. The
+   group is an .axi-well, the gold card an .axi-panel, the silver and bronze
+   cards .axi-panel--tile, and the stat rows wells at reading scale.
 
+   Rank is said with the form ramp and not with hue: the winner is the panel
+   step, its runners-up the control step. The accent was the obvious choice and
+   it was wrong twice over - there are two MVP groups on screen, so an accent
+   outline puts two golds in front of you, and gold in this language is the
+   thing you picked. Nobody picked the MVP; the data did. */
 /* ---------------------------------------------------------------------------
    THE COMMANDER VIEW
-   Same two steps. The cards here already read their colours from tokens, so
-   what they needed was the weight and, for the chips, a decision about which
-   of the two ways of carrying colour they are. */
-[data-axi-accent] body .commander-panel,
+   The panels here are .axi-panel--tile in the markup now. What is left is the
+   two things the language has no word for yet: a severity cap across a card's
+   top edge, and a verdict chip - see the note on each. */
 [data-axi-accent] body .commander-metric,
 [data-axi-accent] body .insight-card {
   border-width: var(--axi-border-control);
   border-color: var(--axi-ink-line);
   border-radius: var(--axi-radius);
-}
-[data-axi-accent] body .commander-panel {
-  box-shadow: var(--axi-shadow-control);
 }
 /* The severity verdict is a judgement about the number on the card, so it is
    drawn where Overview draws it: as a cap across the top edge, directly over
@@ -737,45 +691,6 @@
 [data-axi-accent] body .commander-chip[data-verdict='clean'] { background: var(--axi-ok); }
 [data-axi-accent] body .commander-chip[data-verdict='caught-engage'],
 [data-axi-accent] body .commander-chip[data-verdict='caught-out'] { background: var(--axi-meta); }
-
-/* A leader tile is a card you can press, so it takes the control block and
-   moves under the press the way every other control does. */
-[data-axi-accent] body .leader-card {
-  background: var(--axi-surface);
-  border-width: var(--axi-border-control);
-  border-color: var(--axi-ink-line);
-  border-radius: var(--axi-radius);
-  box-shadow: var(--axi-shadow-control);
-}
-[data-axi-accent] body .leader-card:hover {
-  box-shadow: var(--axi-shadow-control-hover);
-}
-/* The open tile is the one you picked: accent outline, no ring. */
-[data-axi-accent] body .leader-card--active {
-  border-color: var(--axi-accent);
-  box-shadow: var(--axi-shadow-control);
-  --tw-ring-color: transparent;
-}
-
-/* The stat rows inside an MVP card. Each one is a label and a number, which is
-   a reading - so it is drawn as one: the ground, the control outline, and no
-   hue behind the number (rule 2). */
-[data-axi-accent] body .mvp-stat-pill {
-  background: var(--axi-ground);
-  border-width: var(--axi-border-control);
-  border-color: var(--axi-well-line);
-  border-radius: var(--axi-radius-sm);
-}
-
-/* The profession beside an MVP's name is a label on the player, not a reading
-   about them: outlined, in the annotation colour, at the hairline weight. */
-[data-axi-accent] body .mvp-profession-chip {
-  background: transparent;
-  color: var(--axi-text-dim);
-  border-width: var(--axi-border-hairline);
-  border-color: var(--axi-rule);
-  border-radius: var(--axi-radius-sm);
-}
 
 /* Four stats categories - Overview, Commander, Roster, Replay - have no hue of
    their own and borrowed the brand colour, which in this language is the

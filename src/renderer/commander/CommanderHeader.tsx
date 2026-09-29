@@ -36,7 +36,7 @@ export function CommanderHeader({ fight, fightLabel, availableFights, selectedFi
   const m = fight.matchup;
   return (
     <div
-      className="commander-panel flex flex-col gap-2 px-3 py-2.5 border rounded-md mb-3"
+      className="commander-panel axi-panel axi-panel--tile [--axi-panel-pad:10px_12px] flex flex-col gap-2 mb-3"
       style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
     >
       <div className="flex items-start justify-between gap-3 flex-wrap">
