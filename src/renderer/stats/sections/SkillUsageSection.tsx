@@ -6,6 +6,7 @@ import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { InlineIconLabel } from '../ui/StatsViewShared';
 import type { SkillUsagePlayer } from '../statsTypes';
 import { useStatsSharedContext } from '../StatsViewContext';
+import { ChartTooltipBox } from '../ui/ChartTooltip';
 
 type SkillUsageSectionProps = {
     selectedPlayers: string[];
@@ -159,7 +160,7 @@ export const SkillUsageSection = ({
                     value={skillUsagePlayerFilter}
                     onChange={(event) => setSkillUsagePlayerFilter(event.target.value)}
                     placeholder="Search player or account"
-                    className="w-full rounded-lg border axi-edge-rule bg-white/5 px-3 py-2 text-sm axi-ink-plain focus:ring-1 focus:ring-indigo-500/50 outline-none"
+                    className="axi-input"
                 />
                 <div className="skill-usage-player-list-container flex-1 min-h-0 overflow-y-auto rounded-lg border axi-edge-rule">
                     {groupedSkillUsagePlayers.length === 0 ? (
@@ -265,7 +266,7 @@ export const SkillUsageSection = ({
                     value={skillUsageSkillFilter}
                     onChange={(event) => setSkillUsageSkillFilter(event.target.value)}
                     placeholder="Filter skill names"
-                    className="w-full rounded-lg border axi-edge-rule bg-white/5 px-3 py-2 text-sm axi-ink-plain focus:ring-1 focus:ring-indigo-500/50 outline-none"
+                    className="axi-input"
                 />
                 <div className="rounded-lg p-0.5 flex-1 min-h-0">
                     {selectedPlayers.length === 0 ? (
@@ -354,14 +355,13 @@ export const SkillUsageSection = ({
                                     allowDecimals={false}
                                 />
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#161c24', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem' }}
                                     content={({ active, payload, label }) => {
                                         if (!active || !payload || payload.length === 0) return null;
                                         const sorted = [...payload].sort((a, b) => (b.value || 0) - (a.value || 0));
                                         const first = sorted[0];
                                         const header = (first?.payload as any)?.fullLabel || label;
                                         return (
-                                            <div className="rounded-lg bg-white/5 border axi-edge-rule px-3 py-2">
+                                            <ChartTooltipBox>
                                                 <div className="text-sm axi-ink-plain mb-1">{header}</div>
                                                 <div className="space-y-1">
                                                     {sorted.map((item) => {
@@ -378,7 +378,7 @@ export const SkillUsageSection = ({
                                                         );
                                                     })}
                                                 </div>
-                                            </div>
+                                            </ChartTooltipBox>
                                         );
                                     }}
                                 />

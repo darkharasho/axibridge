@@ -6,6 +6,7 @@ import { getProfessionColor } from '../../../shared/professionUtils';
 import { FightMetricSection } from './FightMetricSection';
 import type { FightMetricPlayer, FightMetricPoint } from './FightMetricSection';
 import { TIMELINE_NOT_RECORDED_MESSAGE } from './BucketGridTable';
+import { ChartTooltipBox } from '../ui/ChartTooltip';
 
 const PARTY_MEMBER_COLORS = [
     '#a78bfa', '#34d399', '#f59e0b', '#60a5fa', '#f472b6',
@@ -307,7 +308,7 @@ export const StabPerformanceSection = ({
                                             const damage = Number(point?.incomingDamage || 0);
                                             const strips = Number(point?.stripsTaken || 0);
                                             return (
-                                                <div className="bg-slate-900 border axi-edge-rule rounded-lg px-3 py-2 text-xs shadow-xl">
+                                                <ChartTooltipBox>
                                                     <div className="axi-ink-plain font-medium mb-1">
                                                         {String(label || '')}
                                                         {gen > 0 && <span className="axi-ink-meta">{` · Gen: ${formatWithCommas(gen / 1000, 0)}`}</span>}
@@ -344,7 +345,7 @@ export const StabPerformanceSection = ({
                                                             </div>
                                                         );
                                                     })}
-                                                </div>
+                                                </ChartTooltipBox>
                                             );
                                         }}
                                     />

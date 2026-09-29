@@ -1965,7 +1965,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 value={githubRepoSearch}
                                                 onChange={(e) => setGithubRepoSearch(e.target.value)}
                                                 placeholder="Search repositories..."
-                                                className="flex-1 bg-black/40 border axi-edge-rule rounded-[4px] px-3 py-2 text-xs axi-ink-dim placeholder-gray-600 focus:border-cyan-400/50 focus:outline-none"
+                                                className="axi-input flex-1" style={{ '--axi-input-pad': '5px 8px', '--axi-input-size': '12px' } as React.CSSProperties}
                                             />
                                             <button
                                                 onClick={refreshGithubRepos}
@@ -2219,7 +2219,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         value={value}
                                         onChange={(e) => set(e.target.value)}
                                         placeholder={placeholder}
-                                        className="w-full bg-black/30 border axi-edge-rule rounded-[4px] px-3 py-1.5 text-sm axi-ink-plain placeholder-gray-600 focus:outline-none focus:border-cyan-500/50"
+                                        className="axi-input"
                                     />
                                 </div>
                             ))}
@@ -2475,7 +2475,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                     {cat === 'boon' ? <BoonGlyph className="w-3.5 h-3.5" /> : CatIcon ? <CatIcon className="w-3.5 h-3.5" /> : null}
                                                 </span>
                                                 <span className="text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: meta.color }}>{meta.label}</span>
-                                                <span className="flex-1 h-px bg-white/5" />
+                                                <span className="flex-1 border-t axi-edge-rule" />
                                                 {cat === 'boon' && renderBoonMetricToggle(meta.color)}
                                             </div>
                                             <div className="flex flex-wrap gap-2">
@@ -2708,7 +2708,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     <div className="flex items-center gap-2 mb-2">
                                         <span className="w-1.5 h-1.5 rounded-full" style={{ background: meta.color, boxShadow: `0 0 8px ${meta.color}` }} />
                                         <span className="text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: meta.color }}>{meta.label}</span>
-                                        <span className="flex-1 h-px bg-white/5" />
+                                        <span className="flex-1 border-t axi-edge-rule" />
                                         {cat === 'boon' && renderBoonMetricToggle(meta.color)}
                                     </div>
                                     <div className="flex flex-wrap gap-2">

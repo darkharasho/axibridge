@@ -2,6 +2,7 @@ import { Cell, Legend as ChartLegend, Pie, PieChart, Tooltip } from 'recharts';
 import { ChartContainer } from '../ui/ChartContainer';
 import { Map as MapIcon } from 'lucide-react';
 import { useStatsSharedContext } from '../StatsViewContext';
+import { ChartTooltip } from '../ui/ChartTooltip';
 
 type MapDistributionSectionProps = {
     mapData: any[];
@@ -34,8 +35,7 @@ export const MapDistributionSection = ({
                         ))}
                     </Pie>
                     <Tooltip
-                        contentStyle={{ backgroundColor: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem', color: '#fff' }}
-                        itemStyle={{ color: '#fff' }}
+                        content={<ChartTooltip />}
                     />
                     <ChartLegend
                         verticalAlign="bottom"

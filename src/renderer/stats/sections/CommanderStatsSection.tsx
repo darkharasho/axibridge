@@ -5,6 +5,7 @@ import { Clock3, Target, Route, Skull } from 'lucide-react';
 import { CommanderTagIcon } from '../../ui/CommanderTagIcon';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { useStatsSharedContext } from '../StatsViewContext';
+import { ChartTooltip } from '../ui/ChartTooltip';
 
 type CommanderFightRow = {
     id: string;
@@ -952,7 +953,7 @@ export const CommanderStatsSection = ({
                                                 <XAxis dataKey="bucket" tick={{ fill: '#94a3b8', fontSize: 11 }} tickLine={false} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
                                                 <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} tickLine={false} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} width={44} />
                                                 <Tooltip
-                                                    contentStyle={{ backgroundColor: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem', color: '#fff' }}
+                                                    content={<ChartTooltip />}
                                                     labelFormatter={(value: any) => `${selectedFight.shortLabel} • ${String(value || '')}`}
                                                     formatter={(value: any) => {
                                                         if (timelineMode === 'incomingBoons') {

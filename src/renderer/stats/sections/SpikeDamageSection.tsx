@@ -8,6 +8,7 @@ import { useStatsSharedContext } from '../StatsViewContext';
 import { FightMetricSection } from './FightMetricSection';
 import type { FightMetricPlayer, FightMetricPoint } from './FightMetricSection';
 import type { StatsTocIcon } from '../hooks/useStatsNavigation';
+import { ChartTooltipBox } from '../ui/ChartTooltip';
 
 type SpikeDamagePlayer = {
     key: string;
@@ -275,10 +276,10 @@ export const SpikeDamageSection = ({
                                             const d = payload[0]?.payload;
                                             if (!d) return null;
                                             return (
-                                                <div className="bg-slate-900 border axi-edge-rule rounded-lg px-3 py-2 text-xs shadow-xl">
+                                                <ChartTooltipBox>
                                                     <div className="axi-ink-plain font-medium mb-1">{d.label}</div>
                                                     <div className="axi-ink-meta">Damage: <strong>{formatWithCommas(Number(d.value || 0), 0)}</strong></div>
-                                                </div>
+                                                </ChartTooltipBox>
                                             );
                                         }}
                                     />
@@ -301,8 +302,10 @@ export const SpikeDamageSection = ({
                                     )}
                                 </LineChart>
                             </ChartContainer>
+                            {/* Anchored rather than --flow: this one is not recharts' tooltip at
+                                all, it is ours, positioned against the chart wrapper we own. */}
                             {hoveredMarkerInfo && (
-                                <div className="pointer-events-none absolute z-20 rounded-md border axi-edge-rule bg-slate-900 px-2 py-1 text-xs shadow-xl"
+                                <div className="axi-tooltip axi-tooltip--anchored"
                                     style={{ left: `${Math.max(8, hoveredMarkerInfo.x)}px`, top: `${Math.max(8, hoveredMarkerInfo.y - 38)}px`, transform: 'translate(-50%, -100%)' }}>
                                     <div className={`${hoveredMarkerInfo.kind === 'down' ? 'axi-ink-warn' : 'axi-ink-danger'} font-semibold`}>
                                         {hoveredMarkerInfo.kind === 'down' ? 'Down' : 'Death'}

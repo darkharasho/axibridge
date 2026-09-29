@@ -309,9 +309,7 @@
 [data-axi-accent] body .bg-white\/\[0\.08\] { background-color: var(--axi-ground); }
 
 [data-axi-accent] body .bg-blue-400\/90,
-[data-axi-accent] body .bg-cyan-300,
 [data-axi-accent] body .bg-cyan-500,
-[data-axi-accent] body .bg-cyan-500\/80,
 [data-axi-accent] body .bg-cyan-600 { background-color: var(--axi-meta); }
 
 [data-axi-accent] body .bg-emerald-400,
@@ -345,23 +343,15 @@
 [data-axi-accent] body .bg-cyan-600\/20,
 [data-axi-accent] body .bg-emerald-400\/5,
 [data-axi-accent] body .bg-emerald-500\/10,
-[data-axi-accent] body .bg-emerald-500\/12,
 [data-axi-accent] body .bg-emerald-500\/15,
 [data-axi-accent] body .bg-emerald-500\/20,
-[data-axi-accent] body .bg-emerald-500\/25,
 [data-axi-accent] body .bg-emerald-500\/30,
 [data-axi-accent] body .bg-fuchsia-500\/20,
 [data-axi-accent] body .bg-green-500\/20,
 [data-axi-accent] body .bg-green-500\/30,
 [data-axi-accent] body .bg-indigo-500\/10,
 [data-axi-accent] body .bg-indigo-500\/15,
-[data-axi-accent] body .bg-orange-400\/15,
-[data-axi-accent] body .bg-orange-400\/25,
-[data-axi-accent] body .bg-orange-500\/10,
-[data-axi-accent] body .bg-orange-500\/12,
-[data-axi-accent] body .bg-orange-500\/15,
 [data-axi-accent] body .bg-orange-500\/20,
-[data-axi-accent] body .bg-orange-500\/25,
 [data-axi-accent] body .bg-purple-500\/20,
 [data-axi-accent] body .bg-purple-500\/30,
 [data-axi-accent] body .bg-red-500\/10,
@@ -374,9 +364,6 @@
 [data-axi-accent] body .bg-rose-500\/10,
 [data-axi-accent] body .bg-rose-500\/15,
 [data-axi-accent] body .bg-rose-500\/20,
-[data-axi-accent] body .bg-slate-300\/15,
-[data-axi-accent] body .bg-slate-300\/25,
-[data-axi-accent] body .bg-slate-400\/10,
 [data-axi-accent] body .bg-slate-500\/10,
 [data-axi-accent] body .bg-slate-500\/20,
 [data-axi-accent] body .bg-violet-500\/15,
@@ -389,14 +376,12 @@
 /* Shorthand, same reason: --axi-surface is a gradient under glass. */
 [data-axi-accent] body .bg-slate-900 { background: var(--axi-surface); }
 
-[data-axi-accent] body .bg-slate-200\/70,
-[data-axi-accent] body .bg-white { background-color: var(--axi-text); }
+[data-axi-accent] body .bg-slate-200\/70 { background-color: var(--axi-text); }
 
 [data-axi-accent] body .bg-amber-400,
 [data-axi-accent] body .bg-amber-500,
 [data-axi-accent] body .bg-orange-400,
-[data-axi-accent] body .bg-orange-500,
-[data-axi-accent] body .bg-orange-500\/80 { background-color: var(--axi-warn); }
+[data-axi-accent] body .bg-orange-500 { background-color: var(--axi-warn); }
 
 /* ---------------------------------------------------------------------------
    THE FORM BRIDGE
@@ -416,8 +401,7 @@
 
 [data-axi-accent] body .rounded-lg,
 [data-axi-accent] body .rounded-xl,
-[data-axi-accent] body .rounded-2xl,
-[data-axi-accent] body .rounded-3xl { border-radius: var(--axi-radius); }
+[data-axi-accent] body .rounded-2xl { border-radius: var(--axi-radius); }
 
 /* The named scale above is only half the radii in this app. The other half are
    written as arbitrary values - `rounded-[4px]` alone appears 227 times - and
@@ -433,9 +417,7 @@
 
 /* A control's block and a panel's block, chosen by how far off the surface the
    old shadow was pretending to be. */
-[data-axi-accent] body .shadow,
-[data-axi-accent] body .shadow-sm,
-[data-axi-accent] body .shadow-md {
+[data-axi-accent] body .shadow {
   box-shadow: var(--axi-shadow-control);
 }
 [data-axi-accent] body .shadow-lg,
@@ -447,31 +429,14 @@
    have. Depth here is the ground colour, and that is already handled. */
 [data-axi-accent] body .shadow-inner { box-shadow: none; }
 
-/* A glow is light with no source, which Rule 1 rules out along with the
-   gradients. These three are written as arbitrary values, so the named-scale
-   rules above never reach them: the gold and cyan MVP icon wells, and the
-   squad-generation badge in Boon Uptime. Killing the halo leaves the tint and
-   the outline, which is where the meaning was. */
-[data-axi-accent] body .shadow-\[0_0_20px_rgba\(251\,191\,36\,0\.25\)\],
-[data-axi-accent] body .shadow-\[0_0_20px_rgba\(34\,211\,238\,0\.25\)\],
-[data-axi-accent] body .shadow-\[0_0_12px_rgba\(34\,211\,238\,0\.16\)\] { box-shadow: none; }
-
 /* Blur is a frosted-glass idiom and this language has no glass: every surface
    is opaque, so there is nothing behind one to see through. (It also does
    nothing on Linux, so half the app was paying for it already.) */
 [data-axi-accent] body .backdrop-blur-sm,
-[data-axi-accent] body .backdrop-blur,
 [data-axi-accent] body .backdrop-blur-md,
-[data-axi-accent] body .backdrop-blur-lg,
 [data-axi-accent] body .backdrop-blur-xl,
-[data-axi-accent] body .backdrop-blur-2xl,
-[data-axi-accent] body .backdrop-blur-3xl { backdrop-filter: none; }
+[data-axi-accent] body .backdrop-blur-2xl { backdrop-filter: none; }
 [data-axi-accent] body .blur,
-[data-axi-accent] body .blur-sm,
-[data-axi-accent] body .blur-md,
-[data-axi-accent] body .blur-lg,
-[data-axi-accent] body .blur-xl,
-[data-axi-accent] body .blur-2xl,
 [data-axi-accent] body .blur-3xl { filter: none; }
 
 /* An all-sides `border` is always an outline round something - a card, a

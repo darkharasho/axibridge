@@ -703,3 +703,124 @@ One thing this slice noticed and did not do: the pane's close button
 (`[aria-label^="Close "]`) is still reskinned in `axi-design.css` and written with
 inline styles at each site. It is a control, and it belongs to the Buttons family
 slice along with the other 16 — not here.
+
+## What the palette-neutering slice found: it is not a palette
+
+This census scoped the Tailwind palette block as "~50 selectors, a codemod rather
+than an adoption". That was wrong, and the way it was wrong is worth recording,
+because it changes the order of everything left.
+
+Classifying all 426 `bg-*` sites by the element they actually sit on:
+
+| count | what it is on | the word it wants |
+|---|---|---|
+| 216 | a box with a fill | `.axi-well` / `.axi-panel` |
+| 121 | button / toggle | `.axi-btn` |
+| 32 | hover affordance | the component's own hover |
+| 27 | dot / bar fill | `--axi-series`, `.axi-meter` |
+| 13 | field | `.axi-input` |
+| 9 | table cell | `.axi-table` |
+| 6 | inline badge | `.axi-chip` |
+| 2 | a 1px line | a rule |
+
+Not one is a palette decision. `bg-white/5` is not a colour anybody chose; it is
+what an unadopted button looks like. Substituting a token for it would swap one
+literal for another, gain no word, and leave the bridge exactly where it is. **The
+bridge cannot come down ahead of the component slices — it is their scaffolding,
+and it is the last thing to go, not the next.** Upstream had already written the
+same conclusion into `src/utilities.css`: *"there is no fill family. Under rule 2
+colour at partial opacity over the ground is not available, and an opaque status
+fill behind arbitrary text is a chip - which the language already ships."*
+
+### The neutering did not destroy meaning, which was worth checking
+
+The bridge maps every fractional status tint to one neutral `--axi-surface-raised`,
+so a "bad" wash and a "good" wash come out identical. That is rule 2 being obeyed,
+not a bug — but only if each site still says its verdict some other way. Of 47
+status tints, 43 carry a status ink or edge within their own element. The 4 that do
+not are selected-row highlights in Commander Stats, where the hue was matching the
+table it sat in rather than reporting a verdict, and a neutral raised fill still
+reads as selected. Nothing to fix.
+
+### The one group no theme had ever reached
+
+Chart tooltips were drawn three different ways: ten sections passed
+`content={...}` and hand-spelled `bg-slate-900 border axi-edge-rule rounded-lg
+px-3 py-2 text-xs shadow-xl`; seven passed `contentStyle={{ backgroundColor:
+'#1e293b', ... color: '#fff' }}` and let recharts draw it; two of those seven used
+`#161c24` instead, for no recorded reason.
+
+The second group is the one that mattered. **An inline style cannot be reached by a
+stylesheet**, so those seven were the only surfaces in the app no theme ever
+touched — a slate-800 box with pure white text, identical in the default theme and
+under glass, while everything around them moved. No bridge rule could have fixed
+them; no contract test was looking at inline props.
+
+All 17 now render `src/renderer/stats/ui/ChartTooltip.tsx`, which is upstream's
+`.axi-tooltip`. The seven kept their `formatter`/`labelFormatter` unchanged at the
+call site, because recharts spreads every `Tooltip` prop onto custom content — which
+is what let them move onto the class without rewriting any number formatting. One
+of the seven turned out to have a dead `contentStyle` alongside a real `content`
+prop, so it had been styling nothing at all.
+
+### Two upstream words this slice earned
+
+**`.axi-tooltip--flow` (1.28.0)** — the third placement. recharts renders custom
+content inside a wrapper it has already positioned and transformed, so neither the
+base class's `fixed` (a box appended to `<body>`) nor `--anchored`'s `absolute` (a
+box inside its own trigger) is true. The base class *appears* to work: a `fixed` box
+with every inset auto resolves to its static position, measured at zero drift on
+both axes. It then scrolls with the chart only because that wrapper carries a
+transform — the exact containment the `<body>` contract exists to escape. Two of
+someone else's facts hold it up, and recharts drops both when its `portal` prop is
+set, silently. Upstream's own gallery had already found this: its "the box itself"
+example carried `style="position: static"` inline because there was no way to say
+it. `layers.test.mjs` now requires a placement modifier to answer every placement
+property its base declares, so a layer cannot be left behind on a static box.
+
+**`--axi-input-pad` / `--axi-input-size` (1.29.0)** — `.axi-input` had one fixed
+size, and upstream had already worked around it once in a context selector
+(`.axi-palette__bar .axi-input`) with a comment saying a palette's field is a row in
+a bar rather than a form control standing on a page. That argument is not about
+palettes: a filter in a section header beside 11px type is the same object at the
+same second scale. The palette bar now spends the knobs instead of redeclaring the
+properties. The two knobs travel together because a field whose type shrinks and
+whose padding does not is not the small size, it is the large one with smaller
+words in it.
+
+### What actually came down
+
+Eleven fields onto `.axi-input` — which also retired eleven literal placeholder
+colours (`placeholder-slate-500`, `placeholder-gray-600`) and five hand-rolled focus
+rings, since `[data-axi-accent] body :focus-visible` already draws the accent one.
+Two `h-px bg-white/5` spans became `border-t axi-edge-rule`, which is the word for a
+neutral separator.
+
+And **29 dead bridge selectors**. The palette and form bridges are written blind —
+nothing tells you when the last site spelling `bg-orange-500/25` stops spelling it,
+so the rule sits there looking load-bearing forever. Twenty-nine had rotted that way
+by the time anyone counted, including all three arbitrary-value glow-killers whose
+comment still described "the gold and cyan MVP icon wells". 135 bridged selectors
+→ 106, none dead. `themeCssContract.test.ts` now decides liveness from the markup on
+every run, both polarities pinned — this is the only kind of rule in that file whose
+liveness is decidable, so it is decided.
+
+### What this leaves, in the order it now has to happen
+
+The bridge's remaining 106 selectors are held up by the component slices, not by
+the palette:
+
+- **Buttons (121 sites)** — the largest single block in the app, and now the
+  unblocker for the whole `bg-white/*` arm. It also owns the expanded pane's close
+  button and the ~400 variant-prefixed hover utilities (`hover:bg-white/10`,
+  `hover:text-white`) the bridge never matched, since Tailwind emits those as
+  `hover\:bg-white\/10` and `.bg-white\/10` does not match it.
+- **Wells and panels (216 sites)** — the `.axi-well` adoption proper.
+- **Meters and bars (27 sites)** — including four progress troughs left here
+  deliberately: fitting a 4px bar to `.axi-meter`, which carries a control border
+  and a radius, is that slice's decision and not a fill substitution.
+- **Chips and badges (6 sites)**, **tables (9)**.
+
+recharts is smaller than it looked: its tooltips were the largest themeable part of
+it, and they are done. What is left is axis ticks and grid strokes, which are SVG
+attributes on recharts' own elements — a props problem, not a CSS one.

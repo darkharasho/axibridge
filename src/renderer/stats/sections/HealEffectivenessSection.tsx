@@ -6,6 +6,7 @@ import { InlineIconLabel } from '../ui/StatsViewShared';
 import type { HealEffectivenessFight, HealEffectivenessSkillRow } from '../computeHealEffectivenessData';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { expandedPaneProps } from './expandedPane';
+import { ChartTooltip } from '../ui/ChartTooltip';
 
 type HealEffectivenessSectionProps = {
     fights: HealEffectivenessFight[];
@@ -147,7 +148,7 @@ export const HealEffectivenessSection = ({ fights }: HealEffectivenessSectionPro
                                         tickFormatter={(value: number) => formatWithCommas(value, 0)}
                                     />
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#161c24', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem' }}
+                                        content={<ChartTooltip />}
                                         formatter={(value: any, name: any) => [formatWithCommas(Number(value || 0), 0), String(name || '')]}
                                         labelFormatter={(_, payload?: readonly any[]) => String(payload?.[0]?.payload?.fullLabel || '')}
                                     />

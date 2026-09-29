@@ -10,6 +10,25 @@ import path from 'node:path';
  */
 const read = (rel: string) => fs.readFileSync(path.resolve(__dirname, '..', rel), 'utf8');
 
+/** Every .tsx under src/renderer and src/web, read once. */
+const jsxSources = (() => {
+    let cache: string[] | null = null;
+    return () => {
+        if (cache) return cache;
+        const roots = [path.resolve(__dirname, '..'), path.resolve(__dirname, '..', '..', 'web')];
+        const out: string[] = [];
+        const walk = (dir: string) => {
+            for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+                const full = path.join(dir, e.name);
+                if (e.isDirectory()) walk(full);
+                else if (e.name.endsWith('.tsx')) out.push(fs.readFileSync(full, 'utf8'));
+            }
+        };
+        for (const r of roots) if (fs.existsSync(r)) walk(r);
+        return (cache = out);
+    };
+})();
+
 describe('index.css', () => {
     const css = read('index.css');
 
@@ -147,6 +166,27 @@ describe('axi-design.css', () => {
 
     it('does not import tokens.css (axi.css carries the token block)', () => {
         expect(css).not.toContain('axi-design/tokens.css');
+    });
+
+    // The palette and form bridges translate Tailwind utilities the components
+    // know nothing about, so they are written blind: nothing tells you when the
+    // last site spelling `bg-orange-500/25` stops spelling it, and the rule then
+    // sits here forever looking load-bearing. Twenty-nine had rotted that way by
+    // the time anyone checked. This is the only kind of rule in this file whose
+    // liveness is decidable from the markup, so decide it.
+    it('bridges no Tailwind utility the markup has stopped using', () => {
+        const bridged = [...css.matchAll(/^\[data-axi-accent\] body \.((?:bg|rounded|shadow|backdrop-blur|blur)[^\s,{]*)/gm)]
+            // the selectors carry CSS escapes (`.bg-white\/5`); the markup does not
+            .map((m) => m[1].replace(/\\/g, ''));
+        expect(bridged.length).toBeGreaterThan(20);
+
+        const markup = jsxSources().join('\n');
+        const dead = [...new Set(bridged)].filter((cls) => {
+            const token = cls.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+            // a class token is bounded by whitespace, a quote, or a variant colon
+            return !new RegExp(`(^|[\\s'"\`:])${token}([\\s'"\`]|$)`, 'm').test(markup);
+        });
+        expect(dead).toEqual([]);
     });
 
     // The inversion. accents.css owns --axi-accent now, and the app's brand
