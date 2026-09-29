@@ -237,7 +237,7 @@ export const FightSliceTray = ({ onClose }: { onClose: () => void }) => {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Filter by map or landmark…"
-                    className="ml-2 w-52 rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-input)] px-2 py-1 text-[11px] text-[color:var(--text-primary)]"
+                    className="axi-input ml-2" style={{ width: '13rem' }}
                 />
                 <button type="button" onClick={onClose} className="slice-mini ml-auto">Close</button>
             </div>

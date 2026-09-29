@@ -122,7 +122,7 @@ export const DamageBreakdownSection = ({
                                     value={playerFilter}
                                     onChange={(event) => setPlayerFilter(event.target.value)}
                                     placeholder="Search player or account"
-                                    className="w-full rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-[var(--bg-card-inner)] px-2.5 py-1.5 text-xs text-[color:var(--text-primary)] placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-sky-500/60"
+                                    className="axi-input"
                                 />
                         </div>
                         <div className="space-y-1 pr-1 flex-1 min-h-0 overflow-y-auto">

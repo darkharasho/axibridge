@@ -402,9 +402,9 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                         <div className="w-[260px] min-w-[260px] flex flex-col border-r" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
                             {/* Search box */}
                             <div className="p-3 pb-0">
-                                <div className="relative">
-                                    <Search className="w-3.5 h-3.5 axi-ink-faint absolute left-2.5 top-1/2 -translate-y-1/2" />
-                                    <input type="text" value={filePickerFilter} onChange={(event) => setFilePickerFilter(event.target.value)} placeholder="Search..." className="file-picker-panel w-full rounded-[4px] pl-8 pr-3 py-2 text-xs axi-ink-plain focus:outline-none focus:border-blue-500/50 transition-colors" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }} />
+                                <div className="axi-search">
+                                    <Search className="axi-search__icon w-3.5 h-3.5" aria-hidden="true" />
+                                    <input type="text" value={filePickerFilter} onChange={(event) => setFilePickerFilter(event.target.value)} placeholder="Search..." className="axi-input" />
                                 </div>
                             </div>
 
@@ -751,8 +751,8 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                             value={selectBetweenStart}
                                                             onChange={e => setSelectBetweenStart(e.target.value)}
                                                             onClick={e => (e.currentTarget as HTMLInputElement & { showPicker?: () => void }).showPicker?.()}
-                                                            className="w-full rounded-[4px] px-3 py-2 text-sm axi-ink-plain focus:outline-none focus:border-blue-500"
-                                                            style={{ colorScheme: 'dark', background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
+                                                            className="axi-input"
+                                                            style={{ colorScheme: 'dark' }}
                                                         />
                                                     </div>
                                                     <div className="file-picker-panel axi-well axi-well--sm flex-1" style={{ '--axi-well-pad': '16px' } as React.CSSProperties}>
@@ -762,8 +762,8 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                             value={selectBetweenEnd}
                                                             onChange={e => setSelectBetweenEnd(e.target.value)}
                                                             onClick={e => (e.currentTarget as HTMLInputElement & { showPicker?: () => void }).showPicker?.()}
-                                                            className="w-full rounded-[4px] px-3 py-2 text-sm axi-ink-plain focus:outline-none focus:border-blue-500"
-                                                            style={{ colorScheme: 'dark', background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
+                                                            className="axi-input"
+                                                            style={{ colorScheme: 'dark' }}
                                                         />
                                                     </div>
                                                 </div>

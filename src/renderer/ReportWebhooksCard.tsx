@@ -167,8 +167,7 @@ export function ReportWebhooksCard({
                                     aria-label="Post style"
                                     value={coerceReportPostStyle(hook.style)}
                                     onChange={(e) => patch(hook.id, { style: e.target.value as ReportPostStyle })}
-                                    className="app-native-select rounded-[4px] border px-2 py-1.5 text-xs focus:outline-none"
-                                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                    className="axi-select"
                                 >
                                     {STYLE_OPTIONS.map((option) => (
                                         <option key={option.value} value={option.value}>{option.label}</option>

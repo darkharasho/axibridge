@@ -2185,10 +2185,10 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                             <select
                                                                 value={commanderProfessionFilter}
                                                                 onChange={(event) => setCommanderProfessionFilter(event.target.value)}
-                                                                className="bg-white/5 border axi-edge-rule rounded-xl px-4 py-2.5 text-sm axi-ink-plain focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
+                                                                className="axi-select"
                                                             >
                                                                 {commanderProfessionOptions.map((option) => (
-                                                                    <option key={option} value={option} className="bg-slate-900 axi-ink-plain">
+                                                                    <option key={option} value={option}>
                                                                         {option === 'all' ? 'All Classes' : option}
                                                                     </option>
                                                                 ))}
@@ -2196,12 +2196,12 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                             <select
                                                                 value={commanderMinRunsFilter}
                                                                 onChange={(event) => setCommanderMinRunsFilter(event.target.value)}
-                                                                className="bg-white/5 border axi-edge-rule rounded-xl px-4 py-2.5 text-sm axi-ink-plain focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
+                                                                className="axi-select"
                                                             >
-                                                                <option value="1" className="bg-slate-900 axi-ink-plain">Any Raids</option>
-                                                                <option value="2" className="bg-slate-900 axi-ink-plain">2+ Raids</option>
-                                                                <option value="5" className="bg-slate-900 axi-ink-plain">5+ Raids</option>
-                                                                <option value="10" className="bg-slate-900 axi-ink-plain">10+ Raids</option>
+                                                                <option value="1">Any Raids</option>
+                                                                <option value="2">2+ Raids</option>
+                                                                <option value="5">5+ Raids</option>
+                                                                <option value="10">10+ Raids</option>
                                                             </select>
                                                             <div className="flex items-center justify-start lg:justify-end px-1 text-[11px] uppercase tracking-widest axi-ink-dim">
                                                                 Showing {filteredCommanderRows.length} of {rollupData.commanderRows.length}
@@ -2296,10 +2296,10 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                             <select
                                                                 value={playerProfessionFilter}
                                                                 onChange={(event) => setPlayerProfessionFilter(event.target.value)}
-                                                                className="bg-white/5 border axi-edge-rule rounded-xl px-4 py-2.5 text-sm axi-ink-plain focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
+                                                                className="axi-select"
                                                             >
                                                                 {playerProfessionOptions.map((option) => (
-                                                                    <option key={option} value={option} className="bg-slate-900 axi-ink-plain">
+                                                                    <option key={option} value={option}>
                                                                         {option === 'all' ? 'All Classes' : option}
                                                                     </option>
                                                                 ))}
@@ -2307,12 +2307,12 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                             <select
                                                                 value={playerMinRunsFilter}
                                                                 onChange={(event) => setPlayerMinRunsFilter(event.target.value)}
-                                                                className="bg-white/5 border axi-edge-rule rounded-xl px-4 py-2.5 text-sm axi-ink-plain focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
+                                                                className="axi-select"
                                                             >
-                                                                <option value="1" className="bg-slate-900 axi-ink-plain">Any Raids</option>
-                                                                <option value="2" className="bg-slate-900 axi-ink-plain">2+ Raids</option>
-                                                                <option value="5" className="bg-slate-900 axi-ink-plain">5+ Raids</option>
-                                                                <option value="10" className="bg-slate-900 axi-ink-plain">10+ Raids</option>
+                                                                <option value="1">Any Raids</option>
+                                                                <option value="2">2+ Raids</option>
+                                                                <option value="5">5+ Raids</option>
+                                                                <option value="10">10+ Raids</option>
                                                             </select>
                                                             <div className="flex items-center justify-start lg:justify-end px-1 text-[11px] uppercase tracking-widest axi-ink-dim">
                                                                 Showing {filteredPlayerRows.length} of {rollupData.playerRows.length}

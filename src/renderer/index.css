@@ -132,18 +132,6 @@ body {
     overflow: hidden;
 }
 
-/* Shared between app and web: gradient and semantic border colours in stats-view */
-
-.stats-view .fight-diff-select {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    padding-right: 2rem !important;
-    background-repeat: no-repeat !important;
-    background-position: right 0.65rem center !important;
-    background-size: 0.8rem 0.8rem !important;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23cbd5e1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E") !important;
-}
 
 /* Pinned player column of the CC / Strip timeline grids.
 
@@ -1204,38 +1192,6 @@ select option {
   color: var(--text-primary);
 }
 
-/* App-wide native <select> chrome.
-
-   `.fight-diff-select` does this same job but is scoped under `.stats-view`,
-   so it is unavailable to Settings. This is the unscoped equivalent: the
-   native arrow is replaced with an inline chevron so the control matches the
-   text inputs beside it, and the option list is pinned to an OPAQUE fill.
-   Chromium on Linux paints the option popup from the control's own
-   background — a `bg-transparent` control renders a see-through, unreadable
-   popup, which is exactly what a translucent theme produced here. */
-.app-native-select {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-color: var(--bg-input);
-  background-repeat: no-repeat;
-  background-position: right 0.6rem center;
-  background-size: 0.75rem 0.75rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%238d95a0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-  padding-right: 1.9rem;
-  cursor: pointer;
-  transition: border-color 120ms ease, background-color 120ms ease;
-}
-
-.app-native-select:hover { border-color: var(--border-hover); }
-.app-native-select:focus-visible { border-color: var(--accent-border); outline: none; }
-
-.app-native-select option {
-  /* Shorthand: --bg-elevated is --axi-surface, a gradient, under glass. */
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-}
-
 /* --- Hover states ---
    Shorthand: --bg-hover is --axi-surface-raised, a gradient, under glass;
    background-color alone is invalid at computed-value time and drops to
@@ -1624,18 +1580,16 @@ body.web-report {
   background: rgb(21, 25, 34);
 }
 
-/* Native <select> controls: Chromium on Linux paints the OS option popup from
-   the control's own background, and no filter applies to an OS-drawn popup, so
-   a tinted control means an unreadable list. */
-[data-axi-accent][data-axi-theme="glass"] .app-native-select,
-[data-axi-accent][data-axi-theme="glass"] .stats-view .fight-diff-select {
-  background-color: rgba(15, 18, 25, 0.9) !important;
-}
+/* The two hand-drawn <select> treatments that used to live here - one scoped
+   under .stats-view, one not, each with its own hard-coded chevron colour - are
+   `.axi-select` now, which draws its caret from two gradients in the accent.
 
-[data-axi-accent][data-axi-theme="glass"] .stats-view .fight-diff-select option {
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-}
+   The glass override that pinned them to rgba(15,18,25,.9) went with them. It
+   existed because Chromium on Linux paints the OS option popup from the
+   control's own background, so a tinted control gave an unreadable list.
+   `.axi-select` fills with --axi-ground, which is #0a0c10 even under glass, so
+   there is nothing left to pin. The ten `<option className="bg-slate-900">` in
+   the web report were the same workaround and went too. */
 
 /* Fight Comp is not a floating surface - this is legibility. Its labels are
    compact and dense, and against a tinted panel the secondary text blends into

@@ -135,8 +135,8 @@ export const AttendanceSection = ({
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="Search account, character, or class..."
-                            className="w-full sm:w-[320px] rounded-[var(--radius-md)] px-3 py-2 text-xs focus:outline-none"
-                            style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+                            className="axi-input"
+                           
                         />
                         <button
                             type="button"

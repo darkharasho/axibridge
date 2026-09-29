@@ -66,12 +66,11 @@ export function FightPicker<T extends TimelinePickerFight>({ fights, selectedId,
             value={selectedId ?? ''}
             onChange={(event) => onChange(event.target.value)}
             aria-label="Fight"
-            /* `fight-diff-select` is the app's own select treatment: it strips the
-               native chrome, supplies the chevron, and carries the glass-theme
-               overrides for the option list. Without it this renders as a raw
-               platform dropdown that matches nothing else in the app. */
-            className="fight-diff-select rounded-[var(--radius-md)] border border-[color:var(--border-default)] px-3 py-1 text-xs focus:outline-none"
-            style={{ background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+            /* `.axi-select` strips the native chrome and draws the caret from two
+               gradients in the accent. It replaces `fight-diff-select`, which did
+               the same job with an SVG chevron whose stroke was a hard-coded
+               `#cbd5e1` — a colour that followed neither the accent nor the theme. */
+            className="axi-select"
         >
             {/* `fights` is oldest-first (F1 = earliest); options list newest-first
                 but keep their chronological F-number. */}
