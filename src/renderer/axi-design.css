@@ -880,24 +880,23 @@
 
 /* ---------------------------------------------------------------------------
    THE EXPANDED SECTION
-   Blowing a section up to fill the window gave it a modal's chrome - a rounded
-   outline and a soft card shadow drawn round something with no edge on screen,
-   because it is pinned to all four sides. A fullscreen pane is not a floating
-   object, it is the ground with one thing on it. So: no outline, no block, no
-   radius, and the only line in it is the one under the heading, which is the
-   heading doing the job the outline was pretending to do. */
-[data-axi-accent] body .modal-pane {
-  --pane-bg: var(--axi-ground);
-  --pane-block: none;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-  padding: 12px 16px;
-}
-/* The pane's heading row. It was floating loose at the top with the close
-   control half over the pane's edge; it becomes a bar with a cut under it, and
-   the control sits inside the bar like every other control in the app. */
+   This block used to argue with index.css. index.css drew a modal's chrome on
+   the pane - an outline, a radius and a card block - and these five
+   declarations took all three back off, because a pane pinned to all four sides
+   has no edge on screen to outline and nothing behind it to cast on. The prose
+   that said so is upstream now, as `.axi-sheet`, and with it the one thing the
+   app got wrong on its own: `--pane-bg` was a flat `--axi-ground`, so expanding
+   a section under glass switched the page's light off and closing it switched
+   the light back on. A sheet paints `--axi-ground-image` too.
+
+   What is left is the heading row, and only because the app cannot use
+   `.axi-sheet__head` for it. That element is the section's heading in the
+   collapsed state as well - the same row, with the expand control in it - so it
+   is a sheet head only while the sheet is open, and no static class can say
+   that. A structural alias for the upstream rule, matching it property for
+   property. */
 [data-axi-accent] body .modal-pane > :first-child {
+  flex: none;
   padding-bottom: 10px;
   border-bottom: var(--axi-border-control) solid var(--axi-ink-line);
 }

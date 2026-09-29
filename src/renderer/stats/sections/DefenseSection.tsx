@@ -10,6 +10,7 @@ import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { DEFENSE_METRICS } from '../statsMetrics';
 import { NoEgoMetricSection } from './NoEgoMetricSection';
+import { expandedPaneProps } from './expandedPane';
 
 // For defense, lower damage taken / fewer downs = better; higher blocks/evades = better
 const DEFENSE_HIGHER_IS_BETTER = new Set([
@@ -116,16 +117,7 @@ export const DefenseSection = ({
     }
 
     return (
-    <div
-        className={`${
-            expandedSection === 'defense-detailed'
-                ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${
-                    expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
-                }`
-                : ''
-        }`}
-        style={expandedSection === 'defense-detailed' ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
-    >
+    <div {...expandedPaneProps(expandedSection === 'defense-detailed', expandedSectionClosing)}>
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
             <Shield className="w-4 h-4 shrink-0" style={{ color: 'var(--section-defense)' }} />
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>

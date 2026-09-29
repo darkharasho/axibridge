@@ -8,6 +8,7 @@ import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { InlineIconLabel } from '../ui/StatsViewShared';
 import type { ApmPlayerRow, ApmSkillEntry } from '../statsTypes';
 import { useStatsSharedContext } from '../StatsViewContext';
+import { expandedPaneProps } from './expandedPane';
 
 type ApmSectionProps = {
     apmSpecAvailable: boolean;
@@ -86,10 +87,7 @@ export const ApmSection = ({
     }, [activeApmSpecTable, allSkillsSort, apmView]);
 
     return (
-    <div
-        className={`${expandedSection === 'apm-stats' ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
-        style={expandedSection === 'apm-stats' ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
-    >
+    <div {...expandedPaneProps(expandedSection === 'apm-stats', expandedSectionClosing)}>
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
             <span className="flex shrink-0" style={{ color: 'var(--brand-primary)' }}><Gw2ApmIcon className="w-4 h-4" /></span>
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>APM Breakdown</h3>

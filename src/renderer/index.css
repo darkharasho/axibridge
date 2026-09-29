@@ -439,46 +439,46 @@ button:focus-visible,
     }
 }
 
+/* An expanded stats section is an `.axi-sheet`, and the sheet carries the
+   position, the inset, the layer, the flex column, the scroll and the fill. What
+   is left here is the motion, which is the app's - a pane grows out of the card
+   it replaced and shrinks back into it, and the language rations that kind of
+   thing rather than shipping it.
+
+   Everything else this rule used to hold is gone, and it is worth saying what it
+   was: a 1px outline, a `--radius-md` corner and a `--shadow-card` block, drawn
+   round something pinned to all four sides. `axi-design.css` then spent five
+   declarations taking all three back off again, because a fullscreen pane has no
+   edge on screen to outline and nothing behind it to cast on. The two files were
+   arguing, and the argument is settled upstream now: rule 3 and rule 5 are
+   claims about an edge, so a sheet has neither. */
 .modal-pane {
     transform-origin: center;
     animation-duration: var(--duration-normal);
     animation-timing-function: var(--ease-out-expo);
     animation-fill-mode: both;
     will-change: transform, opacity;
-    /* Shorthand: under glass --bg-elevated is --axi-surface, a gradient, which
-       is invalid at computed-value time as background-color and falls to
-       transparent. `background:` accepts a gradient as background-image. No
-       neighbouring background-image/position/repeat/size to clobber here. */
-    background: var(--bg-elevated);
-    backdrop-filter: none;
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-card);
-    padding-bottom: calc(2.5rem + env(safe-area-inset-bottom));
 }
 
-/* In desktop app mode, expanded stats panes should live below the custom title bar.
-   Keep pane chrome fixed while allowing inner table regions to handle scrolling. */
+/* The one thing a sheet genuinely cannot know from upstream: where its top edge
+   is. In the app the custom title bar is above it; in the web report there is no
+   title bar and the sheet starts at the viewport. */
 body:not(.web-report) .modal-pane {
-    top: var(--app-titlebar-height, 2.5rem);
-    bottom: 0;
-    height: calc(100dvh - var(--app-titlebar-height, 2.5rem));
-    max-height: calc(100dvh - var(--app-titlebar-height, 2.5rem));
-    display: flex;
-    flex-direction: column;
-    overflow-x: hidden;
-    overflow-y: auto;
-    padding-top: 0;
-    padding-bottom: env(safe-area-inset-bottom);
-    margin-top: 0 !important;
+    --axi-sheet-top: var(--app-titlebar-height, 2.5rem);
 }
 
-/* Expanded section JSX still carries `pb-10`; normalize it in app fullscreen mode. */
-body:not(.web-report) .modal-pane.pb-10 {
-    padding-bottom: env(safe-area-inset-bottom) !important;
+/* The other one: the web report runs on phones, where the bottom of the viewport
+   can be under a home indicator. A knob flip rather than a rule, so it cannot
+   drift out of step with the pad the sheet actually applies. */
+body.web-report .modal-pane {
+    --axi-sheet-pad: 12px 16px calc(12px + env(safe-area-inset-bottom));
 }
 
-/* Expanded section body should own the available height; no outer modal scrolling.
+/* Upstream ships `.axi-sheet__body` for this, and the app cannot use the class:
+   the element is the section's own content block in the collapsed state too, and
+   it is only a sheet body while the sheet is open. A structural alias, not a
+   second design.
+
    Only the LAST child grows. This used to say `:not(:first-child)`, which in any
    section whose pane holds three blocks - heading, then a legend or filter row,
    then the table - handed an equal share of the free height to the legend as

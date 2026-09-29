@@ -13,6 +13,7 @@ import {
     type ComparisonMetric,
     type ComparisonContext,
 } from '../utils/comparisonMetrics';
+import { expandedPaneProps } from './expandedPane';
 
 type ComparisonMode = 'head-to-head' | 'vs-average';
 
@@ -76,13 +77,7 @@ export const PlayerComparisonSection = ({
     const hasData = players.length > 0;
 
     return (
-        <div
-            className={`${isExpanded
-                ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}`
-                : ''
-            }`}
-            style={isExpanded ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
-        >
+        <div {...expandedPaneProps(isExpanded, expandedSectionClosing)}>
             {/* Header */}
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <Users className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />

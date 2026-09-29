@@ -4,6 +4,7 @@ import { BucketGridTable, FightPicker, TIMELINE_NOT_RECORDED_MESSAGE, type Bucke
 import { renderProfessionIcon } from '../ui/StatsViewShared';
 import { CONTROL_BUCKET_MS, type ControlFightData } from '../computeControlTimeline';
 import { useStatsSharedContext } from '../StatsViewContext';
+import { expandedPaneProps } from './expandedPane';
 
 type StripDirection = 'out' | 'in';
 
@@ -66,10 +67,7 @@ export const StripTimelineSection: React.FC<StripTimelineSectionProps> = ({
     const effectiveRecorded = fight ? fight.recorded : (recorded && fights.length > 0);
 
     return (
-        <div
-            className={isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 p-4 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}
-            style={isExpanded ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
-        >
+        <div {...expandedPaneProps(isExpanded, expandedSectionClosing, { pad: '16px' })}>
             {/* Title row, subtitle, controls — the same shape every other stats
                 section uses, so this reads as one of them rather than as a bare
                 table dropped into the page. */}

@@ -10,6 +10,7 @@ import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { DAMAGE_MITIGATION_METRICS } from '../statsMetrics';
+import { expandedPaneProps } from './expandedPane';
 
 type DamageMitigationSectionProps = {
     damageMitigationSearch: string;
@@ -71,16 +72,7 @@ export const DamageMitigationSection = ({
     };
 
     return (
-        <div
-            className={`${
-                expandedSection === 'defense-mitigation'
-                    ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${
-                        expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
-                    }`
-                    : ''
-            }`}
-            style={expandedSection === 'defense-mitigation' ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
-        >
+        <div {...expandedPaneProps(expandedSection === 'defense-mitigation', expandedSectionClosing)}>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <span className="flex shrink-0" style={{ color: 'var(--section-mitigation)' }}><Gw2DamMitIcon className="w-4 h-4" /></span>
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>

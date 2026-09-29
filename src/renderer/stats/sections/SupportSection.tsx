@@ -11,6 +11,7 @@ import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { SUPPORT_METRICS, CleanseScope, resolveCleanseTotal, hasMinionCleanseData, hasPartialMinionCleanseData, hasArcdpsMethodologyData } from '../statsMetrics';
 import { NoEgoMetricSection } from './NoEgoMetricSection';
+import { expandedPaneProps } from './expandedPane';
 
 // All current support metrics are higher-is-better. Add metric ids here if any
 // lower-is-better metric is introduced (e.g. a "deaths taken" type metric).
@@ -135,16 +136,7 @@ export const SupportSection = ({
     }
 
     return (
-    <div
-        className={`${
-            expandedSection === 'support-detailed'
-                ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${
-                    expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'
-                }`
-                : ''
-        }`}
-        style={expandedSection === 'support-detailed' ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
-    >
+    <div {...expandedPaneProps(expandedSection === 'support-detailed', expandedSectionClosing)}>
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
             <span className="flex shrink-0" style={{ color: 'var(--section-support)' }}><SupportPlusIcon className="w-4 h-4" /></span>
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>

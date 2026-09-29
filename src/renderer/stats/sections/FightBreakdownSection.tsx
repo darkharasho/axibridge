@@ -6,6 +6,7 @@ import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { parseTimestamp } from '../utils/timestampUtils';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { getWvwTeamColor, WVW_TEAM_COLOR_META, WVW_TEAM_COLOR_ORDER, type WvwTeamColor } from '../../../shared/wvwTeams';
+import { expandedPaneProps } from './expandedPane';
 
 const rowToColor = (row: any): WvwTeamColor => row?.color ?? getWvwTeamColor(Number(row?.teamId));
 
@@ -237,10 +238,7 @@ export const FightBreakdownSection = ({
     }, [fights, teamColorColumns]);
 
     return (
-        <div
-            className={`${isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}`}
-            style={isExpanded ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
-        >
+        <div {...expandedPaneProps(isExpanded, expandedSectionClosing)}>
             <div>
                 <div className="flex flex-wrap items-center gap-2 mb-3.5">
                     <Swords className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />

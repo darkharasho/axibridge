@@ -90,6 +90,37 @@ describe('index.css', () => {
         expect(css).not.toMatch(/html,\s*\n?body\s*\{[^}]*background:\s*transparent/);
         expect(css).toContain('[data-axi-accent][data-axi-theme="glass"] #root');
     });
+
+    // The expanded stats pane is an `.axi-sheet`. For most of this project's
+    // history the two stylesheets argued about it: this file drew a modal's
+    // outline, radius and card block on `.modal-pane`, and axi-design.css spent
+    // five declarations taking all three back off, because a pane pinned to all
+    // four sides has no edge on screen to outline. Both halves of that argument
+    // are gone and only the motion is left here.
+    //
+    // Scoped to the `.modal-pane {` rule specifically rather than the whole
+    // file: `.modal-pane` also scopes the dense-table scrollbar rules further
+    // down, which legitimately draw things.
+    it('draws no chrome on the expanded pane, so nothing has to cancel it', () => {
+        const rule = css.match(/\n\.modal-pane \{([^}]*)\}/)?.[1] ?? '';
+        expect(rule).not.toMatch(/\bbackground\b|\bborder\b|\bborder-radius\b|\bbox-shadow\b/);
+        expect(rule).toMatch(/animation-duration/);
+    });
+
+    // The two things a sheet cannot know from upstream, and the only two the app
+    // is allowed to say: where its top edge is, and how much padding it wants.
+    // Both as knobs. A hand-written `top:`/`height:` pair is what this replaced,
+    // and it had drifted into four declarations that all restated the same
+    // titlebar height.
+    it('positions the pane through the sheet knobs, not its own geometry', () => {
+        expect(css).toMatch(/--axi-sheet-top:\s*var\(--app-titlebar-height/);
+        expect(css).toMatch(/--axi-sheet-pad:[^;]*env\(safe-area-inset-bottom\)/);
+        // Rules whose selector ENDS at `.modal-pane` - the pane itself. The
+        // dense tables inside a pane set their own height and are entitled to.
+        const paneRules = [...css.matchAll(/\.modal-pane\s*\{([^}]*)\}/g)].map((m) => m[1]);
+        expect(paneRules.length).toBeGreaterThan(0);
+        expect(paneRules.some((r) => /(^|[\s;])(top|bottom|height|max-height):/.test(r))).toBe(false);
+    });
 });
 
 describe('axi-design.css', () => {
@@ -304,7 +335,7 @@ describe('docs/view/viewer.js', () => {
     // present, or the bundle predates the adoption even though it happens to
     // carry none of the retired ones.
     it('carries the classes the app has adopted since', () => {
-        for (const name of ['axi-dock', 'axi-toolbar--float', 'axi-panel--tile']) {
+        for (const name of ['axi-dock', 'axi-toolbar--float', 'axi-panel--tile', 'axi-sheet']) {
             expect(bundle.includes(name), `docs/view/viewer.js does not ship .${name}`).toBe(true);
         }
     });

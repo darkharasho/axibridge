@@ -6,6 +6,7 @@ import { StatsSharedContext } from '../StatsViewContext';
 import { decodeRotation, type RotationFightData } from '../computeRotationTimeline';
 import { RotationCastSheet } from './RotationCastSheet';
 import { RotationTrack } from './RotationTrack';
+import { expandedPaneProps } from './expandedPane';
 
 /** Matches the taxonomy id in `statsTaxonomy.ts`, which the expand state keys on. */
 const SECTION_ID = 'rotation';
@@ -155,10 +156,7 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
     const distinctSkills = selectedPlayer ? new Set(selectedPlayer.skill).size : 0;
 
     return (
-        <div
-            className={isExpanded ? `fixed inset-0 z-50 overflow-y-auto h-screen modal-pane flex flex-col pb-10 p-4 ${expandedSectionClosing ? 'modal-pane-exit' : 'modal-pane-enter'}` : ''}
-            style={isExpanded ? { background: 'var(--pane-bg, var(--bg-elevated))', boxShadow: 'var(--pane-block, var(--shadow-card))' } : undefined}
-        >
+        <div {...expandedPaneProps(isExpanded, expandedSectionClosing, { pad: '16px' })}>
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
                 <ListOrdered className="w-4 h-4 shrink-0" style={{ color: ROTATION_ACCENT }} />
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Rotation</h3>
