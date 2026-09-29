@@ -58,14 +58,16 @@ const DeathTallyCardInner: React.FC<{ members: SquadMemberMovement[]; timeMs: nu
             data-death-tally
             title="Players lying dead right now, hidden from the map. Click to show them."
             onClick={() => setReplayLayer('showDead', true)}
-            className="app-dropdown app-opaque-float"
+            // A pressable tile, which is what it is: two counts and a click that
+            // reveals them on the map. `button.axi-panel--tile:hover` deepens the
+            // block on hover, so the one affordance this readout was missing
+            // arrives with the name rather than being written here.
+            className="app-dropdown axi-panel axi-panel--tile axi-panel--float"
             style={{
                 display: 'flex', flexDirection: 'column', gap: 2,
-                padding: '5px 8px', borderRadius: 8,
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border-default)',
                 cursor: 'pointer', textAlign: 'left',
-            }}
+                '--axi-panel-pad': '5px 8px',
+            } as React.CSSProperties}
         >
             <span style={{ ...rowStyle, color: '#60a5fa' }}>
                 <span aria-hidden="true">☠</span>

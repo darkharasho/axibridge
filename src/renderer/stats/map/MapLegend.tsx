@@ -90,14 +90,13 @@ const MapLegendInner: React.FC<{ style?: React.CSSProperties }> = ({ style }) =>
 
     return (
         <div
-            className="app-dropdown app-opaque-float"
+            className="app-dropdown axi-panel axi-panel--tile axi-panel--float"
             style={{
-                width: 132, padding: '6px 8px', borderRadius: 8,
-                border: '1px solid var(--border-default)',
-                background: 'var(--bg-elevated)',
+                width: 132,
                 display: 'flex', flexDirection: 'column', gap: 3,
+                '--axi-panel-pad': '6px 8px',
                 ...style,
-            }}
+            } as React.CSSProperties}
         >
             {/* The header is the control. A separate collapse rail like the
                 layers panel's would cost more width than the legend's four

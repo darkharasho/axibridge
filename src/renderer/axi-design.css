@@ -1157,12 +1157,17 @@
    !important, and between them there is no frame left for a lever to move. The
    !important on the block went with the inline --shadow-dropdown that forced it.
 
-   What still borrows .app-dropdown is the chrome that draws its own frame inline
-   and only wants the entrance animation: the replay map's bars, legends and
-   spine strips, and the fight-slice tray. Those carry .app-opaque-float as well,
-   which is the one thing they genuinely need from the theme - two of them are
-   28px strips with a single border down one side, and an .axi-panel would put a
-   full outline round them. They are the replay-chrome slice, not this one.
+   The replay chrome that used to borrow .app-dropdown for a frame it drew
+   inline has since been named too: its two control rows are .axi-toolbar--float,
+   its readouts and its two 28px strips are .axi-panel--tile --float, and its two
+   216px side panels are .axi-panel--float at zero padding. The note that used to
+   stand here said an .axi-panel would wrongly wrap a full outline round a strip
+   carrying one border down one side. That was wrong about the strips: both are
+   buttons whose only job is to reopen a panel, the rounded corners on their
+   other three sides already contradicted the single border, and the tile's block
+   separates them from the map better than the seam did while finally giving them
+   a hover state. .app-dropdown survives on all of them, and on the fight-slice
+   tray, as the entrance animation and nothing else.
 
 /* A dropdown's rows are a list inside a well, not a stack of little panels, so
    they step down to the small radius rather than keeping the panel-sized one

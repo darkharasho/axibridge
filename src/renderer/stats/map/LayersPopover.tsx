@@ -96,18 +96,27 @@ const LayersPanelInner: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
                 type="button"
                 title="Show layers"
                 onClick={onToggle}
-                className="app-dropdown app-opaque-float"
+                // A tile you press, not a rail. It was drawn as a seam against
+                // the map - one border down the content-facing side - which the
+                // rounded corners on the other three already contradicted. The
+                // honest reading is a 28px pressable tile: the block does the
+                // separation the single border was reaching for, and
+                // `button.axi-panel--tile:hover` supplies the hover this strip
+                // has never had despite being the only way to reopen the panel.
+                //
+                // Not `.axi-rail--flush`, which is the object for a rail that IS
+                // the page edge: it drops the radius and the block, and its one
+                // border faces the leading edge, so it fits the layers strip and
+                // is backwards for the squad one on the other side of the map.
+                className="app-dropdown axi-panel axi-panel--tile axi-panel--float"
                 style={{
                     width: 28, flexShrink: 0,
-                    background: 'var(--bg-elevated)',
-                    borderRadius: 8,
-                    borderRight: '1px solid var(--border-default)',
                     display: 'flex', flexDirection: 'column', alignItems: 'center',
                     // Symmetric padding, not paddingTop alone: the vertical label's
                     // final glyph otherwise sits flush on the border-radius and its
                     // foot is sheared off by the corner.
-                    padding: '8px 0', cursor: 'pointer',
-                }}
+                    '--axi-panel-pad': '8px 0', cursor: 'pointer',
+                } as React.CSSProperties}
             >
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>▶</span>
                 <span style={{ writingMode: 'vertical-rl', fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 7, transform: 'rotate(180deg)' }}>
@@ -118,12 +127,15 @@ const LayersPanelInner: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
     }
 
     return (
-        <div data-layers-panel className="app-dropdown app-opaque-float" style={{
+        /*             A panel on the float surface, not a rail. A rail scrolls as one
+            column; this pins a header above a body that scrolls under it,
+            which is the head/body split, so the padding goes to 0 and the two
+            children bring their own. */
+        <div data-layers-panel className="app-dropdown axi-panel axi-panel--float" style={{
             width: 216, maxHeight: '100%',
-            background: 'var(--bg-elevated)',
-            borderRadius: 10, border: '1px solid var(--border-default)',
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        }}>
+            '--axi-panel-pad': '0',
+        } as React.CSSProperties}>
             <div style={{ padding: '7px 10px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
                 <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>Layers</span>
                 <button

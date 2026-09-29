@@ -138,18 +138,16 @@ export const TransportInstrument: React.FC<TransportInstrumentProps> = ({ durati
                     >
                     <span
                         data-testid="speed-ladder"
-                        // A floating surface over the map: under the glass themes a bare
-                        // `--bg-elevated` is translucent (blur is a no-op on Linux), so the
-                        // map reads straight through the ladder. `.app-opaque-float` is the
-                        // shared opaque override for exactly this.
-                        className="app-dropdown app-opaque-float"
+                        // A tile, floated: control-sized border, radius and block, on the
+                        // float surface because the map moves under it and a translucent
+                        // pane over moving content is not legible on a platform with no
+                        // blur. Not `.axi-menu__pop`, which bakes in its own absolute
+                        // position and z-index - the bridging span above owns both.
+                        className="app-dropdown axi-panel axi-panel--tile axi-panel--float"
                         style={{
-                            display: 'flex', flexDirection: 'column-reverse', gap: 2, padding: 3,
-                            borderRadius: 7,
-                            background: 'var(--bg-elevated)',
-                            border: '1px solid var(--border-default)',
-                            boxShadow: '0 6px 20px rgba(0,0,0,0.55)',
-                        }}
+                            display: 'flex', flexDirection: 'column-reverse', gap: 2,
+                            '--axi-panel-pad': '3px',
+                        } as React.CSSProperties}
                     >
                         {SPEEDS.map(s => (
                             <button

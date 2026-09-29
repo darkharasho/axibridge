@@ -101,10 +101,19 @@ describe('LayersPanel', () => {
         expect(panel.style.width).toBe('216px');
     });
 
-    it('has a non-empty background so it reads opaque over the map', () => {
+    it('takes the float surface so it reads opaque over the map', () => {
+    // Still the same requirement - a translucent pane over a moving map is
+    // unreadable on a platform where the blur is a no-op - but the fill arrives
+    // from --axi-surface-float via the upstream class now, not from an inline
+    // literal. jsdom computes no stylesheet, so the class is what there is to
+    // assert; asserting on style.background would be pinning the reskin this
+    // migration removed.
         const { container } = render(<Wrapper />);
         fireEvent.click(screen.getByTitle(/show layers/i));
         const panel = container.querySelector('[data-layers-panel]') as HTMLElement;
-        expect(panel.style.background).not.toBe('');
+        expect(panel.className).toContain('axi-panel--float');
+        // Zero, because the head and the scrolling body bring their own. A
+        // panel's default 26px here would double every inner edge.
+        expect(panel.style.getPropertyValue('--axi-panel-pad')).toBe('0');
     });
 });

@@ -23,14 +23,17 @@ const stepBtn = (disabled: boolean): React.CSSProperties => ({
  * `FightPicker` overlay, in ~28px of floating chrome instead of 34px of
  * docked chrome.
  *
- * `.app-opaque-float` is what paints a background under the glass theme (see
- * index.css); `.app-dropdown` is the entrance animation and nothing else now
- * that the real dropdowns are .axi-panel--float. The flat theme gives this
- * element only the animation. Blur does not work on this platform, so a
- * translucent floating card over the map reads as see-through. We therefore
- * also set an explicit opaque background inline, matching every other floating
- * surface in this codebase (e.g. ColumnFilterDropdown.tsx,
- * PublishWebhookPopover.tsx).
+ * An `.axi-toolbar--float`, like the transport bar below it: a raised surface
+ * holding controls, pinned over content that moves. `.app-dropdown` is the
+ * entrance animation and nothing else.
+ *
+ * It loses its capsule in the process. The 16px radius it used to write inline
+ * happens to be exactly what glass gives a panel-sized surface, so under that
+ * theme nothing moves; under the default theme, whose radius is 0, this squares
+ * off along with every other card already migrated. The language has one radius
+ * scale and no capsule in it, and a component keeping its own corner is the
+ * reskin this whole exercise is removing - so the name stays historical and the
+ * shape follows the theme.
  */
 const FightIdentityPillInner: React.FC<FightIdentityPillProps> = ({ fights, onOpenPicker }) => {
     const selectedId = useStatsStore(state => state.selectedReplayFightId);
@@ -54,14 +57,11 @@ const FightIdentityPillInner: React.FC<FightIdentityPillProps> = ({ fights, onOp
 
     return (
         <div
-            className="app-dropdown app-opaque-float"
+            className="app-dropdown axi-toolbar axi-toolbar--float axi-toolbar--nowrap"
             style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '3px 6px', borderRadius: 16,
-                border: '1px solid var(--border-default)',
-                background: 'var(--bg-elevated)',
-                maxWidth: 380,
-            }}
+                gap: 6, maxWidth: 380,
+                '--axi-toolbar-pad': '3px 6px',
+            } as React.CSSProperties}
         >
             <button type="button" title="Previous fight" aria-label="Previous fight"
                     onClick={() => step(-1)} disabled={atFirst} style={stepBtn(atFirst)}>

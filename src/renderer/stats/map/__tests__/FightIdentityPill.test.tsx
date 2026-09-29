@@ -94,10 +94,16 @@ describe('FightIdentityPill', () => {
         expect(container.firstChild).toBeNull();
     });
 
-    it('sets an explicit opaque background so the pill is not see-through over the map', () => {
+    it('takes the float surface so the pill is not see-through over the map', () => {
+    // Still the same requirement - a translucent pane over a moving map is
+    // unreadable on a platform where the blur is a no-op - but the fill arrives
+    // from --axi-surface-float via the upstream class now, not from an inline
+    // literal. jsdom computes no stylesheet, so the class is what there is to
+    // assert; asserting on style.background would be pinning the reskin this
+    // migration removed.
         useStatsStore.getState().setSelectedReplayFight('a');
         const { container } = render(<FightIdentityPill fights={fights} onOpenPicker={() => {}} />);
         const pill = container.firstChild as HTMLElement;
-        expect(pill.style.background).not.toBe('');
+        expect(pill.className).toContain('axi-toolbar--float');
     });
 });

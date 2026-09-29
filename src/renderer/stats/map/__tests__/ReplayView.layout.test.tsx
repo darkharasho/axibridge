@@ -121,7 +121,10 @@ describe('ReplayView HUD geometry regressions', () => {
         ['Expand squad panel'],
     ])('pads the %s rail on both ends so the vertical label clears the corner', title => {
         render(<ReplayView fights={[mkFight()]} />);
-        expect(screen.getByTitle(title).style.padding).toBe('8px 0px');
+        // The padding is the panel's knob now rather than a literal, so the
+        // strip can be an .axi-panel--tile and still say what it needs. Same
+        // figure, same reason; read where the component writes it.
+        expect(screen.getByTitle(title).style.getPropertyValue('--axi-panel-pad')).toBe('8px 0');
     });
 
     it('lets the open layers panel shrink so it scrolls instead of overrunning the legend', () => {
