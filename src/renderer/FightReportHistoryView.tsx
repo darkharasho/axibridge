@@ -513,7 +513,7 @@ export function FightReportHistoryView() {
                             {deleteMode && filteredEntries.length > 0 && (
                                 <button type="button"
                                     onClick={handleToggleSelectAll}
-                                    className="px-3 py-2 rounded-[4px] text-xs whitespace-nowrap"
+                                    className="axi-btn axi-btn--sm"
                                     style={{
                                         background: 'var(--bg-input)',
                                         color: allFilteredSelected ? 'var(--brand-primary)' : 'var(--text-secondary)',
@@ -524,7 +524,7 @@ export function FightReportHistoryView() {
                             )}
                             <button type="button"
                                 onClick={() => { setDeleteMode((v) => !v); setSelectedForDelete(new Set()); }}
-                                className="px-3 py-2 rounded-[4px] text-xs"
+                                className="axi-btn axi-btn--sm"
                                 style={{
                                     background: deleteMode ? 'var(--brand-primary)' : 'var(--bg-input)',
                                     color: deleteMode ? 'var(--on-brand, #fff)' : 'var(--text-secondary)',
@@ -563,7 +563,7 @@ export function FightReportHistoryView() {
                                     <button
                                         type="button"
                                         onClick={() => setCommanderDropdownOpen((v) => !v)}
-                                        className="flex items-center gap-1.5 rounded-[4px] px-3 py-2 text-sm whitespace-nowrap"
+                                        className="axi-btn"
                                         style={{
                                             background: commanderFilter ? 'var(--history-filter-on-bg, color-mix(in srgb, var(--brand-primary) 15%, var(--bg-input)))' : 'var(--bg-input)',
                                             border: `var(--history-edge-w, 1px) solid ${commanderFilter ? 'var(--brand-primary)' : 'var(--border-default)'}`,
@@ -677,11 +677,7 @@ export function FightReportHistoryView() {
                                             <button
                                                 type="button"
                                                 onClick={() => setMenuOpenId((prev) => prev === entry.id ? null : entry.id)}
-                                                className="w-6 h-6 rounded flex items-center justify-center transition-colors"
-                                                style={{
-                                                    color: menuOpenId === entry.id ? 'var(--text-primary)' : 'var(--text-muted)',
-                                                    background: menuOpenId === entry.id ? 'var(--bg-hover)' : 'transparent',
-                                                }}
+                                                className={`axi-btn axi-btn--icon w-6 h-6 justify-center ${menuOpenId === entry.id ? 'axi-ink-plain' : 'axi-ink-faint'}`}
                                                 aria-label="Report options"
                                                 aria-expanded={menuOpenId === entry.id}
                                             >
@@ -732,7 +728,7 @@ export function FightReportHistoryView() {
                                                     event.stopPropagation();
                                                     setSearchQuery(entry.guild?.tag || '');
                                                 }}
-                                                className="shrink-0 inline-flex items-center rounded-[4px] border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide transition-colors"
+                                                className="axi-btn axi-btn--xs shrink-0"
                                                 style={{ borderColor: 'var(--border-hover)', color: 'var(--text-secondary)' }}
                                                 title={`Search reports by ${entry.guild?.name || entry.guild?.tag}`}
                                             >
@@ -799,7 +795,7 @@ export function FightReportHistoryView() {
                                 </span>
                                 <ParticleHover className="rounded-[4px]" color="#ef4444">
                                     <button type="button" onClick={handleDeleteSelected} disabled={deleteLoading}
-                                        className="px-4 py-2 rounded-[4px] text-sm font-medium bg-red-600 hover:bg-red-700 axi-ink-plain disabled:opacity-50">
+                                        className="axi-btn axi-ink-danger axi-edge-danger disabled:opacity-50">
                                         {deleteLoading ? 'Deleting...' : 'Delete Selected'}
                                     </button>
                                 </ParticleHover>

@@ -33,7 +33,7 @@ export const UnpublishedSectionNotice = ({ sectionLabel, settingLabel, onEnable 
             <button
                 type="button"
                 onClick={onEnable}
-                className="text-[11px] font-semibold px-2.5 py-1 rounded-[4px] flex-shrink-0 hover:brightness-125"
+                className="axi-btn axi-btn--xs flex-shrink-0"
                 style={{ color: 'var(--status-info)', border: '1px solid var(--status-info-border)' }}
             >
                 Include in uploads

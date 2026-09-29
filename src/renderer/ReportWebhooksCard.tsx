@@ -75,7 +75,7 @@ export function ReportWebhooksCard({
                 <button
                     type="button"
                     onClick={() => onChange([...reportWebhooks, makeDefaultReportWebhook(Date.now().toString())])}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-semibold border transition-colors"
+                    className="axi-btn axi-btn--sm"
                     style={{ background: 'var(--accent-bg)', color: 'var(--text-primary)', borderColor: 'var(--accent-border)' }}
                 >
                     <Plus className="w-3.5 h-3.5" />
@@ -126,7 +126,7 @@ export function ReportWebhooksCard({
                                     type="button"
                                     title="Remove webhook"
                                     onClick={() => onChange(reportWebhooks.filter((entry) => entry.id !== hook.id))}
-                                    className="p-1.5 rounded-[4px] transition-colors"
+                                    className="axi-btn axi-btn--icon"
                                     style={{ color: 'var(--status-error, #f87171)' }}
                                 >
                                     <Trash2 className="w-3.5 h-3.5" />

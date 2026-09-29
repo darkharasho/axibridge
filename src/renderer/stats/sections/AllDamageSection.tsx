@@ -158,7 +158,7 @@ export const AllDamageSection = ({
                     {!expanded && (
                         <button
                             onClick={() => openExpandedSection(sectionId)}
-                            className="p-1 rounded hover:bg-white/5 axi-ink-dim hover:text-slate-200 transition-colors"
+                            className="axi-btn axi-btn--icon axi-ink-dim"
                             title="Expand"
                         >
                             <Maximize2 className="w-3.5 h-3.5" />
@@ -167,7 +167,7 @@ export const AllDamageSection = ({
                     {expanded && (
                         <button
                             onClick={closeExpandedSection}
-                            className="p-1 rounded hover:bg-white/5 axi-ink-dim hover:text-slate-200 transition-colors"
+                            className="axi-btn axi-btn--icon axi-ink-dim"
                             title="Close"
                         >
                             <X className="w-3.5 h-3.5" />

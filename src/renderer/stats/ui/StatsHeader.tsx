@@ -214,7 +214,7 @@ export const StatsHeader = ({
                         <button
                             onClick={onDevMockUpload}
                             disabled={devMockUploadState.uploading || actionsDisabled}
-                            className="flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-colors disabled:opacity-50 bg-amber-500/15 axi-ink-warn border axi-edge-warn enabled:hover:bg-amber-500/25"
+                            className="axi-btn disabled:opacity-50 axi-ink-warn axi-edge-warn"
                         >
                             <Sparkles className="w-4 h-4 axi-ink-warn" />
                             {devMockUploadState.uploading ? 'Building...' : 'Dev Mock Upload'}
@@ -226,10 +226,15 @@ export const StatsHeader = ({
                                 onClick={() => startPublish(null)}
                                 disabled={uploadDisabled}
                                 aria-disabled={uploadDisabled}
-                                className={`stats-action-upload flex items-center gap-2 px-4 py-2 font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${alternateUploadTargets.length > 0 ? 'rounded-l-md rounded-r-none' : 'rounded-md'}`}
-                                style={{ background: 'var(--accent-bg-strong)', color: 'var(--text-primary)', border: 'var(--panel-border-w, 1px) solid var(--accent-border)' }}
+                                className="axi-btn axi-btn--primary stats-action-upload disabled:opacity-50 disabled:cursor-not-allowed"
+                                /* A split control is a shape this language has no
+                                   word for, so the squared join is inline: a radius
+                                   utility here would lose to .axi-btn's shorthand. */
+                                style={alternateUploadTargets.length > 0
+                                    ? { borderTopRightRadius: 0, borderBottomRightRadius: 0 }
+                                    : undefined}
                             >
-                                <UploadCloud className="w-4 h-4" style={{ color: 'var(--brand-primary)' }} />
+                                <UploadCloud className="w-4 h-4" />
                                 {uploadingWeb ? 'Uploading...' : 'Upload to Web'}
                             </button>
                             {alternateUploadTargets.length > 0 && (
@@ -239,8 +244,8 @@ export const StatsHeader = ({
                                     disabled={uploadDisabled}
                                     aria-haspopup="menu"
                                     aria-expanded={uploadMenuOpen}
-                                    className="stats-action-upload flex items-center justify-center px-2 rounded-r-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                    style={{ background: 'var(--accent-bg)', color: 'var(--text-primary)', border: 'var(--panel-border-w, 1px) solid var(--accent-border)', borderLeft: 'none' }}
+                                    className="axi-btn axi-btn--primary axi-btn--icon stats-action-upload justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: 'none' }}
                                     title="Choose upload repository"
                                 >
                                     <ChevronDown className={`w-4 h-4 transition-transform ${uploadMenuOpen ? 'rotate-180' : ''}`} />

@@ -284,8 +284,6 @@
    thing you picked, so it is only ever spent by a rule written on purpose. */
 [data-axi-accent] body .bg-red-400,
 [data-axi-accent] body .bg-red-500,
-[data-axi-accent] body .bg-red-600,
-[data-axi-accent] body .bg-red-700,
 [data-axi-accent] body .bg-rose-400,
 [data-axi-accent] body .bg-rose-500 { background-color: var(--axi-danger); }
 
@@ -308,9 +306,7 @@
 [data-axi-accent] body .bg-white\/\[0\.07\],
 [data-axi-accent] body .bg-white\/\[0\.08\] { background-color: var(--axi-ground); }
 
-[data-axi-accent] body .bg-blue-400\/90,
-[data-axi-accent] body .bg-cyan-500,
-[data-axi-accent] body .bg-cyan-600 { background-color: var(--axi-meta); }
+[data-axi-accent] body .bg-blue-400\/90 { background-color: var(--axi-meta); }
 
 [data-axi-accent] body .bg-emerald-400,
 [data-axi-accent] body .bg-emerald-500,
@@ -325,53 +321,42 @@
 [data-axi-accent] body .bg-amber-500\/10,
 [data-axi-accent] body .bg-amber-500\/15,
 [data-axi-accent] body .bg-amber-500\/20,
-[data-axi-accent] body .bg-amber-500\/25,
 [data-axi-accent] body .bg-blue-500\/10,
 [data-axi-accent] body .bg-blue-500\/12,
 [data-axi-accent] body .bg-blue-500\/15,
 [data-axi-accent] body .bg-blue-500\/20,
-[data-axi-accent] body .bg-blue-500\/30,
 [data-axi-accent] body .bg-cyan-400\/10,
 [data-axi-accent] body .bg-cyan-400\/15,
 [data-axi-accent] body .bg-cyan-500\/10,
 [data-axi-accent] body .bg-cyan-500\/15,
 [data-axi-accent] body .bg-cyan-500\/20,
-[data-axi-accent] body .bg-cyan-500\/25,
 [data-axi-accent] body .bg-cyan-500\/30,
 [data-axi-accent] body .bg-cyan-500\/8,
 [data-axi-accent] body .bg-cyan-500\/\[0\.08\],
-[data-axi-accent] body .bg-cyan-600\/20,
 [data-axi-accent] body .bg-emerald-400\/5,
 [data-axi-accent] body .bg-emerald-500\/10,
 [data-axi-accent] body .bg-emerald-500\/15,
 [data-axi-accent] body .bg-emerald-500\/20,
-[data-axi-accent] body .bg-emerald-500\/30,
 [data-axi-accent] body .bg-fuchsia-500\/20,
 [data-axi-accent] body .bg-green-500\/20,
-[data-axi-accent] body .bg-green-500\/30,
 [data-axi-accent] body .bg-indigo-500\/10,
 [data-axi-accent] body .bg-indigo-500\/15,
 [data-axi-accent] body .bg-orange-500\/20,
 [data-axi-accent] body .bg-purple-500\/20,
-[data-axi-accent] body .bg-purple-500\/30,
 [data-axi-accent] body .bg-red-500\/10,
-[data-axi-accent] body .bg-red-500\/15,
 [data-axi-accent] body .bg-red-500\/20,
-[data-axi-accent] body .bg-red-500\/25,
-[data-axi-accent] body .bg-rose-400\/20,
-[data-axi-accent] body .bg-rose-400\/30,
 [data-axi-accent] body .bg-rose-400\/5,
 [data-axi-accent] body .bg-rose-500\/10,
 [data-axi-accent] body .bg-rose-500\/15,
-[data-axi-accent] body .bg-rose-500\/20,
 [data-axi-accent] body .bg-slate-500\/10,
 [data-axi-accent] body .bg-slate-500\/20,
 [data-axi-accent] body .bg-violet-500\/15,
 [data-axi-accent] body .bg-white\/10,
-[data-axi-accent] body .bg-white\/20,
-/* Shorthand: --axi-surface-raised is a gradient under glass, invalid at
-   computed-value time as background-color for every literal above. */
-[data-axi-accent] body .bg-white\/\[0\.10\] { background: var(--axi-surface-raised); }
+[data-axi-accent] body .bg-white\/20 {
+  /* Shorthand: --axi-surface-raised is a gradient under glass, invalid at
+     computed-value time as background-color for every literal above. */
+  background: var(--axi-surface-raised);
+}
 
 /* Shorthand, same reason: --axi-surface is a gradient under glass. */
 [data-axi-accent] body .bg-slate-900 { background: var(--axi-surface); }
@@ -1190,19 +1175,6 @@
 }
 [data-axi-accent] body .settings-section__badge svg { color: var(--axi-text-dim); }
 
-/* The share button on an expanded log card was the accent at 30% for its fill
-   and 25% for its edge, with white text on top - rule 2 twice over, and the
-   same illegible pairing the History Manage button had. It is one action among
-   several on that card rather than the card's one primary action, so it
-   becomes a plain raised control and lets the card's own accent stay the thing
-   that carries the eye. */
-[data-axi-accent] body .log-card-share-link-btn {
-  --share-btn-bg: var(--axi-surface-raised);
-  --share-btn-edge: var(--axi-ink-line);
-  --panel-border-w: var(--axi-border-control);
-  box-shadow: var(--axi-shadow-control);
-}
-
 /* ---------------------------------------------------------------------------
    THE REVIVES SECTION
    The fourth kind of table, and the one the table audit missed: Revives builds
@@ -1437,31 +1409,20 @@
    Green at 20% behind green text inside a green edge: rule 2 twice and rule
    5's annotation chip standing in for a button again. It is also the one
    primary action in that modal, which is the thing the language marks with
-   colour - so it gets the accent outright, and the count rides on it as an
-   ink chip rather than a second tint. Cancel beside it is already the plain
-   raised control every secondary button became. */
-[data-axi-accent] body .file-picker-confirm {
-  background-color: var(--axi-accent);
-  color: var(--axi-accent-ink);
-  border-color: var(--axi-ink-line);
-  border-width: var(--axi-border-control);
-  border-radius: var(--axi-radius-sm);
-  box-shadow: var(--axi-shadow-control);
-}
-[data-axi-accent] body .file-picker-confirm:hover:not(:disabled) { background-color: var(--axi-accent); filter: brightness(1.08); }
-/* Disabled is the control with no claim on you: the fill goes back to the
-   surface and the label goes faint, rather than the accent at half strength. */
+   colour - so it says .axi-btn--primary now, and the count rides on it as an
+   .axi-badge-count. Everything this rule used to do was that modifier written
+   out by hand: the accent fill, the accent ink, the control border, radius and
+   block, and a brightness hover.
+
+   What is left is the one thing --primary has no word for. Disabled is the
+   control with no claim on you: the fill goes back to the surface and the label
+   goes faint, rather than the accent at half strength. */
 [data-axi-accent] body .file-picker-confirm:disabled {
   /* Shorthand: --axi-surface is a gradient under glass. */
   background: var(--axi-surface);
   color: var(--axi-text-faint);
   box-shadow: none;
   opacity: 1;
-}
-[data-axi-accent] body .file-picker-confirm__count {
-  background-color: var(--axi-accent-ink);
-  color: var(--axi-accent);
-  border-radius: var(--axi-radius-sm);
 }
 
 /* ---------------------------------------------------------------------------

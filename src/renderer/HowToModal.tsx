@@ -188,7 +188,7 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-1.5 rounded-[4px] hover:bg-white/10 axi-ink-dim hover:text-white transition-colors"
+                            className="axi-btn axi-btn--icon axi-ink-dim"
                         >
                             <X className="w-5 h-5" />
                         </button>

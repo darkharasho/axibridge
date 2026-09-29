@@ -90,7 +90,7 @@ export function HistoryReparseCard({
                     disabled={scanning || busy}
                     onClick={scan}
                     data-testid="history-reparse-scan"
-                    className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
+                    className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule disabled:opacity-50"
                 >
                     <History className="w-3 h-3" />
                     {scanning ? 'Checking...' : 'Check history'}
@@ -102,7 +102,7 @@ export function HistoryReparseCard({
                         disabled={busy}
                         onClick={async () => { await heal(targets); await scan(); }}
                         data-testid="history-reparse-run"
-                        className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-blue-500/10 axi-ink-meta axi-edge-meta hover:bg-blue-500/20 disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
+                        className="axi-btn axi-btn--sm axi-ink-meta axi-edge-meta disabled:opacity-50"
                     >
                         <RefreshCw className={`w-3 h-3 ${busy ? 'animate-spin' : ''}`} style={busy ? { animationDuration: '2s' } : undefined} />
                         {busy ? `Re-parsing ${healState.done}/${healState.total}...` : `Re-parse ${targets.length} log${targets.length === 1 ? '' : 's'}`}

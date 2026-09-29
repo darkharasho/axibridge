@@ -31,7 +31,7 @@ export function DataMapSection({ onNavigate, isSectionAllowed }: DataMapSectionP
                                     type="button"
                                     title={section.description}
                                     onClick={() => onNavigate(category.id, section.id)}
-                                    className="text-[11px] px-2 py-1 rounded-sm border hover:bg-[var(--bg-hover)]"
+                                    className="axi-btn axi-btn--xs"
                                     style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
                                 >
                                     {section.label}

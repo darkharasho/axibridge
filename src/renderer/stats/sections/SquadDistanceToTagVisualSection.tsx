@@ -142,7 +142,7 @@ export const SquadDistanceToTagVisualSection = (props: Props) => {
                                     type="button"
                                     aria-pressed={active}
                                     onClick={() => setMetric(opt.key)}
-                                    className="px-2 py-0.5 rounded text-[10px] uppercase tracking-wider transition-colors"
+                                    className="axi-btn axi-btn--xs"
                                     style={{
                                         background: active ? 'var(--brand-primary)' : 'var(--bg-card-inner)',
                                         color: active ? 'var(--bg-elevated)' : 'var(--text-secondary)',

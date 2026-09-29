@@ -110,7 +110,7 @@ export function ProofOfWorkModal<TToc extends ProofOfWorkTocItem, TResult extend
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="p-2 rounded-lg border axi-edge-rule bg-white/5 axi-ink-dim hover:text-white hover:border-white/30 transition-colors"
+                                className="axi-btn axi-btn--icon axi-edge-rule axi-ink-dim"
                                 aria-label="Close proof of work"
                             >
                                 <CloseIcon className="w-5 h-5" />

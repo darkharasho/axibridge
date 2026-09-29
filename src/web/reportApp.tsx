@@ -2060,21 +2060,21 @@ export function ReportApp({ injectedSource, assetBase }: {
                         </a>}
                         <button
                             onClick={() => setTocOpen(true)}
-                            className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border axi-edge-rule text-[10px] uppercase tracking-widest axi-ink-plain"
+                            className="axi-btn axi-btn--xs flex-1 min-w-0 flex-col justify-center axi-edge-rule axi-ink-plain"
                         >
                             <PanelLeft className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                             <span className="max-w-full truncate">Contents</span>
                         </button>
                         <button
                             onClick={() => searchOpenRef.current?.()}
-                            className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border axi-edge-rule text-[10px] uppercase tracking-widest axi-ink-plain"
+                            className="axi-btn axi-btn--xs flex-1 min-w-0 flex-col justify-center axi-edge-rule axi-ink-plain"
                         >
                             <Search className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                             <span className="max-w-full truncate">Search</span>
                         </button>
                         <button
                             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                            className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border axi-edge-rule text-[10px] uppercase tracking-widest axi-ink-plain"
+                            className="axi-btn axi-btn--xs flex-1 min-w-0 flex-col justify-center axi-edge-rule axi-ink-plain"
                         >
                             <ArrowUp className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                             <span className="max-w-full truncate">Top</span>
@@ -2552,7 +2552,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                             event.stopPropagation();
                                                             setSearchTerm((entry as any).guild.tag);
                                                         }}
-                                                        className="shrink-0 inline-flex items-center rounded-[4px] border px-1.5 py-0.5 text-[11px] font-semibold tracking-wide hover:border-[color:var(--accent-border)] transition-colors"
+                                                        className="axi-btn axi-btn--xs shrink-0"
                                                         style={{ borderColor: 'var(--border-hover)', color: 'var(--text-secondary)' }}
                                                         title={`Search reports by ${(entry as any).guild.name || (entry as any).guild.tag}`}
                                                     >

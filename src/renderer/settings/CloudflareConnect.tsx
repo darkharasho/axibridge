@@ -139,7 +139,7 @@ export function CloudflareConnect({ onChanged }: Props) {
                     <button
                         type="button"
                         onClick={disconnect}
-                        className="shrink-0 rounded-[4px] border axi-edge-rule px-2.5 py-1 text-[11px] axi-ink-dim hover:border-white/25 hover:text-white"
+                        className="axi-btn axi-btn--xs shrink-0 axi-edge-rule axi-ink-dim"
                     >
                         Disconnect
                     </button>
@@ -190,7 +190,7 @@ export function CloudflareConnect({ onChanged }: Props) {
                 type="button"
                 onClick={connect}
                 disabled={busy}
-                className="flex items-center gap-2 rounded-[4px] border axi-edge-meta bg-cyan-500/10 px-3 py-1.5 text-xs axi-ink-meta hover:bg-cyan-500/20 disabled:opacity-60"
+                className="axi-btn axi-btn--sm axi-edge-meta axi-ink-meta disabled:opacity-60"
             >
                 {busy
                     ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Waiting for your browser&hellip;</>

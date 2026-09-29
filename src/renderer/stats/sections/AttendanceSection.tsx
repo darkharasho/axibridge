@@ -141,7 +141,7 @@ export const AttendanceSection = ({
                         <button
                             type="button"
                             onClick={exportVisibleRowsAsCsv}
-                            className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] px-3 py-2 text-xs transition-colors whitespace-nowrap"
+                            className="axi-btn axi-btn--sm"
                             style={{ border: '1px solid var(--border-default)', background: 'var(--bg-hover)', color: 'var(--text-primary)' }}
                         >
                             <Download className="w-3.5 h-3.5" />
