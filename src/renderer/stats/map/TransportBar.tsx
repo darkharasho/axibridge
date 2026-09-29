@@ -51,11 +51,13 @@ const LanesGlyph: React.FC = () => (
  * keeps that true of the entire plot surface, with no corner where a click
  * toggles instead of seeking.
  *
- * `.app-opaque-float` only paints a background under the glass themes (see
- * index.css) — the default theme leaves it transparent, which would make
- * this bar see-through over the map since blur doesn't work on this
- * platform. An explicit `background` keeps it opaque everywhere while
- * still picking up the glass-theme override where that class applies.
+ * It is an `.axi-toolbar`: a raised surface holding controls, which is what
+ * this has been all along. `--float` because the map moves under it and a
+ * translucent pane over moving content stops being legible the moment it does
+ * - blur is a no-op on this platform, so the alpha is all there is. `--nowrap`
+ * because the whole point of the collapse described above is that this bar has
+ * one height; the toolbar's default wrap would drop the lanes toggle onto a
+ * second line at a narrow width and reflow the HUD again.
  */
 const TransportBarInner: React.FC<TransportBarProps> = ({ fight, style }) => {
     const playing = useStatsStore(state => state.replayPlayhead.playing);
@@ -65,14 +67,8 @@ const TransportBarInner: React.FC<TransportBarProps> = ({ fight, style }) => {
 
     return (
         <div
-            className="app-dropdown app-opaque-float"
-            style={{
-                display: 'flex', alignItems: 'center', gap: 9,
-                padding: '4px 7px', borderRadius: 10,
-                border: '1px solid var(--border-default)',
-                background: 'var(--bg-elevated)',
-                ...style,
-            }}
+            className="app-dropdown axi-toolbar axi-toolbar--float axi-toolbar--nowrap"
+            style={{ '--axi-toolbar-pad': '4px 7px', ...style } as React.CSSProperties}
         >
             <button
                 type="button"

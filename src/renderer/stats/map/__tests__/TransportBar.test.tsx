@@ -196,9 +196,18 @@ describe('TransportBar', () => {
         expect(lanesSvg.style.height).toBe('100%');
     });
 
-    it('sets an explicit opaque background so the bar is not see-through over the map', () => {
+    it('takes the float surface so the bar is not see-through over the map', () => {
+    // Still the same requirement - a translucent pane over a moving map is
+    // unreadable on a platform where the blur is a no-op - but the fill arrives
+    // from --axi-surface-float via the upstream class now, not from an inline
+    // literal. jsdom computes no stylesheet, so the class is what there is to
+    // assert; asserting on style.background would be pinning the reskin this
+    // migration removed.
         const { container } = render(<TransportBar fight={makeFight()} />);
         const bar = container.firstElementChild as HTMLElement;
-        expect(bar.style.background).toBeTruthy();
+        expect(bar.className).toContain('axi-toolbar--float');
+        // A wrap here would put the lanes toggle on a second line and undo the
+        // one-height guarantee the test above this one exists to protect.
+        expect(bar.className).toContain('axi-toolbar--nowrap');
     });
 });

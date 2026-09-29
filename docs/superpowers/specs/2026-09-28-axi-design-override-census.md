@@ -326,3 +326,85 @@ cannot name an upstream object. The replay chrome's own geometry — eight sites
 of inline `borderRadius: 7/8/10` and `border: 1px solid` — is the next slice,
 and two of those sites are 28px strips with a single border down one side, which
 an `.axi-panel` would wrongly wrap in a full outline.
+
+## What the replay chrome slice found
+
+Ten sites, and the useful thing they turned up is that **a deferral note is a
+guess until you read the markup again.** The modals slice ended by recording
+that two of these sites were 28px strips "with a single border down one side,
+which an `.axi-panel` would wrongly wrap in a full outline," and deferred them
+on that basis. Reading them properly: both are `<button>`s whose only job is to
+reopen the panel they collapse into, and both already carry `borderRadius: 8`
+on all four corners. A rounded box with one border is not a seam — it is a box
+missing three borders. `.axi-panel--tile` on a button gives the control border,
+the control radius, the control block, **and** `button.axi-panel--tile:hover`,
+which is the hover affordance these two strips have never had despite being the
+only way back into the panel. The earlier note was wrong and the strips took the
+tile.
+
+### The toolbar was the container left out of the set
+
+Upstream 1.25.0. `.axi-panel` has `--axi-panel-pad` and `--float`; `.axi-rail`
+has `--axi-rail-pad` and `--float`; `.axi-toolbar` had a hardcoded `padding:
+14px` and no float. That is the same omission 1.24.0 fixed for the modal and the
+popovers: `--axi-surface-float`'s own comment lists the surfaces that need it and
+the toolbar was missing from the list.
+
+- `--axi-toolbar-pad` — a transport bar over a map is a toolbar at a third of
+  the height of a strip above a list, and its only way to say so was to write its
+  own padding and stop being a toolbar.
+- `.axi-toolbar--float` — third `--float`, completing the set.
+- `.axi-toolbar--nowrap` — the default wrap is right when losing a filter off the
+  edge beats a second line, and wrong when other things are positioned against the
+  bar's height. `TransportBar`'s own doc comment says the whole point of its
+  single-row collapse is that the bar has one height; the default wrap would have
+  silently undone that at narrow widths.
+
+**The test that would have caught both.** 1.24.0's bug survived four releases
+because the token's consumer list was prose. `tests/tokens.test.mjs` now asserts,
+per floating surface, that its own rule body reads `--axi-surface-float`, plus
+that the token's comment and the test's list still name the same modifiers.
+Mutation-checked: flipping `.axi-toolbar--float` to `--axi-surface` fails exactly
+one test.
+
+`.axi-rail--flush` also drew its seam with `border-right`, which is "the border
+facing the content" only in LTR; it is `border-inline-end` now. It still assumes
+the *leading* edge — a rail pinned to the trailing edge of its content has no way
+to ask for the other border — and the manifest says so rather than promising a
+generality the code does not have. No consumer here needs it, so no API was
+invented for it.
+
+### The rulings
+
+| Shape | Object | Why |
+|---|---|---|
+| `TransportBar`, `FightIdentityPill` | `.axi-toolbar --float --nowrap` | A row of controls on a raised surface, pinned over a map that moves. |
+| `MapLegend`, `DeathTallyCard`, the speed ladder, both 28px strips | `.axi-panel--tile --float` | Control-sized readouts and presses, not page regions. |
+| Both 216px side panels | `.axi-panel--float`, pad `0` | A head pinned above a body that scrolls under it — the modal's split, not a rail's single scrolling column. |
+
+`.axi-menu__pop` was rejected again for the speed ladder, for the same reason as
+in the dropdowns slice: it bakes in `position: absolute; left: 0; z-index: 41`,
+and the bridging span above the ladder owns both.
+
+**The pill loses its capsule under the default theme.** Its inline
+`borderRadius: 16` happens to be exactly glass's `--axi-radius`, so under glass
+nothing moves; under the default theme, whose radius is 0, it squares off with
+every other migrated card. The language has one radius scale and no capsule in
+it, and a component keeping its own corner is the reskin being removed — so the
+name stays historical and the shape follows the theme. The transport bar goes
+10 → 16 under glass and the ladder 7 → 10, both toward the scale.
+
+### `.app-opaque-float` does not retire here
+
+One consumer survives: `FightSliceTray`. It is a different shape from everything
+above — full width, flush left and right, one border along the bottom, and the
+content scrolls *under* it. That is the same object as `.app-sticky-bar`, and the
+language has no word for it: a rail is vertical, a toolbar stands in the layout
+with space around it, and `.axi-rail--flush` is the vertical case of exactly this
+idea. Two consumers in one app is the threshold for asking upstream for a
+horizontal one. Until then the fill stays in `index.css`, narrowed to say so, and
+the contract test keeps pinning it.
+
+Eight unit tests asserted `style.background` was non-empty on these elements —
+they were pinning the reskin. Repointed to assert the class that carries the
+float token, which is what jsdom can see.

@@ -78,11 +78,16 @@ describe('MapLegend', () => {
         expect(container.querySelectorAll('[data-legend-row]').length).toBe(4);
     });
 
-    it('has an opaque background in all themes', () => {
+    it('takes the float surface so it is opaque in all themes', () => {
+    // Still the same requirement - a translucent pane over a moving map is
+    // unreadable on a platform where the blur is a no-op - but the fill arrives
+    // from --axi-surface-float via the upstream class now, not from an inline
+    // literal. jsdom computes no stylesheet, so the class is what there is to
+    // assert; asserting on style.background would be pinning the reskin this
+    // migration removed.
         const { container } = render(<MapLegend />);
         const cardElement = container.querySelector('.app-dropdown') as HTMLElement;
-        // The inline style sets background to 'var(--bg-elevated)', verify it's not empty
-        expect(cardElement.style.background).toBeTruthy();
+        expect(cardElement.className).toContain('axi-panel--float');
     });
 
     // Expanded by default: the legend is what the marks mean, which a reader

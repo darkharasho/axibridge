@@ -176,17 +176,29 @@ describe('ReplaySquadPanel party collapse and spotlight', () => {
         expect(container.querySelector('.replay-scroll')).not.toBeNull();
     });
 
-    it('the panel sets an explicit opaque background', () => {
+    it('the panel takes the float surface', () => {
+    // Still the same requirement - a translucent pane over a moving map is
+    // unreadable on a platform where the blur is a no-op - but the fill arrives
+    // from --axi-surface-float via the upstream class now, not from an inline
+    // literal. jsdom computes no stylesheet, so the class is what there is to
+    // assert; asserting on style.background would be pinning the reskin this
+    // migration removed.
         const fight = mkFight([mkMember()]);
         const { container } = render(<ReplaySquadPanel fight={fight} collapsed={false} onToggle={() => {}} />);
         const panel = container.firstElementChild as HTMLElement;
-        expect(panel.style.background).not.toBe('');
+        expect(panel.className).toContain('axi-panel--float');
+        expect(panel.style.getPropertyValue('--axi-panel-pad')).toBe('0');
     });
 
-    it('the collapsed rail button also sets an explicit opaque background', () => {
+    it('the collapsed strip is a pressable tile on the float surface', () => {
         const fight = mkFight([mkMember()]);
         const { container } = render(<ReplaySquadPanel fight={fight} collapsed={true} onToggle={() => {}} />);
         const rail = container.firstElementChild as HTMLElement;
-        expect(rail.style.background).not.toBe('');
+        expect(rail.className).toContain('axi-panel--float');
+        // --tile, not a bare panel: this is a 28px button whose only job is to
+        // reopen the panel, and the tile is what gives it the control block and
+        // the hover it never had while it was drawing its own single border.
+        expect(rail.className).toContain('axi-panel--tile');
+        expect(rail.tagName).toBe('BUTTON');
     });
 });
