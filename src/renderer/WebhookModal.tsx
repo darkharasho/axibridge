@@ -61,13 +61,13 @@ export function WebhookModal({ isOpen, onClose, webhooks, enabledWebhookIds, onS
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
-                        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                            <Link className="w-5 h-5 text-purple-400" />
+                        <h2 className="text-lg font-bold axi-ink-plain flex items-center gap-2">
+                            <Link className="w-5 h-5 axi-ink-meta" />
                             Manage Webhooks
                         </h2>
                         <button
                             onClick={onClose}
-                            className="p-1.5 rounded-[4px] hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                            className="p-1.5 rounded-[4px] hover:bg-white/10 axi-ink-dim hover:text-white transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -87,7 +87,7 @@ export function WebhookModal({ isOpen, onClose, webhooks, enabledWebhookIds, onS
                     <div className="flex justify-end gap-3 px-6 py-4" style={{ borderTop: '1px solid var(--border-default)' }}>
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors"
+                            className="px-4 py-2 text-sm font-medium axi-ink-dim hover:text-white transition-colors"
                         >
                             Close
                         </button>

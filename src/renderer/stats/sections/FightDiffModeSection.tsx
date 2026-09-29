@@ -140,7 +140,7 @@ export const FightDiffModeSection = () => {
         targetSort?.key === key ? (targetSort.direction === 'desc' ? ' ↓' : ' ↑') : ''
     );
     const sortButtonClass = (key: TargetSortKey) => (
-        `fight-diff-sort-button transition-colors whitespace-nowrap ${targetSort?.key === key ? 'text-indigo-200' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`
+        `fight-diff-sort-button transition-colors whitespace-nowrap ${targetSort?.key === key ? 'axi-ink-meta' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`
     );
 
     return (
@@ -209,8 +209,8 @@ export const FightDiffModeSection = () => {
                         </label>
                     </div>
 
-                    <div className="bg-indigo-500/10 border border-indigo-300/20 rounded-[var(--radius-md)] px-4 py-3 text-xs text-indigo-100/90 space-y-1">
-                        <div className="uppercase tracking-widest text-[10px] text-indigo-200/80">How Target Focus Works</div>
+                    <div className="bg-indigo-500/10 border axi-edge-meta rounded-[var(--radius-md)] px-4 py-3 text-xs axi-ink-meta space-y-1">
+                        <div className="uppercase tracking-widest text-[10px] axi-ink-meta">How Target Focus Works</div>
                         <div>
                             Target focus compares how your squad distributed damage <span className="font-semibold">to</span> enemy professions between two fights
                             (it is not damage <span className="font-semibold">from</span> those professions).
@@ -293,7 +293,7 @@ export const FightDiffModeSection = () => {
                                                     <td className="py-2 px-3 text-right font-mono text-[color:var(--text-secondary)]">{formatPct(row.aShare)}</td>
                                                     <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatWithCommas(row.bDamage, 0)}</td>
                                                     <td className="py-2 px-3 text-right font-mono text-[color:var(--text-secondary)]">{formatPct(row.bShare)}</td>
-                                                    <td className={`py-2 px-3 text-right font-mono ${row.shareDelta >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+                                                    <td className={`py-2 px-3 text-right font-mono ${row.shareDelta >= 0 ? 'axi-ink-ok' : 'axi-ink-danger'}`}>
                                                         {row.shareDelta >= 0 ? '+' : ''}{formatPct(row.shareDelta)}
                                                     </td>
                                                 </tr>
@@ -357,7 +357,7 @@ export const FightDiffModeSection = () => {
                                                         <td className="py-2 px-3 text-[color:var(--text-primary)]">{row.metricLabel}</td>
                                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatWithCommas(Number(row.a?.value || 0), decimals)}</td>
                                                         <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatWithCommas(Number(row.b?.value || 0), decimals)}</td>
-                                                        <td className={`py-2 px-3 text-right font-mono ${improving ? 'text-emerald-300' : 'text-red-300'}`}>
+                                                        <td className={`py-2 px-3 text-right font-mono ${improving ? 'axi-ink-ok' : 'axi-ink-danger'}`}>
                                                             {row.delta > 0 ? '+' : ''}{formatWithCommas(row.delta, decimals)}
                                                         </td>
                                                     </tr>

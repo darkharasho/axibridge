@@ -30,13 +30,13 @@ export function UpdateErrorModal({ isOpen, onClose, onRetry, error }: UpdateErro
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
-                        <h2 className="text-lg font-bold text-red-100 flex items-center gap-2">
-                            <AlertCircle className="w-5 h-5 text-red-400" />
+                        <h2 className="text-lg font-bold axi-ink-danger flex items-center gap-2">
+                            <AlertCircle className="w-5 h-5 axi-ink-danger" />
                             Update Error
                         </h2>
                         <button
                             onClick={onClose}
-                            className="p-1.5 rounded-[4px] hover:bg-white/10 text-red-300 hover:text-red-100 transition-colors"
+                            className="p-1.5 rounded-[4px] hover:bg-white/10 axi-ink-danger hover:text-red-100 transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -44,10 +44,10 @@ export function UpdateErrorModal({ isOpen, onClose, onRetry, error }: UpdateErro
 
                     {/* Content */}
                     <div className="p-6">
-                        <p className="text-gray-300 mb-6">
+                        <p className="axi-ink-dim mb-6">
                             An error occurred while checking for updates or downloading the update.
                         </p>
-                        <div className="rounded-[4px] p-4 font-mono text-sm text-red-200 overflow-x-auto" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
+                        <div className="rounded-[4px] p-4 font-mono text-sm axi-ink-danger overflow-x-auto" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
                             {error || 'Unknown error'}
                         </div>
                     </div>
@@ -56,13 +56,13 @@ export function UpdateErrorModal({ isOpen, onClose, onRetry, error }: UpdateErro
                     <div className="flex justify-end gap-3 px-6 py-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
                         <button
                             onClick={onRetry}
-                            className="px-4 py-2 bg-red-500/15 text-red-100 rounded-[4px] text-sm font-medium border border-red-400/25 hover:bg-red-500/25 transition-colors"
+                            className="px-4 py-2 bg-red-500/15 axi-ink-danger rounded-[4px] text-sm font-medium border axi-edge-danger hover:bg-red-500/25 transition-colors"
                         >
                             Try Again
                         </button>
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 bg-white/10 text-white rounded-[4px] text-sm font-medium hover:bg-white/20 transition-colors"
+                            className="px-4 py-2 bg-white/10 axi-ink-plain rounded-[4px] text-sm font-medium hover:bg-white/20 transition-colors"
                         >
                             Close
                         </button>

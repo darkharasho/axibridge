@@ -97,11 +97,11 @@ describe('CategoryBar', () => {
         useStatsStore.setState({ activeCategory: 'squad-cohesion', activeSectionId: 'squad-kill-pressure' });
         render(<CategoryBar />);
 
-        // The active section's subnav button carries the active 'text-white' class.
+        // The active section's subnav button carries the active 'axi-ink-plain' class.
         const active = screen.getByRole('button', { name: 'Kill Pressure' });
-        expect(active.className).toContain('text-white');
+        expect(active.className).toContain('axi-ink-plain');
         // A sibling section in the same (active) category is not highlighted.
         const inactive = screen.getByRole('button', { name: 'On Tag Review' });
-        expect(inactive.className).not.toContain('text-white');
+        expect(inactive.className).not.toContain('axi-ink-plain');
     });
 });

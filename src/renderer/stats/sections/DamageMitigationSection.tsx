@@ -124,7 +124,7 @@ export const DamageMitigationSection = ({
                     </button>
                 </div>
             </div>
-            <div className="text-xs text-amber-200/80 italic mb-3">
+            <div className="text-xs axi-ink-warn italic mb-3">
                 Damage mitigation is an estimate based on enemy skill damage averages and avoidance events (block/evade/miss/invuln/interrupted). Use it for relative comparison rather than exact prevention totals.
             </div>
             {!hasMitigationData ? (

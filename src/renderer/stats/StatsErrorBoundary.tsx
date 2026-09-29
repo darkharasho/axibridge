@@ -23,10 +23,10 @@ export class StatsErrorBoundary extends Component<Props, State> {
         if (this.state.error) {
             return (
                 <div className="flex flex-col items-center justify-center h-64 gap-4 text-center px-8">
-                    <p className="text-sm text-red-400 font-semibold">Stats dashboard encountered an error.</p>
-                    <p className="text-xs text-white/50 font-mono break-all">{this.state.error.message}</p>
+                    <p className="text-sm axi-ink-danger font-semibold">Stats dashboard encountered an error.</p>
+                    <p className="text-xs axi-ink-faint font-mono break-all">{this.state.error.message}</p>
                     <button
-                        className="text-xs px-3 py-1.5 rounded border border-white/20 hover:bg-white/10"
+                        className="text-xs px-3 py-1.5 rounded border axi-edge-rule hover:bg-white/10"
                         onClick={() => this.setState({ error: null })}
                     >
                         Retry

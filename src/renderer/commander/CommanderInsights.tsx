@@ -15,7 +15,7 @@ export function CommanderInsights({ findings }: { findings: DetectorFinding[] })
 }
 
 function Column({ title, tone, findings }: { title: string; tone: 'good' | 'bad'; findings: DetectorFinding[] }) {
-  const titleColor = tone === 'good' ? 'text-emerald-400' : 'text-rose-400';
+  const titleColor = tone === 'good' ? 'axi-ink-ok' : 'axi-ink-danger';
   const emptyMsg = tone === 'good'
     ? 'No standout wins this fight — the detectors look for big damage trades, kept-pace cleanses, low casualties, and surviving bombs.'
     : 'No major failures detected — first-death timing, bomb survival, condi/strip races, and squad cohesion all came in inside thresholds.';

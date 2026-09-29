@@ -160,10 +160,10 @@ export const FightMetricSection = ({
             style={{ scrollMarginTop: '80px' }}
         >
             {/* ── Header ─────────────────────────────────────── */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+            <div className="flex items-center justify-between px-4 py-3 border-b axi-edge-rule">
                 <div className="flex items-center gap-2">
                     {TitleIcon && <TitleIcon className={`w-4 h-4 ${titleIconClassName}`} />}
-                    <span className="text-sm font-semibold text-slate-200">{title}</span>
+                    <span className="text-sm font-semibold axi-ink-plain">{title}</span>
                     {renderTitleExtra && renderTitleExtra()}
                 </div>
                 <div className="flex items-center gap-2">
@@ -180,7 +180,7 @@ export const FightMetricSection = ({
                     {!expanded && (
                         <button
                             onClick={() => openExpandedSection(sectionId)}
-                            className="p-1 rounded hover:bg-white/5 text-slate-400 hover:text-slate-200 transition-colors"
+                            className="p-1 rounded hover:bg-white/5 axi-ink-dim hover:text-slate-200 transition-colors"
                             title="Expand"
                         >
                             <Maximize2 className="w-3.5 h-3.5" />
@@ -189,7 +189,7 @@ export const FightMetricSection = ({
                     {expanded && (
                         <button
                             onClick={closeExpandedSection}
-                            className="p-1 rounded hover:bg-white/5 text-slate-400 hover:text-slate-200 transition-colors"
+                            className="p-1 rounded hover:bg-white/5 axi-ink-dim hover:text-slate-200 transition-colors"
                             title="Close"
                         >
                             <X className="w-3.5 h-3.5" />
@@ -201,26 +201,26 @@ export const FightMetricSection = ({
             {/* ── Body ────────────────────────────────────────── */}
             <div className={`flex ${expanded ? 'flex-1 min-h-0' : ''}`} style={expanded ? undefined : { height: 420 }}>
                 {/* ── Player list ─────────────────────────────── */}
-                <div className="w-[260px] flex-shrink-0 border-r border-white/5 flex flex-col">
-                    <div className="px-3 py-2 border-b border-white/5">
+                <div className="w-[260px] flex-shrink-0 border-r axi-edge-rule flex flex-col">
+                    <div className="px-3 py-2 border-b axi-edge-rule">
                         <input
                             type="text"
                             value={playerFilter}
                             onChange={(e) => setPlayerFilter(e.target.value)}
                             placeholder={searchPlaceholder}
-                            className="w-full bg-white/5 rounded px-2 py-1 text-xs text-slate-300 placeholder-slate-500 outline-none focus:ring-1 focus:ring-indigo-500/50"
+                            className="w-full bg-white/5 rounded px-2 py-1 text-xs axi-ink-dim placeholder-slate-500 outline-none focus:ring-1 focus:ring-indigo-500/50"
                         />
                     </div>
                     {renderAbovePlayerList && (
-                        <div className="border-b border-white/5">
+                        <div className="border-b axi-edge-rule">
                             {renderAbovePlayerList()}
                         </div>
                     )}
                     <div className="flex items-center justify-between px-3 pt-2 pb-1">
-                        <div className="text-[10px] uppercase tracking-wider text-slate-500">{listTitle}</div>
+                        <div className="text-[10px] uppercase tracking-wider axi-ink-faint">{listTitle}</div>
                         <button
                             onClick={() => setPlayerSortMode(playerSortMode === 'group' ? 'player' : 'group')}
-                            className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-slate-300 transition-colors"
+                            className="flex items-center gap-1 text-[10px] axi-ink-faint hover:text-slate-300 transition-colors"
                             title={playerSortMode === 'group' ? 'Sorted by class group' : 'Sorted by player'}
                         >
                             {playerSortMode === 'group' ? <Users className="w-3 h-3" /> : <User className="w-3 h-3" />}
@@ -230,7 +230,7 @@ export const FightMetricSection = ({
                         {displayPlayers.map((group) => (
                             <div key={group.profession || '__all__'}>
                                 {displayPlayers.length > 1 && group.profession && (
-                                    <div className="text-[10px] text-slate-500 px-2 pt-2 pb-0.5">{group.profession}</div>
+                                    <div className="text-[10px] axi-ink-faint px-2 pt-2 pb-0.5">{group.profession}</div>
                                 )}
                                 {group.players.map((player) => {
                                     const isSelected = selectedPlayerKey === player.key;
@@ -247,10 +247,10 @@ export const FightMetricSection = ({
                                             {renderPlayerItem ? renderPlayerItem(player, isSelected) : (
                                                 <>
                                                     {renderProfessionIcon(player.profession, player.professionList, 'w-4 h-4 flex-shrink-0')}
-                                                    <span className={`text-xs truncate flex-1 ${isSelected ? 'text-slate-200' : 'text-slate-400'}`}>
+                                                    <span className={`text-xs truncate flex-1 ${isSelected ? 'axi-ink-plain' : 'axi-ink-dim'}`}>
                                                         {player.displayName}
                                                     </span>
-                                                    <span className={`text-xs tabular-nums ${isSelected ? 'text-indigo-300 font-semibold' : 'text-slate-500'}`}>
+                                                    <span className={`text-xs tabular-nums ${isSelected ? 'axi-ink-meta font-semibold' : 'axi-ink-faint'}`}>
                                                         {formatValue(player.value)}
                                                     </span>
                                                 </>
@@ -261,7 +261,7 @@ export const FightMetricSection = ({
                             </div>
                         ))}
                         {displayPlayers.length === 0 && (
-                            <div className="text-xs text-slate-500 px-2 py-4 text-center">No players</div>
+                            <div className="text-xs axi-ink-faint px-2 py-4 text-center">No players</div>
                         )}
                     </div>
                 </div>
@@ -269,23 +269,23 @@ export const FightMetricSection = ({
                 {/* ── Chart area ─────────────────────────────── */}
                 <div className="flex-1 flex flex-col min-w-0">
                     {!selectedPlayer ? (
-                        <div className="flex-1 flex items-center justify-center text-xs text-slate-500">
+                        <div className="flex-1 flex items-center justify-center text-xs axi-ink-faint">
                             Select a player to view per-fight trend
                         </div>
                     ) : (
                         <>
                             {/* Summary row */}
                             {renderSummary ? renderSummary() : (
-                                <div className="flex items-center gap-3 px-4 py-2 border-b border-white/5 text-xs text-slate-400">
+                                <div className="flex items-center gap-3 px-4 py-2 border-b axi-edge-rule text-xs axi-ink-dim">
                                     {renderProfessionIcon(selectedPlayer.profession, selectedPlayer.professionList, 'w-4 h-4')}
-                                    <span className="text-slate-200 font-medium">{selectedPlayer.displayName}</span>
-                                    <span className="text-slate-500">|</span>
-                                    <span>{summaryValueLabel}: <strong className="text-indigo-300">{formatValue(selectedPlayer.value)}</strong>{valueSuffix ? ` ${valueSuffix}` : ''}</span>
+                                    <span className="axi-ink-plain font-medium">{selectedPlayer.displayName}</span>
+                                    <span className="axi-ink-faint">|</span>
+                                    <span>{summaryValueLabel}: <strong className="axi-ink-meta">{formatValue(selectedPlayer.value)}</strong>{valueSuffix ? ` ${valueSuffix}` : ''}</span>
                                     {selectedPlayer.peakFightLabel && (
-                                        <span className="text-slate-500">in {sanitizeWvwLabel(selectedPlayer.peakFightLabel)}</span>
+                                        <span className="axi-ink-faint">in {sanitizeWvwLabel(selectedPlayer.peakFightLabel)}</span>
                                     )}
-                                    <span className="text-slate-500">|</span>
-                                    <span>Avg: <strong className="text-slate-200">{formatValue(avgValue)}</strong> per fight</span>
+                                    <span className="axi-ink-faint">|</span>
+                                    <span>Avg: <strong className="axi-ink-plain">{formatValue(avgValue)}</strong> per fight</span>
                                 </div>
                             )}
 
@@ -322,10 +322,10 @@ export const FightMetricSection = ({
                                                 const data = payload[0]?.payload as FightMetricPoint | undefined;
                                                 if (!data) return null;
                                                 return (
-                                                    <div className="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-xs shadow-xl">
-                                                        <div className="text-slate-200 font-medium mb-1">{sanitizeWvwLabel(data.fullLabel)}</div>
-                                                        <div className="text-indigo-300">{selectedPlayer?.displayName}: <strong>{formatValue(data.value)}</strong>{valueSuffix ? ` ${valueSuffix}` : ''}</div>
-                                                        <div className="text-slate-500">Fight Max: {formatValue(data.maxValue)}</div>
+                                                    <div className="bg-slate-900 border axi-edge-rule rounded-lg px-3 py-2 text-xs shadow-xl">
+                                                        <div className="axi-ink-plain font-medium mb-1">{sanitizeWvwLabel(data.fullLabel)}</div>
+                                                        <div className="axi-ink-meta">{selectedPlayer?.displayName}: <strong>{formatValue(data.value)}</strong>{valueSuffix ? ` ${valueSuffix}` : ''}</div>
+                                                        <div className="axi-ink-faint">Fight Max: {formatValue(data.maxValue)}</div>
                                                     </div>
                                                 );
                                             }}
@@ -392,14 +392,14 @@ export const FightMetricSection = ({
                 }}
             >
                 {selectedFightIndex !== null && renderDrilldown && (
-                    <div className="px-4 py-3 border-t border-white/5">
+                    <div className="px-4 py-3 border-t axi-edge-rule">
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] uppercase tracking-wider text-slate-500">{drilldownTitle}</span>
+                            <span className="text-[10px] uppercase tracking-wider axi-ink-faint">{drilldownTitle}</span>
                             <div className="flex items-center gap-3">
                                 {drilldownExtras}
                                 <button
                                     onClick={() => setSelectedFightIndex?.(null)}
-                                    className="text-[10px] uppercase tracking-wider text-slate-500 hover:text-slate-300 transition-colors"
+                                    className="text-[10px] uppercase tracking-wider axi-ink-faint hover:text-slate-300 transition-colors"
                                 >
                                     Clear
                                 </button>
@@ -412,7 +412,7 @@ export const FightMetricSection = ({
 
             {/* ── Footer ─────────────────────────────────────── */}
             {selectedFightIndex !== null && renderFooter && (
-                <div className="px-4 py-3 border-t border-white/5">
+                <div className="px-4 py-3 border-t axi-edge-rule">
                     {renderFooter()}
                 </div>
             )}

@@ -876,7 +876,7 @@ function App() {
     const axibridgeLogoStyle = { WebkitMaskImage: `url(${appIconPath})`, maskImage: `url(${appIconPath})` } as const;
     const isDev = import.meta.env.DEV;
     const [copyPathsFlash, setCopyPathsFlash] = useState(false);
-    const shellClassName = 'app-shell h-screen w-screen text-white overflow-hidden flex flex-col';
+    const shellClassName = 'app-shell h-screen w-screen axi-ink-plain overflow-hidden flex flex-col';
 
     const successCount = statusCounts.success || 0;
     const errorCount = statusCounts.error || 0;
@@ -906,7 +906,7 @@ function App() {
                             type="text"
                             value={logDirectory || ''}
                             placeholder="C:\...\arcdps.cbtlogs"
-                            className="flex-1 bg-transparent border-none text-[11px] text-gray-300 placeholder-gray-600 focus:ring-0 px-2 min-w-0 w-full h-full"
+                            className="flex-1 bg-transparent border-none text-[11px] axi-ink-dim placeholder-gray-600 focus:ring-0 px-2 min-w-0 w-full h-full"
                             onChange={(e) => setLogDirectory(e.target.value)}
                             onBlur={(e) => {
                                 if (e.target.value) {
@@ -981,11 +981,11 @@ function App() {
                                     bolt is decorative, and with a count there is no single
                                     destination to badge, so it stays gated on exactly one. */}
                                 {destinationsNeedingRelink.length > 0
-                                    ? <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
-                                    : enabledWebhookIds.length === 1 && selectedWebhook?.kind === 'bridge' && <Zap className="w-3.5 h-3.5 shrink-0 text-purple-300" />}
+                                    ? <AlertTriangle className="w-3.5 h-3.5 shrink-0 axi-ink-warn" />
+                                    : enabledWebhookIds.length === 1 && selectedWebhook?.kind === 'bridge' && <Zap className="w-3.5 h-3.5 shrink-0 axi-ink-meta" />}
                                 <span className="truncate">{summarizeEnabledDestinations(webhooks, enabledWebhookIds)}</span>
                             </span>
-                            <ChevronDown className={`w-4 h-4 text-gray-500 shrink-0 transition-transform ${webhookDropdownOpen ? 'rotate-180' : ''}`} />
+                            <ChevronDown className={`w-4 h-4 axi-ink-faint shrink-0 transition-transform ${webhookDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
                     </div>
                     <ParticleHover className="shrink-0 rounded-[4px]" disabled={!particlesEnabled}>
@@ -1000,17 +1000,17 @@ function App() {
                     </ParticleHover>
                 </div>
                 {relinkWarning && (
-                    <div className="mt-2 flex items-start justify-between gap-2 rounded-[3px] border border-amber-400/25 bg-amber-400/5 px-2 py-1.5">
-                        <p className="text-[11px] text-amber-300">{relinkWarning}</p>
+                    <div className="mt-2 flex items-start justify-between gap-2 rounded-[3px] border axi-edge-warn bg-amber-400/5 px-2 py-1.5">
+                        <p className="text-[11px] axi-ink-warn">{relinkWarning}</p>
                     </div>
                 )}
                 {discordDestinationStatus && (
-                    <div className="mt-2 flex items-start justify-between gap-2 rounded-[3px] border border-rose-400/25 bg-rose-400/5 px-2 py-1.5">
-                        <p className="text-[11px] text-rose-300">{discordDestinationStatus.message}</p>
+                    <div className="mt-2 flex items-start justify-between gap-2 rounded-[3px] border axi-edge-danger bg-rose-400/5 px-2 py-1.5">
+                        <p className="text-[11px] axi-ink-danger">{discordDestinationStatus.message}</p>
                         <button
                             type="button"
                             onClick={() => setDiscordDestinationStatus(null)}
-                            className="shrink-0 text-[10px] text-gray-500 hover:text-gray-300"
+                            className="shrink-0 text-[10px] axi-ink-faint hover:text-gray-300"
                         >
                             Dismiss
                         </button>
@@ -1161,7 +1161,7 @@ function App() {
                 </ProcessingStrip>
             )}
             {(uploadRetryQueue.failed > 0 || uploadRetryQueue.retrying > 0 || uploadRetryQueue.entries.length > 0) && (
-                <div className="mb-3 rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
+                <div className="mb-3 rounded-[4px] border axi-edge-danger bg-rose-500/10 px-3 py-2 text-xs axi-ink-danger">
                     <div className="flex items-center justify-between gap-3">
                         <div className="font-semibold">Upload Retry Queue</div>
                         <div className="flex items-center gap-2">
@@ -1170,7 +1170,7 @@ function App() {
                                     type="button"
                                     onClick={handleResumeUploadRetries}
                                     disabled={retryQueueBusy}
-                                    className="rounded-md border border-rose-300/30 bg-rose-400/20 px-2.5 py-1 text-[11px] font-semibold text-rose-50 hover:bg-rose-400/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="rounded-md border axi-edge-danger bg-rose-400/20 px-2.5 py-1 text-[11px] font-semibold axi-ink-danger hover:bg-rose-400/30 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {retryQueueBusy ? 'Resuming...' : 'Resume'}
                                 </button>
@@ -1179,17 +1179,17 @@ function App() {
                                 type="button"
                                 onClick={handleRetryFailedUploads}
                                 disabled={retryQueueBusy || uploadRetryQueue.failed === 0 || uploadRetryQueue.paused}
-                                className="rounded-md border border-rose-300/30 bg-rose-400/20 px-2.5 py-1 text-[11px] font-semibold text-rose-50 hover:bg-rose-400/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="rounded-md border axi-edge-danger bg-rose-400/20 px-2.5 py-1 text-[11px] font-semibold axi-ink-danger hover:bg-rose-400/30 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {retryQueueBusy ? 'Retrying...' : 'Retry failed'}
                             </button>
                         </div>
                     </div>
-                    <div className="mt-1 text-[11px] text-rose-100/80">
+                    <div className="mt-1 text-[11px] axi-ink-danger">
                         Failed: {uploadRetryQueue.failed} | Retrying: {uploadRetryQueue.retrying} | Resolved: {uploadRetryQueue.resolved}
                     </div>
                     {uploadRetryQueue.paused && (
-                        <div className="mt-1 text-[10px] text-rose-50">
+                        <div className="mt-1 text-[10px] axi-ink-danger">
                             Paused: {uploadRetryQueue.pauseReason || 'Retry queue is paused.'}
                         </div>
                     )}
@@ -1198,7 +1198,7 @@ function App() {
                             {uploadRetryQueue.entries.slice(0, 5).map((entry) => {
                                 const fileName = entry.filePath.split(/[\\/]/).pop() || entry.filePath;
                                 return (
-                                    <div key={entry.filePath} className="truncate text-[10px] text-rose-100/75">
+                                    <div key={entry.filePath} className="truncate text-[10px] axi-ink-danger">
                                         [{entry.category}] {fileName}: {entry.error}
                                     </div>
                                 );
@@ -1213,7 +1213,7 @@ function App() {
                 onScroll={handleLogsListScroll}
             >
                 {logs.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-gray-500 opacity-20">
+                    <div className="h-full flex flex-col items-center justify-center axi-ink-faint opacity-20">
                         <UploadCloud className="w-12 h-12 mb-3" />
                         <p>Drop logs to upload</p>
                     </div>

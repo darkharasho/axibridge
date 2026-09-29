@@ -48,7 +48,7 @@ const LeaderCard = ({ icon: Icon, title, data, isBoon = false, accentColor, unit
                 </div>
                 <div className="min-w-0 flex-1">
                     <div data-testid="leader-card-title" className="text-[color:var(--text-secondary)] text-xs font-bold uppercase tracking-wider truncate">{title}</div>
-                    <div className="text-2xl font-bold text-white mt-0.5 break-words">
+                    <div className="text-2xl font-bold axi-ink-plain mt-0.5 break-words">
                         {displayValue} <span className="text-sm font-normal text-[color:var(--text-secondary)]">{unit}</span>
                     </div>
                 </div>
@@ -284,21 +284,21 @@ export const TopPlayersSection = ({
                         {
                             key: 'offense',
                             title: 'Offensive MVP',
-                            accent: 'text-orange-300',
-                            accentSoft: 'text-orange-200/80',
-                            accentBorder: 'border-orange-500/35',
+                            accent: 'axi-ink-warn',
+                            accentSoft: 'axi-ink-warn',
+                            accentBorder: 'axi-edge-warn',
                             accentBg: 'bg-orange-500/12',
-                            accentLabelBorder: 'border-orange-500/35',
+                            accentLabelBorder: 'axi-edge-warn',
                             accentBlob: 'bg-orange-500/15 group-hover:bg-orange-500/25',
-                            goldCardBorder: 'border-amber-400/40',
-                            goldIconWrap: 'bg-amber-500/25 border-amber-300/40 shadow-[0_0_20px_rgba(251,191,36,0.25)]',
-                            goldIconBadgeWrap: 'bg-orange-500/80 border-orange-200/40',
-                            goldIconBadge: 'text-orange-50',
-                            goldReasonIcon: 'text-amber-300',
-                            goldScoreTitle: 'text-amber-300/60',
-                            goldScoreValue: 'text-amber-300',
-                            goldScoreMeta: 'text-amber-200/60',
-                            goldStatRow: 'border-amber-400/30 bg-amber-500/10',
+                            goldCardBorder: 'axi-edge-warn',
+                            goldIconWrap: 'bg-amber-500/25 axi-edge-warn shadow-[0_0_20px_rgba(251,191,36,0.25)]',
+                            goldIconBadgeWrap: 'bg-orange-500/80 axi-edge-warn',
+                            goldIconBadge: 'axi-ink-warn',
+                            goldReasonIcon: 'axi-ink-warn',
+                            goldScoreTitle: 'axi-ink-warn',
+                            goldScoreValue: 'axi-ink-warn',
+                            goldScoreMeta: 'axi-ink-warn',
+                            goldStatRow: 'axi-edge-warn bg-amber-500/10',
                             gold: offenseMvp,
                             silver: offenseSilver,
                             bronze: offenseBronze,
@@ -307,21 +307,21 @@ export const TopPlayersSection = ({
                         {
                             key: 'defense',
                             title: 'Defensive MVP',
-                            accent: 'text-emerald-300',
-                            accentSoft: 'text-emerald-200/80',
-                            accentBorder: 'border-emerald-500/35',
+                            accent: 'axi-ink-ok',
+                            accentSoft: 'axi-ink-ok',
+                            accentBorder: 'axi-edge-ok',
                             accentBg: 'bg-emerald-500/12',
-                            accentLabelBorder: 'border-emerald-500/35',
+                            accentLabelBorder: 'axi-edge-ok',
                             accentBlob: 'bg-emerald-500/15 group-hover:bg-emerald-500/25',
-                            goldCardBorder: 'border-cyan-400/40',
-                            goldIconWrap: 'bg-cyan-500/20 border-cyan-300/40 shadow-[0_0_20px_rgba(34,211,238,0.25)]',
-                            goldIconBadgeWrap: 'bg-cyan-500/80 border-cyan-200/40',
-                            goldIconBadge: 'text-cyan-50',
-                            goldReasonIcon: 'text-cyan-300',
-                            goldScoreTitle: 'text-cyan-300/60',
-                            goldScoreValue: 'text-cyan-300',
-                            goldScoreMeta: 'text-cyan-200/60',
-                            goldStatRow: 'border-cyan-400/30 bg-cyan-500/10',
+                            goldCardBorder: 'axi-edge-meta',
+                            goldIconWrap: 'bg-cyan-500/20 axi-edge-meta shadow-[0_0_20px_rgba(34,211,238,0.25)]',
+                            goldIconBadgeWrap: 'bg-cyan-500/80 axi-edge-meta',
+                            goldIconBadge: 'axi-ink-meta',
+                            goldReasonIcon: 'axi-ink-meta',
+                            goldScoreTitle: 'axi-ink-meta',
+                            goldScoreValue: 'axi-ink-meta',
+                            goldScoreMeta: 'axi-ink-meta',
+                            goldStatRow: 'axi-edge-meta bg-cyan-500/10',
                             gold: defenseMvp,
                             silver: defenseSilver,
                             bronze: defenseBronze,
@@ -337,7 +337,7 @@ export const TopPlayersSection = ({
                                 <div className={`mvp-card__glow absolute top-0 right-0 w-64 h-64 blur-[80px] rounded-full pointer-events-none transition-all ${group.accentBlob}`} />
                                 <div className="flex items-center gap-5 relative z-10 w-full">
                                     <div className={`mvp-gold-icon-ring flex shrink-0 aspect-square items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full border relative ${group.goldIconWrap}`}>
-                                        <Crown className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-400" />
+                                        <Crown className="w-8 h-8 sm:w-10 sm:h-10 axi-ink-warn" />
                                         <span className={`mvp-gold-icon-badge absolute -bottom-1 -right-1 inline-flex items-center justify-center w-6 h-6 rounded-full border ${group.goldIconBadgeWrap}`}>
                                             {group.key === 'offense'
                                                 ? <Flame className={`w-3.5 h-3.5 ${group.goldIconBadge}`} />
@@ -347,10 +347,10 @@ export const TopPlayersSection = ({
                                     <div className="flex-1 flex flex-col h-full min-w-0">
                                         <div className="mb-2 flex items-start justify-between gap-3">
                                             <div className="min-w-0 flex-1">
-                                                <div className="text-2xl sm:text-3xl font-black text-white flex flex-wrap items-center gap-2 sm:gap-3">
+                                                <div className="text-2xl sm:text-3xl font-black axi-ink-plain flex flex-wrap items-center gap-2 sm:gap-3">
                                                     <span className="min-w-0 max-w-full truncate">{group.gold?.account || 'None'}</span>
                                                     {renderProfessionIcon(group.gold?.profession || 'Unknown', group.gold?.professionList, 'w-6 h-6')}
-                                                    <span className="mvp-profession-chip text-xs sm:text-sm font-medium text-yellow-200/70 bg-[var(--bg-hover)] px-2 py-0.5 sm:px-1.5 sm:py-0 rounded border border-yellow-500/20 max-w-full truncate">
+                                                    <span className="mvp-profession-chip text-xs sm:text-sm font-medium axi-ink-warn bg-[var(--bg-hover)] px-2 py-0.5 sm:px-1.5 sm:py-0 rounded border axi-edge-warn max-w-full truncate">
                                                         {group.gold?.profession || 'Unknown'}
                                                     </span>
                                                 </div>
@@ -361,7 +361,7 @@ export const TopPlayersSection = ({
                                             </div>
                                         </div>
                                         <p className={`italic flex items-center gap-2 mb-2 ${group.accentSoft}`}>
-                                            <Star className={`w-4 h-4 fill-yellow-500/40 ${group.goldReasonIcon}`} />
+                                            <Star className={`w-4 h-4 fill-current ${group.goldReasonIcon}`} />
                                             <span className="truncate">"{group.gold?.reason || 'Top Performance'}"</span>
                                         </p>
                                         <div className="hidden sm:flex xl:hidden mb-2 items-end justify-between gap-3">
@@ -375,8 +375,8 @@ export const TopPlayersSection = ({
                                             <div className="space-y-1 sm:space-y-0.5 max-w-[12rem]">
                                                 {(group.gold?.topStats || []).filter((stat: any) => statEnabled(stat.name)).slice(0, 3).map((stat: any, i: number) => (
                                                     <div key={i} className={`mvp-stat-pill mvp-stat-pill--gold flex items-center justify-between gap-2 px-2 py-1 text-[11px] sm:gap-1.5 sm:px-1.5 sm:py-0.5 sm:text-[10px] rounded-md border leading-normal ${group.goldStatRow}`}>
-                                                        <span className="text-yellow-200/90 font-semibold truncate leading-normal">{stat.name}</span>
-                                                        <span className="text-yellow-100 font-mono tabular-nums shrink-0 leading-normal">{formatMvpPillValue(stat.val, formatTopStatValue)}</span>
+                                                        <span className="axi-ink-warn font-semibold truncate leading-normal">{stat.name}</span>
+                                                        <span className="axi-ink-warn font-mono tabular-nums shrink-0 leading-normal">{formatMvpPillValue(stat.val, formatTopStatValue)}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -403,7 +403,7 @@ export const TopPlayersSection = ({
                                             : 'bg-orange-400/15 group-hover:bg-orange-400/25'
                                             }`} />
                                         <div className="flex items-center justify-between mb-1">
-                                            <div className={`text-xs uppercase tracking-widest font-semibold ${entry.label === 'Silver' ? 'text-slate-200' : 'text-orange-200'}`}>
+                                            <div className={`text-xs uppercase tracking-widest font-semibold ${entry.label === 'Silver' ? 'axi-ink-plain' : 'axi-ink-warn'}`}>
                                                 {entry.label}
                                             </div>
                                             <div className="text-xs text-[color:var(--text-secondary)] font-mono">
@@ -413,23 +413,23 @@ export const TopPlayersSection = ({
                                         <div className="flex items-center gap-3 mb-2">
                                             {entry.data && renderProfessionIcon(entry.data.profession, entry.data.professionList, 'w-6 h-6')}
                                             <div className="min-w-0 flex-1">
-                                                <div className={`text-base font-semibold ${entry.label === 'Silver' ? 'text-slate-100' : 'text-orange-100'} truncate`}>
+                                                <div className={`text-base font-semibold ${entry.label === 'Silver' ? 'axi-ink-plain' : 'axi-ink-warn'} truncate`}>
                                                     {entry.data?.account || '—'}
                                                 </div>
-                                                <div className={`text-xs ${entry.label === 'Silver' ? 'text-slate-300/70' : 'text-orange-200/70'} truncate`}>
+                                                <div className={`text-xs ${entry.label === 'Silver' ? 'axi-ink-faint' : 'axi-ink-warn'} truncate`}>
                                                     {entry.data?.profession || 'Unknown'}
                                                 </div>
                                             </div>
                                         </div>
                                         {entry.data?.topStats?.some((stat: any) => statEnabled(stat.name)) ? (
-                                            <div className={`mt-auto min-h-[40px] sm:min-h-[36px] text-[11px] sm:text-[10px] ${entry.label === 'Silver' ? 'text-slate-200' : 'text-orange-200'}`}>
+                                            <div className={`mt-auto min-h-[40px] sm:min-h-[36px] text-[11px] sm:text-[10px] ${entry.label === 'Silver' ? 'axi-ink-plain' : 'axi-ink-warn'}`}>
                                                 <div className="space-y-1 sm:space-y-0.5 sm:max-w-[12rem]">
                                                     {entry.data.topStats.filter((stat: any) => statEnabled(stat.name)).slice(0, 2).map((stat: any, idx: number) => (
                                                         <div
                                                             key={idx}
                                                             className={`mvp-stat-pill mvp-stat-pill--minor flex items-center justify-between gap-2 sm:gap-1.5 px-2 py-1 sm:px-1.5 sm:py-0.5 rounded-md border leading-normal ${entry.label === 'Silver'
-                                                                ? 'bg-slate-400/10 border-slate-300/30'
-                                                                : 'bg-orange-500/10 border-orange-400/30'
+                                                                ? 'bg-slate-400/10 axi-edge-rule'
+                                                                : 'bg-orange-500/10 axi-edge-warn'
                                                                 }`}
                                                         >
                                                             <span className="truncate leading-normal">{stat.name}</span>

@@ -253,7 +253,7 @@ const ProfessionIcon = ({
                         style={tooltipStyle}
                         className={`axi-tooltip axi-tooltip--anchored left-1/2 ${placementClass} ${open ? 'block' : 'hidden'}`}
                     >
-                        <div className="mb-1 text-[9px] uppercase tracking-wider text-amber-200">Multi</div>
+                        <div className="mb-1 text-[9px] uppercase tracking-wider axi-ink-warn">Multi</div>
                         <div className="space-y-1">
                             {list.map((prof) => {
                                 const itemIcon = getProfessionIconPath(prof || 'Unknown');
@@ -319,7 +319,7 @@ export const CountClassTooltip = ({
                     style={tooltipStyle}
                     className={`axi-tooltip ${open ? 'block' : 'hidden'}`}
                 >
-                    <div className="mb-1 text-[9px] uppercase tracking-wider text-amber-200">
+                    <div className="mb-1 text-[9px] uppercase tracking-wider axi-ink-warn">
                         {label}
                     </div>
                     {columns.length > 0 ? (
@@ -447,7 +447,7 @@ export const SkillBreakdownTooltip = ({
                     onMouseLeave={scheduleClose}
                     className={`axi-tooltip axi-tooltip--wrap w-64 pointer-events-auto ${open ? 'block' : 'hidden'}`}
                 >
-                    <div className="text-[9px] uppercase tracking-wider text-amber-200 mb-1">{label}</div>
+                    <div className="text-[9px] uppercase tracking-wider axi-ink-warn mb-1">{label}</div>
                     <div
                         className="max-h-40 overflow-y-auto space-y-1 pr-2"
                         style={{ scrollbarGutter: 'stable', overscrollBehavior: 'contain' }}

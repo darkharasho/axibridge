@@ -92,7 +92,7 @@ export const SigilRelicUptimeSection = ({
                                             onClick={() => setActiveSigilRelicTab(buff.id)}
                                             title={buff.name}
                                             className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeSigilRelicTab === buff.id
-                                                ? 'bg-fuchsia-500/20 text-fuchsia-200 font-semibold'
+                                                ? 'bg-fuchsia-500/20 axi-ink-meta font-semibold'
                                                 : 'hover:bg-[var(--bg-hover)] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                                                 }`}
                                         >

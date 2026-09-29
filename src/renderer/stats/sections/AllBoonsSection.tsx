@@ -218,10 +218,10 @@ export const AllBoonsSection = ({
             style={{ scrollMarginTop: '80px' }}
         >
             {/* ── Header ── */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+            <div className="flex items-center justify-between px-4 py-3 border-b axi-edge-rule">
                 <div className="flex items-center gap-2">
                     <Gw2BoonIcon className="w-4 h-4" />
-                    <span className="text-sm font-semibold text-slate-200">All Boons</span>
+                    <span className="text-sm font-semibold axi-ink-plain">All Boons</span>
 
                     {/* Boon selector dropdown */}
                     <div className="relative" ref={dropdownRef}>
@@ -232,18 +232,18 @@ export const AllBoonsSection = ({
                             {activeBoon?.icon && (
                                 <img src={activeBoon.icon} alt="" className="w-4 h-4 rounded" loading="lazy" />
                             )}
-                            <span className="text-slate-300">{activeBoon?.name || 'Select boon'}</span>
-                            <ChevronDown className="w-3 h-3 text-slate-500" />
+                            <span className="axi-ink-dim">{activeBoon?.name || 'Select boon'}</span>
+                            <ChevronDown className="w-3 h-3 axi-ink-faint" />
                         </button>
                         {boonDropdownOpen && (
-                            <div className="absolute top-full left-0 mt-2 z-50 w-80 rounded-lg border border-white/10 bg-[var(--bg-elevated)] shadow-xl">
-                                <div className="p-2 border-b border-white/5">
+                            <div className="absolute top-full left-0 mt-2 z-50 w-80 rounded-lg border axi-edge-rule bg-[var(--bg-elevated)] shadow-xl">
+                                <div className="p-2 border-b axi-edge-rule">
                                     <input
                                         type="text"
                                         value={boonSearch}
                                         onChange={(e) => setBoonSearch(e.target.value)}
                                         placeholder="Search boon"
-                                        className="w-full bg-white/5 rounded px-2 py-1.5 text-xs text-slate-300 placeholder-slate-500 outline-none focus:ring-1 focus:ring-indigo-500/50"
+                                        className="w-full bg-white/5 rounded px-2 py-1.5 text-xs axi-ink-dim placeholder-slate-500 outline-none focus:ring-1 focus:ring-indigo-500/50"
                                         autoFocus
                                     />
                                 </div>
@@ -261,8 +261,8 @@ export const AllBoonsSection = ({
                                                 }}
                                                 className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-xs transition-colors ${
                                                     activeBoonId === boon.id
-                                                        ? 'bg-indigo-500/15 ring-1 ring-indigo-500/30 text-slate-200'
-                                                        : 'hover:bg-white/5 text-slate-400'
+                                                        ? 'bg-indigo-500/15 ring-1 ring-indigo-500/30 axi-ink-plain'
+                                                        : 'hover:bg-white/5 axi-ink-dim'
                                                 }`}
                                             >
                                                 {boon.icon && <img src={boon.icon} alt="" className="w-4 h-4 rounded" loading="lazy" />}
@@ -271,7 +271,7 @@ export const AllBoonsSection = ({
                                         ))}
                                     </div>
                                     {filteredBoons.length === 0 && (
-                                        <div className="text-xs text-slate-500 text-center py-3">No boons found</div>
+                                        <div className="text-xs axi-ink-faint text-center py-3">No boons found</div>
                                     )}
                                 </div>
                             </div>
@@ -289,7 +289,7 @@ export const AllBoonsSection = ({
                     {!expanded && (
                         <button
                             onClick={() => openExpandedSection(sectionId)}
-                            className="p-1 rounded hover:bg-white/5 text-slate-400 hover:text-slate-200 transition-colors"
+                            className="p-1 rounded hover:bg-white/5 axi-ink-dim hover:text-slate-200 transition-colors"
                             title="Expand"
                         >
                             <Maximize2 className="w-3.5 h-3.5" />
@@ -298,7 +298,7 @@ export const AllBoonsSection = ({
                     {expanded && (
                         <button
                             onClick={closeExpandedSection}
-                            className="p-1 rounded hover:bg-white/5 text-slate-400 hover:text-slate-200 transition-colors"
+                            className="p-1 rounded hover:bg-white/5 axi-ink-dim hover:text-slate-200 transition-colors"
                             title="Close"
                         >
                             <X className="w-3.5 h-3.5" />
@@ -311,9 +311,9 @@ export const AllBoonsSection = ({
             <div className={expanded ? 'flex-1 min-h-0 flex flex-col' : ''}>
                 <div className="px-4 py-3" style={expanded ? undefined : { height: 240 }}>
                     {!activeBoon ? (
-                        <div className="h-full flex items-center justify-center text-xs text-slate-500">Select a boon to view per-fight generation</div>
+                        <div className="h-full flex items-center justify-center text-xs axi-ink-faint">Select a boon to view per-fight generation</div>
                     ) : fightChartData.length === 0 ? (
-                        <div className="h-full flex items-center justify-center text-xs text-slate-500">No fight data</div>
+                        <div className="h-full flex items-center justify-center text-xs axi-ink-faint">No fight data</div>
                     ) : (
                         <ChartContainer width="100%" height="100%">
                             <LineChart
@@ -351,9 +351,9 @@ export const AllBoonsSection = ({
                                     const data = payload[0]?.payload;
                                     if (!data) return null;
                                     return (
-                                        <div className="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-xs shadow-xl">
-                                            <div className="text-slate-200 font-medium mb-1">{sanitizeLabel(data.fullLabel)}</div>
-                                            <div className="text-cyan-300">
+                                        <div className="bg-slate-900 border axi-edge-rule rounded-lg px-3 py-2 text-xs shadow-xl">
+                                            <div className="axi-ink-plain font-medium mb-1">{sanitizeLabel(data.fullLabel)}</div>
+                                            <div className="axi-ink-meta">
                                                 Total Generation: <strong>{formatWithCommas(data.value / 1000, 0)}</strong>
                                             </div>
                                         </div>
@@ -398,10 +398,10 @@ export const AllBoonsSection = ({
                     }}
                 >
                     {selectedFight && (
-                        <div className="px-4 py-3 border-t border-white/5">
+                        <div className="px-4 py-3 border-t axi-edge-rule">
                             <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-3">
-                                    <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                                    <span className="text-[10px] uppercase tracking-wider axi-ink-faint">
                                         Fight Breakdown — {sanitizeLabel(selectedFight.fullLabel)}
                                     </span>
                                     <PillToggleGroup
@@ -417,13 +417,13 @@ export const AllBoonsSection = ({
                                         activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
                                         inactiveClassName="text-[color:var(--text-secondary)]"
                                     />
-                                    <span className="text-[10px] text-slate-500">
+                                    <span className="text-[10px] axi-ink-faint">
                                         {drilldownPlayers.length}/{drilldownPlayersAll.length} players
                                     </span>
                                 </div>
                                 <button
                                     onClick={() => { setSelectedFightIndex(null); setSelectedPlayerKey(null); }}
-                                    className="text-[10px] uppercase tracking-wider text-slate-500 hover:text-slate-300 transition-colors"
+                                    className="text-[10px] uppercase tracking-wider axi-ink-faint hover:text-slate-300 transition-colors"
                                 >
                                     Clear
                                 </button>
@@ -452,19 +452,19 @@ export const AllBoonsSection = ({
                                             if (!active || !payload?.length) return null;
                                             const sorted = [...payload].sort((a, b) => Number(b.value || 0) - Number(a.value || 0));
                                             return (
-                                                <div className="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-xs shadow-xl max-h-64 overflow-y-auto">
-                                                    <div className="text-slate-200 font-medium mb-1">{(payload[0]?.payload as any)?.label}</div>
+                                                <div className="bg-slate-900 border axi-edge-rule rounded-lg px-3 py-2 text-xs shadow-xl max-h-64 overflow-y-auto">
+                                                    <div className="axi-ink-plain font-medium mb-1">{(payload[0]?.payload as any)?.label}</div>
                                                     {sorted.slice(0, 10).map((entry) => (
                                                         <div key={entry.dataKey as string} className="flex items-center gap-1.5">
                                                             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
-                                                            <span className="text-slate-400 truncate max-w-[120px]">
+                                                            <span className="axi-ink-dim truncate max-w-[120px]">
                                                                 {drilldownPlayersAll.find((p) => p.key === entry.dataKey)?.displayName || entry.dataKey}
                                                             </span>
-                                                            <span className="text-slate-200 font-medium ml-auto">{formatWithCommas(Number(entry.value || 0) / 1000, 0)}</span>
+                                                            <span className="axi-ink-plain font-medium ml-auto">{formatWithCommas(Number(entry.value || 0) / 1000, 0)}</span>
                                                         </div>
                                                     ))}
                                                     {sorted.length > 10 && (
-                                                        <div className="text-slate-500 mt-1">+{sorted.length - 10} more</div>
+                                                        <div className="axi-ink-faint mt-1">+{sorted.length - 10} more</div>
                                                     )}
                                                 </div>
                                             );
@@ -521,10 +521,10 @@ export const AllBoonsSection = ({
                                             onMouseLeave={() => setHoveredPlayerKey(null)}
                                         >
                                             {renderProfessionIcon(player.profession, player.professionList, 'w-3.5 h-3.5')}
-                                            <span className={`${isSelected ? 'text-slate-200 font-medium' : 'text-slate-400'}`}>
+                                            <span className={`${isSelected ? 'axi-ink-plain font-medium' : 'axi-ink-dim'}`}>
                                                 {player.displayName}
                                             </span>
-                                            <span className="text-slate-500 tabular-nums">{formatWithCommas(player.total / 1000, 0)}</span>
+                                            <span className="axi-ink-faint tabular-nums">{formatWithCommas(player.total / 1000, 0)}</span>
                                         </button>
                                     );
                                 })}

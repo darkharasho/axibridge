@@ -43,7 +43,7 @@ import {
 import { planAssetBaseResolution, probeAssetBasePath } from './assetBasePath';
 import { FightHero } from './share/FightHero';
 
-const glassCard = 'border border-white/10 rounded-2xl shadow-xl backdrop-blur-md glass-card';
+const glassCard = 'border axi-edge-rule rounded-2xl shadow-xl backdrop-blur-md glass-card';
 
 // Sections that only mean something across several logs, each degenerate when
 // the report holds exactly one fight:
@@ -567,7 +567,7 @@ export function ReportApp({ injectedSource, assetBase }: {
         return (
             <>
                 {before}
-                <mark className="rounded bg-[color:var(--accent-bg-strong)] px-1 text-white">{match}</mark>
+                <mark className="rounded bg-[color:var(--accent-bg-strong)] px-1 axi-ink-plain">{match}</mark>
                 {after}
             </>
         );
@@ -992,7 +992,7 @@ export function ReportApp({ injectedSource, assetBase }: {
     const hideProfessionTooltip = () => setProfessionTooltip(null);
     const professionTooltipPane = professionTooltip && (
         <div
-            className="fixed z-50 pointer-events-none rounded-xl border border-white/10 px-3.5 py-2.5 text-xs shadow-2xl"
+            className="fixed z-50 pointer-events-none rounded-xl border axi-edge-rule px-3.5 py-2.5 text-xs shadow-2xl"
             style={{
                 left: professionTooltip.x,
                 top: professionTooltip.y,
@@ -1000,18 +1000,18 @@ export function ReportApp({ injectedSource, assetBase }: {
                 backgroundImage: 'linear-gradient(var(--bg-card), var(--bg-card))'
             }}
         >
-            <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-1.5">Classes Played</div>
+            <div className="text-[10px] uppercase tracking-widest axi-ink-dim mb-1.5">Classes Played</div>
             <div className="space-y-1">
                 {professionTooltip.entries.map((entry) => (
                     <div key={entry.profession} className="flex items-center justify-between gap-6">
-                        <span className="flex items-center gap-2 text-white">
+                        <span className="flex items-center gap-2 axi-ink-plain">
                             <span
                                 className="inline-block w-2 h-2 rounded-full"
                                 style={{ backgroundColor: getProfessionColor(entry.profession) }}
                             />
                             {entry.profession}
                         </span>
-                        <span className="text-gray-400">{entry.runs} report{entry.runs === 1 ? '' : 's'}</span>
+                        <span className="axi-ink-dim">{entry.runs} report{entry.runs === 1 ? '' : 's'}</span>
                     </div>
                 ))}
             </div>
@@ -1360,15 +1360,15 @@ export function ReportApp({ injectedSource, assetBase }: {
     }, []);
 
     const legalNoticePane = (
-        <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-[11px] text-gray-500">
+        <div className="rounded-xl border axi-edge-rule bg-white/5 px-4 py-3 text-[11px] axi-ink-faint">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.35em] text-gray-400">Legal Notice</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.35em] axi-ink-dim">Legal Notice</div>
                 <div className="flex flex-wrap items-end gap-2">
                     <a
                         href="https://github.com/darkharasho/axibridge"
                         target="_blank"
                         rel="noreferrer"
-                        className="px-2.5 py-1 rounded-full text-[9px] uppercase tracking-widest border bg-white/5 text-gray-400 border-white/10 hover:text-white"
+                        className="px-2.5 py-1 rounded-full text-[9px] uppercase tracking-widest border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
                     >
                         GitHub
                     </a>
@@ -1376,7 +1376,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                         href="https://discord.gg/UjzMXMGXEg"
                         target="_blank"
                         rel="noreferrer"
-                        className="px-2.5 py-1 rounded-full text-[9px] uppercase tracking-widest border bg-white/5 text-gray-400 border-white/10 hover:text-white"
+                        className="px-2.5 py-1 rounded-full text-[9px] uppercase tracking-widest border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
                     >
                         Discord
                     </a>
@@ -1386,7 +1386,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                             event.preventDefault();
                             setProofOfWorkOpen(true);
                         }}
-                        className="px-2.5 py-1 rounded-full text-[9px] uppercase tracking-widest border bg-white/5 text-gray-400 border-white/10 hover:text-white"
+                        className="px-2.5 py-1 rounded-full text-[9px] uppercase tracking-widest border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
                     >
                         Proof of Work
                     </a>
@@ -1499,24 +1499,24 @@ export function ReportApp({ injectedSource, assetBase }: {
                     h1: ({ children }) => {
                         const label = extractHeadingText(children);
                         const id = buildMetricsSpecHeadingId(label);
-                        return <h1 id={id} data-heading-id={id} className="text-2xl font-bold text-white scroll-mt-6">{children}</h1>;
+                        return <h1 id={id} data-heading-id={id} className="text-2xl font-bold axi-ink-plain scroll-mt-6">{children}</h1>;
                     },
                     h2: ({ children }) => {
                         const label = extractHeadingText(children);
                         const id = buildMetricsSpecHeadingId(label);
-                        return <h2 id={id} data-heading-id={id} className="text-xl font-semibold text-white scroll-mt-6">{children}</h2>;
+                        return <h2 id={id} data-heading-id={id} className="text-xl font-semibold axi-ink-plain scroll-mt-6">{children}</h2>;
                     },
                     h3: ({ children }) => {
                         const label = extractHeadingText(children);
                         const id = buildMetricsSpecHeadingId(label);
-                        return <h3 id={id} data-heading-id={id} className="text-lg font-semibold text-white scroll-mt-6">{children}</h3>;
+                        return <h3 id={id} data-heading-id={id} className="text-lg font-semibold axi-ink-plain scroll-mt-6">{children}</h3>;
                     },
-                    p: ({ children }) => <p className="leading-6 text-gray-200">{children}</p>,
-                    ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 text-gray-200">{children}</ul>,
-                    ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 text-gray-200">{children}</ol>,
+                    p: ({ children }) => <p className="leading-6 axi-ink-plain">{children}</p>,
+                    ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 axi-ink-plain">{children}</ul>,
+                    ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 axi-ink-plain">{children}</ol>,
                     li: ({ children }) => <li className="leading-6">{children}</li>,
                     blockquote: ({ children }) => (
-                        <blockquote className="border-l-2 border-[color:var(--accent-border)] pl-4 text-gray-300 italic">
+                        <blockquote className="border-l-2 border-[color:var(--accent-border)] pl-4 axi-ink-dim italic">
                             {children}
                         </blockquote>
                     ),
@@ -1531,24 +1531,24 @@ export function ReportApp({ injectedSource, assetBase }: {
                         </a>
                     ),
                     table: ({ children }) => (
-                        <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/30">
+                        <div className="overflow-x-auto rounded-xl border axi-edge-rule bg-black/30">
                             <table className="w-full border-collapse text-left text-sm">
                                 {children}
                             </table>
                         </div>
                     ),
                     th: ({ children }) => (
-                        <th className="border-b border-white/10 bg-white/5 px-3 py-2 text-xs uppercase tracking-wide text-gray-300">
+                        <th className="border-b axi-edge-rule bg-white/5 px-3 py-2 text-xs uppercase tracking-wide axi-ink-dim">
                             {children}
                         </th>
                     ),
                     td: ({ children }) => (
-                        <td className="border-b border-white/10 px-3 py-2 text-gray-200">
+                        <td className="border-b axi-edge-rule px-3 py-2 axi-ink-plain">
                             {children}
                         </td>
                     ),
                     pre: ({ children }) => (
-                        <pre className="overflow-x-auto rounded-xl bg-black/40 p-4 text-xs text-gray-200">
+                        <pre className="overflow-x-auto rounded-xl bg-black/40 p-4 text-xs axi-ink-plain">
                             {children}
                         </pre>
                     ),
@@ -1560,7 +1560,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                 {children}
                             </code>
                         ) : (
-                            <code className="whitespace-pre-wrap text-gray-200">
+                            <code className="whitespace-pre-wrap axi-ink-plain">
                                 {children}
                             </code>
                         );
@@ -1688,7 +1688,7 @@ export function ReportApp({ injectedSource, assetBase }: {
         const navFastSpring = { type: 'spring' as const, stiffness: 300, damping: 30 };
         return (
             <div
-                className="min-h-screen text-white relative overflow-x-hidden"
+                className="min-h-screen axi-ink-plain relative overflow-x-hidden"
             >
                 <div className={`fixed inset-0 z-20 bg-black/40 backdrop-blur-sm transition-opacity ${isNarrowViewport ? '' : 'hidden'} ${tocOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setTocOpen(false)} />
                 <aside
@@ -1696,10 +1696,10 @@ export function ReportApp({ injectedSource, assetBase }: {
                 >
                     <div className="axi-rail axi-rail--flush axi-rail--float h-full" style={{ '--axi-rail-w': '100%', '--axi-rail-pad': '0' } as CSSProperties}>
                         <div className="px-5 pt-6 pb-4 flex items-center justify-between">
-                            <div className="text-[11px] uppercase tracking-[0.4em] text-gray-400">Contents</div>
+                            <div className="text-[11px] uppercase tracking-[0.4em] axi-ink-dim">Contents</div>
                             <button
                                 onClick={() => setTocOpen(false)}
-                                className="text-gray-400 hover:text-white transition-colors"
+                                className="axi-ink-dim hover:text-white transition-colors"
                                 aria-label="Close table of contents"
                             >
                                 ×
@@ -1708,7 +1708,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                         {showIndexChrome && <div className="px-5 pb-4">
                             <a
                                 href={themedIndexHref}
-                                className="report-back-link w-full inline-flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[color:var(--accent-bg)] text-[10px] uppercase tracking-[0.35em] text-gray-100 transition-colors hover:bg-[color:var(--accent-border)]"
+                                className="report-back-link w-full inline-flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[color:var(--accent-bg)] text-[10px] uppercase tracking-[0.35em] axi-ink-plain transition-colors hover:bg-[color:var(--accent-border)]"
                             >
                                 <span className="h-8 w-8 rounded-full border border-[color:var(--accent-border)] inline-flex items-center justify-center text-[color:var(--brand-primary)]">
                                     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -1798,7 +1798,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                         <div className="px-6 pt-6 pb-5">
                             <div className="flex items-center gap-3">
                                 <div
-                                    className="h-10 w-10 rounded-2xl border border-white/20"
+                                    className="h-10 w-10 rounded-2xl border axi-edge-rule"
                                     style={{
                                         backgroundColor: defaultLogoColor,
                                         maskImage: `url("${axibridgeLogoUrl}")`,
@@ -1814,8 +1814,8 @@ export function ReportApp({ injectedSource, assetBase }: {
                                     aria-label="AxiBridge logo"
                                 />
                                 <div>
-                                    <div><div className="text-[11px] tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="text-white">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div><div className="text-[10px] uppercase tracking-[0.3em] text-gray-400">Reports</div></div>
-                                    <div className="text-sm font-semibold text-white">Navigation</div>
+                                    <div><div className="text-[11px] tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="axi-ink-plain">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div><div className="text-[10px] uppercase tracking-[0.3em] axi-ink-dim">Reports</div></div>
+                                    <div className="text-sm font-semibold axi-ink-plain">Navigation</div>
                                 </div>
                             </div>
                         </div>
@@ -1896,10 +1896,10 @@ export function ReportApp({ injectedSource, assetBase }: {
                                 );
                             })}
                         </nav>
-                        {showIndexChrome && <div className="mt-auto shrink-0 border-t border-white/10">
+                        {showIndexChrome && <div className="mt-auto shrink-0 border-t axi-edge-rule">
                             <a
                                 href={themedIndexHref}
-                                className="report-back-link w-full inline-flex items-center gap-3 px-6 py-4 bg-[color:var(--accent-bg)] text-[10px] uppercase tracking-[0.35em] text-gray-100 transition-colors hover:bg-[color:var(--accent-border)]"
+                                className="report-back-link w-full inline-flex items-center gap-3 px-6 py-4 bg-[color:var(--accent-bg)] text-[10px] uppercase tracking-[0.35em] axi-ink-plain transition-colors hover:bg-[color:var(--accent-border)]"
                             >
                                 <span className="h-9 w-9 rounded-full border border-[color:var(--accent-border)] inline-flex items-center justify-center text-[color:var(--brand-primary)]">
                                     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -1946,7 +1946,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                         )
                                     )}
                                     <div className="min-w-0">
-                                        <div className="report-brand-label"><div className="text-xs tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="text-white">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div><div className="text-[10px] uppercase tracking-[0.3em] text-gray-400">Log Report</div></div>
+                                        <div className="report-brand-label"><div className="text-xs tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="axi-ink-plain">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div><div className="text-[10px] uppercase tracking-[0.3em] axi-ink-dim">Log Report</div></div>
                                         <h1 className="text-2xl sm:text-3xl font-bold mt-1 flex items-center gap-2 flex-wrap">
                                             <span>{report.meta.title}</span>
                                             {(report.meta as any).guild?.tag && (
@@ -1959,28 +1959,28 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                 </span>
                                             )}
                                         </h1>
-                                        <div className="text-xs sm:text-sm text-gray-400 mt-2">{report.meta.dateLabel || formatLocalRange(report.meta.dateStart, report.meta.dateEnd)}</div>
+                                        <div className="text-xs sm:text-sm axi-ink-dim mt-2">{report.meta.dateLabel || formatLocalRange(report.meta.dateStart, report.meta.dateEnd)}</div>
                                     </div>
                                 </div>
                                 <button
                                     onClick={() => setTocOpen(true)}
-                                    className={`${isNarrowViewport && !isCompactViewport ? 'flex' : 'hidden'} px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs uppercase tracking-widest text-gray-300 hover:border-white/30 transition-colors items-center gap-2`}
+                                    className={`${isNarrowViewport && !isCompactViewport ? 'flex' : 'hidden'} px-3 py-2 rounded-xl bg-white/5 border axi-edge-rule text-xs uppercase tracking-widest axi-ink-dim hover:border-white/30 transition-colors items-center gap-2`}
                                 >
                                     <PanelLeft className="w-4 h-4" />
                                     Contents
                                 </button>
                                 <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:overflow-visible pr-1 sm:pr-2">
-                                    <div className="col-span-2 sm:col-span-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 inline-flex items-center gap-2 min-w-0 justify-start">
+                                    <div className="col-span-2 sm:col-span-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border axi-edge-rule text-[10px] sm:text-xs uppercase tracking-widest axi-ink-dim inline-flex items-center gap-2 min-w-0 justify-start">
                                         <CalendarDays className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                                         {report.meta.dateLabel || 'Log Range'}
                                     </div>
-                                    <div className="col-span-2 sm:col-span-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 flex items-center gap-2 min-w-0">
+                                    <div className="col-span-2 sm:col-span-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border axi-edge-rule text-[10px] sm:text-xs uppercase tracking-widest axi-ink-dim flex items-center gap-2 min-w-0">
                                         <CommanderTagIcon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                                         <span className="truncate">
                                             {report.meta.commanders.length ? report.meta.commanders.join(', ') : 'No Commanders'}
                                         </span>
                                     </div>
-                                    <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 flex items-center gap-2 min-w-0">
+                                    <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border axi-edge-rule text-[10px] sm:text-xs uppercase tracking-widest axi-ink-dim flex items-center gap-2 min-w-0">
                                         <ShieldCheck className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                                         Report {report.meta.appVersion ? `v${report.meta.appVersion}` : 'build'}
                                     </div>
@@ -1989,7 +1989,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                         </div>
                     )}
                     <div className={`${isNarrowViewport && isCompactViewport ? '' : 'hidden'} mb-4`}>
-                        <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-2">Jump to</div>
+                        <div className="text-[10px] uppercase tracking-widest axi-ink-dim mb-2">Jump to</div>
                         <div className="mobile-jump-chips flex gap-2 overflow-x-auto pr-2 pb-1 snap-x snap-mandatory">
                             {(activeGroupDef?.items || []).map((item) => {
                                 const Icon = item.icon;
@@ -1998,9 +1998,9 @@ export function ReportApp({ injectedSource, assetBase }: {
                                         key={`chip-${item.id}`}
                                         onClick={() => handleSubNavClick(activeGroupDef?.id || 'overview', item.id)}
                                         data-on={activeSectionId === item.id ? '' : undefined}
-                                        className={`group flex items-center gap-2 px-3 py-2 rounded-full text-[10px] uppercase tracking-widest whitespace-nowrap border bg-gradient-to-br shadow-[0_10px_25px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-all duration-200 active:translate-y-0 active:scale-[0.98] snap-start ${activeSectionId === item.id ? 'text-white border-[color:var(--accent-border)] from-[color:var(--accent-bg)] via-white/10 to-transparent' : 'text-gray-200 border-white/15 from-white/10 via-white/5 to-transparent hover:-translate-y-0.5 hover:border-[color:var(--accent-border)] hover:shadow-[0_18px_35px_rgba(0,0,0,0.45)]'}`}
+                                        className={`group flex items-center gap-2 px-3 py-2 rounded-full text-[10px] uppercase tracking-widest whitespace-nowrap border bg-gradient-to-br shadow-[0_10px_25px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-all duration-200 active:translate-y-0 active:scale-[0.98] snap-start ${activeSectionId === item.id ? 'axi-ink-plain border-[color:var(--accent-border)] from-[color:var(--accent-bg)] via-white/10 to-transparent' : 'axi-ink-plain axi-edge-rule from-white/10 via-white/5 to-transparent hover:-translate-y-0.5 hover:border-[color:var(--accent-border)] hover:shadow-[0_18px_35px_rgba(0,0,0,0.45)]'}`}
                                     >
-                                        <span className="mobile-jump-chip-icon flex items-center justify-center w-6 h-6 rounded-full bg-white/10 border border-white/10 group-hover:border-[color:var(--accent-border)] group-hover:bg-[color:var(--accent-bg)] transition-colors">
+                                        <span className="mobile-jump-chip-icon flex items-center justify-center w-6 h-6 rounded-full bg-white/10 border axi-edge-rule group-hover:border-[color:var(--accent-border)] group-hover:bg-[color:var(--accent-bg)] transition-colors">
                                             <Icon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                                         </span>
                                         {item.label}
@@ -2012,7 +2012,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                     <div ref={statsWrapperRef} onWheelCapture={handleStatsWheel} className="flex-1 min-w-0">
                         <div id="stats-view-top">
                             {(sliceLinkStatus || sliceError || sliceState.message || sliceComputing) && (
-                                <div className="mb-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-gray-300">
+                                <div className="mb-3 rounded-xl border axi-edge-rule bg-white/5 px-3 py-2 text-[11px] font-semibold uppercase tracking-widest axi-ink-dim">
                                     {sliceLinkStatus || sliceError || sliceState.message || (sliceComputing ? 'Recomputing…' : null)}
                                 </div>
                             )}
@@ -2050,31 +2050,31 @@ export function ReportApp({ injectedSource, assetBase }: {
                         flex-shrink has nothing to give and the last item runs
                         off-screen. Stacking drops the row to ~291px and the
                         flex-1/truncate pair keeps it bounded on narrower phones. */}
-                    <div className="flex items-stretch gap-1.5 rounded-2xl bg-slate-950/70 border border-white/15 backdrop-blur-xl px-3 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.45)]">
+                    <div className="flex items-stretch gap-1.5 rounded-2xl bg-slate-950/70 border axi-edge-rule backdrop-blur-xl px-3 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.45)]">
                         {showIndexChrome && <a
                             href={themedIndexHref}
-                            className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
+                            className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border axi-edge-rule text-[10px] uppercase tracking-widest axi-ink-plain"
                         >
                             <ArrowLeft className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                             <span className="max-w-full truncate">Back</span>
                         </a>}
                         <button
                             onClick={() => setTocOpen(true)}
-                            className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
+                            className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border axi-edge-rule text-[10px] uppercase tracking-widest axi-ink-plain"
                         >
                             <PanelLeft className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                             <span className="max-w-full truncate">Contents</span>
                         </button>
                         <button
                             onClick={() => searchOpenRef.current?.()}
-                            className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
+                            className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border axi-edge-rule text-[10px] uppercase tracking-widest axi-ink-plain"
                         >
                             <Search className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                             <span className="max-w-full truncate">Search</span>
                         </button>
                         <button
                             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                            className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
+                            className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border axi-edge-rule text-[10px] uppercase tracking-widest axi-ink-plain"
                         >
                             <ArrowUp className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                             <span className="max-w-full truncate">Top</span>
@@ -2089,7 +2089,7 @@ export function ReportApp({ injectedSource, assetBase }: {
     if (isRollupView) {
         return (
             <div
-                className="min-h-screen text-white relative overflow-x-hidden"
+                className="min-h-screen axi-ink-plain relative overflow-x-hidden"
             >
                 <div className="max-w-[2150px] mx-auto px-4 pt-4 pb-8 sm:px-6 sm:pt-5 sm:pb-10">
                     <div className="p-4 sm:p-6">
@@ -2122,19 +2122,19 @@ export function ReportApp({ injectedSource, assetBase }: {
                                     )
                                 )}
                                 <div>
-                                    <div className="text-sm tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="text-white">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div>
+                                    <div className="text-sm tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="axi-ink-plain">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div>
                                     <h1 className="text-2xl sm:text-3xl font-bold mt-2">All Reports</h1>
-                                    <p className="text-xs sm:text-sm text-gray-400 mt-1">Combined commander and player stats across every hosted report.</p>
+                                    <p className="text-xs sm:text-sm axi-ink-dim mt-1">Combined commander and player stats across every hosted report.</p>
                                 </div>
                             </div>
                             <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
-                                <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 inline-flex items-center gap-2">
+                                <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border axi-edge-rule text-[10px] sm:text-xs uppercase tracking-widest axi-ink-dim inline-flex items-center gap-2">
                                     <BarChart3 className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                                     {rollupData?.uniqueRaids || 0} Raids
                                 </div>
                                 {showIndexChrome && <a
                                     href={themedIndexHref}
-                                    className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300 inline-flex items-center justify-center gap-2 hover:border-[color:var(--accent-border)] transition-colors"
+                                    className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border axi-edge-rule text-[10px] sm:text-xs uppercase tracking-widest axi-ink-dim inline-flex items-center justify-center gap-2 hover:border-[color:var(--accent-border)] transition-colors"
                                 >
                                     <ArrowLeft className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                                     Back To Reports
@@ -2143,47 +2143,47 @@ export function ReportApp({ injectedSource, assetBase }: {
                         </div>
 
                         {error && (
-                            <div className="mb-6 rounded-2xl border border-amber-400/40 bg-amber-500/10 px-6 py-5 text-amber-100 shadow-xl backdrop-blur-md" style={glassCardStyle}>
-                                <div className="text-sm uppercase tracking-widest text-amber-200/70">Warning</div>
-                                <div className="mt-2 text-base font-semibold text-white">{error}</div>
+                            <div className="mb-6 rounded-2xl border axi-edge-warn bg-amber-500/10 px-6 py-5 axi-ink-warn shadow-xl backdrop-blur-md" style={glassCardStyle}>
+                                <div className="text-sm uppercase tracking-widest axi-ink-warn">Warning</div>
+                                <div className="mt-2 text-base font-semibold axi-ink-plain">{error}</div>
                             </div>
                         )}
 
                         {!error && !index && (
-                            <div className={`${glassCard} p-6 text-gray-300`} style={glassCardStyle}>Loading reports...</div>
+                            <div className={`${glassCard} p-6 axi-ink-dim`} style={glassCardStyle}>Loading reports...</div>
                         )}
 
                         {!error && index && (
                             <>
                                 <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
                                     <div className={`${glassCard} p-4`} style={glassCardStyle}>
-                                        <div className="text-[11px] uppercase tracking-widest text-gray-400">Raids</div>
-                                        <div className="mt-2 text-2xl font-semibold text-white">{rollupData ? rollupData.uniqueRaids : '—'}</div>
+                                        <div className="text-[11px] uppercase tracking-widest axi-ink-dim">Raids</div>
+                                        <div className="mt-2 text-2xl font-semibold axi-ink-plain">{rollupData ? rollupData.uniqueRaids : '—'}</div>
                                     </div>
                                     <div className={`${glassCard} p-4`} style={glassCardStyle}>
-                                        <div className="text-[11px] uppercase tracking-widest text-gray-400">Commanders</div>
-                                        <div className="mt-2 text-2xl font-semibold text-white">{rollupData ? rollupData.commanderRows.length : '—'}</div>
+                                        <div className="text-[11px] uppercase tracking-widest axi-ink-dim">Commanders</div>
+                                        <div className="mt-2 text-2xl font-semibold axi-ink-plain">{rollupData ? rollupData.commanderRows.length : '—'}</div>
                                     </div>
                                     <div className={`${glassCard} p-4`} style={glassCardStyle}>
-                                        <div className="text-[11px] uppercase tracking-widest text-gray-400">Players</div>
-                                        <div className="mt-2 text-2xl font-semibold text-white">{rollupData ? rollupData.playerRows.length : '—'}</div>
+                                        <div className="text-[11px] uppercase tracking-widest axi-ink-dim">Players</div>
+                                        <div className="mt-2 text-2xl font-semibold axi-ink-plain">{rollupData ? rollupData.playerRows.length : '—'}</div>
                                     </div>
                                     <div className={`${glassCard} p-4`} style={glassCardStyle}>
-                                        <div className="text-[11px] uppercase tracking-widest text-gray-400">Combat Hours</div>
-                                        <div className="mt-2 text-2xl font-semibold text-white">{rollupData ? formatHoursLabel(rollupData.playerRows.reduce((sum, r) => sum + r.combatTimeMs, 0)) : '—'}</div>
+                                        <div className="text-[11px] uppercase tracking-widest axi-ink-dim">Combat Hours</div>
+                                        <div className="mt-2 text-2xl font-semibold axi-ink-plain">{rollupData ? formatHoursLabel(rollupData.playerRows.reduce((sum, r) => sum + r.combatTimeMs, 0)) : '—'}</div>
                                     </div>
                                 </div>
 
                                 {(rollupLoading || rollupError || (rollupData && (failedRollupReports > 0 || rollupData.raidsSkippedMissingRequiredData > 0))) && (
-                                    <div className={`${glassCard} px-4 py-3 mb-6 text-xs sm:text-sm text-gray-300`} style={glassCardStyle}>
+                                    <div className={`${glassCard} px-4 py-3 mb-6 text-xs sm:text-sm axi-ink-dim`} style={glassCardStyle}>
                                         {rollupLoading && (
                                             <span>Loading {rollupRequestedCount} reports...</span>
                                         )}
                                         {!rollupLoading && rollupError && (
-                                            <span className="text-amber-200">{rollupError}</span>
+                                            <span className="axi-ink-warn">{rollupError}</span>
                                         )}
                                         {!rollupLoading && rollupData && (failedRollupReports > 0 || rollupData.raidsSkippedMissingRequiredData > 0) && (
-                                            <span className="text-amber-200/80">
+                                            <span className="axi-ink-warn">
                                                 {failedRollupReports > 0 ? `${failedRollupReports} report${failedRollupReports === 1 ? '' : 's'} could not be loaded. ` : ''}
                                                 {rollupData.raidsSkippedMissingRequiredData > 0 ? `${rollupData.raidsSkippedMissingRequiredData} raid window${rollupData.raidsSkippedMissingRequiredData === 1 ? '' : 's'} had incomplete data and ${rollupData.raidsSkippedMissingRequiredData === 1 ? 'was' : 'were'} excluded.` : ''}
                                             </span>
@@ -2199,30 +2199,30 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                     <div className="text-[11px] uppercase tracking-widest text-[color:var(--accent-border)]">Commanders</div>
                                                     <h2 className="text-lg sm:text-xl font-semibold mt-1">All Commander Runs</h2>
                                                 </div>
-                                                <div className="text-[11px] uppercase tracking-widest text-gray-400">Runs are counted per unique raid</div>
+                                                <div className="text-[11px] uppercase tracking-widest axi-ink-dim">Runs are counted per unique raid</div>
                                             </div>
                                             {rollupData.commanderRows.length === 0 ? (
-                                                <div className="text-sm text-gray-400">No commander data found yet.</div>
+                                                <div className="text-sm axi-ink-dim">No commander data found yet.</div>
                                             ) : rollupData.noEgoMode ? (
                                                 <NoEgoRollup commanderRows={rollupData.commanderRows} playerRows={[]} />
                                             ) : (
-                                                <div className="rounded-2xl border border-white/5 bg-black/25 overflow-hidden">
-                                                    <div className="border-b border-white/5 px-3 py-3 sm:px-4">
+                                                <div className="rounded-2xl border axi-edge-rule bg-black/25 overflow-hidden">
+                                                    <div className="border-b axi-edge-rule px-3 py-3 sm:px-4">
                                                         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_180px_140px_140px] gap-3">
                                                             <input
                                                                 type="search"
                                                                 value={commanderSearchTerm}
                                                                 onChange={(event) => setCommanderSearchTerm(event.target.value)}
                                                                 placeholder="Search commanders, character names, or class..."
-                                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
+                                                                className="w-full bg-white/5 border axi-edge-rule rounded-xl px-4 py-2.5 text-sm axi-ink-plain placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
                                                             />
                                                             <select
                                                                 value={commanderProfessionFilter}
                                                                 onChange={(event) => setCommanderProfessionFilter(event.target.value)}
-                                                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
+                                                                className="bg-white/5 border axi-edge-rule rounded-xl px-4 py-2.5 text-sm axi-ink-plain focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
                                                             >
                                                                 {commanderProfessionOptions.map((option) => (
-                                                                    <option key={option} value={option} className="bg-slate-900 text-white">
+                                                                    <option key={option} value={option} className="bg-slate-900 axi-ink-plain">
                                                                         {option === 'all' ? 'All Classes' : option}
                                                                     </option>
                                                                 ))}
@@ -2230,23 +2230,23 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                             <select
                                                                 value={commanderMinRunsFilter}
                                                                 onChange={(event) => setCommanderMinRunsFilter(event.target.value)}
-                                                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
+                                                                className="bg-white/5 border axi-edge-rule rounded-xl px-4 py-2.5 text-sm axi-ink-plain focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
                                                             >
-                                                                <option value="1" className="bg-slate-900 text-white">Any Raids</option>
-                                                                <option value="2" className="bg-slate-900 text-white">2+ Raids</option>
-                                                                <option value="5" className="bg-slate-900 text-white">5+ Raids</option>
-                                                                <option value="10" className="bg-slate-900 text-white">10+ Raids</option>
+                                                                <option value="1" className="bg-slate-900 axi-ink-plain">Any Raids</option>
+                                                                <option value="2" className="bg-slate-900 axi-ink-plain">2+ Raids</option>
+                                                                <option value="5" className="bg-slate-900 axi-ink-plain">5+ Raids</option>
+                                                                <option value="10" className="bg-slate-900 axi-ink-plain">10+ Raids</option>
                                                             </select>
-                                                            <div className="flex items-center justify-start lg:justify-end px-1 text-[11px] uppercase tracking-widest text-gray-400">
+                                                            <div className="flex items-center justify-start lg:justify-end px-1 text-[11px] uppercase tracking-widest axi-ink-dim">
                                                                 Showing {filteredCommanderRows.length} of {rollupData.commanderRows.length}
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div className="px-3 pb-3 sm:px-4 sm:pb-4">
-                                                    <div className="max-h-[32rem] overflow-auto rounded-xl border border-white/5">
+                                                    <div className="max-h-[32rem] overflow-auto rounded-xl border axi-edge-rule">
                                                         <table className="w-full min-w-[860px] text-sm">
-                                                            <thead className="sticky top-0 text-[11px] uppercase tracking-widest text-white/85 z-10" style={rollupTableHeaderStyle}>
-                                                                <tr className="border-b border-white/10">
+                                                            <thead className="sticky top-0 text-[11px] uppercase tracking-widest axi-ink-faint z-10" style={rollupTableHeaderStyle}>
+                                                                <tr className="border-b axi-edge-rule">
                                                                 <th className="text-left py-3 pr-4 pl-4 sm:pl-5 font-medium">Commander</th>
                                                                 <th className="text-left py-3 pr-4 font-medium">Class</th>
                                                                 <th className="text-right py-3 pr-4 font-medium">Runs</th>
@@ -2263,14 +2263,14 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                                 const totalFights = row.wins + row.losses;
                                                                 const winRate = totalFights > 0 ? (row.wins / totalFights) * 100 : 0;
                                                                 return (
-                                                                    <tr key={row.account} className="border-b border-white/5 align-top hover:bg-white/[0.03]">
+                                                                    <tr key={row.account} className="border-b axi-edge-rule align-top hover:bg-white/[0.03]">
                                                                         <td className="py-3 pr-4 pl-4 sm:pl-5">
-                                                                            <div className="font-medium text-white">{row.account}</div>
-                                                                            <div className="text-xs text-gray-400 mt-1">
+                                                                            <div className="font-medium axi-ink-plain">{row.account}</div>
+                                                                            <div className="text-xs axi-ink-dim mt-1">
                                                                                 {row.characterNames.length > 0 ? row.characterNames.join(', ') : 'No character names recorded'}
                                                                             </div>
                                                                         </td>
-                                                                        <td className="py-3 pr-4 text-gray-300">
+                                                                        <td className="py-3 pr-4 axi-ink-dim">
                                                                             <span
                                                                                 className="cursor-help underline decoration-dotted decoration-white/30 underline-offset-4"
                                                                                 onMouseEnter={(event) => showProfessionTooltip(event, row.professionBreakdown)}
@@ -2279,19 +2279,19 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                                                 {row.profession || '--'}
                                                                             </span>
                                                                         </td>
-                                                                        <td className="py-3 pr-4 text-right text-white">{row.runs}</td>
-                                                                        <td className="py-3 pr-4 text-right text-white">{row.fightsLed}</td>
-                                                                        <td className="py-3 pr-4 text-right text-white">{formatRatio(row.kdr)}</td>
-                                                                        <td className="py-3 pr-4 text-right text-white">{row.kills}</td>
-                                                                        <td className="py-3 pr-4 text-right text-white">{row.commanderDeaths}</td>
-                                                                        <td className="py-3 pr-4 text-right text-white">{formatRatio(winRate)}%</td>
-                                                                        <td className="py-3 pr-4 sm:pr-5 text-right text-gray-300">{formatRollupDate(row.lastSeenTs)}</td>
+                                                                        <td className="py-3 pr-4 text-right axi-ink-plain">{row.runs}</td>
+                                                                        <td className="py-3 pr-4 text-right axi-ink-plain">{row.fightsLed}</td>
+                                                                        <td className="py-3 pr-4 text-right axi-ink-plain">{formatRatio(row.kdr)}</td>
+                                                                        <td className="py-3 pr-4 text-right axi-ink-plain">{row.kills}</td>
+                                                                        <td className="py-3 pr-4 text-right axi-ink-plain">{row.commanderDeaths}</td>
+                                                                        <td className="py-3 pr-4 text-right axi-ink-plain">{formatRatio(winRate)}%</td>
+                                                                        <td className="py-3 pr-4 sm:pr-5 text-right axi-ink-dim">{formatRollupDate(row.lastSeenTs)}</td>
                                                                     </tr>
                                                                 );
                                                             })}
                                                             {filteredCommanderRows.length === 0 && (
                                                                 <tr>
-                                                                    <td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-400">
+                                                                    <td colSpan={9} className="px-4 py-8 text-center text-sm axi-ink-dim">
                                                                         No commanders match the current filters.
                                                                     </td>
                                                                 </tr>
@@ -2310,30 +2310,30 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                     <div className="text-[11px] uppercase tracking-widest text-[color:var(--accent-border)]">Players</div>
                                                     <h2 className="text-lg sm:text-xl font-semibold mt-1">Everyone Who Joined</h2>
                                                 </div>
-                                                <div className="text-[11px] uppercase tracking-widest text-gray-400">Last seen is based on the report end time</div>
+                                                <div className="text-[11px] uppercase tracking-widest axi-ink-dim">Last seen is based on the report end time</div>
                                             </div>
                                             {rollupData.playerRows.length === 0 ? (
-                                                <div className="text-sm text-gray-400">No attendance data found yet.</div>
+                                                <div className="text-sm axi-ink-dim">No attendance data found yet.</div>
                                             ) : rollupData.noEgoMode ? (
                                                 <NoEgoRollup commanderRows={[]} playerRows={rollupData.playerRows} />
                                             ) : (
-                                                <div className="rounded-2xl border border-white/5 bg-black/25 overflow-hidden">
-                                                    <div className="border-b border-white/5 px-3 py-3 sm:px-4">
+                                                <div className="rounded-2xl border axi-edge-rule bg-black/25 overflow-hidden">
+                                                    <div className="border-b axi-edge-rule px-3 py-3 sm:px-4">
                                                         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_180px_140px_140px] gap-3">
                                                             <input
                                                                 type="search"
                                                                 value={playerSearchTerm}
                                                                 onChange={(event) => setPlayerSearchTerm(event.target.value)}
                                                                 placeholder="Search players, character names, or class..."
-                                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
+                                                                className="w-full bg-white/5 border axi-edge-rule rounded-xl px-4 py-2.5 text-sm axi-ink-plain placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
                                                             />
                                                             <select
                                                                 value={playerProfessionFilter}
                                                                 onChange={(event) => setPlayerProfessionFilter(event.target.value)}
-                                                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
+                                                                className="bg-white/5 border axi-edge-rule rounded-xl px-4 py-2.5 text-sm axi-ink-plain focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
                                                             >
                                                                 {playerProfessionOptions.map((option) => (
-                                                                    <option key={option} value={option} className="bg-slate-900 text-white">
+                                                                    <option key={option} value={option} className="bg-slate-900 axi-ink-plain">
                                                                         {option === 'all' ? 'All Classes' : option}
                                                                     </option>
                                                                 ))}
@@ -2341,23 +2341,23 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                             <select
                                                                 value={playerMinRunsFilter}
                                                                 onChange={(event) => setPlayerMinRunsFilter(event.target.value)}
-                                                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
+                                                                className="bg-white/5 border axi-edge-rule rounded-xl px-4 py-2.5 text-sm axi-ink-plain focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
                                                             >
-                                                                <option value="1" className="bg-slate-900 text-white">Any Raids</option>
-                                                                <option value="2" className="bg-slate-900 text-white">2+ Raids</option>
-                                                                <option value="5" className="bg-slate-900 text-white">5+ Raids</option>
-                                                                <option value="10" className="bg-slate-900 text-white">10+ Raids</option>
+                                                                <option value="1" className="bg-slate-900 axi-ink-plain">Any Raids</option>
+                                                                <option value="2" className="bg-slate-900 axi-ink-plain">2+ Raids</option>
+                                                                <option value="5" className="bg-slate-900 axi-ink-plain">5+ Raids</option>
+                                                                <option value="10" className="bg-slate-900 axi-ink-plain">10+ Raids</option>
                                                             </select>
-                                                            <div className="flex items-center justify-start lg:justify-end px-1 text-[11px] uppercase tracking-widest text-gray-400">
+                                                            <div className="flex items-center justify-start lg:justify-end px-1 text-[11px] uppercase tracking-widest axi-ink-dim">
                                                                 Showing {filteredPlayerRows.length} of {rollupData.playerRows.length}
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div className="px-3 pb-3 sm:px-4 sm:pb-4">
-                                                    <div className="max-h-[32rem] overflow-auto rounded-xl border border-white/5">
+                                                    <div className="max-h-[32rem] overflow-auto rounded-xl border axi-edge-rule">
                                                         <table className="w-full min-w-[900px] text-sm">
-                                                            <thead className="sticky top-0 text-[11px] uppercase tracking-widest text-white/85 z-10" style={rollupTableHeaderStyle}>
-                                                                <tr className="border-b border-white/10">
+                                                            <thead className="sticky top-0 text-[11px] uppercase tracking-widest axi-ink-faint z-10" style={rollupTableHeaderStyle}>
+                                                                <tr className="border-b axi-edge-rule">
                                                                 <th className="text-left py-3 pr-4 pl-4 sm:pl-5 font-medium">Player</th>
                                                                 <th className="text-left py-3 pr-4 font-medium">Main Class</th>
                                                                 <th className="text-right py-3 pr-4 font-medium">Runs</th>
@@ -2368,14 +2368,14 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                         </thead>
                                                         <tbody>
                                                             {filteredPlayerRows.map((row) => (
-                                                                <tr key={row.account} className="border-b border-white/5 align-top hover:bg-white/[0.03]">
+                                                                <tr key={row.account} className="border-b axi-edge-rule align-top hover:bg-white/[0.03]">
                                                                     <td className="py-3 pr-4 pl-4 sm:pl-5">
-                                                                        <div className="font-medium text-white">{row.account}</div>
+                                                                        <div className="font-medium axi-ink-plain">{row.account}</div>
                                                                         {row.characterNames.length > 0 && (
-                                                                            <div className="text-xs text-gray-400 mt-1">{row.characterNames.join(', ')}</div>
+                                                                            <div className="text-xs axi-ink-dim mt-1">{row.characterNames.join(', ')}</div>
                                                                         )}
                                                                     </td>
-                                                                    <td className="py-3 pr-4 text-gray-300">
+                                                                    <td className="py-3 pr-4 axi-ink-dim">
                                                                         <span
                                                                             className="cursor-help underline decoration-dotted decoration-white/30 underline-offset-4"
                                                                             onMouseEnter={(event) => showProfessionTooltip(event, row.professionBreakdown)}
@@ -2384,15 +2384,15 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                                             {row.profession || '--'}
                                                                         </span>
                                                                     </td>
-                                                                    <td className="py-3 pr-4 text-right text-white">{row.runs}</td>
-                                                                    <td className="py-3 pr-4 text-right text-white">{formatHoursLabel(row.combatTimeMs)}</td>
-                                                                    <td className="py-3 pr-4 text-right text-white">{formatHoursLabel(row.squadTimeMs)}</td>
-                                                                    <td className="py-3 pr-4 sm:pr-5 text-right text-gray-300">{formatRollupDate(row.lastSeenTs)}</td>
+                                                                    <td className="py-3 pr-4 text-right axi-ink-plain">{row.runs}</td>
+                                                                    <td className="py-3 pr-4 text-right axi-ink-plain">{formatHoursLabel(row.combatTimeMs)}</td>
+                                                                    <td className="py-3 pr-4 text-right axi-ink-plain">{formatHoursLabel(row.squadTimeMs)}</td>
+                                                                    <td className="py-3 pr-4 sm:pr-5 text-right axi-ink-dim">{formatRollupDate(row.lastSeenTs)}</td>
                                                                 </tr>
                                                             ))}
                                                             {filteredPlayerRows.length === 0 && (
                                                                 <tr>
-                                                                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">
+                                                                    <td colSpan={6} className="px-4 py-8 text-center text-sm axi-ink-dim">
                                                                         No players match the current filters.
                                                                     </td>
                                                                 </tr>
@@ -2421,7 +2421,7 @@ export function ReportApp({ injectedSource, assetBase }: {
 
     return (
         <div
-            className="min-h-screen text-white relative overflow-x-hidden"
+            className="min-h-screen axi-ink-plain relative overflow-x-hidden"
         >
             <div className="max-w-[2150px] mx-auto px-4 pt-4 pb-8 sm:px-6 sm:pt-5 sm:pb-10">
                 <div id="report-list-container" className="p-4 sm:p-6">
@@ -2441,13 +2441,13 @@ export function ReportApp({ injectedSource, assetBase }: {
                                 />
                             )}
                             <div>
-                                <div className="text-2xl sm:text-3xl tracking-[0.06em] font-medium" style={{ fontFamily: '"Cinzel", serif' }}><span className="text-white">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div>
-                                <div className="text-xs sm:text-sm uppercase tracking-[0.3em] text-gray-400 mt-1">Reports</div>
-                                <p className="text-xs text-gray-500 mt-1">Select a report to view the full stats dashboard.</p>
+                                <div className="text-2xl sm:text-3xl tracking-[0.06em] font-medium" style={{ fontFamily: '"Cinzel", serif' }}><span className="axi-ink-plain">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div>
+                                <div className="text-xs sm:text-sm uppercase tracking-[0.3em] axi-ink-dim mt-1">Reports</div>
+                                <p className="text-xs axi-ink-faint mt-1">Select a report to view the full stats dashboard.</p>
                             </div>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-                            <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] sm:text-xs uppercase tracking-widest text-gray-300">
+                            <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border axi-edge-rule text-[10px] sm:text-xs uppercase tracking-widest axi-ink-dim">
                                 {filteredIndex.length} Reports
                             </div>
                         </div>
@@ -2459,28 +2459,28 @@ export function ReportApp({ injectedSource, assetBase }: {
                             value={searchTerm}
                             onChange={(event) => setSearchTerm(event.target.value)}
                             placeholder="Search reports, commanders, or date..."
-                            className="w-full md:flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
+                            className="w-full md:flex-1 bg-white/5 border axi-edge-rule rounded-lg px-4 py-2 text-sm axi-ink-plain placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
                         />
-                        <div className="text-[11px] sm:text-xs text-gray-400">
+                        <div className="text-[11px] sm:text-xs axi-ink-dim">
                             Showing <span className="text-[color:var(--brand-primary)]">{filteredIndex.length}</span> of{' '}
                             <span className="text-[color:var(--brand-primary)]">{sortedIndex.length}</span>
                         </div>
                     </div>
 
                     {error && (
-                        <div className="mb-6 rounded-2xl border border-amber-400/40 bg-amber-500/10 px-6 py-5 text-amber-100 shadow-xl backdrop-blur-md" style={glassCardStyle}>
-                            <div className="text-sm uppercase tracking-widest text-amber-200/70">Warning</div>
-                            <div className="mt-2 text-base font-semibold text-white">{error}</div>
+                        <div className="mb-6 rounded-2xl border axi-edge-warn bg-amber-500/10 px-6 py-5 axi-ink-warn shadow-xl backdrop-blur-md" style={glassCardStyle}>
+                            <div className="text-sm uppercase tracking-widest axi-ink-warn">Warning</div>
+                            <div className="mt-2 text-base font-semibold axi-ink-plain">{error}</div>
                             {reportPathHint && (
-                                <div className="text-xs text-amber-100/80 mt-2">
-                                    Looking for: <span className="text-amber-50">{reportPathHint}</span>
+                                <div className="text-xs axi-ink-warn mt-2">
+                                    Looking for: <span className="axi-ink-warn">{reportPathHint}</span>
                                 </div>
                             )}
                         </div>
                     )}
 
                     {!error && !index && (
-                        <div className={`${glassCard} p-6 text-gray-300`} style={glassCardStyle}>Loading reports...</div>
+                        <div className={`${glassCard} p-6 axi-ink-dim`} style={glassCardStyle}>Loading reports...</div>
                     )}
 
                     {showIndexChrome && !error && index && sortedIndex.length > 0 && (
@@ -2502,22 +2502,22 @@ export function ReportApp({ injectedSource, assetBase }: {
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                                 <div className="min-w-0 block text-left pl-1 sm:pl-2">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--accent-border)] bg-[color:var(--accent-bg)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white">
+                                        <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--accent-border)] bg-[color:var(--accent-bg)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] axi-ink-plain">
                                             <BarChart3 className="w-4 h-4" />
                                             All Reports
                                         </span>
-                                        <span className="text-[11px] uppercase tracking-widest text-white/60">Overview</span>
+                                        <span className="text-[11px] uppercase tracking-widest axi-ink-faint">Overview</span>
                                     </div>
-                                    <div className="text-base sm:text-lg font-semibold mt-2 text-white">Combined Stats Across Every Included Report</div>
-                                    <div className="text-xs text-gray-300 mt-1 flex items-center gap-2">
+                                    <div className="text-base sm:text-lg font-semibold mt-2 axi-ink-plain">Combined Stats Across Every Included Report</div>
+                                    <div className="text-xs axi-ink-dim mt-1 flex items-center gap-2">
                                         <Users className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                                         <span>Cross-report commander totals, roster attendance, and recent participation in one place.</span>
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 sm:mt-0 mt-2 w-full sm:w-auto">
                                     <div className="flex flex-col items-end gap-1">
-                                        <div className="text-[10px] uppercase tracking-widest text-white/60">Source Reports</div>
-                                        <div className="text-lg text-white font-semibold">{sortedIndex.length}</div>
+                                        <div className="text-[10px] uppercase tracking-widest axi-ink-faint">Source Reports</div>
+                                        <div className="text-lg axi-ink-plain font-semibold">{sortedIndex.length}</div>
                                         <div className="text-[10px] uppercase tracking-widest text-[color:var(--accent-border)]">Open Summary</div>
                                     </div>
                                     <div className="h-10 w-10 rounded-full border border-[color:var(--accent-border)] bg-[color:var(--accent-bg)] inline-flex items-center justify-center">
@@ -2539,7 +2539,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                 >
                                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                                         <div className="min-w-0 block text-left">
-                                            <div className="text-[11px] uppercase tracking-widest text-gray-400">
+                                            <div className="text-[11px] uppercase tracking-widest axi-ink-dim">
                                                 {entry.dateLabel}
                                             </div>
                                             <div className="text-base sm:text-lg font-semibold mt-1 truncate flex items-center gap-2">
@@ -2560,7 +2560,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                     </button>
                                                 )}
                                             </div>
-                                            <div className="text-xs text-gray-400 mt-1 flex items-center gap-2">
+                                            <div className="text-xs axi-ink-dim mt-1 flex items-center gap-2">
                                                 <Users className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
                                                 <span className="truncate">
                                                     {entry.commanders.length ? entry.commanders.join(', ') : 'No Commanders'}
@@ -2568,7 +2568,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                             </div>
                                         </div>
                                         <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 sm:mt-0 mt-2 w-full sm:w-auto">
-                                            <div className="flex flex-col items-center gap-1 text-[10px] text-gray-400">
+                                            <div className="flex flex-col items-center gap-1 text-[10px] axi-ink-dim">
                                                 {entry.summary?.mapSlices && entry.summary.mapSlices.length > 0 ? (
                                                     <>
                                                         <MapDonut slices={entry.summary.mapSlices} />
@@ -2582,8 +2582,8 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                 )}
                                             </div>
                                             <div className="flex flex-col items-end gap-1">
-                                                <div className="text-[10px] uppercase tracking-widest text-gray-400">Avg Squad / Enemy</div>
-                                                <div className="text-sm text-white font-semibold">
+                                                <div className="text-[10px] uppercase tracking-widest axi-ink-dim">Avg Squad / Enemy</div>
+                                                <div className="text-sm axi-ink-plain font-semibold">
                                                     {entry.summary?.avgSquadSize ?? '--'} / {entry.summary?.avgEnemySize ?? '--'}
                                                 </div>
                                             </div>
@@ -2596,11 +2596,11 @@ export function ReportApp({ injectedSource, assetBase }: {
                     )}
 
                     {!error && index && sortedIndex.length === 0 && (
-                        <div className={`${glassCard} p-6 text-gray-300`} style={glassCardStyle}>No reports uploaded yet.</div>
+                        <div className={`${glassCard} p-6 axi-ink-dim`} style={glassCardStyle}>No reports uploaded yet.</div>
                     )}
 
                     {!error && index && sortedIndex.length > 0 && filteredIndex.length === 0 && (
-                        <div className={`${glassCard} p-6 text-gray-300`} style={glassCardStyle}>No reports match your search.</div>
+                        <div className={`${glassCard} p-6 axi-ink-dim`} style={glassCardStyle}>No reports match your search.</div>
                     )}
                 </div>
                 <div className="mt-8">

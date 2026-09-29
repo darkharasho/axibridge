@@ -160,14 +160,14 @@ const Toggle = memo(function Toggle({ enabled, onChange, label, description, dis
             onClick={() => { if (!disabled) onChange(!enabled); }}
         >
             <div className="flex-1">
-                <div className={`text-sm font-medium text-gray-200 transition-colors ${disabled ? '' : 'group-hover:text-white'}`}>
+                <div className={`text-sm font-medium axi-ink-plain transition-colors ${disabled ? '' : 'group-hover:text-white'}`}>
                     {label}
                     {disabled && disabledNote ? (
-                        <span className="ml-2 text-xs font-normal text-gray-500">{disabledNote}</span>
+                        <span className="ml-2 text-xs font-normal axi-ink-faint">{disabledNote}</span>
                     ) : null}
                 </div>
                 {description && (
-                    <div className="text-xs text-gray-500 mt-0.5">{description}</div>
+                    <div className="text-xs axi-ink-faint mt-0.5">{description}</div>
                 )}
             </div>
             {/* Upstream's switch at its native size. The row owns the click, so this
@@ -209,10 +209,10 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
         >
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                    <div className="settings-section__badge p-2 bg-blue-500/20 rounded-[4px] border border-blue-500/30">
-                        <Icon className="w-5 h-5 text-blue-400" />
+                    <div className="settings-section__badge p-2 bg-blue-500/20 rounded-[4px] border axi-edge-meta">
+                        <Icon className="w-5 h-5 axi-ink-meta" />
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-200">{title}</h3>
+                    <h3 className="text-lg font-semibold axi-ink-plain">{title}</h3>
                 </div>
                 {action}
             </div>
@@ -412,7 +412,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         return (
             <>
                 {before}
-                <mark className="rounded bg-cyan-500/30 px-1 text-cyan-100">{match}</mark>
+                <mark className="rounded bg-cyan-500/30 px-1 axi-ink-meta">{match}</mark>
                 {after}
             </>
         );
@@ -748,8 +748,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             // Update nav item classes directly — avoids re-rendering the entire SettingsView on scroll
             container.ownerDocument.querySelectorAll<HTMLElement>('[data-settings-nav-id]').forEach((el) => {
                 const isNowActive = el.dataset.settingsNavId === bestId;
-                el.classList.toggle('text-white', isNowActive);
-                el.classList.toggle('text-gray-400', !isNowActive);
+                el.classList.toggle('axi-ink-plain', isNowActive);
+                el.classList.toggle('axi-ink-dim', !isNowActive);
             });
             // Update mobile section label directly
             if (mobileNavLabelRef.current) {
@@ -1334,7 +1334,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     // both the Dashboard Top Stats Cards list and the MVP Weighting list.
     const renderBoonMetricToggle = (color: string) => (
         <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-gray-500 uppercase tracking-wide">Rank by</span>
+            <span className="text-[10px] axi-ink-faint uppercase tracking-wide">Rank by</span>
             {([
                 { id: 'average', label: 'Gen/Sec' },
                 { id: 'uptime', label: 'Uptime' },
@@ -1346,7 +1346,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         key={opt.id}
                         type="button"
                         onClick={() => updateStatsViewSettingValue('mvpBoonMetric', opt.id)}
-                        className={`px-2 py-0.5 rounded-md text-[10.5px] font-semibold border transition-colors ${active ? '' : 'border-white/10 text-gray-400 hover:text-gray-200'}`}
+                        className={`px-2 py-0.5 rounded-md text-[10.5px] font-semibold border transition-colors ${active ? '' : 'axi-edge-rule axi-ink-dim hover:text-gray-200'}`}
                         style={active ? { color, background: `${color}1f`, borderColor: `${color}66` } : undefined}
                     >
                         {opt.label}
@@ -1466,10 +1466,10 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         <Settings className="w-5 h-5" />
                     </div>
                     <div className="space-y-1">
-                        <h2 className="settings-title text-2xl font-bold text-white flex items-center gap-2">
+                        <h2 className="settings-title text-2xl font-bold axi-ink-plain flex items-center gap-2">
                             Settings
                         </h2>
-                        <p className="text-gray-400 text-[11px] sm:text-xs">
+                        <p className="axi-ink-dim text-[11px] sm:text-xs">
                             Application preferences, automation defaults, and web publishing controls
                         </p>
                     </div>
@@ -1487,8 +1487,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             >
                                 <div
                                     className={`px-3 py-1 rounded-full text-xs font-semibold border ${isSaving
-                                        ? 'bg-green-500/20 text-green-300 border-green-500/40'
-                                        : 'bg-white/5 text-gray-400 border-white/10'
+                                        ? 'bg-green-500/20 axi-ink-ok axi-edge-ok'
+                                        : 'bg-white/5 axi-ink-dim axi-edge-rule'
                                         }`}
                                 >
                                     {isSaving ? 'Saving…' : 'Saved'}
@@ -1499,7 +1499,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     <button
                         type="button"
                         onClick={() => window.electronAPI?.openExternal?.('https://discord.gg/UjzMXMGXEg')}
-                        className="flex items-center gap-2 rounded-[4px] border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-gray-300 hover:text-white hover:border-white/30 transition-colors"
+                        className="flex items-center gap-2 rounded-[4px] border axi-edge-rule bg-white/5 px-3 py-2 text-xs font-semibold axi-ink-dim hover:text-white hover:border-white/30 transition-colors"
                     >
                         <ExternalLink className="w-4 h-4" />
                         Support Discord
@@ -1518,20 +1518,20 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     >
                         <div className="rounded-[4px] p-3" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
                             <div className="relative">
-                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
+                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 axi-ink-faint pointer-events-none" />
                                 <input
                                     type="text"
                                     value={settingsSearch}
                                     onChange={(e) => setSettingsSearch(e.target.value)}
                                     placeholder="Search settings…"
-                                    className="w-full pl-8 pr-7 py-2 rounded-[4px] border border-white/10 text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:border-white/30 transition-colors"
+                                    className="w-full pl-8 pr-7 py-2 rounded-[4px] border axi-edge-rule text-xs axi-ink-plain placeholder-gray-500 focus:outline-none focus:border-white/30 transition-colors"
                                     style={{ background: 'var(--bg-input)' }}
                                 />
                                 {settingsSearch && (
                                     <button
                                         type="button"
                                         onClick={() => setSettingsSearch('')}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 axi-ink-faint hover:text-gray-300 transition-colors"
                                     >
                                         <CloseIcon className="w-3.5 h-3.5" />
                                     </button>
@@ -1539,7 +1539,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             </div>
                         </div>
                         <div className="rounded-[4px] p-3 flex-1 min-h-0" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
-                            <div className="text-[11px] uppercase tracking-[0.25em] text-gray-500 mb-2">Sections</div>
+                            <div className="text-[11px] uppercase tracking-[0.25em] axi-ink-faint mb-2">Sections</div>
                             <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
                                 <SettingsNav
                                     categories={SETTINGS_CATEGORIES}
@@ -1614,7 +1614,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
                     {/* Discord Embed Stats - Summary Sections */}
                     <SettingsSection title="Summary Sections" icon={Users} delay={0.1} sectionId="embed-summary">
-                        <p className="text-sm text-gray-400 mb-4">
+                        <p className="text-sm axi-ink-dim mb-4">
                             Configure which summary sections appear in Discord reports.
                         </p>
                         <div className="divide-y divide-white/5">
@@ -1669,11 +1669,11 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
                     {/* Discord Embed Stats - Top Lists */}
                     <SettingsSection title="Top Stats Lists" icon={BarChart3} delay={0.15} sectionId="embed-top">
-                        <p className="text-sm text-gray-400 mb-2">
+                        <p className="text-sm axi-ink-dim mb-2">
                             Configure which top stat player lists appear in Discord reports.
                         </p>
-                        <div className="mb-4 pb-4 border-b border-white/10">
-                            <label className="text-xs text-gray-500 block mb-2">Max rows per top stat list</label>
+                        <div className="mb-4 pb-4 border-b axi-edge-rule">
+                            <label className="text-xs axi-ink-faint block mb-2">Max rows per top stat list</label>
                             <div className="flex items-center gap-3">
                                 <input
                                     type="range"
@@ -1685,19 +1685,19 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     className="flex-1"
                                     style={{ accentColor: 'var(--axi-accent)' }}
                                 />
-                                <div className="min-w-8 shrink-0 text-right text-sm text-gray-300 font-mono">
+                                <div className="min-w-8 shrink-0 text-right text-sm axi-ink-dim font-mono">
                                     {embedStats.maxTopListRows}
                                 </div>
                             </div>
                         </div>
-                        <div className="mb-4 pb-4 border-b border-white/10">
-                            <label className="text-xs text-gray-500 block mb-2">Class display</label>
+                        <div className="mb-4 pb-4 border-b axi-edge-rule">
+                            <label className="text-xs axi-ink-faint block mb-2">Class display</label>
                             <div className="grid grid-cols-3 gap-2">
                                 <button
                                     onClick={() => updateClassDisplay('off')}
                                     className={`rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors ${embedStats.classDisplay === 'off'
-                                        ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
-                                        : 'bg-black/20 text-gray-400 border-white/10 hover:text-gray-200'
+                                        ? 'bg-blue-500/20 axi-ink-meta axi-edge-meta'
+                                        : 'bg-black/20 axi-ink-dim axi-edge-rule hover:text-gray-200'
                                         }`}
                                 >
                                     Off
@@ -1705,8 +1705,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 <button
                                     onClick={() => updateClassDisplay('short')}
                                     className={`rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors ${embedStats.classDisplay === 'short'
-                                        ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
-                                        : 'bg-black/20 text-gray-400 border-white/10 hover:text-gray-200'
+                                        ? 'bg-blue-500/20 axi-ink-meta axi-edge-meta'
+                                        : 'bg-black/20 axi-ink-dim axi-edge-rule hover:text-gray-200'
                                         }`}
                                 >
                                     Short name
@@ -1714,8 +1714,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 <button
                                     onClick={() => updateClassDisplay('emoji')}
                                     className={`rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors ${embedStats.classDisplay === 'emoji'
-                                        ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
-                                        : 'bg-black/20 text-gray-400 border-white/10 hover:text-gray-200'
+                                        ? 'bg-blue-500/20 axi-ink-meta axi-edge-meta'
+                                        : 'bg-black/20 axi-ink-dim axi-edge-rule hover:text-gray-200'
                                         }`}
                                 >
                                     Emoji
@@ -1725,7 +1725,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         <div className="flex justify-end mb-2">
                             <button
                                 onClick={() => setAllTopLists(!allTopListsEnabled)}
-                                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                                className="text-xs axi-ink-meta hover:text-blue-300 transition-colors"
                             >
                                 {allTopListsEnabled ? 'Disable All' : 'Enable All'}
                             </button>
@@ -1780,8 +1780,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 description="Stability boon generation"
                             />
                         </div>
-                        <div className="mt-4 pt-4 border-t border-white/10">
-                            <p className="text-xs text-gray-500 mb-3">Additional Stats (disabled by default)</p>
+                        <div className="mt-4 pt-4 border-t axi-edge-rule">
+                            <p className="text-xs axi-ink-faint mb-3">Additional Stats (disabled by default)</p>
                             <div className="divide-y divide-white/5">
                                 <Toggle
                                     enabled={embedStats.showResurrects}
@@ -1869,31 +1869,31 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     setGithubManageOpen(true);
                                     loadGithubReports();
                                 }}
-                                className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white hover:border-white/30 transition-colors"
+                                className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white hover:border-white/30 transition-colors"
                             >
                                 Manage
                             </button>
                         ) : null}
                     >
-                        <p className="text-sm text-gray-400 mb-4">
+                        <p className="text-sm axi-ink-dim mb-4">
                             Connect a GitHub OAuth App to publish web reports to GitHub Pages.
                         </p>
-                        <div className="text-xs text-gray-500 mb-4">
+                        <div className="text-xs axi-ink-faint mb-4">
                             Sign in with GitHub (device flow). We will create a repo and enable Pages automatically if needed.
                         </div>
                         <div className="flex flex-wrap items-center gap-3 mb-4">
                             <button
                                 onClick={handleGithubConnect}
-                                className="github-connect-btn flex items-center gap-2 px-4 py-2 rounded-[4px] bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold transition-colors"
+                                className="github-connect-btn flex items-center gap-2 px-4 py-2 rounded-[4px] bg-cyan-600 hover:bg-cyan-500 axi-ink-plain text-sm font-semibold transition-colors"
                             >
                                 <LinkIcon className="w-4 h-4" />
                                 {githubAuthStatus === 'connected' ? 'Re-connect GitHub' : 'Connect GitHub'}
                             </button>
                             <div className={`text-xs px-3 py-1 rounded-full border ${githubAuthStatus === 'connected'
-                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                ? 'bg-emerald-500/20 axi-ink-ok axi-edge-ok'
                                 : githubAuthStatus === 'pending'
-                                    ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40'
-                                    : 'bg-white/5 text-gray-400 border-white/10'
+                                    ? 'bg-cyan-500/20 axi-ink-meta axi-edge-meta'
+                                    : 'bg-white/5 axi-ink-dim axi-edge-rule'
                                 }`}
                             >
                                 {githubAuthStatus === 'connected' ? 'Connected' : githubAuthStatus === 'pending' ? 'Waiting for OAuth...' : 'Not connected'}
@@ -1907,40 +1907,40 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         setGithubRepos([]);
                                         setGithubRepoName('');
                                     }}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-[4px] bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-semibold border border-white/10 transition-colors"
+                                    className="flex items-center gap-2 px-4 py-2 rounded-[4px] bg-white/5 hover:bg-white/10 axi-ink-dim text-sm font-semibold border axi-edge-rule transition-colors"
                                 >
                                     Disconnect
                                 </button>
                             </div>
                             {githubAuthMessage && (
-                                <div className="text-xs text-gray-400">{githubAuthMessage}</div>
+                                <div className="text-xs axi-ink-dim">{githubAuthMessage}</div>
                             )}
                         </div>
                         {githubUserCode && githubVerificationUri && (
-                            <div className="bg-black/40 border border-white/10 rounded-[4px] px-4 py-3 text-sm text-gray-300 mb-4 animate-[fadeUp_0.6s_ease-out]">
-                                <div className="text-xs uppercase tracking-widest text-gray-500 mb-1">Authorize in Browser</div>
+                            <div className="bg-black/40 border axi-edge-rule rounded-[4px] px-4 py-3 text-sm axi-ink-dim mb-4 animate-[fadeUp_0.6s_ease-out]">
+                                <div className="text-xs uppercase tracking-widest axi-ink-faint mb-1">Authorize in Browser</div>
                                 <div className="flex items-center justify-between gap-3">
-                                    <div className="font-mono text-lg text-white">{githubUserCode}</div>
+                                    <div className="font-mono text-lg axi-ink-plain">{githubUserCode}</div>
                                     <button
                                         onClick={() => navigator.clipboard.writeText(githubUserCode)}
-                                        className="px-3 py-1 rounded-full text-[10px] border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                        className="px-3 py-1 rounded-full text-[10px] border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
                                     >
                                         Copy Code
                                     </button>
                                 </div>
-                                <div className="text-xs text-gray-500 mt-1">{githubVerificationUri}</div>
+                                <div className="text-xs axi-ink-faint mt-1">{githubVerificationUri}</div>
                             </div>
                         )}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                            <div className="md:col-span-2 bg-black/30 border border-white/10 rounded-[4px] p-3">
+                            <div className="md:col-span-2 bg-black/30 border axi-edge-rule rounded-[4px] p-3">
                                 <div className="flex items-center justify-between mb-2">
-                                    <div className="text-xs uppercase tracking-widest text-gray-500">Repository</div>
+                                    <div className="text-xs uppercase tracking-widest axi-ink-faint">Repository</div>
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => setGithubRepoMode('select')}
                                             className={`px-2 py-1 rounded-full text-[10px] border ${githubRepoMode === 'select'
-                                                ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40'
-                                                : 'bg-white/5 text-gray-400 border-white/10'
+                                                ? 'bg-cyan-500/20 axi-ink-meta axi-edge-meta'
+                                                : 'bg-white/5 axi-ink-dim axi-edge-rule'
                                                 }`}
                                         >
                                             Choose Existing
@@ -1948,8 +1948,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         <button
                                             onClick={() => setGithubRepoMode('create')}
                                             className={`px-2 py-1 rounded-full text-[10px] border ${githubRepoMode === 'create'
-                                                ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40'
-                                                : 'bg-white/5 text-gray-400 border-white/10'
+                                                ? 'bg-cyan-500/20 axi-ink-meta axi-edge-meta'
+                                                : 'bg-white/5 axi-ink-dim axi-edge-rule'
                                                 }`}
                                         >
                                             Create New
@@ -1965,11 +1965,11 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 value={githubRepoSearch}
                                                 onChange={(e) => setGithubRepoSearch(e.target.value)}
                                                 placeholder="Search repositories..."
-                                                className="flex-1 bg-black/40 border border-white/5 rounded-[4px] px-3 py-2 text-xs text-gray-300 placeholder-gray-600 focus:border-cyan-400/50 focus:outline-none"
+                                                className="flex-1 bg-black/40 border axi-edge-rule rounded-[4px] px-3 py-2 text-xs axi-ink-dim placeholder-gray-600 focus:border-cyan-400/50 focus:outline-none"
                                             />
                                             <button
                                                 onClick={refreshGithubRepos}
-                                                className="p-2 rounded-[4px] bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300"
+                                                className="p-2 rounded-[4px] bg-white/5 border axi-edge-rule hover:bg-white/10 axi-ink-dim"
                                                 title="Refresh repos"
                                             >
                                                 <RefreshCw className={`w-4 h-4 ${loadingRepos ? 'animate-spin' : ''}`} />
@@ -2007,8 +2007,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                                 }
                                                             }}
                                                             className={`w-full text-left px-3 py-2 rounded-[4px] text-xs font-semibold border transition-colors flex items-center justify-between gap-2 cursor-pointer ${selectedGithubRepoKey === repo.full_name
-                                                                ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40'
-                                                                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                                ? 'bg-cyan-500/20 axi-ink-meta axi-edge-meta'
+                                                                : 'bg-white/5 axi-ink-dim axi-edge-rule hover:text-white'
                                                                 }`}
                                                         >
                                                             <span className="truncate">{repo.full_name || 'No repos loaded'}</span>
@@ -2019,17 +2019,17 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                                         event.stopPropagation();
                                                                         toggleFavoriteRepo(repo.full_name);
                                                                     }}
-                                                                    className={`p-1 rounded-md transition-colors ${isFavorite ? 'text-amber-300' : 'text-gray-500 hover:text-gray-200'}`}
+                                                                    className={`p-1 rounded-md transition-colors ${isFavorite ? 'axi-ink-warn' : 'axi-ink-faint hover:text-gray-200'}`}
                                                                     title={isFavorite ? 'Remove favorite' : 'Favorite repo'}
                                                                 >
-                                                                    <Star className={`w-3.5 h-3.5 ${isFavorite ? 'fill-amber-300' : 'fill-transparent'}`} />
+                                                                    <Star className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current' : 'fill-transparent'}`} />
                                                                 </button>
                                                             ) : null}
                                                         </div>
                                                     );
                                                 })}
                                         </div>
-                                        <div className="mt-2 text-[11px] text-gray-500">
+                                        <div className="mt-2 text-[11px] axi-ink-faint">
                                             The selected repo is your default `Upload to Web` target. Starred repos show up in the upload dropdown as alternate targets.
                                         </div>
                                     </>
@@ -2040,7 +2040,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 <select
                                                     value={githubCreateOwner}
                                                     onChange={(event) => setGithubCreateOwner(event.target.value)}
-                                                    className="w-full h-full appearance-none bg-black/50 border border-white/10 rounded-[4px] pl-3 pr-8 py-2 text-xs text-gray-200 focus:outline-none focus:border-cyan-400/50"
+                                                    className="w-full h-full appearance-none bg-black/50 border axi-edge-rule rounded-[4px] pl-3 pr-8 py-2 text-xs axi-ink-plain focus:outline-none focus:border-cyan-400/50"
                                                     aria-label="Repository owner"
                                                 >
                                                     <option value="">Personal account</option>
@@ -2048,7 +2048,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                         <option key={org.login} value={org.login}>{org.login}</option>
                                                     ))}
                                                 </select>
-                                                <ChevronDown className="w-3.5 h-3.5 text-gray-400 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
+                                                <ChevronDown className="w-3.5 h-3.5 axi-ink-dim pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
                                             </div>
                                         )}
                                         <input
@@ -2060,29 +2060,29 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 setGithubRepoError(validateRepoName(next));
                                             }}
                                             placeholder="New repository name"
-                                            className={`flex-1 bg-black/40 border rounded-[4px] px-3 py-2 text-xs text-gray-300 placeholder-gray-600 focus:outline-none ${githubRepoError ? 'border-rose-500/60 focus:border-rose-500/80' : 'border-white/5 focus:border-cyan-400/50'}`}
+                                            className={`flex-1 bg-black/40 border rounded-[4px] px-3 py-2 text-xs axi-ink-dim placeholder-gray-600 focus:outline-none ${githubRepoError ? 'axi-edge-danger focus:border-rose-500/80' : 'axi-edge-rule focus:border-cyan-400/50'}`}
                                         />
-                                        <div className="text-xs text-gray-500 flex items-center gap-1">
-                                            <Plus className="w-4 h-4 text-cyan-300" />
+                                        <div className="text-xs axi-ink-faint flex items-center gap-1">
+                                            <Plus className="w-4 h-4 axi-ink-meta" />
                                         </div>
                                         <button
                                             onClick={handleCreateGithubRepo}
                                             disabled={creatingRepo || !!githubRepoError || githubAuthStatus !== 'connected'}
-                                            className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-cyan-600/20 text-cyan-200 border-cyan-500/40 disabled:opacity-50"
+                                            className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-cyan-600/20 axi-ink-meta axi-edge-meta disabled:opacity-50"
                                         >
                                             {creatingRepo ? 'Creating...' : 'Create Now'}
                                         </button>
                                     </div>
                                 )}
                                 {githubRepoMode === 'create' && githubRepoError && (
-                                    <div className="text-xs text-rose-400 mt-2">{githubRepoError}</div>
+                                    <div className="text-xs axi-ink-danger mt-2">{githubRepoError}</div>
                                 )}
                                 {githubRepoMode === 'create' && githubRepoStatus && (
                                     <div className={`text-xs mt-2 ${githubRepoStatusKind === 'success'
-                                        ? 'text-emerald-300'
+                                        ? 'axi-ink-ok'
                                         : githubRepoStatusKind === 'error'
-                                            ? 'text-rose-400'
-                                            : 'text-cyan-300'
+                                            ? 'axi-ink-danger'
+                                            : 'axi-ink-meta'
                                         }`}
                                     >
                                         {githubRepoStatus}
@@ -2090,29 +2090,29 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 )}
                                 {githubRepoMode === 'select' && githubTemplateStatus && (
                                     <div className={`text-xs mt-2 ${githubTemplateStatusKind === 'success'
-                                        ? 'text-emerald-300'
+                                        ? 'axi-ink-ok'
                                         : githubTemplateStatusKind === 'error'
-                                            ? 'text-rose-400'
-                                            : 'text-cyan-300'
+                                            ? 'axi-ink-danger'
+                                            : 'axi-ink-meta'
                                         }`}
                                     >
                                         {githubTemplateStatus}
                                     </div>
                                 )}
-                                <div className="github-pages-url-card bg-black/40 border border-white/5 rounded-[4px] px-4 py-3 flex items-center gap-3 mt-3">
+                                <div className="github-pages-url-card bg-black/40 border axi-edge-rule rounded-[4px] px-4 py-3 flex items-center gap-3 mt-3">
                                     <div className="flex-1 min-w-0">
-                                        <div className="text-xs uppercase tracking-widest text-gray-500 mb-1">GitHub Pages URL</div>
+                                        <div className="text-xs uppercase tracking-widest axi-ink-faint mb-1">GitHub Pages URL</div>
                                         <input
                                             type="text"
                                             value={inferredPagesUrl || 'Connect GitHub and select a repo'}
                                             readOnly
-                                            className="github-pages-url-value w-full bg-transparent text-sm text-gray-200 focus:outline-none"
+                                            className="github-pages-url-value w-full bg-transparent text-sm axi-ink-plain focus:outline-none"
                                         />
                                     </div>
                                     <button
                                         onClick={handleCopyPagesUrl}
                                         disabled={!inferredPagesUrl}
-                                        className="github-pages-url-copy px-3 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-200 border-white/10 hover:border-white/30 disabled:opacity-50"
+                                        className="github-pages-url-copy px-3 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 axi-ink-plain axi-edge-rule hover:border-white/30 disabled:opacity-50"
                                     >
                                         {pagesUrlCopied ? 'Copied' : 'Copy'}
                                     </button>
@@ -2120,8 +2120,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             </div>
 
                         </div>
-                        <div className="bg-black/30 border border-white/10 rounded-[4px] p-4 mb-4">
-                            <div className="text-xs uppercase tracking-widest text-gray-500 mb-3">Logo</div>
+                        <div className="bg-black/30 border axi-edge-rule rounded-[4px] p-4 mb-4">
+                            <div className="text-xs uppercase tracking-widest axi-ink-faint mb-3">Logo</div>
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={async () => {
@@ -2131,28 +2131,28 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             setGithubLogoPath(path);
                                         }
                                     }}
-                                    className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                    className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
                                 >
                                     {githubLogoPath ? 'Replace Logo' : 'Choose Logo'}
                                 </button>
                                 {githubLogoPath && (
                                     <button
                                         onClick={() => setGithubLogoPath(null)}
-                                        className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-400 border-white/10 hover:text-white"
+                                        className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
                                     >
                                         Remove
                                     </button>
                                 )}
-                                <div className="text-xs text-gray-500 truncate">
+                                <div className="text-xs axi-ink-faint truncate">
                                     {githubLogoPath ? githubLogoPath.split(/[\\/]/).pop() : 'No logo selected'}
                                 </div>
                             </div>
                             {githubLogoStatus && (
                                 <div className={`mt-3 text-xs ${githubLogoStatusKind === 'success'
-                                    ? 'text-emerald-300'
+                                    ? 'axi-ink-ok'
                                     : githubLogoStatusKind === 'error'
-                                        ? 'text-rose-300'
-                                        : 'text-cyan-300'
+                                        ? 'axi-ink-danger'
+                                        : 'axi-ink-meta'
                                     }`}
                                 >
                                     {githubLogoStatus}
@@ -2168,11 +2168,11 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         delay={0.09}
                         sectionId="r2-storage"
                     >
-                        <p className="text-sm text-gray-400 mb-2">
+                        <p className="text-sm axi-ink-dim mb-2">
                             Optional. When configured, the bulky out-of-band parts of a published report — map replay data and fight slice data — are uploaded to R2 instead of GitHub Pages, keeping the report repository small. Requires a Cloudflare R2 bucket with public access enabled.
                         </p>
-                        <p className="text-sm text-gray-400 mb-4">
-                            Without R2, map replays still publish to GitHub Pages and are dropped only when too large for it, but <span className="text-gray-300">fight slicing in the published report is unavailable</span> — slice data is never written to Pages, because it would cost more repository storage than the whole report. The report itself publishes normally either way.
+                        <p className="text-sm axi-ink-dim mb-4">
+                            Without R2, map replays still publish to GitHub Pages and are dropped only when too large for it, but <span className="axi-ink-dim">fight slicing in the published report is unavailable</span> — slice data is never written to Pages, because it would cost more repository storage than the whole report. The report itself publishes normally either way.
                         </p>
                         <CloudflareConnect
                             onChanged={() => {
@@ -2181,25 +2181,25 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             }}
                         />
                         {!r2OAuthConnected && !(r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2PublicUrl) && (
-                            <div className="mb-4 rounded-[6px] border border-amber-400/25 bg-amber-400/5 px-3.5 py-3">
-                                <p className="text-xs font-semibold text-amber-400 mb-2">Setting up R2 requires a payment method on your Cloudflare account</p>
-                                <ol className="list-decimal pl-4 space-y-0.5 text-xs text-gray-400">
-                                    <li>Create a <span className="text-gray-300">Cloudflare account</span> (free).</li>
-                                    <li><span className="text-gray-300">Add a payment method.</span> Cloudflare requires a card on file before R2 can be enabled — even on the free tier.</li>
-                                    <li>Open <span className="text-gray-300">R2 Object Storage</span> in the dashboard and click <span className="text-gray-300">Enable</span>.</li>
-                                    <li><span className="text-gray-300">Create a bucket</span>, any name.</li>
-                                    <li>In the bucket's <span className="text-gray-300">Settings</span>, enable the <span className="text-gray-300">Public Development URL</span> and copy the <code className="rounded-[3px] border border-white/10 bg-black/40 px-1 text-[11px] text-cyan-300">pub-&hellip;.r2.dev</code> address.</li>
-                                    <li>Go to <span className="text-gray-300">R2 &rarr; Manage R2 API Tokens &rarr; Create API Token</span> with <span className="text-gray-300">Object Read &amp; Write</span>, and copy the Access Key ID and Secret Access Key. <span className="text-gray-300">The secret is shown only once.</span></li>
-                                    <li>Copy your <span className="text-gray-300">Account ID</span> from the dashboard home page.</li>
+                            <div className="mb-4 rounded-[6px] border axi-edge-warn bg-amber-400/5 px-3.5 py-3">
+                                <p className="text-xs font-semibold axi-ink-warn mb-2">Setting up R2 requires a payment method on your Cloudflare account</p>
+                                <ol className="list-decimal pl-4 space-y-0.5 text-xs axi-ink-dim">
+                                    <li>Create a <span className="axi-ink-dim">Cloudflare account</span> (free).</li>
+                                    <li><span className="axi-ink-dim">Add a payment method.</span> Cloudflare requires a card on file before R2 can be enabled — even on the free tier.</li>
+                                    <li>Open <span className="axi-ink-dim">R2 Object Storage</span> in the dashboard and click <span className="axi-ink-dim">Enable</span>.</li>
+                                    <li><span className="axi-ink-dim">Create a bucket</span>, any name.</li>
+                                    <li>In the bucket's <span className="axi-ink-dim">Settings</span>, enable the <span className="axi-ink-dim">Public Development URL</span> and copy the <code className="rounded-[3px] border axi-edge-rule bg-black/40 px-1 text-[11px] axi-ink-meta">pub-&hellip;.r2.dev</code> address.</li>
+                                    <li>Go to <span className="axi-ink-dim">R2 &rarr; Manage R2 API Tokens &rarr; Create API Token</span> with <span className="axi-ink-dim">Object Read &amp; Write</span>, and copy the Access Key ID and Secret Access Key. <span className="axi-ink-dim">The secret is shown only once.</span></li>
+                                    <li>Copy your <span className="axi-ink-dim">Account ID</span> from the dashboard home page.</li>
                                 </ol>
-                                <p className="mt-2.5 text-[11px] text-gray-500">R2's free tier covers 10 GB of storage with no bandwidth charges, which is far more than published reports use. The card is Cloudflare's requirement to enable the service, not a charge from AxiBridge.</p>
+                                <p className="mt-2.5 text-[11px] axi-ink-faint">R2's free tier covers 10 GB of storage with no bandwidth charges, which is far more than published reports use. The card is Cloudflare's requirement to enable the service, not a charge from AxiBridge.</p>
                             </div>
                         )}
                         {r2OAuthConnected && !r2ManualOpen && (
                             <button
                                 type="button"
                                 onClick={() => setR2ManualOpen(true)}
-                                className="text-xs text-gray-400 underline underline-offset-2 hover:text-gray-200"
+                                className="text-xs axi-ink-dim underline underline-offset-2 hover:text-gray-200"
                             >
                                 Enter R2 credentials manually instead
                             </button>
@@ -2213,23 +2213,23 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 { label: 'Public URL', value: r2PublicUrl, set: setR2PublicUrl, placeholder: 'https://pub-xxx.r2.dev' },
                             ] as Array<{ label: string; value: string; set: (v: string) => void; placeholder: string; secret?: boolean }>).map(({ label, value, set, placeholder, secret }) => (
                                 <div key={label}>
-                                    <label className="block text-xs text-gray-400 mb-1">{label}</label>
+                                    <label className="block text-xs axi-ink-dim mb-1">{label}</label>
                                     <input
                                         type={secret ? 'password' : 'text'}
                                         value={value}
                                         onChange={(e) => set(e.target.value)}
                                         placeholder={placeholder}
-                                        className="w-full bg-black/30 border border-white/10 rounded-[4px] px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50"
+                                        className="w-full bg-black/30 border axi-edge-rule rounded-[4px] px-3 py-1.5 text-sm axi-ink-plain placeholder-gray-600 focus:outline-none focus:border-cyan-500/50"
                                     />
                                 </div>
                             ))}
                         </div>
                         {!r2OAuthConnected && (r2AccountId || r2AccessKeyId || r2SecretAccessKey || r2BucketName || r2PublicUrl) && !(r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2PublicUrl) && (
-                            <p className="mt-3 text-xs text-amber-400">All five fields are required to enable R2 upload.</p>
+                            <p className="mt-3 text-xs axi-ink-warn">All five fields are required to enable R2 upload.</p>
                         )}
                         {(r2OAuthConnected || (r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2PublicUrl)) && (
                             <>
-                                <p className="mt-3 text-xs text-emerald-400">R2 configured — choose which parts of a published report it stores.</p>
+                                <p className="mt-3 text-xs axi-ink-ok">R2 configured — choose which parts of a published report it stores.</p>
                                 <div className="mt-3">
                                     <Toggle
                                         enabled={r2HostingEnabled}
@@ -2273,13 +2273,13 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     {/* Parser Settings Section */}
                     <div ref={parserSettingsRef}>
                     <SettingsSection title="Report Data" icon={Zap} delay={0.2} sectionId="parser-settings">
-                        <p className="text-sm text-gray-400 mb-4">
+                        <p className="text-sm axi-ink-dim mb-4">
                             Combat logs are parsed in-process by Axilog, which ships with the app. There is nothing
                             to install, update or choose.
                         </p>
 
-                        <div className="bg-black/30 border border-white/10 rounded-[4px] p-4 mb-4" data-testid="parser-status-card">
-                            <div className="text-xs uppercase tracking-widest text-gray-500 mb-3">Parse Engine</div>
+                        <div className="bg-black/30 border axi-edge-rule rounded-[4px] p-4 mb-4" data-testid="parser-status-card">
+                            <div className="text-xs uppercase tracking-widest axi-ink-faint mb-3">Parse Engine</div>
                             {/*
                               * The removal deleted an install and, for some users, a
                               * setting they had chosen by hand. It says so where that
@@ -2288,9 +2288,9 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             {parserStatus?.eliteInsightsRemoval && (
                                 <div
                                     data-testid="elite-insights-removal-notice"
-                                    className="bg-blue-500/10 border border-blue-500/30 rounded-[4px] px-3 py-2.5 mb-3 flex items-start gap-3"
+                                    className="bg-blue-500/10 border axi-edge-meta rounded-[4px] px-3 py-2.5 mb-3 flex items-start gap-3"
                                 >
-                                    <div className="flex-1 text-xs text-blue-100 leading-snug">
+                                    <div className="flex-1 text-xs axi-ink-meta leading-snug">
                                         <span className="font-semibold">Elite Insights has been removed.</span>{' '}
                                         {parserStatus.eliteInsightsRemoval.wasSelected
                                             ? 'You had selected it as your parse engine; Axilog is now the only engine and parses everything in-process. '
@@ -2305,24 +2305,24 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             setParserStatus((prev: IParserStatus | null) => (prev ? { ...prev, eliteInsightsRemoval: null } : prev));
                                             window.electronAPI?.ackEliteInsightsRemovalNotice?.();
                                         }}
-                                        className="text-xs text-blue-300/70 hover:text-blue-100 flex-shrink-0"
+                                        className="text-xs axi-ink-meta hover:text-blue-100 flex-shrink-0"
                                     >
                                         Got it
                                     </button>
                                 </div>
                             )}
-                            <div className="text-sm text-gray-200">
+                            <div className="text-sm axi-ink-plain">
                                 {parserStatus && !parserStatus.available
                                     ? 'Axilog is unavailable on this platform'
                                     : `Axilog${parserStatus?.version ? ` ${parserStatus.version}` : ''}`}
                             </div>
                             {parserStatus && !parserStatus.available && (
-                                <div className="text-xs text-red-400 mt-2" data-testid="parser-unavailable">
+                                <div className="text-xs axi-ink-danger mt-2" data-testid="parser-unavailable">
                                     No prebuilt Axilog binary exists for this platform, so logs cannot be parsed
                                     locally. Please report this — include your operating system and architecture.
                                 </div>
                             )}
-                            <div className="text-xs text-gray-500 mt-3">
+                            <div className="text-xs axi-ink-faint mt-3">
                                 Parses in-process in under a second — no download, no .NET runtime, no separate
                                 process.
                             </div>
@@ -2332,8 +2332,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
                         {/* Parser Options */}
                         {parserSettings && (
-                            <div className="bg-black/30 border border-white/10 rounded-[4px] p-4">
-                                <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">Analysis</div>
+                            <div className="bg-black/30 border axi-edge-rule rounded-[4px] p-4">
+                                <div className="text-xs uppercase tracking-widest axi-ink-faint mb-2">Analysis</div>
                                 <div className="divide-y divide-white/5">
                                     <Toggle
                                         label="Compute Damage Modifiers"
@@ -2373,7 +2373,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         style={{ display: selectedCategoryId === 'stats' ? undefined : 'none' }}
                     >
                     <SettingsSection title="Top Stats & MVP" icon={BarChart3} delay={0.18} sectionId="dashboard-stats">
-                        <p className="text-sm text-gray-400 mb-4">
+                        <p className="text-sm axi-ink-dim mb-4">
                             Control the calculation and display of the top stats cards and MVP highlights.
                         </p>
                         <div className="divide-y divide-white/5">
@@ -2410,10 +2410,10 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             <div className="py-3">
                                 <div className="flex items-center justify-between mb-1">
                                     <div>
-                                        <div className="text-sm font-medium text-gray-200">Min. Fight Participation</div>
-                                        <div className="text-xs text-gray-500">Exclude players below this threshold from leaderboards and MVP.</div>
+                                        <div className="text-sm font-medium axi-ink-plain">Min. Fight Participation</div>
+                                        <div className="text-xs axi-ink-faint">Exclude players below this threshold from leaderboards and MVP.</div>
                                     </div>
-                                    <div className="text-sm font-semibold text-blue-200 tabular-nums w-12 text-right">
+                                    <div className="text-sm font-semibold axi-ink-meta tabular-nums w-12 text-right">
                                         {statsViewSettings.minParticipationPercent}%
                                     </div>
                                 </div>
@@ -2427,13 +2427,13 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     className="w-full"
                                     style={{ accentColor: 'var(--axi-accent)' }}
                                 />
-                                <div className="flex justify-between text-[10px] text-gray-600 mt-0.5">
+                                <div className="flex justify-between text-[10px] axi-ink-faint mt-0.5">
                                     <span>0% (all players)</span>
                                     <span>100%</span>
                                 </div>
                             </div>
                             <div className="py-3">
-                                <div className="text-sm font-medium text-gray-200 mb-2">Top Stats Calculation</div>
+                                <div className="text-sm font-medium axi-ink-plain mb-2">Top Stats Calculation</div>
                                 <div className="flex gap-2">
                                     {([
                                         { id: 'total', label: 'Total' },
@@ -2445,22 +2445,22 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             type="button"
                                             onClick={() => updateTopStatsMode(option.id)}
                                             className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${statsViewSettings.topStatsMode === option.id
-                                                ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
-                                                : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                                ? 'bg-blue-500/20 axi-ink-meta axi-edge-meta'
+                                                : 'bg-white/5 axi-ink-dim axi-edge-rule hover:text-gray-200'
                                                 }`}
                                         >
                                             {option.label}
                                         </button>
                                     ))}
                                 </div>
-                                <div className="text-xs text-gray-500 mt-1">Applies to Top Stats cards and breakdown.</div>
+                                <div className="text-xs axi-ink-faint mt-1">Applies to Top Stats cards and breakdown.</div>
                             </div>
-                            <div className="py-3 border-t border-white/5">
+                            <div className="py-3 border-t axi-edge-rule">
                                 <div className="flex items-center justify-between mb-3">
-                                    <div className="text-sm font-medium text-gray-200">Top Stats Cards</div>
-                                    <div className="text-xs text-gray-500">
+                                    <div className="text-sm font-medium axi-ink-plain">Top Stats Cards</div>
+                                    <div className="text-xs axi-ink-faint">
                                         {normalizeEnabledTopStats(statsViewSettings.enabledTopStats).length} of {TOP_STATS_CATALOG.length} enabled
-                                        <button type="button" onClick={resetTopStats} className="ml-2 text-blue-300 hover:text-blue-200">Reset to defaults</button>
+                                        <button type="button" onClick={resetTopStats} className="ml-2 axi-ink-meta hover:text-blue-200">Reset to defaults</button>
                                     </div>
                                 </div>
                                 {CATEGORY_ORDER.map((cat: TopStatCategory) => {
@@ -2510,8 +2510,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     );
                                 })}
                             </div>
-                            <div className="py-3 border-t border-white/5">
-                                <div className="text-sm font-medium text-gray-200 mb-2">Interrupt Display</div>
+                            <div className="py-3 border-t axi-edge-rule">
+                                <div className="text-sm font-medium axi-ink-plain mb-2">Interrupt Display</div>
                                 <div className="flex gap-2 flex-wrap">
                                     {([
                                         { id: 'ccOnly', label: 'CC Only' },
@@ -2523,19 +2523,19 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             type="button"
                                             onClick={() => updateInterruptMode(option.id)}
                                             className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${statsViewSettings.interruptMode === option.id
-                                                ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
-                                                : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                                ? 'bg-blue-500/20 axi-ink-meta axi-edge-meta'
+                                                : 'bg-white/5 axi-ink-dim axi-edge-rule hover:text-gray-200'
                                                 }`}
                                         >
                                             {option.label}
                                         </button>
                                     ))}
                                 </div>
-                                <div className="text-xs text-gray-500 mt-1">Show interrupts alongside or combined with CC on the leaderboard.</div>
+                                <div className="text-xs axi-ink-faint mt-1">Show interrupts alongside or combined with CC on the leaderboard.</div>
                             </div>
-                            <div className="py-3 border-t border-white/5">
-                                <div className="text-sm font-medium text-gray-200 mb-2">Top Skills Source</div>
-                                <div className="text-xs text-gray-500 mb-3">
+                            <div className="py-3 border-t axi-edge-rule">
+                                <div className="text-sm font-medium axi-ink-plain mb-2">Top Skills Source</div>
+                                <div className="text-xs axi-ink-faint mb-3">
                                     Pick which damage bucket ranks skills.
                                 </div>
                                 <div className="grid gap-3">
@@ -2566,18 +2566,18 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 type="button"
                                                 onClick={() => updateStatsViewSettingValue('topSkillDamageSource', option.id)}
                                                 className={`text-left rounded-[4px] border px-4 py-3 transition-colors ${isActive
-                                                    ? 'bg-blue-500/15 border-blue-500/40 text-blue-100'
-                                                    : 'bg-black/20 border-white/10 text-gray-300 hover:text-white hover:border-white/20'
+                                                    ? 'bg-blue-500/15 axi-edge-meta axi-ink-meta'
+                                                    : 'bg-black/20 axi-edge-rule axi-ink-dim hover:text-white hover:border-white/20'
                                                     }`}
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="text-sm font-semibold">{option.label}</div>
-                                                    <div className={`text-xs font-semibold ${isActive ? 'text-blue-200' : 'text-gray-500'}`}>
+                                                    <div className={`text-xs font-semibold ${isActive ? 'axi-ink-meta' : 'axi-ink-faint'}`}>
                                                         {isActive ? 'Selected' : 'Select'}
                                                     </div>
                                                 </div>
-                                                <div className="text-xs text-gray-400 mt-1">{option.summary}</div>
-                                                <ul className="mt-2 space-y-1 text-xs text-gray-500">
+                                                <div className="text-xs axi-ink-dim mt-1">{option.summary}</div>
+                                                <ul className="mt-2 space-y-1 text-xs axi-ink-faint">
                                                     {option.implications.map((item, idx) => (
                                                         <li key={`${option.id}-${idx}`}>• {item}</li>
                                                     ))}
@@ -2587,9 +2587,9 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     })}
                                 </div>
                             </div>
-                            <div className="py-3 border-t border-white/5">
-                                <div className="text-sm font-medium text-gray-200 mb-2">Top Skills Metric</div>
-                                <div className="text-xs text-gray-500 mb-3">
+                            <div className="py-3 border-t axi-edge-rule">
+                                <div className="text-sm font-medium axi-ink-plain mb-2">Top Skills Metric</div>
+                                <div className="text-xs axi-ink-faint mb-3">
                                     Choose how skills are ranked.
                                 </div>
                                 <div className="grid gap-3">
@@ -2620,18 +2620,18 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 type="button"
                                                 onClick={() => updateStatsViewSettingValue('topSkillsMetric', option.id)}
                                                 className={`text-left rounded-[4px] border px-4 py-3 transition-colors ${isActive
-                                                    ? 'bg-blue-500/15 border-blue-500/40 text-blue-100'
-                                                    : 'bg-black/20 border-white/10 text-gray-300 hover:text-white hover:border-white/20'
+                                                    ? 'bg-blue-500/15 axi-edge-meta axi-ink-meta'
+                                                    : 'bg-black/20 axi-edge-rule axi-ink-dim hover:text-white hover:border-white/20'
                                                     }`}
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="text-sm font-semibold">{option.label}</div>
-                                                    <div className={`text-xs font-semibold ${isActive ? 'text-blue-200' : 'text-gray-500'}`}>
+                                                    <div className={`text-xs font-semibold ${isActive ? 'axi-ink-meta' : 'axi-ink-faint'}`}>
                                                         {isActive ? 'Selected' : 'Select'}
                                                     </div>
                                                 </div>
-                                                <div className="text-xs text-gray-400 mt-1">{option.summary}</div>
-                                                <ul className="mt-2 space-y-1 text-xs text-gray-500">
+                                                <div className="text-xs axi-ink-dim mt-1">{option.summary}</div>
+                                                <ul className="mt-2 space-y-1 text-xs axi-ink-faint">
                                                     {option.implications.map((item, idx) => (
                                                         <li key={`${option.id}-${idx}`}>• {item}</li>
                                                     ))}
@@ -2641,12 +2641,12 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     })}
                                 </div>
                             </div>
-                            <div className="py-4 border-t border-white/10">
-                                <div className="flex items-center gap-2 text-sm font-medium text-gray-200 mb-2">
-                                    <Zap className="w-4 h-4 text-blue-300" />
+                            <div className="py-4 border-t axi-edge-rule">
+                                <div className="flex items-center gap-2 text-sm font-medium axi-ink-plain mb-2">
+                                    <Zap className="w-4 h-4 axi-ink-meta" />
                                     CC/Strip Methodology
                                 </div>
-                                <div className="text-xs text-gray-500 mb-3">
+                                <div className="text-xs axi-ink-faint mb-3">
                                     Choose how crowd control and strip totals are calculated across the app.
                                 </div>
                                 <div className="grid gap-3">
@@ -2657,18 +2657,18 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 key={key}
                                                 onClick={() => setDisruptionMethod(key as DisruptionMethod)}
                                                 className={`text-left rounded-[4px] border px-4 py-3 transition-colors ${isActive
-                                                    ? 'bg-blue-500/15 border-blue-500/40 text-blue-100'
-                                                    : 'bg-black/20 border-white/10 text-gray-300 hover:text-white hover:border-white/20'
+                                                    ? 'bg-blue-500/15 axi-edge-meta axi-ink-meta'
+                                                    : 'bg-black/20 axi-edge-rule axi-ink-dim hover:text-white hover:border-white/20'
                                                     }`}
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="text-sm font-semibold">{method.label}</div>
-                                                    <div className={`text-xs font-semibold ${isActive ? 'text-blue-200' : 'text-gray-500'}`}>
+                                                    <div className={`text-xs font-semibold ${isActive ? 'axi-ink-meta' : 'axi-ink-faint'}`}>
                                                         {isActive ? 'Selected' : 'Select'}
                                                     </div>
                                                 </div>
-                                                <div className="text-xs text-gray-400 mt-1">{method.summary}</div>
-                                                <ul className="mt-2 space-y-1 text-xs text-gray-500">
+                                                <div className="text-xs axi-ink-dim mt-1">{method.summary}</div>
+                                                <ul className="mt-2 space-y-1 text-xs axi-ink-faint">
                                                     {method.implications.map((item, idx) => (
                                                         <li key={`${key}-${idx}`}>• {item}</li>
                                                     ))}
@@ -2690,16 +2690,16 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         key={b}
                                         type="button"
                                         onClick={() => setMvpBucket(b)}
-                                        className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-colors ${mvpBucket === b ? 'bg-blue-500/20 text-blue-200 border-blue-500/40' : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'}`}
+                                        className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-colors ${mvpBucket === b ? 'bg-blue-500/20 axi-ink-meta axi-edge-meta' : 'bg-white/5 axi-ink-dim axi-edge-rule hover:text-gray-200'}`}
                                     >
                                         {b === 'offensive' ? 'Offensive' : b === 'defensive' ? 'Defensive' : 'General'}
                                         {b === 'general' && <span className="opacity-60 font-normal"> (both)</span>}
                                     </button>
                                 ))}
                             </div>
-                            <button type="button" onClick={resetMvpProfiles} className="text-xs text-blue-300 hover:text-blue-200">Reset to defaults</button>
+                            <button type="button" onClick={resetMvpProfiles} className="text-xs axi-ink-meta hover:text-blue-200">Reset to defaults</button>
                         </div>
-                        <p className="text-xs text-gray-500 mb-3">Weight any stat toward this MVP. 0 = ignored. Offensive &amp; Defensive also include the General weights.</p>
+                        <p className="text-xs axi-ink-faint mb-3">Weight any stat toward this MVP. 0 = ignored. Offensive &amp; Defensive also include the General weights.</p>
                         {CATEGORY_ORDER.map((cat: TopStatCategory) => {
                             const meta = CATEGORY_META[cat];
                             const defs = MVP_WEIGHTABLE_STATS.filter((d) => d.category === cat);
@@ -2732,12 +2732,12 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     </SettingsSection>
 
                     <SettingsSection title="Boon Uptime Resolution" icon={BarChart3} delay={0.19} sectionId="boon-uptime-resolution">
-                        <p className="text-sm text-gray-400 mb-4">
+                        <p className="text-sm axi-ink-dim mb-4">
                             Control the bucket interval used for boon uptime timeline charts. Finer resolution reveals short coverage gaps but increases data size.
                         </p>
                         <div className="divide-y divide-white/5">
                             <div className="py-3">
-                                <div className="text-sm font-medium text-gray-200 mb-2">Non-stacking boons (Protection, Resistance, etc.)</div>
+                                <div className="text-sm font-medium axi-ink-plain mb-2">Non-stacking boons (Protection, Resistance, etc.)</div>
                                 <div className="flex gap-2">
                                     {([
                                         { id: 1000, label: '1s' },
@@ -2750,18 +2750,18 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             type="button"
                                             onClick={() => updateStatsViewSettingValue('boonBucketIntervalMs', option.id)}
                                             className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${statsViewSettings.boonBucketIntervalMs === option.id
-                                                ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
-                                                : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                                ? 'bg-blue-500/20 axi-ink-meta axi-edge-meta'
+                                                : 'bg-white/5 axi-ink-dim axi-edge-rule hover:text-gray-200'
                                                 }`}
                                         >
                                             {option.label}
                                         </button>
                                     ))}
                                 </div>
-                                <div className="text-xs text-gray-500 mt-1">Default: 2s — reveals short boon drops that 5s buckets hide.</div>
+                                <div className="text-xs axi-ink-faint mt-1">Default: 2s — reveals short boon drops that 5s buckets hide.</div>
                             </div>
                             <div className="py-3">
-                                <div className="text-sm font-medium text-gray-200 mb-2">Stacking boons (Might, Stability, etc.)</div>
+                                <div className="text-sm font-medium axi-ink-plain mb-2">Stacking boons (Might, Stability, etc.)</div>
                                 <div className="flex gap-2">
                                     {([
                                         { id: 1000, label: '1s' },
@@ -2774,15 +2774,15 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             type="button"
                                             onClick={() => updateStatsViewSettingValue('stackingBoonBucketIntervalMs', option.id)}
                                             className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${statsViewSettings.stackingBoonBucketIntervalMs === option.id
-                                                ? 'bg-blue-500/20 text-blue-200 border-blue-500/40'
-                                                : 'bg-white/5 text-gray-400 border-white/10 hover:text-gray-200'
+                                                ? 'bg-blue-500/20 axi-ink-meta axi-edge-meta'
+                                                : 'bg-white/5 axi-ink-dim axi-edge-rule hover:text-gray-200'
                                                 }`}
                                         >
                                             {option.label}
                                         </button>
                                     ))}
                                 </div>
-                                <div className="text-xs text-gray-500 mt-1">Default: 5s — stacking boons fluctuate constantly so coarser buckets are fine.</div>
+                                <div className="text-xs axi-ink-faint mt-1">Default: 5s — stacking boons fluctuate constantly so coarser buckets are fine.</div>
                             </div>
                         </div>
                     </SettingsSection>
@@ -2790,12 +2790,12 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     {/* Commander Thresholds Section */}
                     <SettingsSection title="Commander Thresholds" icon={BarChart3} delay={0.185} sectionId="commander-thresholds">
                         <div className="flex items-center justify-between mb-4">
-                            <p className="text-sm text-gray-400">
+                            <p className="text-sm axi-ink-dim">
                                 Tune the thresholds that drive Commander tab severity colors and insight detectors.
                             </p>
                             <button
                                 onClick={() => setCommanderThresholds(DEFAULT_COMMANDER_THRESHOLDS)}
-                                className="text-xs font-semibold text-blue-300 hover:text-blue-200 transition-colors"
+                                className="text-xs font-semibold axi-ink-meta hover:text-blue-200 transition-colors"
                             >
                                 Reset all
                             </button>
@@ -2820,7 +2820,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 const current = commanderThresholds[key];
                                 return (
                                     <div key={key} className="flex items-center gap-3 py-1.5">
-                                        <div className="flex-1 text-sm text-gray-200">{label}</div>
+                                        <div className="flex-1 text-sm axi-ink-plain">{label}</div>
                                         {kind === 'bombFloor' ? (
                                             <input
                                                 type="text"
@@ -2832,7 +2832,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                         setCommanderThresholds((prev) => ({ ...prev, bombFloor: next as number | 'auto' }));
                                                     }
                                                 }}
-                                                className="w-32 bg-black/30 border border-white/10 rounded px-2 py-1 text-xs text-gray-100"
+                                                className="w-32 bg-black/30 border axi-edge-rule rounded px-2 py-1 text-xs axi-ink-plain"
                                             />
                                         ) : (
                                             <input
@@ -2845,7 +2845,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                         setCommanderThresholds((prev) => ({ ...prev, [key]: n } as CommanderThresholds));
                                                     }
                                                 }}
-                                                className="w-32 bg-black/30 border border-white/10 rounded px-2 py-1 text-xs text-gray-100"
+                                                className="w-32 bg-black/30 border axi-edge-rule rounded px-2 py-1 text-xs axi-ink-plain"
                                             />
                                         )}
                                         <button
@@ -2854,7 +2854,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             onClick={() =>
                                                 setCommanderThresholds((prev) => ({ ...prev, [key]: DEFAULT_COMMANDER_THRESHOLDS[key] } as CommanderThresholds))
                                             }
-                                            className="text-[10px] uppercase tracking-wide text-gray-500 hover:text-gray-200"
+                                            className="text-[10px] uppercase tracking-wide axi-ink-faint hover:text-gray-200"
                                         >
                                             Default
                                         </button>
@@ -2901,12 +2901,12 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 description="AxiBridge share links are the primary report link, but every fight row also gets a dps.report link in the Fight Breakdown table, so logs keep uploading there for the permalink. Turn this off to stop sending logs to dps.report entirely — those fights will have no dps.report link."
                             />
                         </div>
-                        <p className="text-sm text-gray-400 mb-4">
+                        <p className="text-sm axi-ink-dim mb-4">
                             Optional: Add your dps.report user token to associate uploads with your account.
                             You can find your token at{' '}
                             <button
                                 onClick={() => window.electronAPI?.openExternal?.('https://dps.report/getUserToken')}
-                                className="text-blue-400 hover:text-blue-300 underline transition-colors"
+                                className="axi-ink-meta hover:text-blue-300 underline transition-colors"
                             >
                                 dps.report/getUserToken
                             </button>
@@ -2916,34 +2916,34 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             value={dpsReportToken}
                             onChange={(e) => setDpsReportToken(e.target.value)}
                             placeholder="Enter your dps.report token..."
-                            className="w-full rounded-[4px] px-4 py-3 text-sm text-gray-300 placeholder-gray-600 focus:border-blue-500/50 focus:outline-none transition-colors"
+                            className="w-full rounded-[4px] px-4 py-3 text-sm axi-ink-dim placeholder-gray-600 focus:border-blue-500/50 focus:outline-none transition-colors"
                             style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                         />
                         <div className="mt-4 flex flex-wrap items-center gap-3">
                             <button
                                 onClick={handleClearDpsCache}
-                                className="flex items-center gap-2 px-4 py-2 rounded-[4px] bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-semibold border border-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex items-center gap-2 px-4 py-2 rounded-[4px] bg-white/5 hover:bg-white/10 axi-ink-dim text-sm font-semibold border axi-edge-rule transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled={dpsCacheBusy}
                             >
                                 <Trash2 className="w-4 h-4" />
                                 {dpsCacheBusy ? 'Clearing cache…' : 'Clear dps.report cache'}
                             </button>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs axi-ink-faint">
                                 Removes cached dps.report results stored locally (does not delete your log files).
                             </div>
                             {dpsCacheStatus && (
-                                <div className="text-xs text-gray-400">{dpsCacheStatus}</div>
+                                <div className="text-xs axi-ink-dim">{dpsCacheStatus}</div>
                             )}
                             {dpsCacheBusy && (
                                 <div className="w-full max-w-sm">
-                                    <div className="text-[11px] text-gray-400 mb-1">{dpsCacheProgressLabel || 'Clearing cache…'}</div>
+                                    <div className="text-[11px] axi-ink-dim mb-1">{dpsCacheProgressLabel || 'Clearing cache…'}</div>
                                     <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
                                         <div
                                             className="h-full bg-amber-400 transition-all duration-150"
                                             style={{ width: `${dpsCacheProgress}%` }}
                                         />
                                     </div>
-                                    <div className="text-[11px] text-gray-500 mt-1">{Math.round(dpsCacheProgress)}%</div>
+                                    <div className="text-[11px] axi-ink-faint mt-1">{Math.round(dpsCacheProgress)}%</div>
                                 </div>
                             )}
                         </div>
@@ -2956,13 +2956,13 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         style={{ display: selectedCategoryId === 'application' ? undefined : 'none' }}
                     >
                     <SettingsSection title="Appearance" icon={Sparkles} delay={0.02} sectionId="appearance">
-                        <p className="text-sm text-gray-400 mb-4">
+                        <p className="text-sm axi-ink-dim mb-4">
                             Choose a color palette for the interface accent colors.
                         </p>
                         {/* The picker is never locked now. It used to be, because Lillifox
                             Mode painted its own accents; that mode is gone, and the accent
                             drives the language in both surface treatments. */}
-                        <div className="text-[11px] uppercase tracking-[0.2em] text-gray-500 mb-2">
+                        <div className="text-[11px] uppercase tracking-[0.2em] axi-ink-faint mb-2">
                             Color Palette
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -2973,9 +2973,16 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         key={palette.id}
                                         type="button"
                                         onClick={() => { setColorPalette(palette.id); onColorPaletteSaved?.(palette.id); }}
+                                        // The picked palette is edged in the accent, which is what
+                                        // the accent means. It used to say border-white/40 against
+                                        // border-white/10, and both of those resolved to --axi-rule
+                                        // through the palette bridge - so the selected swatch has
+                                        // been indistinguishable from the rest since the theme
+                                        // landed, and the test asserting the distinction was
+                                        // asserting a class with no effect.
                                         className={`rounded-[4px] border px-3 py-3 text-left transition-colors ${isActive
-                                            ? 'border-white/40 bg-white/10'
-                                            : 'border-white/10 bg-white/5 hover:border-white/30'
+                                            ? 'axi-edge-accent bg-white/10'
+                                            : 'axi-edge-rule bg-white/5 hover:border-white/30'
                                             }`}
                                     >
                                         {/* A flat chip of `primary`, not `palette.gradient`.
@@ -2988,10 +2995,10 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             Blue" off a blue-to-indigo chip and get a flat blue
                                             UI. The swatch shows the colour the app paints. */}
                                         <div
-                                            className="w-full h-8 rounded-[4px] mb-2 border border-white/10"
+                                            className="w-full h-8 rounded-[4px] mb-2 border axi-edge-rule"
                                             style={{ backgroundColor: palette.primary }}
                                         />
-                                        <div className="text-xs font-semibold text-gray-200">{palette.label}</div>
+                                        <div className="text-xs font-semibold axi-ink-plain">{palette.label}</div>
                                     </button>
                                 );
                             })}
@@ -3014,49 +3021,49 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
                     {/* Close Behavior Section */}
                     <SettingsSection title="Window & Close Behavior" icon={Minimize} delay={0.2} sectionId="close-behavior">
-                        <p className="text-sm text-gray-400 mb-4">
+                        <p className="text-sm axi-ink-dim mb-4">
                             Choose what happens when you click the close button.
                         </p>
                         <div className="grid grid-cols-2 gap-3">
                             <button
                                 onClick={() => setCloseBehavior('minimize')}
                                 className={`flex flex-col items-center justify-center gap-3 py-4 rounded-[4px] border transition-all ${closeBehavior === 'minimize'
-                                    ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
-                                    : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'
+                                    ? 'bg-blue-500/20 axi-edge-meta axi-ink-meta'
+                                    : 'bg-black/20 axi-edge-rule axi-ink-faint hover:text-gray-300'
                                     }`}
                             >
                                 <Minimize className="w-6 h-6" />
                                 <div className="text-center">
                                     <div className="text-sm font-medium">Minimize to Tray</div>
-                                    <div className="text-xs text-gray-500 mt-1">Keep running in background</div>
+                                    <div className="text-xs axi-ink-faint mt-1">Keep running in background</div>
                                 </div>
                             </button>
 
                             <button
                                 onClick={() => setCloseBehavior('quit')}
                                 className={`flex flex-col items-center justify-center gap-3 py-4 rounded-[4px] border transition-all ${closeBehavior === 'quit'
-                                    ? 'bg-red-500/20 border-red-500/50 text-red-400'
-                                    : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'
+                                    ? 'bg-red-500/20 axi-edge-danger axi-ink-danger'
+                                    : 'bg-black/20 axi-edge-rule axi-ink-faint hover:text-gray-300'
                                     }`}
                             >
                                 <CloseIcon className="w-6 h-6" />
                                 <div className="text-center">
                                     <div className="text-sm font-medium">Quit Application</div>
-                                    <div className="text-xs text-gray-500 mt-1">Fully close the app</div>
+                                    <div className="text-xs axi-ink-faint mt-1">Fully close the app</div>
                                 </div>
                             </button>
                         </div>
                     </SettingsSection>
 
                     <SettingsSection title="Export / Import Settings" icon={Download} delay={0.2} sectionId="export-import">
-                        <p className="text-sm text-gray-400 mb-4">
+                        <p className="text-sm axi-ink-dim mb-4">
                             Save your current configuration to a file or import it on another machine.
                         </p>
                         <div className="grid grid-cols-2 gap-3">
                             <button
                                 type="button"
                                 onClick={handleExportSettings}
-                                className="flex items-center justify-center gap-2 rounded-[4px] border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-200 hover:bg-blue-500/20 transition-colors"
+                                className="flex items-center justify-center gap-2 rounded-[4px] border axi-edge-meta bg-blue-500/10 px-4 py-3 text-sm font-medium axi-ink-meta hover:bg-blue-500/20 transition-colors"
                             >
                                 <Download className="w-4 h-4" />
                                 Export Settings
@@ -3064,14 +3071,14 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             <button
                                 type="button"
                                 onClick={handleImportSettings}
-                                className="flex items-center justify-center gap-2 rounded-[4px] border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-200 hover:bg-emerald-500/20 transition-colors"
+                                className="flex items-center justify-center gap-2 rounded-[4px] border axi-edge-ok bg-emerald-500/10 px-4 py-3 text-sm font-medium axi-ink-ok hover:bg-emerald-500/20 transition-colors"
                             >
                                 <Upload className="w-4 h-4" />
                                 Import Settings
                             </button>
                         </div>
                         {settingsTransferStatus && (
-                            <div className={`mt-3 text-xs ${settingsTransferStatus.kind === 'success' ? 'text-emerald-300' : 'text-red-300'}`}>
+                            <div className={`mt-3 text-xs ${settingsTransferStatus.kind === 'success' ? 'axi-ink-ok' : 'axi-ink-danger'}`}>
                                 {settingsTransferStatus.message}
                             </div>
                         )}
@@ -3079,27 +3086,27 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
                     <div ref={helpUpdatesRef}>
                         <SettingsSection title="Help & Updates" icon={Sparkles} delay={0.18} sectionId="help-updates">
-                            <p className="text-sm text-gray-400 mb-4">
+                            <p className="text-sm axi-ink-dim mb-4">
                                 Review release notes, reopen onboarding, or browse the complete feature guide.
                             </p>
                             <div className="space-y-2">
                                 <button
                                     onClick={() => setHowToOpen(true)}
-                                    className="w-full flex items-center justify-center gap-2 rounded-[4px] border border-cyan-500/30 bg-cyan-500/10 px-4 py-3 text-sm font-medium text-cyan-200 hover:bg-cyan-500/20 transition-colors"
+                                    className="w-full flex items-center justify-center gap-2 rounded-[4px] border axi-edge-meta bg-cyan-500/10 px-4 py-3 text-sm font-medium axi-ink-meta hover:bg-cyan-500/20 transition-colors"
                                 >
                                     <BookOpen className="w-4 h-4" />
                                     How To
                                 </button>
                                 <button
                                     onClick={() => onOpenWalkthrough?.()}
-                                    className="w-full flex items-center justify-center gap-2 rounded-[4px] border border-white/20 bg-white/5 px-4 py-3 text-sm font-medium text-gray-200 hover:bg-white/10 transition-colors"
+                                    className="w-full flex items-center justify-center gap-2 rounded-[4px] border axi-edge-rule bg-white/5 px-4 py-3 text-sm font-medium axi-ink-plain hover:bg-white/10 transition-colors"
                                 >
                                     <Compass className="w-4 h-4" />
                                     Open Walkthrough
                                 </button>
                                 <button
                                     onClick={() => onOpenWhatsNew?.()}
-                                    className="w-full flex items-center justify-center gap-2 rounded-[4px] border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-200 hover:bg-blue-500/20 transition-colors"
+                                    className="w-full flex items-center justify-center gap-2 rounded-[4px] border axi-edge-meta bg-blue-500/10 px-4 py-3 text-sm font-medium axi-ink-meta hover:bg-blue-500/20 transition-colors"
                                 >
                                     <Sparkles className="w-4 h-4" />
                                     View What's New
@@ -3108,27 +3115,27 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         </SettingsSection>
                     </div>
 
-                    <div id="legal" data-settings-section="true" data-settings-label="Legal" className="rounded-[4px] p-4 text-xs text-gray-400" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
+                    <div id="legal" data-settings-section="true" data-settings-label="Legal" className="rounded-[4px] p-4 text-xs axi-ink-dim" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
                         <div className="flex items-center justify-between mb-2">
-                            <div className="text-sm font-semibold text-gray-200">Legal Notice</div>
+                            <div className="text-sm font-semibold axi-ink-plain">Legal Notice</div>
                             <div className="flex items-center gap-2">
                                 <button
                                     type="button"
                                     onClick={() => window.electronAPI?.openExternal?.('https://github.com/darkharasho/axibridge')}
-                                    className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                    className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
                                 >
                                     GitHub
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => window.electronAPI?.openExternal?.('https://discord.gg/UjzMXMGXEg')}
-                                    className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                    className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
                                 >
                                     Discord
                                 </button>
                                 <button
                                     onClick={() => setProofOfWorkOpen(true)}
-                                    className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                    className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
                                 >
                                     Proof of Work
                                 </button>
@@ -3143,7 +3150,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             <button
                                 type="button"
                                 onClick={() => window.electronAPI?.openExternal?.('https://www.arena.net/en/legal/content-terms-of-use')}
-                                className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
+                                className="axi-ink-meta hover:text-blue-200 underline underline-offset-2"
                             >
                                 Content Terms of Use
                             </button>
@@ -3158,7 +3165,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             <button
                                 type="button"
                                 onClick={() => window.electronAPI?.openExternal?.('https://github.com/darkharasho/axibridge/blob/main/LICENSE')}
-                                className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
+                                className="axi-ink-meta hover:text-blue-200 underline underline-offset-2"
                             >
                                 LICENSE
                             </button>
@@ -3166,7 +3173,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             <button
                                 type="button"
                                 onClick={() => window.electronAPI?.openExternal?.('https://github.com/darkharasho/axibridge/blob/main/THIRD_PARTY_NOTICES.md')}
-                                className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
+                                className="axi-ink-meta hover:text-blue-200 underline underline-offset-2"
                             >
                                 THIRD_PARTY_NOTICES.md
                             </button>
@@ -3185,7 +3192,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                 <div className="flex items-center justify-between gap-2 rounded-[4px] px-3 py-1.5" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
                     <button
                         onClick={() => setSettingsNavOpen((open) => !open)}
-                        className="flex items-center gap-2 px-4 py-1.5 rounded-[4px] bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200 flex-1 justify-between"
+                        className="flex items-center gap-2 px-4 py-1.5 rounded-[4px] bg-white/5 border axi-edge-rule text-[10px] uppercase tracking-widest axi-ink-plain flex-1 justify-between"
                     >
                         <span ref={mobileNavLabelRef} className="truncate max-w-[160px]">
                             {labelForSection(activeSettingsSectionIdRef.current) ?? 'Settings'}
@@ -3194,7 +3201,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     </button>
                     <button
                         onClick={() => stepSettingsSection(1)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-[4px] bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-200"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-[4px] bg-white/5 border axi-edge-rule text-[10px] uppercase tracking-widest axi-ink-plain"
                     >
                         Next
                         <ChevronDown className="w-4 h-4 -rotate-90 text-[color:var(--accent)]" />
@@ -3213,10 +3220,10 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     >
                         <div className="app-modal-card w-full max-w-sm max-h-[85vh] rounded-[4px] p-4 flex flex-col" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
                             <div className="flex items-center justify-between mb-3">
-                                <div className="text-[11px] uppercase tracking-[0.3em] text-gray-400">Jump to</div>
+                                <div className="text-[11px] uppercase tracking-[0.3em] axi-ink-dim">Jump to</div>
                                 <button
                                     onClick={() => setSettingsNavOpen(false)}
-                                    className="p-1.5 rounded-[4px] hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
+                                    className="p-1.5 rounded-[4px] hover:bg-white/10 axi-ink-dim hover:text-white transition-colors"
                                     aria-label="Close navigation"
                                 >
                                     <CloseIcon className="w-4 h-4" />
@@ -3238,9 +3245,9 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 navigateToSection(item.id);
                                                 setSettingsNavOpen(false);
                                             }}
-                                            className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 overflow-hidden text-gray-400`}
+                                            className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 overflow-hidden axi-ink-dim`}
                                         >
-                                            <span className="flex items-center justify-center w-5 text-[10px] tabular-nums text-gray-500">
+                                            <span className="flex items-center justify-center w-5 text-[10px] tabular-nums axi-ink-faint">
                                                 {FLATTENED_SECTIONS.findIndex((section) => section.id === item.id) + 1}
                                             </span>
                                             <span className="flex-1 min-w-0 text-[13px] font-medium truncate">{item.label}</span>
@@ -3267,10 +3274,10 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
                         >
-                            <div className="px-6 pt-6 pb-4 border-b border-white/10">
-                                <div className="text-xs uppercase tracking-widest text-cyan-200/70">Import Settings</div>
-                                <h3 className="text-xl font-semibold text-white">Choose what to import</h3>
-                                <p className="text-sm text-gray-400 mt-2">
+                            <div className="px-6 pt-6 pb-4 border-b axi-edge-rule">
+                                <div className="text-xs uppercase tracking-widest axi-ink-meta">Import Settings</div>
+                                <h3 className="text-xl font-semibold axi-ink-plain">Choose what to import</h3>
+                                <p className="text-sm axi-ink-dim mt-2">
                                     All items are selected by default. Toggle any setting you want to skip.
                                 </p>
                             </div>
@@ -3282,8 +3289,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     const sections = Array.from(new Set(items.map((item) => item.section)));
                                     return sections.map((section) => (
                                         <div key={section} className="pt-2">
-                                            <div className="text-[11px] uppercase tracking-widest text-gray-500 mb-2">{section}</div>
-                                            <div className="divide-y divide-white/5 rounded-[4px] border border-white/5 bg-white/5 px-3">
+                                            <div className="text-[11px] uppercase tracking-widest axi-ink-faint mb-2">{section}</div>
+                                            <div className="divide-y divide-white/5 rounded-[4px] border axi-edge-rule bg-white/5 px-3">
                                                 {items
                                                     .filter((item) => item.section === section)
                                                     .map((item) => (
@@ -3300,24 +3307,24 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     ));
                                 })()}
                                 {importPreviewSettings && Object.keys(importPreviewSettings).length === 0 && (
-                                    <div className="text-sm text-gray-500 italic py-6 text-center">No settings found in file.</div>
+                                    <div className="text-sm axi-ink-faint italic py-6 text-center">No settings found in file.</div>
                                 )}
                             </div>
-                            <div className="sticky bottom-0 px-6 py-4 border-t border-white/10 bg-[var(--bg-card)] flex justify-end gap-3">
+                            <div className="sticky bottom-0 px-6 py-4 border-t axi-edge-rule bg-[var(--bg-card)] flex justify-end gap-3">
                                 <button
                                     type="button"
                                     onClick={() => {
                                         setImportModalOpen(false);
                                         setImportPreviewSettings(null);
                                     }}
-                                    className="px-4 py-2 rounded-[4px] border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
+                                    className="px-4 py-2 rounded-[4px] border axi-edge-rule bg-white/5 axi-ink-dim hover:text-white hover:border-white/30 transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="button"
                                     onClick={confirmImportSettings}
-                                    className="px-4 py-2 rounded-[4px] border border-emerald-500/40 bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30 transition-colors"
+                                    className="px-4 py-2 rounded-[4px] border axi-edge-ok bg-emerald-500/20 axi-ink-ok hover:bg-emerald-500/30 transition-colors"
                                 >
                                     Import
                                 </button>
@@ -3341,15 +3348,15 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
                         >
-                            <div className="px-6 pt-6 pb-4 border-b border-white/10 flex items-center justify-between shrink-0">
+                            <div className="px-6 pt-6 pb-4 border-b axi-edge-rule flex items-center justify-between shrink-0">
                                 <div>
-                                    <div className="text-xs uppercase tracking-widest text-amber-200/70">Developer Settings</div>
-                                    <h3 className="text-xl font-semibold text-white">Hidden Tools</h3>
+                                    <div className="text-xs uppercase tracking-widest axi-ink-warn">Developer Settings</div>
+                                    <h3 className="text-xl font-semibold axi-ink-plain">Hidden Tools</h3>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={() => setDevSettingsOpen(false)}
-                                    className="p-2 rounded-[4px] border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
+                                    className="p-2 rounded-[4px] border axi-edge-rule bg-white/5 axi-ink-dim hover:text-white hover:border-white/30 transition-colors"
                                     aria-label="Close Developer Settings"
                                 >
                                     <CloseIcon className="w-4 h-4" />
@@ -3361,7 +3368,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         key={tab}
                                         type="button"
                                         onClick={() => setDevSettingsTab(tab)}
-                                        className={`px-3 py-1.5 rounded-[4px] text-xs font-medium transition-colors ${devSettingsTab === tab ? 'bg-amber-500/20 border border-amber-500/40 text-amber-200' : 'border border-white/10 bg-white/5 text-gray-400 hover:text-gray-200'}`}
+                                        className={`px-3 py-1.5 rounded-[4px] text-xs font-medium transition-colors ${devSettingsTab === tab ? 'bg-amber-500/20 border axi-edge-warn axi-ink-warn' : 'border axi-edge-rule bg-white/5 axi-ink-dim hover:text-gray-200'}`}
                                     >
                                         {tab === 'tools' ? 'Tools' : 'Player Classification'}
                                     </button>
@@ -3370,7 +3377,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             <div className="px-6 py-5 space-y-3 overflow-y-auto min-h-0">
                                 {devSettingsTab === 'tools' && (
                                     <>
-                                        <p className="text-sm text-gray-400">
+                                        <p className="text-sm axi-ink-dim">
                                             Troubleshooting and one-off maintenance actions.
                                         </p>
                                         <Toggle
@@ -3383,11 +3390,11 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             label="Allow local EI JSON import"
                                             description="Accept .json files via drag-and-drop and Add Logs, bypassing dps.report upload."
                                         />
-                                        <div className="border-b border-white/5" />
+                                        <div className="border-b axi-edge-rule" />
                                         <button
                                             type="button"
                                             onClick={handleEnsureGithubTemplate}
-                                            className="w-full flex items-center justify-center gap-2 rounded-[4px] border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-200 hover:bg-amber-500/20 transition-colors"
+                                            className="w-full flex items-center justify-center gap-2 rounded-[4px] border axi-edge-warn bg-amber-500/10 px-4 py-3 text-sm font-medium axi-ink-warn hover:bg-amber-500/20 transition-colors"
                                         >
                                             <RefreshCw className="w-4 h-4" />
                                             Ensure GitHub Template
@@ -3395,28 +3402,28 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         <button
                                             type="button"
                                             onClick={handleClearDpsCache}
-                                            className="w-full flex items-center justify-center gap-2 rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-200 hover:bg-rose-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="w-full flex items-center justify-center gap-2 rounded-[4px] border axi-edge-danger bg-rose-500/10 px-4 py-3 text-sm font-medium axi-ink-danger hover:bg-rose-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                             disabled={dpsCacheBusy}
                                         >
                                             <Trash2 className="w-4 h-4" />
                                             {dpsCacheBusy ? 'Clearing dps.report cache…' : 'Clear dps.report cache'}
                                         </button>
                                         {(dpsCacheBusy || dpsCacheStatus) && (
-                                            <div className="rounded-[4px] border border-white/10 bg-black/20 px-3 py-2">
+                                            <div className="rounded-[4px] border axi-edge-rule bg-black/20 px-3 py-2">
                                                 {dpsCacheBusy && (
                                                     <>
-                                                        <div className="text-xs text-gray-300 mb-1">{dpsCacheProgressLabel || 'Clearing cache…'}</div>
+                                                        <div className="text-xs axi-ink-dim mb-1">{dpsCacheProgressLabel || 'Clearing cache…'}</div>
                                                         <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
                                                             <div
                                                                 className="h-full bg-rose-400 transition-all duration-150"
                                                                 style={{ width: `${dpsCacheProgress}%` }}
                                                             />
                                                         </div>
-                                                        <div className="text-[11px] text-gray-500 mt-1">{Math.round(dpsCacheProgress)}%</div>
+                                                        <div className="text-[11px] axi-ink-faint mt-1">{Math.round(dpsCacheProgress)}%</div>
                                                     </>
                                                 )}
                                                 {dpsCacheStatus && (
-                                                    <div className={`text-xs ${dpsCacheStatus.toLowerCase().includes('failed') ? 'text-rose-300' : 'text-emerald-300'}`}>
+                                                    <div className={`text-xs ${dpsCacheStatus.toLowerCase().includes('failed') ? 'axi-ink-danger' : 'axi-ink-ok'}`}>
                                                         {dpsCacheStatus}
                                                     </div>
                                                 )}
@@ -3424,10 +3431,10 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         )}
                                         {githubTemplateStatus && (
                                             <div className={`text-xs ${githubTemplateStatusKind === 'success'
-                                                ? 'text-emerald-300'
+                                                ? 'axi-ink-ok'
                                                 : githubTemplateStatusKind === 'error'
-                                                    ? 'text-rose-400'
-                                                    : 'text-amber-300'
+                                                    ? 'axi-ink-danger'
+                                                    : 'axi-ink-warn'
                                                 }`}
                                             >
                                                 {githubTemplateStatus}
@@ -3448,7 +3455,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     }> | undefined;
                                     if (!classifications || classifications.length === 0) {
                                         return (
-                                            <div className="text-sm text-gray-500 py-8 text-center">
+                                            <div className="text-sm axi-ink-faint py-8 text-center">
                                                 No classification data available. Load some logs and open the stats dashboard first.
                                             </div>
                                         );
@@ -3459,16 +3466,16 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     const threshold = sorted[0]?.threshold ?? 0;
                                     return (
                                         <>
-                                            <div className="flex items-center gap-4 text-xs text-gray-400">
+                                            <div className="flex items-center gap-4 text-xs axi-ink-dim">
                                                 <span>{sorted.length} players</span>
-                                                <span className="text-emerald-400">{supportCount} support</span>
-                                                <span className="text-orange-400">{damageCount} damage</span>
-                                                <span>threshold: <span className="text-amber-300 font-mono">{threshold.toFixed(2)}</span></span>
+                                                <span className="axi-ink-ok">{supportCount} support</span>
+                                                <span className="axi-ink-warn">{damageCount} damage</span>
+                                                <span>threshold: <span className="axi-ink-warn font-mono">{threshold.toFixed(2)}</span></span>
                                             </div>
-                                            <div className="rounded-[4px] border border-white/10 overflow-hidden">
+                                            <div className="rounded-[4px] border axi-edge-rule overflow-hidden">
                                                 <table className="stats-table w-full text-xs">
                                                     <thead>
-                                                        <tr className="border-b border-white/10 text-gray-400">
+                                                        <tr className="border-b axi-edge-rule axi-ink-dim">
                                                             <th className="text-left px-3 py-2 font-medium">Player</th>
                                                             <th className="text-left px-3 py-2 font-medium">Profession</th>
                                                             <th className="text-center px-3 py-2 font-medium">Role</th>
@@ -3483,34 +3490,34 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                                 ? { top: '100%', marginTop: 4 }
                                                                 : { bottom: '100%', marginBottom: 4 };
                                                             return (
-                                                            <tr key={c.account} className="border-b border-white/5 hover:bg-white/5 relative group">
-                                                                <td className="px-3 py-1.5 text-gray-200">{c.account}</td>
+                                                            <tr key={c.account} className="border-b axi-edge-rule hover:bg-white/5 relative group">
+                                                                <td className="px-3 py-1.5 axi-ink-plain">{c.account}</td>
                                                                 <td className="px-3 py-1.5" style={{ color: getProfessionColor(c.profession) }}>{c.profession}</td>
                                                                 <td className="px-3 py-1.5 text-center">
-                                                                    <span className={`inline-block px-2 py-0.5 rounded-[4px] text-[10px] font-semibold uppercase tracking-wide ${c.role === 'support' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-orange-500/20 text-orange-300 border border-orange-500/30'}`}>
+                                                                    <span className={`inline-block px-2 py-0.5 rounded-[4px] text-[10px] font-semibold uppercase tracking-wide ${c.role === 'support' ? 'bg-emerald-500/20 axi-ink-ok border axi-edge-ok' : 'bg-orange-500/20 axi-ink-warn border axi-edge-warn'}`}>
                                                                         {c.role}
                                                                     </span>
                                                                 </td>
-                                                                <td className="px-3 py-1.5 text-right text-gray-300 font-mono">{c.supportScore.toFixed(2)}</td>
+                                                                <td className="px-3 py-1.5 text-right axi-ink-dim font-mono">{c.supportScore.toFixed(2)}</td>
                                                                 <td className="px-3 py-1.5 text-right">
                                                                     <div className="flex items-center justify-end gap-2">
                                                                         <div className="w-16 h-1.5 rounded-full bg-white/10 overflow-hidden">
                                                                             <div className={`h-full rounded-full ${c.role === 'support' ? 'bg-emerald-400' : 'bg-orange-400'}`} style={{ width: `${Math.round(c.confidenceScore * 100)}%` }} />
                                                                         </div>
-                                                                        <span className="text-gray-400 font-mono w-10 text-right">{(c.confidenceScore * 100).toFixed(0)}%</span>
+                                                                        <span className="axi-ink-dim font-mono w-10 text-right">{(c.confidenceScore * 100).toFixed(0)}%</span>
                                                                     </div>
                                                                 </td>
                                                                 {c.factors && c.factors.length > 0 && (
                                                                     <td className="p-0" style={{ position: 'absolute', left: 0, right: 0, pointerEvents: 'none' }}>
                                                                         <div className="hidden group-hover:block absolute left-4 z-50 pointer-events-none" style={tooltipPosition}>
-                                                                            <div className="rounded-[4px] border border-white/15 px-3 py-2.5 text-[11px] shadow-2xl" style={{ background: '#1a1f2e', minWidth: 340 }}>
-                                                                                <div className="text-gray-300 font-medium mb-1.5">
-                                                                                    {c.account} — <span className={c.role === 'support' ? 'text-emerald-300' : 'text-orange-300'}>{c.role}</span>
-                                                                                    <span className="text-gray-500 font-normal ml-2">score {c.supportScore.toFixed(2)} / threshold {c.threshold.toFixed(2)}</span>
+                                                                            <div className="rounded-[4px] border axi-edge-rule px-3 py-2.5 text-[11px] shadow-2xl" style={{ background: '#1a1f2e', minWidth: 340 }}>
+                                                                                <div className="axi-ink-dim font-medium mb-1.5">
+                                                                                    {c.account} — <span className={c.role === 'support' ? 'axi-ink-ok' : 'axi-ink-warn'}>{c.role}</span>
+                                                                                    <span className="axi-ink-faint font-normal ml-2">score {c.supportScore.toFixed(2)} / threshold {c.threshold.toFixed(2)}</span>
                                                                                 </div>
                                                                                 <table className="stats-table w-full">
                                                                                     <thead>
-                                                                                        <tr className="text-gray-500">
+                                                                                        <tr className="axi-ink-faint">
                                                                                             <th className="text-left pr-3 pb-0.5 font-medium">Metric</th>
                                                                                             <th className="text-right pr-3 pb-0.5 font-medium">Value</th>
                                                                                             <th className="text-right pr-3 pb-0.5 font-medium">Median</th>
@@ -3521,12 +3528,12 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                                                     </thead>
                                                                                     <tbody>
                                                                                         {c.factors.map((f) => (
-                                                                                            <tr key={f.metric} className={f.contribution > 0 ? 'text-gray-300' : 'text-gray-600'}>
+                                                                                            <tr key={f.metric} className={f.contribution > 0 ? 'axi-ink-dim' : 'axi-ink-faint'}>
                                                                                                 <td className="pr-3 py-px">{f.metric}</td>
                                                                                                 <td className="text-right pr-3 py-px font-mono">{f.value >= 1000 ? (f.value / 1000).toFixed(1) + 'k' : f.value.toFixed(0)}</td>
                                                                                                 <td className="text-right pr-3 py-px font-mono">{f.median >= 1000 ? (f.median / 1000).toFixed(1) + 'k' : f.median.toFixed(0)}</td>
                                                                                                 <td className="text-right pr-3 py-px font-mono">{f.ratio.toFixed(2)}</td>
-                                                                                                <td className="text-right pr-3 py-px font-mono text-gray-500">{f.weight}</td>
+                                                                                                <td className="text-right pr-3 py-px font-mono axi-ink-faint">{f.weight}</td>
                                                                                                 <td className="text-right py-px font-mono">{f.contribution > 0 ? '+' : ''}{f.contribution.toFixed(2)}</td>
                                                                                             </tr>
                                                                                         ))}
@@ -3550,7 +3557,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 <button
                                     type="button"
                                     onClick={() => setDevSettingsOpen(false)}
-                                    className="px-4 py-2 rounded-[4px] border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 transition-colors"
+                                    className="px-4 py-2 rounded-[4px] border axi-edge-rule bg-white/5 axi-ink-dim hover:text-white hover:border-white/30 transition-colors"
                                 >
                                     Close
                                 </button>
@@ -3576,25 +3583,25 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         >
                             <div className="flex items-center justify-between mb-4">
                                 <div>
-                                    <div className="text-xs uppercase tracking-widest text-cyan-200/70">GitHub Pages</div>
-                                    <h3 className="text-xl font-semibold text-white">Manage Web Reports</h3>
+                                    <div className="text-xs uppercase tracking-widest axi-ink-meta">GitHub Pages</div>
+                                    <h3 className="text-xl font-semibold axi-ink-plain">Manage Web Reports</h3>
                                 </div>
                                 <button
                                     onClick={() => setGithubManageOpen(false)}
-                                    className="p-2 rounded-full bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:border-white/30"
+                                    className="p-2 rounded-full bg-white/5 border axi-edge-rule axi-ink-dim hover:text-white hover:border-white/30"
                                 >
                                     <CloseIcon className="w-4 h-4" />
                                 </button>
                             </div>
 
                             <div className="flex items-center justify-between mb-3">
-                                <div className="text-xs text-gray-400">
+                                <div className="text-xs axi-ink-dim">
                                     {githubReports.length} report{githubReports.length === 1 ? '' : 's'}
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button
                                         onClick={loadGithubReports}
-                                        className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white"
+                                        className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
                                     >
                                         Refresh
                                     </button>
@@ -3602,7 +3609,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         <button
                                             onClick={handleDeleteSelectedReports}
                                             disabled={githubReportsSelected.size === 0 || githubReportsDeleting}
-                                            className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-red-500/20 text-red-200 border-red-500/40 disabled:opacity-50"
+                                            className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-red-500/20 axi-ink-danger axi-edge-danger disabled:opacity-50"
                                         >
                                             {githubReportsDeleting ? 'Deleting...' : `Delete (${githubReportsSelected.size})`}
                                         </button>
@@ -3611,24 +3618,24 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             </div>
 
                             {githubReportsError && (
-                                <div className="mb-3 text-xs text-rose-300">{githubReportsError}</div>
+                                <div className="mb-3 text-xs axi-ink-danger">{githubReportsError}</div>
                             )}
                             {githubReportsStatus && (
-                                <div className="mb-3 text-xs text-emerald-300">{githubReportsStatus}</div>
+                                <div className="mb-3 text-xs axi-ink-ok">{githubReportsStatus}</div>
                             )}
 
                             <div className="max-h-[420px] overflow-y-auto pr-1 space-y-2">
                                 {githubReportsLoading ? (
-                                    <div className="text-sm text-gray-400">Loading reports...</div>
+                                    <div className="text-sm axi-ink-dim">Loading reports...</div>
                                 ) : githubReports.length === 0 ? (
-                                    <div className="text-sm text-gray-400">No reports found.</div>
+                                    <div className="text-sm axi-ink-dim">No reports found.</div>
                                 ) : (
                                     githubReports.map((report) => (
                                         <div
                                             key={report.id}
                                             className={`web-report-item flex items-center gap-3 rounded-[4px] border px-4 py-3 ${githubReportsSelected.has(report.id)
-                                                ? 'bg-cyan-500/10 border-cyan-400/40'
-                                                : 'bg-white/5 border-white/10'
+                                                ? 'bg-cyan-500/10 axi-edge-meta'
+                                                : 'bg-white/5 axi-edge-rule'
                                                 }`}
                                         >
                                             <input
@@ -3639,23 +3646,23 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 style={{ '--axi-check-size': '16px' } as CSSProperties}
                                             />
                                             <div className="flex-1 min-w-0">
-                                                <div className="text-sm font-semibold text-white truncate">
+                                                <div className="text-sm font-semibold axi-ink-plain truncate">
                                                     {report.title || report.id}
                                                 </div>
-                                                <div className="text-xs text-gray-400 truncate">
+                                                <div className="text-xs axi-ink-dim truncate">
                                                     {report.dateLabel || report.dateStart || 'Unknown date'}
                                                 </div>
                                             </div>
                                             <button
                                                 onClick={() => window.electronAPI?.openExternal?.(report.url)}
-                                                className="p-2 rounded-[4px] bg-white/5 border border-white/10 text-gray-300 hover:text-white"
+                                                className="p-2 rounded-[4px] bg-white/5 border axi-edge-rule axi-ink-dim hover:text-white"
                                                 title="Open report"
                                             >
                                                 <ExternalLink className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => toggleReportSelection(report.id)}
-                                                className="p-2 rounded-[4px] bg-red-500/10 border border-red-500/30 text-red-300 hover:text-red-200"
+                                                className="p-2 rounded-[4px] bg-red-500/10 border axi-edge-danger axi-ink-danger hover:text-red-200"
                                                 title="Select for deletion"
                                             >
                                                 <Trash2 className="w-4 h-4" />
@@ -3737,7 +3744,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     id={id}
                                     data-heading-id={id}
                                     data-heading-key={slugifyHeading(label)}
-                                    className="text-2xl font-bold text-white scroll-mt-6"
+                                    className="text-2xl font-bold axi-ink-plain scroll-mt-6"
                                 >
                                     {children}
                                 </h1>
@@ -3751,7 +3758,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     id={id}
                                     data-heading-id={id}
                                     data-heading-key={slugifyHeading(label)}
-                                    className="text-xl font-semibold text-white scroll-mt-6"
+                                    className="text-xl font-semibold axi-ink-plain scroll-mt-6"
                                 >
                                     {children}
                                 </h2>
@@ -3765,48 +3772,48 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     id={id}
                                     data-heading-id={id}
                                     data-heading-key={slugifyHeading(label)}
-                                    className="text-lg font-semibold text-white scroll-mt-6"
+                                    className="text-lg font-semibold axi-ink-plain scroll-mt-6"
                                 >
                                     {children}
                                 </h3>
                             );
                         },
-                        p: ({ children }) => <p className="leading-6 text-gray-200">{children}</p>,
-                        ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 text-gray-200">{children}</ul>,
-                        ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 text-gray-200">{children}</ol>,
+                        p: ({ children }) => <p className="leading-6 axi-ink-plain">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 axi-ink-plain">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 axi-ink-plain">{children}</ol>,
                         li: ({ children }) => <li className="leading-6">{children}</li>,
                         blockquote: ({ children }) => (
-                            <blockquote className="border-l-2 border-blue-400/40 pl-4 text-gray-300 italic">
+                            <blockquote className="border-l-2 axi-edge-meta pl-4 axi-ink-dim italic">
                                 {children}
                             </blockquote>
                         ),
                         a: ({ href, children }) => (
                             <button
-                                className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
+                                className="axi-ink-meta hover:text-blue-200 underline underline-offset-2"
                                 onClick={() => href && window.electronAPI.openExternal(href)}
                             >
                                 {children}
                             </button>
                         ),
                         table: ({ children }) => (
-                            <div className="overflow-x-auto rounded-[4px] border border-white/10 bg-black/30">
+                            <div className="overflow-x-auto rounded-[4px] border axi-edge-rule bg-black/30">
                                 <table className="stats-table w-full border-collapse text-left text-sm">
                                     {children}
                                 </table>
                             </div>
                         ),
                         th: ({ children }) => (
-                            <th className="border-b border-white/10 bg-white/5 px-3 py-2 text-xs uppercase tracking-wide text-gray-300">
+                            <th className="border-b axi-edge-rule bg-white/5 px-3 py-2 text-xs uppercase tracking-wide axi-ink-dim">
                                 {children}
                             </th>
                         ),
                         td: ({ children }) => (
-                            <td className="border-b border-white/10 px-3 py-2 text-gray-200">
+                            <td className="border-b axi-edge-rule px-3 py-2 axi-ink-plain">
                                 {children}
                             </td>
                         ),
                         pre: ({ children }) => (
-                            <pre className="overflow-x-auto rounded-[4px] bg-black/40 p-4 text-xs text-blue-100">
+                            <pre className="overflow-x-auto rounded-[4px] bg-black/40 p-4 text-xs axi-ink-meta">
                                 {children}
                             </pre>
                         ),
@@ -3814,11 +3821,11 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             const { inline, className, children } = props;
                             const isInline = inline ?? !className;
                             return isInline ? (
-                                <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] text-blue-200">
+                                <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] axi-ink-meta">
                                     {children}
                                 </code>
                             ) : (
-                                <code className="whitespace-pre-wrap text-blue-100">
+                                <code className="whitespace-pre-wrap axi-ink-meta">
                                     {children}
                                 </code>
                             );

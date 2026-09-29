@@ -75,12 +75,12 @@ export function HistoryReparseCard({
     const busy = healState.running;
 
     return (
-        <div className="bg-black/30 border border-white/10 rounded-[4px] p-4 mb-4" data-testid="history-reparse-card">
-            <div className="text-xs uppercase tracking-widest text-gray-500 mb-3">Log History</div>
-            <p className="text-sm text-gray-400 mb-3">
+        <div className="bg-black/30 border axi-edge-rule rounded-[4px] p-4 mb-4" data-testid="history-reparse-card">
+            <div className="text-xs uppercase tracking-widest axi-ink-faint mb-3">Log History</div>
+            <p className="text-sm axi-ink-dim mb-3">
                 Logs parsed before Axilog — or by the Elite Insights engine — carry no Axilog data, so damage,
                 positioning, boons and replay come out empty for them. Re-parsing reads the original
-                <code className="mx-1 text-gray-300">.zevtc</code> files again and fills that back in.
+                <code className="mx-1 axi-ink-dim">.zevtc</code> files again and fills that back in.
             </p>
 
 
@@ -90,7 +90,7 @@ export function HistoryReparseCard({
                     disabled={scanning || busy}
                     onClick={scan}
                     data-testid="history-reparse-scan"
-                    className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
+                    className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
                 >
                     <History className="w-3 h-3" />
                     {scanning ? 'Checking...' : 'Check history'}
@@ -102,7 +102,7 @@ export function HistoryReparseCard({
                         disabled={busy}
                         onClick={async () => { await heal(targets); await scan(); }}
                         data-testid="history-reparse-run"
-                        className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-blue-500/10 text-blue-200 border-blue-500/30 hover:bg-blue-500/20 disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
+                        className="px-3 py-2 rounded-[4px] text-xs font-semibold border bg-blue-500/10 axi-ink-meta axi-edge-meta hover:bg-blue-500/20 disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
                     >
                         <RefreshCw className={`w-3 h-3 ${busy ? 'animate-spin' : ''}`} style={busy ? { animationDuration: '2s' } : undefined} />
                         {busy ? `Re-parsing ${healState.done}/${healState.total}...` : `Re-parse ${targets.length} log${targets.length === 1 ? '' : 's'}`}
@@ -111,7 +111,7 @@ export function HistoryReparseCard({
             </div>
 
             {targets !== null && !busy && healState.total === 0 && (
-                <div className="text-xs text-gray-400 mt-3" data-testid="history-reparse-scan-result">
+                <div className="text-xs axi-ink-dim mt-3" data-testid="history-reparse-scan-result">
                     {targets.length === 0
                         ? `Nothing to re-parse — all ${scanned} stored log${scanned === 1 ? '' : 's'} already carry Axilog data, or no longer name a source file.`
                         : `${targets.length} of ${scanned} stored logs can be re-parsed. This runs one log at a time and may take a while.`}
@@ -119,14 +119,14 @@ export function HistoryReparseCard({
             )}
 
             {healState.total > 0 && !busy && (
-                <div className="text-xs text-gray-300 mt-3" data-testid="history-reparse-result">
+                <div className="text-xs axi-ink-dim mt-3" data-testid="history-reparse-result">
                     Re-parsed {healState.healed} of {healState.total} logs.
                     {healState.failures.length > 0 && ' The rest could not be read:'}
                 </div>
             )}
 
             {!busy && healState.failures.length > 0 && (
-                <ul className="mt-2 space-y-1 text-xs text-red-300/80 max-h-40 overflow-y-auto">
+                <ul className="mt-2 space-y-1 text-xs axi-ink-danger max-h-40 overflow-y-auto">
                     {healState.failures.map((failure, idx) => (
                         <li key={`${failure.label}-${idx}`}>• {failure.label} — {failure.error}</li>
                     ))}

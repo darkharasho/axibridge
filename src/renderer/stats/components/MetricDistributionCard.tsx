@@ -61,7 +61,7 @@ export const MetricDistributionCard: React.FC<MetricDistributionCardProps> = ({
         {cohort && cohort.support && cohort.damage ? (
           <div>
             <div className="text-[10px] uppercase tracking-wide text-[color:var(--text-muted)]">Avg by role</div>
-            <div data-testid="metric-card-mean" className="text-lg font-bold text-white">
+            <div data-testid="metric-card-mean" className="text-lg font-bold axi-ink-plain">
               <span style={{ color: '#fb923c' }}>DPS {formatValue(cohort.damage.mean)}</span>
               {' · '}
               <span style={{ color: '#22d3ee' }}>Sup {formatValue(cohort.support.mean)}</span>
@@ -70,7 +70,7 @@ export const MetricDistributionCard: React.FC<MetricDistributionCardProps> = ({
         ) : (
           <div>
             <div className="text-[10px] uppercase tracking-wide text-[color:var(--text-muted)]">Avg</div>
-            <div data-testid="metric-card-mean" className={`font-bold text-white ${large ? 'text-3xl' : 'text-2xl'}`}>
+            <div data-testid="metric-card-mean" className={`font-bold axi-ink-plain ${large ? 'text-3xl' : 'text-2xl'}`}>
               {formatValue(s.mean)} <span className="text-sm font-normal text-[color:var(--text-secondary)]">{unit}</span>
             </div>
           </div>

@@ -101,7 +101,7 @@ export const FightCompSection = ({
                                             key={fight.id}
                                             onClick={() => setActiveFightId(fight.id)}
                                             className={`fight-comp-fight-nav-item relative w-full text-left px-3 py-2 rounded-[var(--radius-md)] text-xs font-semibold border transition-colors ${isActive
-                                                ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-100'
+                                                ? 'axi-edge-meta bg-cyan-400/10 axi-ink-meta'
                                                 : 'bg-[var(--bg-hover)] text-[color:var(--text-secondary)] border-[color:var(--border-default)] hover:text-[color:var(--text-primary)]'
                                             }`}
                                         >

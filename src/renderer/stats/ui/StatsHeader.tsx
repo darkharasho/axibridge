@@ -5,7 +5,7 @@ import { PublishWebhookPopover } from './PublishWebhookPopover';
 import type { PublishWebhookOption } from '../hooks/useStatsUploads';
 import { FightSlicePill } from '../components/FightSliceTray';
 
-/* The trophy was set inline in the heading at text-yellow-500, which the axi
+/* The trophy was set inline in the heading at axi-ink-warn, which the axi
    remap sends to --axi-warn: the page's one decorative glyph was dressed as a
    warning, and a status colour spent on decoration is what stops a status
    colour meaning anything. Drawn as an object instead - accent fill, ink glyph
@@ -163,11 +163,11 @@ export const StatsHeader = ({
                     because that text is now the category the reader is in, and
                     was the page label before that - a ready-signal pinned to
                     wording breaks every time the wording is improved. */}
-                <h1 data-testid="stats-header-title" className="text-xl sm:text-2xl font-bold text-white">
+                <h1 data-testid="stats-header-title" className="text-xl sm:text-2xl font-bold axi-ink-plain">
                     {dashboardTitle || (singleFight ? 'Fight Statistics' : 'Statistics Dashboard')}
                 </h1>
                 {!singleFight && (
-                    <p className="text-gray-400 text-[11px] sm:text-xs">
+                    <p className="axi-ink-dim text-[11px] sm:text-xs">
                         Performance across {totalLogs} uploaded logs
                     </p>
                 )}
@@ -214,9 +214,9 @@ export const StatsHeader = ({
                         <button
                             onClick={onDevMockUpload}
                             disabled={devMockUploadState.uploading || actionsDisabled}
-                            className="flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-colors disabled:opacity-50 bg-amber-500/15 text-amber-200 border border-amber-500/30 enabled:hover:bg-amber-500/25"
+                            className="flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-colors disabled:opacity-50 bg-amber-500/15 axi-ink-warn border axi-edge-warn enabled:hover:bg-amber-500/25"
                         >
-                            <Sparkles className="w-4 h-4 text-amber-400" />
+                            <Sparkles className="w-4 h-4 axi-ink-warn" />
                             {devMockUploadState.uploading ? 'Building...' : 'Dev Mock Upload'}
                         </button>
                     )}

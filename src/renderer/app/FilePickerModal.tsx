@@ -54,38 +54,38 @@ const FilePickerItem = memo(({ entry, index, isSelected, isFocused, toggleSelect
             onClick={(e) => toggleSelection(entry.path, index, e.shiftKey)}
             onMouseEnter={() => setFocusedIndex(index)}
             className={`grid grid-cols-[minmax(0,3.2fr)_minmax(140px,1.1fr)_86px] gap-3 items-center px-2.5 py-1.5 rounded-[4px] border select-none transition-all cursor-pointer ${isSelected
-                ? 'bg-blue-500/12 border-blue-400/40'
+                ? 'bg-blue-500/12 axi-edge-meta'
                 : isFocused
-                    ? 'bg-white/10 border-white/15'
+                    ? 'bg-white/10 axi-edge-rule'
                     : 'bg-transparent border-transparent hover:bg-white/5 hover:border-white/10'
                 }`}
         >
             <div className="flex items-center gap-2.5 min-w-0">
-                <div className={`shrink-0 w-4 h-4 rounded-[4px] border flex items-center justify-center transition-colors ${isSelected ? 'border-blue-400 bg-blue-400/90' : 'border-white/15 bg-black/40'}`}>
+                <div className={`shrink-0 w-4 h-4 rounded-[4px] border flex items-center justify-center transition-colors ${isSelected ? 'axi-edge-meta bg-blue-400/90' : 'axi-edge-rule bg-black/40'}`}>
                     {isSelected && <svg className="w-2.5 h-2.5 text-[var(--tw-colors-cyan-950)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col justify-center min-h-[26px]">
                     <div className="flex items-center gap-2 min-w-0">
-                        <span className={`text-xs font-medium truncate leading-tight ${isSelected ? 'text-cyan-50' : 'text-gray-200'}`}>
+                        <span className={`text-xs font-medium truncate leading-tight ${isSelected ? 'axi-ink-meta' : 'axi-ink-plain'}`}>
                             {entry.name}
                         </span>
                         {encounterName && (
-                            <span className="px-1.5 py-0.5 rounded-[4px] text-[9px] font-semibold leading-none bg-white/8 border border-white/10 text-gray-300">
+                            <span className="px-1.5 py-0.5 rounded-[4px] text-[9px] font-semibold leading-none bg-white/8 border axi-edge-rule axi-ink-dim">
                                 {encounterName}
                             </span>
                         )}
                     </div>
                     {subfolder && (
-                        <span className="text-[9px] text-gray-500 truncate leading-tight" title={subfolder}>
+                        <span className="text-[9px] axi-ink-faint truncate leading-tight" title={subfolder}>
                             {subfolder}
                         </span>
                     )}
                 </div>
             </div>
-            <div className="text-[10px] text-gray-400 truncate leading-tight">
+            <div className="text-[10px] axi-ink-dim truncate leading-tight">
                 {timestamp}
             </div>
-            <div className="text-[10px] text-gray-500 font-mono text-right leading-tight">
+            <div className="text-[10px] axi-ink-faint font-mono text-right leading-tight">
                 {formatBytes(entry.size)}
             </div>
         </div>
@@ -401,15 +401,15 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                             {/* Search box */}
                             <div className="p-3 pb-0">
                                 <div className="relative">
-                                    <Search className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                                    <input type="text" value={filePickerFilter} onChange={(event) => setFilePickerFilter(event.target.value)} placeholder="Search..." className="file-picker-panel w-full rounded-[4px] pl-8 pr-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-blue-500/50 transition-colors" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }} />
+                                    <Search className="w-3.5 h-3.5 axi-ink-faint absolute left-2.5 top-1/2 -translate-y-1/2" />
+                                    <input type="text" value={filePickerFilter} onChange={(event) => setFilePickerFilter(event.target.value)} placeholder="Search..." className="file-picker-panel w-full rounded-[4px] pl-8 pr-3 py-2 text-xs axi-ink-plain focus:outline-none focus:border-blue-500/50 transition-colors" style={{ background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }} />
                                 </div>
                             </div>
 
                             {/* Quick preset chips */}
                             <div className="px-3 pt-2.5 flex flex-wrap gap-1.5">
                                 {['Today', 'Yesterday', 'Last 3 days', 'This week'].map((preset) => (
-                                    <button key={preset} onClick={() => handleApplyPreset(preset)} className={`px-2.5 py-1 rounded-full text-[10px] font-medium border transition-colors ${activePreset === preset ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40' : 'bg-white/5 text-gray-400 border-white/10 hover:text-white hover:bg-white/10'}`}>
+                                    <button key={preset} onClick={() => handleApplyPreset(preset)} className={`px-2.5 py-1 rounded-full text-[10px] font-medium border transition-colors ${activePreset === preset ? 'bg-cyan-500/20 axi-ink-meta axi-edge-meta' : 'bg-white/5 axi-ink-dim axi-edge-rule hover:text-white hover:bg-white/10'}`}>
                                         {preset}
                                     </button>
                                 ))}
@@ -422,7 +422,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                         const modeKey = mode === 'Range' ? 'Between' : mode;
                                         const isActive = (modeKey === 'Day' && selectDayOpen) || (modeKey === 'Since' && selectSinceOpen) || (modeKey === 'Between' && selectBetweenOpen);
                                         return (
-                                            <button key={mode} onClick={() => handleFilterTabClick(modeKey as 'Day' | 'Since' | 'Between')} className={`flex-1 py-1.5 text-[10px] font-medium transition-colors ${isActive ? 'bg-cyan-500/20 text-cyan-200' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}>
+                                            <button key={mode} onClick={() => handleFilterTabClick(modeKey as 'Day' | 'Since' | 'Between')} className={`flex-1 py-1.5 text-[10px] font-medium transition-colors ${isActive ? 'bg-cyan-500/20 axi-ink-meta' : 'axi-ink-faint hover:text-gray-300 hover:bg-white/5'}`}>
                                                 {mode}
                                             </button>
                                         );
@@ -446,14 +446,14 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                     <div className="flex items-center justify-between mb-2">
                                                         <button
                                                             onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
-                                                            className="h-6 w-6 rounded-full border border-white/10 bg-black/30 text-gray-300 hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
+                                                            className="h-6 w-6 rounded-full border axi-edge-rule bg-black/30 axi-ink-dim hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
                                                         >
                                                             <ChevronLeft className="w-3.5 h-3.5" />
                                                         </button>
                                                         <div className="relative">
                                                             <button
                                                                 onClick={() => setSelectSinceMonthOpen((prev: boolean) => !prev)}
-                                                                className="text-sm font-semibold text-gray-200 hover:text-white"
+                                                                className="text-sm font-semibold axi-ink-plain hover:text-white"
                                                             >
                                                                 {selectSinceView.toLocaleString(undefined, { month: 'long', year: 'numeric' })}
                                                             </button>
@@ -462,16 +462,16 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                     <div className="flex items-center justify-between mb-2">
                                                                         <button
                                                                             onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear() - 1, prev.getMonth(), 1))}
-                                                                            className="h-5 w-5 rounded-full border border-white/10 bg-black/30 text-gray-300 hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
+                                                                            className="h-5 w-5 rounded-full border axi-edge-rule bg-black/30 axi-ink-dim hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
                                                                         >
                                                                             <ChevronLeft className="w-3 h-3" />
                                                                         </button>
-                                                                        <div className="text-[11px] text-gray-300">
+                                                                        <div className="text-[11px] axi-ink-dim">
                                                                             {selectSinceView.getFullYear()}
                                                                         </div>
                                                                         <button
                                                                             onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear() + 1, prev.getMonth(), 1))}
-                                                                            className="h-5 w-5 rounded-full border border-white/10 bg-black/30 text-gray-300 hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
+                                                                            className="h-5 w-5 rounded-full border axi-edge-rule bg-black/30 axi-ink-dim hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
                                                                         >
                                                                             <ChevronRight className="w-3 h-3" />
                                                                         </button>
@@ -486,7 +486,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                                 }}
                                                                                 className={`px-2 py-1 rounded-full text-[10px] border transition-colors ${selectSinceView.getMonth() === i
                                                                                     ? 'file-picker-selected-cell font-semibold'
-                                                                                    : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                                                    : 'bg-white/5 axi-ink-dim axi-edge-rule hover:text-white'
                                                                                     }`}
                                                                             >
                                                                                 {new Date(2000, i, 1).toLocaleString(undefined, { month: 'short' })}
@@ -498,12 +498,12 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                         </div>
                                                         <button
                                                             onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
-                                                            className="h-6 w-6 rounded-full border border-white/10 bg-black/30 text-gray-300 hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
+                                                            className="h-6 w-6 rounded-full border axi-edge-rule bg-black/30 axi-ink-dim hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
                                                         >
                                                             <ChevronRight className="w-3.5 h-3.5" />
                                                         </button>
                                                     </div>
-                                                    <div className="grid grid-cols-7 gap-1 text-[10px] text-gray-500 mb-2">
+                                                    <div className="grid grid-cols-7 gap-1 text-[10px] axi-ink-faint mb-2">
                                                         {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (
                                                             <div key={`weekday-${idx}-${day}`} className="text-center">{day}</div>
                                                         ))}
@@ -538,7 +538,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                             }}
                                                                             className={`h-7 w-7 rounded-full mx-auto flex items-center justify-center transition-colors border ${isSelected
                                                                                 ? 'file-picker-selected-cell font-semibold'
-                                                                                : 'border-transparent text-gray-200 hover:bg-white/10 hover:border-white/10'
+                                                                                : 'border-transparent axi-ink-plain hover:bg-white/10 hover:border-white/10'
                                                                                 }`}
                                                                         >
                                                                             {day}
@@ -567,14 +567,14 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                         <div className="flex items-center justify-between mb-2">
                                                             <button
                                                                 onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
-                                                                className="h-6 w-6 rounded-full border border-white/10 bg-black/30 text-gray-300 hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
+                                                                className="h-6 w-6 rounded-full border axi-edge-rule bg-black/30 axi-ink-dim hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
                                                             >
                                                                 <ChevronLeft className="w-3.5 h-3.5" />
                                                             </button>
                                                             <div className="relative">
                                                                 <button
                                                                     onClick={() => setSelectSinceMonthOpen((prev: boolean) => !prev)}
-                                                                    className="text-sm font-semibold text-gray-200 hover:text-white"
+                                                                    className="text-sm font-semibold axi-ink-plain hover:text-white"
                                                                 >
                                                                     {selectSinceView.toLocaleString(undefined, { month: 'long', year: 'numeric' })}
                                                                 </button>
@@ -583,16 +583,16 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                         <div className="flex items-center justify-between mb-2">
                                                                             <button
                                                                                 onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear() - 1, prev.getMonth(), 1))}
-                                                                                className="h-5 w-5 rounded-full border border-white/10 bg-black/30 text-gray-300 hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
+                                                                                className="h-5 w-5 rounded-full border axi-edge-rule bg-black/30 axi-ink-dim hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
                                                                             >
                                                                                 <ChevronLeft className="w-3 h-3" />
                                                                             </button>
-                                                                            <div className="text-[11px] text-gray-300">
+                                                                            <div className="text-[11px] axi-ink-dim">
                                                                                 {selectSinceView.getFullYear()}
                                                                             </div>
                                                                             <button
                                                                                 onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear() + 1, prev.getMonth(), 1))}
-                                                                                className="h-5 w-5 rounded-full border border-white/10 bg-black/30 text-gray-300 hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
+                                                                                className="h-5 w-5 rounded-full border axi-edge-rule bg-black/30 axi-ink-dim hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
                                                                             >
                                                                                 <ChevronRight className="w-3 h-3" />
                                                                             </button>
@@ -607,7 +607,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                                     }}
                                                                                     className={`px-2 py-1 rounded-full text-[10px] border transition-colors ${selectSinceView.getMonth() === i
                                                                                         ? 'file-picker-selected-cell font-semibold'
-                                                                                        : 'bg-white/5 text-gray-300 border-white/10 hover:text-white'
+                                                                                        : 'bg-white/5 axi-ink-dim axi-edge-rule hover:text-white'
                                                                                         }`}
                                                                                 >
                                                                                     {new Date(2000, i, 1).toLocaleString(undefined, { month: 'short' })}
@@ -619,12 +619,12 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                             </div>
                                                             <button
                                                                 onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
-                                                                className="h-6 w-6 rounded-full border border-white/10 bg-black/30 text-gray-300 hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
+                                                                className="h-6 w-6 rounded-full border axi-edge-rule bg-black/30 axi-ink-dim hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
                                                             >
                                                                 <ChevronRight className="w-3.5 h-3.5" />
                                                             </button>
                                                         </div>
-                                                        <div className="grid grid-cols-7 gap-1 text-[10px] text-gray-500 mb-2">
+                                                        <div className="grid grid-cols-7 gap-1 text-[10px] axi-ink-faint mb-2">
                                                             {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (
                                                                 <div key={`weekday-${idx}-${day}`} className="text-center">{day}</div>
                                                             ))}
@@ -652,7 +652,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                                 onClick={() => setSelectSinceDate(new Date(year, month, day))}
                                                                                 className={`h-7 w-7 rounded-full mx-auto flex items-center justify-center transition-colors border ${isSelected
                                                                                     ? 'file-picker-selected-cell font-semibold'
-                                                                                    : 'border-transparent text-gray-200 hover:bg-white/10 hover:border-white/10'
+                                                                                    : 'border-transparent axi-ink-plain hover:bg-white/10 hover:border-white/10'
                                                                                     }`}
                                                                             >
                                                                                 {day}
@@ -664,18 +664,18 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                         })()}
                                                     </div>
                                                     <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
-                                                        <div className="text-xs uppercase tracking-widest text-cyan-200/70 mb-2">Time</div>
+                                                        <div className="text-xs uppercase tracking-widest axi-ink-meta mb-2">Time</div>
                                                         <div className="grid grid-cols-3 gap-2">
                                                             <div>
-                                                                <div className="text-[10px] text-gray-400 mb-1">Hour</div>
-                                                                <div className="file-picker-time-list h-32 overflow-y-auto rounded-lg border border-white/10 bg-white/5 file-picker-scroll-container">
+                                                                <div className="text-[10px] axi-ink-dim mb-1">Hour</div>
+                                                                <div className="file-picker-time-list h-32 overflow-y-auto rounded-lg border axi-edge-rule bg-white/5 file-picker-scroll-container">
                                                                     {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => (
                                                                         <button
                                                                             key={`hour-${hour}`}
                                                                             onClick={() => setSelectSinceHour(hour)}
-                                                                            className={`file-picker-time-option w-full py-1 text-[10px] border-b border-white/5 last:border-0 transition-all ${selectSinceHour === hour
+                                                                            className={`file-picker-time-option w-full py-1 text-[10px] border-b axi-edge-rule last:border-0 transition-all ${selectSinceHour === hour
                                                                                 ? 'file-picker-selected-item file-picker-time-option--active font-semibold'
-                                                                                : 'text-gray-300 hover:text-white'
+                                                                                : 'axi-ink-dim hover:text-white'
                                                                                 }`}
                                                                         >
                                                                             {hour.toString().padStart(2, '0')}
@@ -684,15 +684,15 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                 </div>
                                                             </div>
                                                             <div>
-                                                                <div className="text-[10px] text-gray-400 mb-1">Minute</div>
-                                                                <div className="file-picker-time-list h-32 overflow-y-auto rounded-lg border border-white/10 bg-white/5 file-picker-scroll-container">
+                                                                <div className="text-[10px] axi-ink-dim mb-1">Minute</div>
+                                                                <div className="file-picker-time-list h-32 overflow-y-auto rounded-lg border axi-edge-rule bg-white/5 file-picker-scroll-container">
                                                                     {Array.from({ length: 60 }, (_, i) => i).map((minute) => (
                                                                         <button
                                                                             key={`minute-${minute}`}
                                                                             onClick={() => setSelectSinceMinute(minute)}
-                                                                            className={`file-picker-time-option w-full py-1 text-[10px] border-b border-white/5 last:border-0 transition-all ${selectSinceMinute === minute
+                                                                            className={`file-picker-time-option w-full py-1 text-[10px] border-b axi-edge-rule last:border-0 transition-all ${selectSinceMinute === minute
                                                                                 ? 'file-picker-selected-item file-picker-time-option--active font-semibold'
-                                                                                : 'text-gray-300 hover:text-white'
+                                                                                : 'axi-ink-dim hover:text-white'
                                                                                 }`}
                                                                         >
                                                                             {minute.toString().padStart(2, '0')}
@@ -701,15 +701,15 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                 </div>
                                                             </div>
                                                             <div>
-                                                                <div className="text-[10px] text-gray-400 mb-1">AM/PM</div>
-                                                                <div className="file-picker-time-list h-32 overflow-y-auto rounded-lg border border-white/10 bg-white/5 file-picker-scroll-container">
+                                                                <div className="text-[10px] axi-ink-dim mb-1">AM/PM</div>
+                                                                <div className="file-picker-time-list h-32 overflow-y-auto rounded-lg border axi-edge-rule bg-white/5 file-picker-scroll-container">
                                                                     {(['AM', 'PM'] as const).map((period) => (
                                                                         <button
                                                                             key={period}
                                                                             onClick={() => setSelectSinceMeridiem(period)}
-                                                                            className={`file-picker-time-option w-full py-2 text-[10px] border-b border-white/5 last:border-0 transition-all ${selectSinceMeridiem === period
+                                                                            className={`file-picker-time-option w-full py-2 text-[10px] border-b axi-edge-rule last:border-0 transition-all ${selectSinceMeridiem === period
                                                                                 ? 'file-picker-selected-item file-picker-time-option--active font-semibold'
-                                                                                : 'text-gray-300 hover:text-white'
+                                                                                : 'axi-ink-dim hover:text-white'
                                                                                 }`}
                                                                         >
                                                                             {period}
@@ -720,10 +720,10 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="flex justify-end pt-2 border-t border-white/5">
+                                                <div className="flex justify-end pt-2 border-t axi-edge-rule">
                                                     <button
                                                         onClick={handleApplyDateFilters}
-                                                        className="px-6 py-2 rounded-[4px] text-sm font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white hover:bg-white/10 transition-colors"
+                                                        className="px-6 py-2 rounded-[4px] text-sm font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white hover:bg-white/10 transition-colors"
                                                     >
                                                         Select Since
                                                     </button>
@@ -743,32 +743,32 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                             <div className="flex flex-col gap-4">
                                                 <div className="flex flex-col gap-3">
                                                     <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
-                                                        <div className="text-[10px] text-gray-400 mb-1">Start</div>
+                                                        <div className="text-[10px] axi-ink-dim mb-1">Start</div>
                                                         <input
                                                             type="datetime-local"
                                                             value={selectBetweenStart}
                                                             onChange={e => setSelectBetweenStart(e.target.value)}
                                                             onClick={e => (e.currentTarget as HTMLInputElement & { showPicker?: () => void }).showPicker?.()}
-                                                            className="w-full rounded-[4px] px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500"
+                                                            className="w-full rounded-[4px] px-3 py-2 text-sm axi-ink-plain focus:outline-none focus:border-blue-500"
                                                             style={{ colorScheme: 'dark', background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                                                         />
                                                     </div>
                                                     <div className="file-picker-panel flex-1 rounded-[4px] p-4" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
-                                                        <div className="text-[10px] text-gray-400 mb-1">End</div>
+                                                        <div className="text-[10px] axi-ink-dim mb-1">End</div>
                                                         <input
                                                             type="datetime-local"
                                                             value={selectBetweenEnd}
                                                             onChange={e => setSelectBetweenEnd(e.target.value)}
                                                             onClick={e => (e.currentTarget as HTMLInputElement & { showPicker?: () => void }).showPicker?.()}
-                                                            className="w-full rounded-[4px] px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500"
+                                                            className="w-full rounded-[4px] px-3 py-2 text-sm axi-ink-plain focus:outline-none focus:border-blue-500"
                                                             style={{ colorScheme: 'dark', background: 'var(--bg-input)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="flex justify-end pt-2 border-t border-white/5">
+                                                <div className="flex justify-end pt-2 border-t axi-edge-rule">
                                                     <button
                                                         onClick={handleApplyDateFilters}
-                                                        className="px-6 py-2 rounded-[4px] text-sm font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white hover:bg-white/10 transition-colors"
+                                                        className="px-6 py-2 rounded-[4px] text-sm font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white hover:bg-white/10 transition-colors"
                                                     >
                                                         Select Range
                                                     </button>
@@ -778,7 +778,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                     )}
 
                                     {!selectDayOpen && !selectSinceOpen && !selectBetweenOpen && !activePreset && (
-                                        <div className="flex items-center justify-center h-24 text-xs text-gray-500 text-center px-2">
+                                        <div className="flex items-center justify-center h-24 text-xs axi-ink-faint text-center px-2">
                                             Select a filter mode or use a quick preset above.
                                         </div>
                                     )}
@@ -788,8 +788,8 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                             {/* Panel footer */}
                             {(activePreset || selectDayOpen || selectSinceOpen || selectBetweenOpen) && dateFilteredCount > 0 && (
                                 <div className="flex-none p-3 border-t" style={{ borderColor: 'var(--border-default)' }}>
-                                    <div className="text-[10px] text-gray-400 mb-2">
-                                        {getFilterSummaryText()} · <span className="text-cyan-300">{dateFilteredCount} log{dateFilteredCount === 1 ? '' : 's'} found</span>
+                                    <div className="text-[10px] axi-ink-dim mb-2">
+                                        {getFilterSummaryText()} · <span className="axi-ink-meta">{dateFilteredCount} log{dateFilteredCount === 1 ? '' : 's'} found</span>
                                     </div>
                                     <button onClick={() => {
                                         if (filePickerSelected.size >= dateFilteredCount && dateFilteredCount > 0) {
@@ -803,7 +803,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                         } else {
                                             handleApplyDateFilters();
                                         }
-                                    }} className="w-full py-1.5 rounded-[4px] text-[11px] font-medium border transition-colors bg-cyan-500/15 text-cyan-200 border-cyan-500/30 hover:bg-cyan-500/25">
+                                    }} className="w-full py-1.5 rounded-[4px] text-[11px] font-medium border transition-colors bg-cyan-500/15 axi-ink-meta axi-edge-meta hover:bg-cyan-500/25">
                                         {filePickerSelected.size >= dateFilteredCount && dateFilteredCount > 0 ? 'Deselect All' : `Select All ${dateFilteredCount}`}
                                     </button>
                                 </div>
@@ -813,16 +813,16 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                         {/* Right Panel */}
                         <div className="flex-1 flex flex-col min-w-0">
                             {/* Header */}
-                            <div className="flex-none px-4 py-3 border-b border-white/5 flex items-center justify-between gap-3">
-                                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                                    <FileText className="w-4 h-4 text-cyan-400" />
+                            <div className="flex-none px-4 py-3 border-b axi-edge-rule flex items-center justify-between gap-3">
+                                <h3 className="text-sm font-semibold axi-ink-plain flex items-center gap-2">
+                                    <FileText className="w-4 h-4 axi-ink-meta" />
                                     Add Logs
                                 </h3>
                                 <div className="flex items-center gap-1.5">
-                                    <button onClick={() => loadLogFiles(logDirectory)} className="p-1.5 rounded-[4px] text-gray-400 hover:text-white hover:bg-white/10 transition-colors" style={{ border: '1px solid var(--border-subtle)' }} title="Refresh">
+                                    <button onClick={() => loadLogFiles(logDirectory)} className="p-1.5 rounded-[4px] axi-ink-dim hover:text-white hover:bg-white/10 transition-colors" style={{ border: '1px solid var(--border-subtle)' }} title="Refresh">
                                         <RefreshCw className="w-3.5 h-3.5" />
                                     </button>
-                                    <button onClick={handleClose} className="p-1.5 rounded-[4px] text-gray-400 hover:text-white hover:bg-white/10 transition-colors" style={{ border: '1px solid var(--border-subtle)' }} aria-label="Close log picker">
+                                    <button onClick={handleClose} className="p-1.5 rounded-[4px] axi-ink-dim hover:text-white hover:bg-white/10 transition-colors" style={{ border: '1px solid var(--border-subtle)' }} aria-label="Close log picker">
                                         <X className="w-3.5 h-3.5" />
                                     </button>
                                 </div>
@@ -830,7 +830,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
 
                             {/* Column headers */}
                             {!filePickerLoading && filteredAvailable.length > 0 && (
-                                <div className="flex-none px-4 py-2 bg-black/40 border-b border-white/5 grid grid-cols-[minmax(0,3.2fr)_minmax(140px,1.1fr)_86px] gap-4 text-[11px] uppercase tracking-[0.24em] text-gray-500 font-semibold">
+                                <div className="flex-none px-4 py-2 bg-black/40 border-b axi-edge-rule grid grid-cols-[minmax(0,3.2fr)_minmax(140px,1.1fr)_86px] gap-4 text-[11px] uppercase tracking-[0.24em] axi-ink-faint font-semibold">
                                     <div>Name</div>
                                     <div>Modified</div>
                                     <div className="text-right">Size</div>
@@ -840,19 +840,19 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                             {/* File list */}
                             <div className="file-picker-panel min-h-[140px] flex-1 overflow-hidden flex flex-col relative mx-3 my-3 rounded-[4px]" style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)' }}>
                                 {filePickerLoading ? (
-                                    <div className="flex-1 flex items-center justify-center text-sm text-gray-500">
+                                    <div className="flex-1 flex items-center justify-center text-sm axi-ink-faint">
                                         <motion.div
                                             animate={{ rotate: 360 }}
                                             transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                                            className="w-5 h-5 border-2 border-cyan-500/30 border-t-cyan-400 rounded-full mr-3"
+                                            className="w-5 h-5 border-2 axi-edge-meta border-t-cyan-400 rounded-full mr-3"
                                         />
                                         Loading logs...
                                     </div>
                                 ) : filteredAvailable.length === 0 ? (
-                                    <div className="flex-1 flex flex-col items-center justify-center gap-3 text-sm text-gray-500">
+                                    <div className="flex-1 flex flex-col items-center justify-center gap-3 text-sm axi-ink-faint">
                                         <span>{filePickerAvailable.length > 0 || filePickerAll.length > 0 ? 'No logs matching your current filters.' : 'No logs found in this folder.'}</span>
                                         {filePickerHasMore && !hasQuery && (
-                                            <button onClick={() => setFilePickerMonthWindow((prev: number) => prev + 1)} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-400 border-white/10 hover:text-white transition-colors">
+                                            <button onClick={() => setFilePickerMonthWindow((prev: number) => prev + 1)} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white transition-colors">
                                                 Load older logs
                                             </button>
                                         )}
@@ -882,7 +882,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                         </div>
                                         {!filePickerLoading && filePickerHasMore && !hasQuery && filePickerAtBottom && (
                                             <div className="mt-4 pb-4 flex justify-center">
-                                                <button onClick={() => setFilePickerMonthWindow((prev: number) => prev + 1)} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-400 border-white/10 hover:text-white transition-colors">
+                                                <button onClick={() => setFilePickerMonthWindow((prev: number) => prev + 1)} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white transition-colors">
                                                     Load older logs
                                                 </button>
                                             </div>
@@ -892,21 +892,21 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                             </div>
 
                             {/* Footer */}
-                            <div className="flex-none px-4 py-3 border-t border-white/5 bg-black/30">
-                                {filePickerError && (<div className="text-xs text-rose-400 mb-3 font-medium px-2.5 py-1.5 bg-rose-500/10 rounded-[4px] border border-rose-500/20">{filePickerError}</div>)}
+                            <div className="flex-none px-4 py-3 border-t axi-edge-rule bg-black/30">
+                                {filePickerError && (<div className="text-xs axi-ink-danger mb-3 font-medium px-2.5 py-1.5 bg-rose-500/10 rounded-[4px] border axi-edge-danger">{filePickerError}</div>)}
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="flex items-center gap-3">
-                                        <div className="text-xs text-gray-300">
+                                        <div className="text-xs axi-ink-dim">
                                             {filePickerSelected.size > 0 ? `${filePickerSelected.size} log${filePickerSelected.size === 1 ? '' : 's'} selected` : `${filteredAvailable.length} log${filteredAvailable.length === 1 ? '' : 's'} available`}
                                         </div>
-                                        {filePickerSelected.size > 0 && (<button onClick={() => setFilePickerSelected(new Set())} className="text-[10px] text-gray-500 hover:text-gray-300 transition-colors">Clear</button>)}
+                                        {filePickerSelected.size > 0 && (<button onClick={() => setFilePickerSelected(new Set())} className="text-[10px] axi-ink-faint hover:text-gray-300 transition-colors">Clear</button>)}
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <button onClick={handleClose} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 text-gray-300 border-white/10 hover:text-white transition-colors">Cancel</button>
+                                        <button onClick={handleClose} className="px-4 py-2 rounded-[4px] text-xs font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white transition-colors">Cancel</button>
                                         {/* Not disabled while busy: disabled:opacity-50 would dim the
                                             button and its spinner the moment you pressed it, which reads
                                             as a dead click. handleAddSelectedFiles ignores a second press. */}
-                                        <button onClick={() => { if (filePickerSelected.size > 0) handleAddSelectedFiles(); }} disabled={filePickerSelected.size === 0} aria-busy={filePickerSubmitting} className="file-picker-confirm px-4 py-2 rounded-[4px] text-xs font-semibold border bg-emerald-500/20 text-emerald-200 border-emerald-400/40 hover:bg-emerald-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5">
+                                        <button onClick={() => { if (filePickerSelected.size > 0) handleAddSelectedFiles(); }} disabled={filePickerSelected.size === 0} aria-busy={filePickerSubmitting} className="file-picker-confirm px-4 py-2 rounded-[4px] text-xs font-semibold border bg-emerald-500/20 axi-ink-ok axi-edge-ok hover:bg-emerald-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5">
                                             {filePickerSubmitting ? (
                                                 <>
                                                     {/* Adding a few hundred logs takes long enough that the
@@ -918,7 +918,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                             ) : (
                                                 <>
                                                     Add to Recent Activity
-                                                    {filePickerSelected.size > 0 && (<span className="file-picker-confirm__count bg-emerald-500/30 text-emerald-100 px-1.5 py-0.5 rounded-lg text-[10px]">{filePickerSelected.size}</span>)}
+                                                    {filePickerSelected.size > 0 && (<span className="file-picker-confirm__count bg-emerald-500/30 axi-ink-ok px-1.5 py-0.5 rounded-lg text-[10px]">{filePickerSelected.size}</span>)}
                                                 </>
                                             )}
                                         </button>

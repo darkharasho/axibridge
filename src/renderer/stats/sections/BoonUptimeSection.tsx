@@ -143,7 +143,7 @@ const SubgroupMembersTooltip = ({
             {' · '}
             <span
                 ref={wrapperRef}
-                className="cursor-help border-b border-dotted border-cyan-300/40 hover:border-cyan-200/70 transition-colors"
+                className="cursor-help border-b border-dotted axi-edge-meta hover:border-cyan-200/70 transition-colors"
                 onMouseEnter={() => { cancelClose(); setOpen(true); }}
                 onMouseLeave={scheduleClose}
             >
@@ -157,14 +157,14 @@ const SubgroupMembersTooltip = ({
                     onMouseEnter={() => { cancelClose(); setOpen(true); }}
                     onMouseLeave={scheduleClose}
                 >
-                    <div className="mb-1.5 text-[9px] uppercase tracking-wider text-cyan-300/80">
+                    <div className="mb-1.5 text-[9px] uppercase tracking-wider axi-ink-meta">
                         Subgroup Members
                     </div>
                     <div className="space-y-1">
                         {members.map((member) => (
                             <div key={member.account} className="flex items-center gap-2">
                                 {renderProfessionIcon(member.profession, member.professionList, 'w-3.5 h-3.5')}
-                                <span className="text-gray-100 truncate">{member.account}</span>
+                                <span className="axi-ink-plain truncate">{member.account}</span>
                                 <span className="ml-auto shrink-0 text-[10px] text-[color:var(--text-secondary)]">
                                     {member.fightCount} {member.fightCount === 1 ? 'fight' : 'fights'}
                                 </span>
@@ -305,7 +305,7 @@ export const BoonUptimeSection = ({
             sectionId="boon-uptime"
             title="Boon Uptime"
             titleIcon={Gw2FuryIcon}
-            titleIconClassName="text-amber-300"
+            titleIconClassName="axi-ink-warn"
             listTitle="Entries"
             searchPlaceholder="Search player, account, or subgroup"
             modes={[]}
@@ -335,7 +335,7 @@ export const BoonUptimeSection = ({
                     aria-pressed={heatmapOverlay === 'incoming-damage'}
                     className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
                         heatmapOverlay === 'incoming-damage'
-                            ? 'text-red-200 hover:text-red-100'
+                            ? 'axi-ink-danger hover:text-red-100'
                             : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                     }`}
                 >
@@ -348,7 +348,7 @@ export const BoonUptimeSection = ({
                     aria-pressed={heatmapOverlay === 'incoming-strips'}
                     className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
                         heatmapOverlay === 'incoming-strips'
-                            ? 'text-red-300 hover:text-red-200'
+                            ? 'axi-ink-danger hover:text-red-200'
                             : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                     }`}
                 >
@@ -361,7 +361,7 @@ export const BoonUptimeSection = ({
                     aria-pressed={heatmapOverlay === 'incoming-cc'}
                     className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
                         heatmapOverlay === 'incoming-cc'
-                            ? 'text-amber-300 hover:text-amber-200'
+                            ? 'axi-ink-warn hover:text-amber-200'
                             : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
                     }`}
                 >
@@ -372,34 +372,34 @@ export const BoonUptimeSection = ({
                 <div className="relative" ref={dropdownRef}>
                     <button
                         onClick={() => setBoonDropdownOpen(!boonDropdownOpen)}
-                        className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                        className="flex items-center gap-1.5 text-xs axi-ink-dim hover:text-slate-200 transition-colors"
                     >
-                        <span className="text-slate-500">·</span>
+                        <span className="axi-ink-faint">·</span>
                         {activeBoon?.icon ? (
                             <img src={activeBoon.icon} alt="" className="h-3.5 w-3.5 object-contain" />
                         ) : (
-                            <Gw2BoonIcon className="h-3.5 w-3.5 text-amber-300" />
+                            <Gw2BoonIcon className="h-3.5 w-3.5 axi-ink-warn" />
                         )}
                         <span>{activeBoon?.name || 'Select boon'}</span>
                         <ChevronDown className={`w-3 h-3 transition-transform ${boonDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                     {boonDropdownOpen && (
-                        <div className="absolute top-full left-0 mt-2 z-50 w-96 rounded-lg border border-white/10 bg-[var(--bg-elevated)] shadow-xl p-3 space-y-2">
+                        <div className="absolute top-full left-0 mt-2 z-50 w-96 rounded-lg border axi-edge-rule bg-[var(--bg-elevated)] shadow-xl p-3 space-y-2">
                             <div className="flex items-center gap-2">
                                 <input
                                     type="text"
                                     value={boonSearch}
                                     onChange={(event) => setBoonSearch(event.target.value)}
                                     placeholder="Search boon"
-                                    className="flex-1 bg-white/5 rounded px-2 py-1 text-xs text-slate-300 placeholder-slate-500 outline-none focus:ring-1 focus:ring-indigo-500/50"
+                                    className="flex-1 bg-white/5 rounded px-2 py-1 text-xs axi-ink-dim placeholder-slate-500 outline-none focus:ring-1 focus:ring-indigo-500/50"
                                 />
-                                <span className="text-[10px] text-slate-500 shrink-0">
+                                <span className="text-[10px] axi-ink-faint shrink-0">
                                     {boons.length} {boons.length === 1 ? 'boon' : 'boons'}
                                 </span>
                             </div>
                             <div className="max-h-40 overflow-y-auto">
                                 {boons.length === 0 ? (
-                                    <div className="px-2 py-2 text-xs text-slate-500 italic">No boons match this filter.</div>
+                                    <div className="px-2 py-2 text-xs axi-ink-faint italic">No boons match this filter.</div>
                                 ) : (
                                     <div className="grid grid-cols-3 gap-1.5">
                                         {boons.map((boon) => {
@@ -410,14 +410,14 @@ export const BoonUptimeSection = ({
                                                     type="button"
                                                     onClick={() => { setActiveBoonId(boon.id); setBoonDropdownOpen(false); }}
                                                     className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${isActive
-                                                        ? 'bg-indigo-500/15 ring-1 ring-indigo-500/30 border-transparent text-slate-200'
-                                                        : 'bg-white/5 border-transparent text-slate-400 hover:text-slate-300'
+                                                        ? 'bg-indigo-500/15 ring-1 ring-indigo-500/30 border-transparent axi-ink-plain'
+                                                        : 'bg-white/5 border-transparent axi-ink-dim hover:text-slate-300'
                                                     }`}
                                                 >
                                                     {boon.icon ? (
                                                         <img src={boon.icon} alt="" className="h-3.5 w-3.5 object-contain" loading="lazy" />
                                                     ) : (
-                                                        <Gw2BoonIcon className="h-3.5 w-3.5 text-amber-300" />
+                                                        <Gw2BoonIcon className="h-3.5 w-3.5 axi-ink-warn" />
                                                     )}
                                                     <span>{boon.name}</span>
                                                 </button>
@@ -438,20 +438,20 @@ export const BoonUptimeSection = ({
                     return (
                         <div className="flex flex-col gap-0.5 w-full min-w-0">
                             <div className="flex items-center gap-2 min-w-0">
-                                <span className="w-4 h-4 inline-flex shrink-0 items-center justify-center rounded-full border border-cyan-300/50 bg-cyan-400/15 font-bold tracking-[0.08em] text-cyan-100 shadow-[0_0_12px_rgba(34,211,238,0.16)] text-[8px]">
+                                <span className="w-4 h-4 inline-flex shrink-0 items-center justify-center rounded-full border axi-edge-meta bg-cyan-400/15 font-bold tracking-[0.08em] axi-ink-meta shadow-[0_0_12px_rgba(34,211,238,0.16)] text-[8px]">
                                     SG
                                 </span>
-                                <span className={`text-xs truncate flex-1 ${isSelected ? 'text-slate-200' : 'text-slate-400'}`}>
+                                <span className={`text-xs truncate flex-1 ${isSelected ? 'axi-ink-plain' : 'axi-ink-dim'}`}>
                                     {player.displayName}
                                 </span>
-                                <span className="rounded-full border border-cyan-300/30 bg-cyan-400/10 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.18em] text-cyan-200 shrink-0">
+                                <span className="rounded-full border axi-edge-meta bg-cyan-400/10 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.18em] axi-ink-meta shrink-0">
                                     Aggregate
                                 </span>
-                                <span className={`text-xs tabular-nums shrink-0 ${isSelected ? 'text-cyan-200 font-semibold' : 'text-cyan-300/60'}`}>
+                                <span className={`text-xs tabular-nums shrink-0 ${isSelected ? 'axi-ink-meta font-semibold' : 'axi-ink-meta'}`}>
                                     {formatValue(player.value)}
                                 </span>
                             </div>
-                            <div className="text-[10px] text-cyan-200/80 pl-6">
+                            <div className="text-[10px] axi-ink-meta pl-6">
                                 {rawPlayer.logs} {rawPlayer.logs === 1 ? 'fight' : 'fights'}
                                 {rawPlayer.subgroupId != null && subgroupMembers?.has(rawPlayer.subgroupId) ? (
                                     <SubgroupMembersTooltip
@@ -467,10 +467,10 @@ export const BoonUptimeSection = ({
                 return (
                     <>
                         {renderProfessionIcon(player.profession, player.professionList, 'w-4 h-4 flex-shrink-0')}
-                        <span className={`text-xs truncate flex-1 ${isSelected ? 'text-slate-200' : 'text-slate-400'}`}>
+                        <span className={`text-xs truncate flex-1 ${isSelected ? 'axi-ink-plain' : 'axi-ink-dim'}`}>
                             {player.displayName}
                         </span>
-                        <span className={`text-xs tabular-nums ${isSelected ? 'text-amber-200 font-semibold' : 'text-slate-500'}`}>
+                        <span className={`text-xs tabular-nums ${isSelected ? 'axi-ink-warn font-semibold' : 'axi-ink-faint'}`}>
                             {formatValue(player.value)}
                         </span>
                     </>
@@ -480,7 +480,7 @@ export const BoonUptimeSection = ({
             renderDrilldown={() => (
                 <div className="h-[220px] relative" data-overlay={heatmapOverlay !== 'none' ? heatmapOverlay : undefined}>
                     {drilldownData.length === 0 ? (
-                        <div className="h-full flex items-center justify-center text-xs text-slate-500">
+                        <div className="h-full flex items-center justify-center text-xs axi-ink-faint">
                             No detailed data available for this fight.
                         </div>
                     ) : (stripsDataAbsent || ccDataAbsent) ? (
@@ -503,9 +503,9 @@ export const BoonUptimeSection = ({
                                         const d = payload[0]?.payload;
                                         if (!d) return null;
                                         return (
-                                            <div className="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-xs shadow-xl">
-                                                <div className="text-slate-200 font-medium mb-1">{d.label}</div>
-                                                <div className="text-indigo-300">
+                                            <div className="bg-slate-900 border axi-edge-rule rounded-lg px-3 py-2 text-xs shadow-xl">
+                                                <div className="axi-ink-plain font-medium mb-1">{d.label}</div>
+                                                <div className="axi-ink-meta">
                                                     {showStackCapLine ? 'Stacks' : 'Uptime'}: <strong>
                                                         {showStackCapLine
                                                             ? formatWithCommas(Number(d.value || 0), 1)
@@ -513,13 +513,13 @@ export const BoonUptimeSection = ({
                                                     </strong>
                                                 </div>
                                                 {heatmapOverlay === 'incoming-damage' && hasIncomingHeatData && Number(d.incomingDamage || 0) > 0 && (
-                                                    <div className="text-red-300">Squad Incoming Damage: <strong>{formatWithCommas(Number(d.incomingDamage || 0), 0)}</strong></div>
+                                                    <div className="axi-ink-danger">Squad Incoming Damage: <strong>{formatWithCommas(Number(d.incomingDamage || 0), 0)}</strong></div>
                                                 )}
                                                 {heatmapOverlay === 'incoming-strips' && Number(d.incomingStrips || 0) > 0 && (
-                                                    <div className="text-red-300">{stripsLabel} (5s): <strong>{formatWithCommas(Number(d.incomingStrips || 0), 0)}</strong></div>
+                                                    <div className="axi-ink-danger">{stripsLabel} (5s): <strong>{formatWithCommas(Number(d.incomingStrips || 0), 0)}</strong></div>
                                                 )}
                                                 {heatmapOverlay === 'incoming-cc' && Number(d.incomingCc || 0) > 0 && (
-                                                    <div className="text-amber-300">{ccLabel} (5s): <strong>{formatWithCommas(Number(d.incomingCc || 0), 0)}</strong></div>
+                                                    <div className="axi-ink-warn">{ccLabel} (5s): <strong>{formatWithCommas(Number(d.incomingCc || 0), 0)}</strong></div>
                                                 )}
                                             </div>
                                         );

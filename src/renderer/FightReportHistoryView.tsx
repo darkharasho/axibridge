@@ -419,7 +419,7 @@ export function FightReportHistoryView() {
     if (error) {
         return (
             <div className="flex-1 min-h-0 flex items-center justify-center">
-                <div className="rounded-[4px] px-4 py-3 text-sm text-red-300" style={{ background: 'var(--bg-card)', border: 'var(--history-edge-w, 1px) solid var(--border-default)' }}>
+                <div className="rounded-[4px] px-4 py-3 text-sm axi-ink-danger" style={{ background: 'var(--bg-card)', border: 'var(--history-edge-w, 1px) solid var(--border-default)' }}>
                     {error}
                 </div>
             </div>
@@ -428,7 +428,7 @@ export function FightReportHistoryView() {
 
     if (!selectedOption) {
         return (
-            <div className="flex-1 min-h-0 flex items-center justify-center text-sm text-gray-400">
+            <div className="flex-1 min-h-0 flex items-center justify-center text-sm axi-ink-dim">
                 Loading report index...
             </div>
         );
@@ -613,7 +613,7 @@ export function FightReportHistoryView() {
                             initial={{ opacity: 0, y: -8 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.2 }}
-                            className="rounded-[4px] px-4 py-3 mb-4 text-sm text-red-300"
+                            className="rounded-[4px] px-4 py-3 mb-4 text-sm axi-ink-danger"
                             style={{ background: 'var(--bg-card)', border: 'var(--history-edge-w, 1px) solid var(--border-default)' }}
                         >
                             {detailError}
@@ -796,7 +796,7 @@ export function FightReportHistoryView() {
                                 </span>
                                 <ParticleHover className="rounded-[4px]" color="#ef4444">
                                     <button type="button" onClick={handleDeleteSelected} disabled={deleteLoading}
-                                        className="px-4 py-2 rounded-[4px] text-sm font-medium bg-red-600 hover:bg-red-700 text-white disabled:opacity-50">
+                                        className="px-4 py-2 rounded-[4px] text-sm font-medium bg-red-600 hover:bg-red-700 axi-ink-plain disabled:opacity-50">
                                         {deleteLoading ? 'Deleting...' : 'Delete Selected'}
                                     </button>
                                 </ParticleHover>

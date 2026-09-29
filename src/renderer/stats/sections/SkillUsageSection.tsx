@@ -82,8 +82,8 @@ export const SkillUsageSection = ({
         style={{ scrollMarginTop: '80px' }}
     >
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
-            <Keyboard className="w-4 h-4 shrink-0 text-slate-400" />
-            <h3 className="text-sm font-semibold text-slate-200">Skill Usage Tracker</h3>
+            <Keyboard className="w-4 h-4 shrink-0 axi-ink-dim" />
+            <h3 className="text-sm font-semibold axi-ink-plain">Skill Usage Tracker</h3>
             <div className="ml-auto flex items-center gap-2">
                 <PillToggleGroup
                     value={skillUsageView}
@@ -93,12 +93,12 @@ export const SkillUsageSection = ({
                         { value: 'perSecond', label: 'Per Sec' }
                     ]}
                     activeClassName="bg-[var(--accent-bg-strong)] text-[color:var(--brand-primary)] border border-[color:var(--accent-border)]"
-                    inactiveClassName="text-slate-500"
+                    inactiveClassName="axi-ink-faint"
                 />
                 <button
                     type="button"
                     onClick={() => (expandedSection === 'skill-usage' ? closeExpandedSection() : openExpandedSection('skill-usage'))}
-                    className="p-1 rounded hover:bg-white/5 text-slate-400 hover:text-slate-200 transition-colors"
+                    className="p-1 rounded hover:bg-white/5 axi-ink-dim hover:text-slate-200 transition-colors"
                     aria-label={expandedSection === 'skill-usage' ? 'Close Skill Usage' : 'Expand Skill Usage'}
                     title={expandedSection === 'skill-usage' ? 'Close' : 'Expand'}
                 >
@@ -111,7 +111,7 @@ export const SkillUsageSection = ({
                 <button
                     type="button"
                     onClick={() => setSelectedPlayers([])}
-                    className="px-3 py-1 rounded-full border border-white/5 bg-white/5 text-[10px] uppercase tracking-widest text-slate-500 hover:text-slate-200"
+                    className="px-3 py-1 rounded-full border axi-edge-rule bg-white/5 text-[10px] uppercase tracking-widest axi-ink-faint hover:text-slate-200"
                 >
                     Clear All
                 </button>
@@ -133,7 +133,7 @@ export const SkillUsageSection = ({
         <div className="grid gap-4 lg:grid-cols-2 items-stretch">
             <div className="space-y-2 flex flex-col h-[320px]">
                 <div className="flex items-center justify-between">
-                    <div className="text-[10px] uppercase tracking-wider text-slate-500">
+                    <div className="text-[10px] uppercase tracking-wider axi-ink-faint">
                         Squad Players
                     </div>
                     <button
@@ -149,7 +149,7 @@ export const SkillUsageSection = ({
                             });
                         }}
                         disabled={allPlayerKeys.length === 0}
-                        className="skill-usage-player-list-item px-2 py-0.5 rounded-full border border-white/5 bg-white/5 text-[10px] uppercase tracking-widest text-slate-500 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="skill-usage-player-list-item px-2 py-0.5 rounded-full border axi-edge-rule bg-white/5 text-[10px] uppercase tracking-widest axi-ink-faint hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {hasAllPlayersSelected ? 'Clear All' : 'Select All'}
                     </button>
@@ -159,11 +159,11 @@ export const SkillUsageSection = ({
                     value={skillUsagePlayerFilter}
                     onChange={(event) => setSkillUsagePlayerFilter(event.target.value)}
                     placeholder="Search player or account"
-                    className="w-full rounded-lg border border-white/5 bg-white/5 px-3 py-2 text-sm text-slate-200 focus:ring-1 focus:ring-indigo-500/50 outline-none"
+                    className="w-full rounded-lg border axi-edge-rule bg-white/5 px-3 py-2 text-sm axi-ink-plain focus:ring-1 focus:ring-indigo-500/50 outline-none"
                 />
-                <div className="skill-usage-player-list-container flex-1 min-h-0 overflow-y-auto rounded-lg border border-white/5">
+                <div className="skill-usage-player-list-container flex-1 min-h-0 overflow-y-auto rounded-lg border axi-edge-rule">
                     {groupedSkillUsagePlayers.length === 0 ? (
-                        <div className="px-3 py-4 text-xs text-slate-600 italic">
+                        <div className="px-3 py-4 text-xs axi-ink-faint italic">
                             No squad players match the filter
                         </div>
                     ) : (
@@ -172,7 +172,7 @@ export const SkillUsageSection = ({
                             const groupKeys = group.players.map((player) => player.key);
                             const allSelected = groupKeys.length > 0 && groupKeys.every((key) => selectedPlayers.includes(key));
                             return (
-                                <div key={group.profession} className="border-b border-white/5 last:border-b-0">
+                                <div key={group.profession} className="border-b axi-edge-rule last:border-b-0">
                                     <button
                                         type="button"
                                         onClick={() => {
@@ -187,9 +187,9 @@ export const SkillUsageSection = ({
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2 min-w-0">
                                                 {renderProfessionIcon(group.profession, undefined, 'w-4 h-4')}
-                                                <div className="text-sm font-semibold truncate text-white">{group.profession}</div>
+                                                <div className="text-sm font-semibold truncate axi-ink-plain">{group.profession}</div>
                                             </div>
-                                            <div className="flex items-center gap-2 text-slate-500">
+                                            <div className="flex items-center gap-2 axi-ink-faint">
                                                 <span className="text-[10px]">{group.players.length}p</span>
                                                 {isExpanded ? (
                                                     <ChevronDown className="w-3.5 h-3.5" />
@@ -201,7 +201,7 @@ export const SkillUsageSection = ({
                                     </button>
                                     {isExpanded && (
                                         <div className="pb-2">
-                                            <div className="px-6 pt-1 pb-2 flex items-center justify-between text-[11px] text-slate-500">
+                                            <div className="px-6 pt-1 pb-2 flex items-center justify-between text-[11px] axi-ink-faint">
                                                 <span>{group.players.length} {group.players.length === 1 ? 'player' : 'players'}</span>
                                                     <button
                                                         type="button"
@@ -215,7 +215,7 @@ export const SkillUsageSection = ({
                                                             return Array.from(next);
                                                         });
                                                     }}
-                                                        className="skill-usage-player-list-item px-2 py-0.5 rounded-full border border-white/5 bg-white/5 text-[10px] uppercase tracking-widest text-slate-500 hover:text-slate-200"
+                                                        className="skill-usage-player-list-item px-2 py-0.5 rounded-full border axi-edge-rule bg-white/5 text-[10px] uppercase tracking-widest axi-ink-faint hover:text-slate-200"
                                                     >
                                                         {allSelected ? 'Clear All' : 'Select All'}
                                                     </button>
@@ -227,16 +227,16 @@ export const SkillUsageSection = ({
                                                         type="button"
                                                         key={player.key}
                                                         onClick={() => togglePlayerSelection(player.key)}
-                                                        className={`skill-usage-player-list-item w-full border-b border-white/5 px-6 py-2 text-left transition-colors last:border-b-0 ${isSelected ? 'bg-indigo-500/15 ring-1 ring-indigo-500/30 text-slate-200' : 'border-transparent hover:border-white/10 hover:bg-white/5'}`}
+                                                        className={`skill-usage-player-list-item w-full border-b axi-edge-rule px-6 py-2 text-left transition-colors last:border-b-0 ${isSelected ? 'bg-indigo-500/15 ring-1 ring-indigo-500/30 axi-ink-plain' : 'border-transparent hover:border-white/10 hover:bg-white/5'}`}
                                                     >
                                                         <div className="flex items-center justify-between">
                                                             <div>
-                                                                <div className="text-sm font-semibold truncate text-white">{player.displayName}</div>
-                                                                <div className="text-[11px] text-slate-500">
+                                                                <div className="text-sm font-semibold truncate axi-ink-plain">{player.displayName}</div>
+                                                                <div className="text-[11px] axi-ink-faint">
                                                                     {player.account} · {player.profession} · {player.logs} {player.logs === 1 ? 'log' : 'logs'}
                                                                 </div>
                                                             </div>
-                                                            {isSelected && <CheckCircle2 className="w-4 h-4 text-indigo-300" />}
+                                                            {isSelected && <CheckCircle2 className="w-4 h-4 axi-ink-meta" />}
                                                         </div>
                                                     </button>
                                                 );
@@ -251,10 +251,10 @@ export const SkillUsageSection = ({
             </div>
             <div className="space-y-2 flex flex-col h-[320px]">
                 <div className="flex items-center justify-between">
-                    <div className="text-[10px] uppercase tracking-wider text-slate-500">
+                    <div className="text-[10px] uppercase tracking-wider axi-ink-faint">
                         Skill Totals
                     </div>
-                    <div className="text-[11px] text-slate-500">
+                    <div className="text-[11px] axi-ink-faint">
                         {selectedPlayers.length > 0
                             ? `${selectedPlayers.length} player${selectedPlayers.length === 1 ? '' : 's'} · ${isSkillUsagePerSecond ? 'casts/sec' : 'total casts'}`
                             : 'Select players'}
@@ -265,15 +265,15 @@ export const SkillUsageSection = ({
                     value={skillUsageSkillFilter}
                     onChange={(event) => setSkillUsageSkillFilter(event.target.value)}
                     placeholder="Filter skill names"
-                    className="w-full rounded-lg border border-white/5 bg-white/5 px-3 py-2 text-sm text-slate-200 focus:ring-1 focus:ring-indigo-500/50 outline-none"
+                    className="w-full rounded-lg border axi-edge-rule bg-white/5 px-3 py-2 text-sm axi-ink-plain focus:ring-1 focus:ring-indigo-500/50 outline-none"
                 />
                 <div className="rounded-lg p-0.5 flex-1 min-h-0">
                     {selectedPlayers.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-xs text-slate-600">
+                        <div className="h-full flex flex-col items-center justify-center text-xs axi-ink-faint">
                             Select squad players to see the skills they cast.
                         </div>
                     ) : skillBarData.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-xs text-slate-600">
+                        <div className="h-full flex flex-col items-center justify-center text-xs axi-ink-faint">
                             No skill casts found for the selected players.
                         </div>
                     ) : (
@@ -289,11 +289,11 @@ export const SkillUsageSection = ({
                                                 key={entry.skillId}
                                                 type="button"
                                                 onClick={() => setSelectedSkillId(entry.skillId)}
-                                                className={`w-full space-y-1 rounded-lg border px-2 py-1.5 text-left transition-colors ${isSelected ? 'border-white/60 bg-white/5' : 'border-white/5 bg-white/5 hover:border-white/10 hover:bg-white/5'}`}
+                                                className={`w-full space-y-1 rounded-lg border px-2 py-1.5 text-left transition-colors ${isSelected ? 'axi-edge-rule bg-white/5' : 'axi-edge-rule bg-white/5 hover:border-white/10 hover:bg-white/5'}`}
                                             >
-                                                <div className="flex items-center justify-between text-sm text-white min-w-0">
+                                                <div className="flex items-center justify-between text-sm axi-ink-plain min-w-0">
                                                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">{`#${index + 1}`}</span>
+                                                        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] axi-ink-faint">{`#${index + 1}`}</span>
                                                         <InlineIconLabel
                                                             name={entry.name}
                                                             iconUrl={entry.icon}
@@ -302,7 +302,7 @@ export const SkillUsageSection = ({
                                                             textClassName="font-semibold"
                                                         />
                                                     </div>
-                                                    <span className="text-indigo-300 font-mono text-xs shrink-0">{formatSkillUsageValue(entry.total)}</span>
+                                                    <span className="axi-ink-meta font-mono text-xs shrink-0">{formatSkillUsageValue(entry.total)}</span>
                                                 </div>
                                                 <div className="h-1 w-full rounded-full bg-white/5">
                                                     <div
@@ -325,12 +325,12 @@ export const SkillUsageSection = ({
                 <div className="space-y-4">
                     <div className="space-y-4 rounded-lg p-4 mt-2">
                         <div className="flex items-center justify-between">
-                            <div className="text-sm font-semibold text-slate-200">
+                            <div className="text-sm font-semibold axi-ink-plain">
                                 {selectedSkillName
                                     ? <InlineIconLabel name={selectedSkillName} iconUrl={selectedSkillIcon} iconClassName="h-6 w-6" />
                                     : 'Selected Skill Usage'}
                             </div>
-                            <div className="text-[11px] text-slate-500">
+                            <div className="text-[11px] axi-ink-faint">
                                 ({isSkillUsagePerSecond ? 'casts per second' : 'casts per log'})
                             </div>
                         </div>
@@ -361,8 +361,8 @@ export const SkillUsageSection = ({
                                         const first = sorted[0];
                                         const header = (first?.payload as any)?.fullLabel || label;
                                         return (
-                                            <div className="rounded-lg bg-white/5 border border-white/5 px-3 py-2">
-                                                <div className="text-sm text-white mb-1">{header}</div>
+                                            <div className="rounded-lg bg-white/5 border axi-edge-rule px-3 py-2">
+                                                <div className="text-sm axi-ink-plain mb-1">{header}</div>
                                                 <div className="space-y-1">
                                                     {sorted.map((item) => {
                                                         const name = String(item.name || '');
@@ -373,7 +373,7 @@ export const SkillUsageSection = ({
                                                         return (
                                                             <div key={`${labelText}-${value}`} className="flex items-center justify-between text-sm">
                                                                 <span className="truncate" style={{ color }}>{labelText}</span>
-                                                                <span className="text-slate-200 font-mono">{value}</span>
+                                                                <span className="axi-ink-plain font-mono">{value}</span>
                                                             </div>
                                                         );
                                                     })}
@@ -409,8 +409,8 @@ export const SkillUsageSection = ({
                     {selectedPlayers.length > 0 && (
                         <div className="rounded-lg p-4 space-y-3">
                             <div className="flex items-center justify-between">
-                                <div className="text-[10px] uppercase tracking-wider text-slate-500">Selected Players</div>
-                                <div className="text-[11px] text-slate-500">
+                                <div className="text-[10px] uppercase tracking-wider axi-ink-faint">Selected Players</div>
+                                <div className="text-[11px] axi-ink-faint">
                                     {selectedPlayers.length} {selectedPlayers.length === 1 ? 'player' : 'players'}
                                 </div>
                             </div>
@@ -435,7 +435,7 @@ export const SkillUsageSection = ({
                                                         return [...prev, playerKey];
                                                     });
                                                 }}
-                                                className={`w-full rounded-lg border bg-white/5 p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-left transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 min-w-0 ${isActive ? 'border-white/40 bg-white/5' : 'border-white/5 hover:border-white/10 hover:bg-white/5'
+                                                className={`w-full rounded-lg border bg-white/5 p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-left transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 min-w-0 ${isActive ? 'axi-edge-rule bg-white/5' : 'axi-edge-rule hover:border-white/10 hover:bg-white/5'
                                                     }`}
                                                 aria-pressed={isActive}
                                             >
@@ -454,14 +454,14 @@ export const SkillUsageSection = ({
                                                     </svg>
                                                     {renderProfessionIcon(player?.profession, player?.professionList, 'w-4 h-4')}
                                                     <div className="min-w-0">
-                                                        <div className="text-[10px] uppercase tracking-wider text-slate-500">Player</div>
-                                                        <div className="font-semibold text-white truncate">{player?.displayName || playerKey}</div>
-                                                        <div className="text-[11px] text-slate-500">
+                                                        <div className="text-[10px] uppercase tracking-wider axi-ink-faint">Player</div>
+                                                        <div className="font-semibold axi-ink-plain truncate">{player?.displayName || playerKey}</div>
+                                                        <div className="text-[11px] axi-ink-faint">
                                                             {player?.logs ?? 0} {(player?.logs ?? 0) === 1 ? 'log' : 'logs'}
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="text-2xl sm:text-3xl font-black text-white font-mono self-end sm:self-auto shrink-0">
+                                                <div className="text-2xl sm:text-3xl font-black axi-ink-plain font-mono self-end sm:self-auto shrink-0">
                                                     {formatSkillUsageValue(total)}
                                                 </div>
                                             </button>
@@ -472,7 +472,7 @@ export const SkillUsageSection = ({
                     )}
                 </div>
             ) : (
-                <div className="rounded-lg border border-dashed border-white/10 px-4 py-6 mt-2 text-center text-xs text-slate-500">
+                <div className="rounded-lg border border-dashed axi-edge-rule px-4 py-6 mt-2 text-center text-xs axi-ink-faint">
                     {skillUsageAvailable
                         ? 'Pick one skill and up to two players to visualize their usage over time.'
                         : 'Upload or highlight logs with rotation data to enable the skill usage tracker.'}

@@ -32,42 +32,42 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                 >
                     <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-[4px] bg-blue-500/20 border border-blue-500/30">
-                                <Sparkles className="w-5 h-5 text-blue-300" />
+                            <div className="p-2 rounded-[4px] bg-blue-500/20 border axi-edge-meta">
+                                <Sparkles className="w-5 h-5 axi-ink-meta" />
                             </div>
                             <div>
-                                <div className="text-lg font-bold text-white">What’s New</div>
-                                <div className="text-xs text-gray-400">Version {version}</div>
+                                <div className="text-lg font-bold axi-ink-plain">What’s New</div>
+                                <div className="text-xs axi-ink-dim">Version {version}</div>
                             </div>
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-1.5 rounded-[4px] hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
+                            className="p-1.5 rounded-[4px] hover:bg-white/10 axi-ink-dim hover:text-white transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
                     </div>
                     <div className="whats-new-modal__body p-6">
                         <div className="whats-new-modal__scroll max-h-[65vh] overflow-y-auto pr-2">
-                            <div className="space-y-4 text-sm text-gray-200">
+                            <div className="space-y-4 text-sm axi-ink-plain">
                                 <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                     components={{
-                                        h1: ({ children }) => <h1 className="text-2xl font-bold text-white">{children}</h1>,
-                                        h2: ({ children }) => <h2 className="text-xl font-semibold text-white">{children}</h2>,
-                                        h3: ({ children }) => <h3 className="text-lg font-semibold text-white">{children}</h3>,
-                                        p: ({ children }) => <p className="leading-6 text-gray-200">{children}</p>,
-                                        ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 text-gray-200">{children}</ul>,
-                                        ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 text-gray-200">{children}</ol>,
+                                        h1: ({ children }) => <h1 className="text-2xl font-bold axi-ink-plain">{children}</h1>,
+                                        h2: ({ children }) => <h2 className="text-xl font-semibold axi-ink-plain">{children}</h2>,
+                                        h3: ({ children }) => <h3 className="text-lg font-semibold axi-ink-plain">{children}</h3>,
+                                        p: ({ children }) => <p className="leading-6 axi-ink-plain">{children}</p>,
+                                        ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 axi-ink-plain">{children}</ul>,
+                                        ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 axi-ink-plain">{children}</ol>,
                                         li: ({ children }) => <li className="leading-6">{children}</li>,
                                         blockquote: ({ children }) => (
-                                            <blockquote className="border-l-2 border-blue-400/40 pl-4 text-gray-300 italic">
+                                            <blockquote className="border-l-2 axi-edge-meta pl-4 axi-ink-dim italic">
                                                 {children}
                                             </blockquote>
                                         ),
                                         a: ({ href, children }) => (
                                             <button
-                                                className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
+                                                className="axi-ink-meta hover:text-blue-200 underline underline-offset-2"
                                                 onClick={() => href && window.electronAPI.openExternal(href)}
                                             >
                                                 {children}
@@ -81,17 +81,17 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                                             </div>
                                         ),
                                         th: ({ children }) => (
-                                            <th className="border-b border-white/10 bg-white/5 px-3 py-2 text-xs uppercase tracking-wide text-gray-300">
+                                            <th className="border-b axi-edge-rule bg-white/5 px-3 py-2 text-xs uppercase tracking-wide axi-ink-dim">
                                                 {children}
                                             </th>
                                         ),
                                         td: ({ children }) => (
-                                            <td className="border-b border-white/10 px-3 py-2 text-gray-200">
+                                            <td className="border-b axi-edge-rule px-3 py-2 axi-ink-plain">
                                                 {children}
                                             </td>
                                         ),
                                         pre: ({ children }) => (
-                                            <pre className="overflow-x-auto rounded-[4px] p-4 text-xs text-blue-100" style={{ background: 'var(--bg-card-inner)' }}>
+                                            <pre className="overflow-x-auto rounded-[4px] p-4 text-xs axi-ink-meta" style={{ background: 'var(--bg-card-inner)' }}>
                                                 {children}
                                             </pre>
                                         ),
@@ -99,11 +99,11 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                                             const { inline, className, children } = props;
                                             const isInline = inline ?? !className;
                                             return isInline ? (
-                                                <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] text-blue-200">
+                                                <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] axi-ink-meta">
                                                     {children}
                                                 </code>
                                             ) : (
-                                                <code className="whitespace-pre-wrap text-blue-100">
+                                                <code className="whitespace-pre-wrap axi-ink-meta">
                                                     {children}
                                                 </code>
                                             );
@@ -118,7 +118,7 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                     <div className="flex justify-end px-6 py-4" style={{ borderTop: '1px solid var(--border-default)' }}>
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 rounded-[4px] bg-blue-500/20 text-blue-200 border border-blue-500/30 hover:bg-blue-500/30 transition-colors text-sm font-medium"
+                            className="px-4 py-2 rounded-[4px] bg-blue-500/20 axi-ink-meta border axi-edge-meta hover:bg-blue-500/30 transition-colors text-sm font-medium"
                         >
                             Continue
                         </button>

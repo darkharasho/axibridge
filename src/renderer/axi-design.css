@@ -261,48 +261,27 @@
    written later and wins on source order alone. */
 
 /* ---------------------------------------------------------------------------
-   THE PALETTE BRIDGE
-   Roughly fourteen hundred Tailwind palette utilities are written straight
-   into the markup - text-gray-400, bg-white/5, border-white/10, bg-amber-500/15
-   and two hundred and seventy more. None of them read a variable, so the remap
-   at the top of this file could never reach them; this is why so much of the
-   app still looked like the old app with new tokens underneath it.
+   THE PALETTE BRIDGE, WHAT IS LEFT OF IT
+   The ink half of this bridge is gone: every `text-*` and `border-*` palette
+   utility in the renderer now says its meaning instead, as an upstream
+   .axi-ink-* or .axi-edge-* class, so there is nothing left to translate.
 
-   So the theme claims them. [data-axi-accent] body .text-gray-400 is two classes
-   against the utility's one, which is enough to win without !important, and
-   with the setting off not one of these rules matches anything. Each utility
-   resolves to the token that carries the same meaning:
+   What remains is the `bg-*` half, and it remains because a background is not
+   a colour swap. `bg-white/5 border-white/10 rounded-lg p-3` is a well, and
+   naming it one is a markup change per site rather than a substitution - so
+   it waits for the surfaces slice.
 
-     the nine greys        -> the three axi text steps
-     white and black washes-> the neutral surfaces, or the scrim
-     red, rose             -> danger      orange, amber, yellow -> warn
-     green, emerald, teal  -> ok          every cool hue        -> meta
+   Two notes on what this bridge never reached, to save the next reader the
+   discovery. It only ever matched unprefixed utilities: Tailwind emits
+   `hover:text-white` as the class `hover\:text-white`, which `.text-white`
+   does not match, so roughly three hundred variant-prefixed palette colours
+   were never themed at all and still are not. Most of them sit on things that
+   want to be .axi-btn or .axi-menu, which carry their own hover - so they
+   belong to the component slices, not to a parallel hover vocabulary.
 
-   Note what is missing: the accent. Nothing in this table hands out gold. The
-   app writes amber in a hundred places and meant "highlight" in every one of
-   them, but in this language gold means the thing you picked, so it stays out
-   of the blanket translation and is only ever spent by a rule written on
-   purpose - and the two range inputs that do want gold now say accentColor at
-   the call site rather than borrowing a Tailwind palette class to mean it.
-
-   Collapsing eight cool hues onto one ink is deliberate. Where a hue really is
-   data - boon colours, profession colours - it comes from JS, not from a class,
-   so rule 10's palette is untouched; the hues written into markup are chrome,
-   and chrome in this language has one cool ink.
-
-   Generated from the classes actually present in src/renderer, so there are no
-   rules here for utilities the app does not use. */
-[data-axi-accent] body .ring-cyan-400\/70,
-[data-axi-accent] body .ring-cyan-500\/30,
-[data-axi-accent] body .ring-indigo-500\/30,
-[data-axi-accent] body .ring-indigo-500\/50,
-[data-axi-accent] body .ring-sky-400\/70,
-[data-axi-accent] body .ring-sky-500\/60 { --tw-ring-color: var(--axi-meta); }
-
-[data-axi-accent] body .ring-emerald-500\/60 { --tw-ring-color: var(--axi-ok); }
-
-[data-axi-accent] body .ring-white\/20 { --tw-ring-color: var(--axi-rule); }
-
+   And the accent stays out of the table. The app writes amber in a hundred
+   places and meant "highlight" in every one; in this language gold means the
+   thing you picked, so it is only ever spent by a rule written on purpose. */
 [data-axi-accent] body .bg-red-400,
 [data-axi-accent] body .bg-red-500,
 [data-axi-accent] body .bg-red-600,
@@ -418,197 +397,6 @@
 [data-axi-accent] body .bg-orange-400,
 [data-axi-accent] body .bg-orange-500,
 [data-axi-accent] body .bg-orange-500\/80 { background-color: var(--axi-warn); }
-
-[data-axi-accent] body .border-red-400\/25,
-[data-axi-accent] body .border-red-500\/30,
-[data-axi-accent] body .border-red-500\/40,
-[data-axi-accent] body .border-red-500\/50,
-[data-axi-accent] body .border-rose-200\/10,
-[data-axi-accent] body .border-rose-300\/30,
-[data-axi-accent] body .border-rose-400\/25,
-[data-axi-accent] body .border-rose-500\/20,
-[data-axi-accent] body .border-rose-500\/30,
-[data-axi-accent] body .border-rose-500\/35,
-[data-axi-accent] body .border-rose-500\/60,
-[data-axi-accent] body .border-rose-500\/80 { border-color: var(--axi-danger); }
-
-[data-axi-accent] body .border-blue-400,
-[data-axi-accent] body .border-blue-400\/40,
-[data-axi-accent] body .border-blue-500,
-[data-axi-accent] body .border-blue-500\/30,
-[data-axi-accent] body .border-blue-500\/40,
-[data-axi-accent] body .border-blue-500\/50,
-[data-axi-accent] body .border-cyan-200\/40,
-[data-axi-accent] body .border-cyan-200\/70,
-[data-axi-accent] body .border-cyan-300\/30,
-[data-axi-accent] body .border-cyan-300\/40,
-[data-axi-accent] body .border-cyan-300\/50,
-[data-axi-accent] body .border-cyan-400\/30,
-[data-axi-accent] body .border-cyan-400\/40,
-[data-axi-accent] body .border-cyan-400\/50,
-[data-axi-accent] body .border-cyan-500\/25,
-[data-axi-accent] body .border-cyan-500\/30,
-[data-axi-accent] body .border-cyan-500\/40,
-[data-axi-accent] body .border-cyan-500\/50,
-[data-axi-accent] body .border-indigo-300\/20,
-[data-axi-accent] body .border-purple-500\/30,
-[data-axi-accent] body .border-purple-500\/50,
-[data-axi-accent] body .border-violet-500\/35 { border-color: var(--axi-meta); }
-
-[data-axi-accent] body .border-emerald-200\/10,
-[data-axi-accent] body .border-emerald-400\/25,
-[data-axi-accent] body .border-emerald-400\/40,
-[data-axi-accent] body .border-emerald-500\/30,
-[data-axi-accent] body .border-emerald-500\/35,
-[data-axi-accent] body .border-emerald-500\/40,
-[data-axi-accent] body .border-green-500\/30,
-[data-axi-accent] body .border-green-500\/40 { border-color: var(--axi-ok); }
-
-[data-axi-accent] body .border-slate-300\/30,
-[data-axi-accent] body .border-slate-400\/30,
-[data-axi-accent] body .border-white,
-[data-axi-accent] body .border-white\/10,
-[data-axi-accent] body .border-white\/15,
-[data-axi-accent] body .border-white\/20,
-[data-axi-accent] body .border-white\/25,
-[data-axi-accent] body .border-white\/30,
-[data-axi-accent] body .border-white\/40,
-[data-axi-accent] body .border-white\/5,
-[data-axi-accent] body .border-white\/60,
-[data-axi-accent] body .border-white\/\[0\.03\],
-[data-axi-accent] body .border-white\/\[0\.07\],
-[data-axi-accent] body .border-white\/\[0\.08\],
-[data-axi-accent] body .border-white\/\[0\.09\] { border-color: var(--axi-rule); }
-
-[data-axi-accent] body .divide-white\/10 > :not([hidden]) ~ :not([hidden]),
-[data-axi-accent] body .divide-white\/5 > :not([hidden]) ~ :not([hidden]) { border-color: var(--axi-rule); }
-
-[data-axi-accent] body .border-amber-200\/10,
-[data-axi-accent] body .border-amber-300\/40,
-[data-axi-accent] body .border-amber-400,
-[data-axi-accent] body .border-amber-400\/25,
-[data-axi-accent] body .border-amber-400\/30,
-[data-axi-accent] body .border-amber-400\/40,
-[data-axi-accent] body .border-amber-500\/20,
-[data-axi-accent] body .border-amber-500\/30,
-[data-axi-accent] body .border-amber-500\/35,
-[data-axi-accent] body .border-amber-500\/40,
-[data-axi-accent] body .border-amber-500\/50,
-[data-axi-accent] body .border-orange-200\/40,
-[data-axi-accent] body .border-orange-400\/30,
-[data-axi-accent] body .border-orange-500\/30,
-[data-axi-accent] body .border-orange-500\/35,
-[data-axi-accent] body .border-yellow-500\/20 { border-color: var(--axi-warn); }
-
-[data-axi-accent] body .text-red-100,
-[data-axi-accent] body .text-red-200,
-[data-axi-accent] body .text-red-200\/50,
-[data-axi-accent] body .text-red-200\/60,
-[data-axi-accent] body .text-red-300,
-[data-axi-accent] body .text-red-300\/80,
-[data-axi-accent] body .text-red-400,
-[data-axi-accent] body .text-red-500,
-[data-axi-accent] body .text-rose-100,
-[data-axi-accent] body .text-rose-100\/75,
-[data-axi-accent] body .text-rose-100\/80,
-[data-axi-accent] body .text-rose-200,
-[data-axi-accent] body .text-rose-200\/60,
-[data-axi-accent] body .text-rose-300,
-[data-axi-accent] body .text-rose-300\/70,
-[data-axi-accent] body .text-rose-400,
-[data-axi-accent] body .text-rose-50 { color: var(--axi-danger); }
-
-[data-axi-accent] body .text-blue-100,
-[data-axi-accent] body .text-blue-200,
-[data-axi-accent] body .text-blue-200\/80,
-[data-axi-accent] body .text-blue-300,
-[data-axi-accent] body .text-blue-300\/70,
-[data-axi-accent] body .text-blue-400,
-[data-axi-accent] body .text-cyan-100,
-[data-axi-accent] body .text-cyan-200,
-[data-axi-accent] body .text-cyan-200\/60,
-[data-axi-accent] body .text-cyan-200\/70,
-[data-axi-accent] body .text-cyan-200\/80,
-[data-axi-accent] body .text-cyan-300,
-[data-axi-accent] body .text-cyan-300\/60,
-[data-axi-accent] body .text-cyan-300\/70,
-[data-axi-accent] body .text-cyan-300\/80,
-[data-axi-accent] body .text-cyan-400,
-[data-axi-accent] body .text-cyan-50,
-[data-axi-accent] body .text-fuchsia-100,
-[data-axi-accent] body .text-fuchsia-200,
-[data-axi-accent] body .text-fuchsia-400,
-[data-axi-accent] body .text-indigo-100\/90,
-[data-axi-accent] body .text-indigo-200,
-[data-axi-accent] body .text-indigo-200\/80,
-[data-axi-accent] body .text-indigo-300,
-[data-axi-accent] body .text-indigo-400,
-[data-axi-accent] body .text-pink-400,
-[data-axi-accent] body .text-purple-300,
-[data-axi-accent] body .text-purple-400,
-[data-axi-accent] body .text-sky-200,
-[data-axi-accent] body .text-sky-300,
-[data-axi-accent] body .text-sky-400,
-[data-axi-accent] body .text-violet-300 { color: var(--axi-meta); }
-
-[data-axi-accent] body .text-emerald-100,
-[data-axi-accent] body .text-emerald-100\/80,
-[data-axi-accent] body .text-emerald-200,
-[data-axi-accent] body .text-emerald-200\/80,
-[data-axi-accent] body .text-emerald-300,
-[data-axi-accent] body .text-emerald-400,
-[data-axi-accent] body .text-green-300,
-[data-axi-accent] body .text-green-400,
-[data-axi-accent] body .text-teal-400,
-[data-axi-accent] body .text-teal-500 { color: var(--axi-ok); }
-
-[data-axi-accent] body .text-gray-300,
-[data-axi-accent] body .text-gray-400,
-[data-axi-accent] body .text-slate-300,
-[data-axi-accent] body .text-slate-400 { color: var(--axi-text-dim); }
-
-[data-axi-accent] body .text-gray-500,
-[data-axi-accent] body .text-gray-600,
-[data-axi-accent] body .text-slate-300\/70,
-[data-axi-accent] body .text-slate-500,
-[data-axi-accent] body .text-slate-600,
-[data-axi-accent] body .text-white\/50 { color: var(--axi-text-faint); }
-
-[data-axi-accent] body .text-gray-100,
-[data-axi-accent] body .text-gray-200,
-[data-axi-accent] body .text-slate-100,
-[data-axi-accent] body .text-slate-200,
-[data-axi-accent] body .text-white,
-[data-axi-accent] body .text-white\/80 { color: var(--axi-text); }
-
-[data-axi-accent] body .text-amber-100,
-[data-axi-accent] body .text-amber-100\/80,
-[data-axi-accent] body .text-amber-200,
-[data-axi-accent] body .text-amber-200\/60,
-[data-axi-accent] body .text-amber-200\/70,
-[data-axi-accent] body .text-amber-200\/80,
-[data-axi-accent] body .text-amber-300,
-[data-axi-accent] body .text-amber-300\/60,
-[data-axi-accent] body .text-amber-300\/70,
-[data-axi-accent] body .text-amber-400,
-[data-axi-accent] body .text-amber-400\/80,
-[data-axi-accent] body .text-orange-100,
-[data-axi-accent] body .text-orange-200,
-[data-axi-accent] body .text-orange-200\/70,
-[data-axi-accent] body .text-orange-200\/80,
-[data-axi-accent] body .text-orange-300,
-[data-axi-accent] body .text-orange-400,
-[data-axi-accent] body .text-orange-50,
-[data-axi-accent] body .text-yellow-100,
-[data-axi-accent] body .text-yellow-200,
-[data-axi-accent] body .text-yellow-200\/70,
-[data-axi-accent] body .text-yellow-200\/90,
-[data-axi-accent] body .text-yellow-300,
-[data-axi-accent] body .text-yellow-400,
-[data-axi-accent] body .text-yellow-500 { color: var(--axi-warn); }
-
-[data-axi-accent] body .fill-amber-300,
-[data-axi-accent] body .fill-yellow-500\/40 { fill: var(--axi-warn); }
 
 /* ---------------------------------------------------------------------------
    THE FORM BRIDGE
