@@ -248,7 +248,7 @@ export const HealingBreakdownSection = ({
                                 const modeLabel = metricMode === 'healing' ? 'Healing' : 'Barrier';
                                 return (
                                     <div className="h-full flex flex-col">
-                                        <div className="stats-table-shell__head-stack">
+                                        <div className="stats-table-shell__header">
                                             <div className="flex items-center justify-between px-4 py-3">
                                                 <div className="min-w-0 text-sm text-[color:var(--text-primary)]">
                                                     <div className="flex items-center gap-2 min-w-0">
@@ -264,41 +264,56 @@ export const HealingBreakdownSection = ({
                                                     {modeLabel} / {skills.length} {skills.length === 1 ? 'skill' : 'skills'}
                                                 </div>
                                             </div>
-                                            <div className="stats-table-column-header grid grid-cols-[2fr_0.6fr_0.8fr_0.6fr_0.6fr_0.5fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-4 py-2 border-b border-[color:var(--border-default)]">
-                                                <div>Skill</div>
-                                                <div className="text-right">Hits</div>
-                                                <div className="text-right">Total</div>
-                                                <div className="text-right">Avg</div>
-                                                <div className="text-right">Max</div>
-                                                <div className="text-right">Pct</div>
-                                            </div>
                                         </div>
-                                        <div className="stats-table-shell__rows flex-1 min-h-0 overflow-y-auto">
-                                            {skills.length === 0 ? (
-                                                <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)] px-6 text-center">
-                                                    No {modeLabel.toLowerCase()} skills for this player.
-                                                </div>
-                                            ) : (
-                                                skills.map((skill, idx) => {
-                                                    const avg = skill.hits > 0 ? Math.round(skill.total / skill.hits) : 0;
-                                                    const pct = grandTotal > 0 ? (skill.total / grandTotal) * 100 : 0;
-                                                    return (
-                                                        <div
-                                                            key={`${skill.id}-${idx}`}
-                                                            className="grid grid-cols-[2fr_0.6fr_0.8fr_0.6fr_0.6fr_0.5fr] gap-1 px-4 py-2 text-xs text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]"
-                                                        >
-                                                            <div className="min-w-0">
-                                                                <InlineIconLabel name={skill.name} iconUrl={skill.icon} iconClassName="h-4 w-4" />
-                                                            </div>
-                                                            <div className="text-right font-mono text-[color:var(--text-secondary)]">{formatWithCommas(skill.hits, 0)}</div>
-                                                            <div className="text-right font-mono text-[color:var(--text-secondary)]">{formatWithCommas(skill.total, 0)}</div>
-                                                            <div className="text-right font-mono text-[color:var(--text-secondary)]">{formatWithCommas(avg, 0)}</div>
-                                                            <div className="text-right font-mono text-[color:var(--text-secondary)]">{formatWithCommas(skill.max, 0)}</div>
-                                                            <div className="text-right font-mono text-[color:var(--text-secondary)]">{formatWithCommas(pct, 1)}%</div>
-                                                        </div>
-                                                    );
-                                                })
-                                            )}
+                                        <div className="axi-table__scroll flex-1 min-h-0">
+                                            <table className="axi-table axi-table--fixed axi-table--sticky axi-table--dense">
+                                                <colgroup>
+                                                    <col style={{ width: '38.0952%' }} />
+                                                    <col style={{ width: '11.4286%' }} />
+                                                    <col style={{ width: '15.2381%' }} />
+                                                    <col style={{ width: '11.4286%' }} />
+                                                    <col style={{ width: '11.4286%' }} />
+                                                    <col style={{ width: '9.5238%' }} />
+                                                </colgroup>
+                                                <thead>
+                                                    <tr>
+                                                        <th scope="col">Skill</th>
+                                                        <th scope="col">Hits</th>
+                                                        <th scope="col">Total</th>
+                                                        <th scope="col">Avg</th>
+                                                        <th scope="col">Max</th>
+                                                        <th scope="col">Pct</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {skills.length === 0 ? (
+                                                        <tr>
+                                                            <td colSpan={6} className="axi-ink-muted text-center">
+                                                                No {modeLabel.toLowerCase()} skills for this player.
+                                                            </td>
+                                                        </tr>
+                                                    ) : (
+                                                        skills.map((skill, idx) => {
+                                                            const avg = skill.hits > 0 ? Math.round(skill.total / skill.hits) : 0;
+                                                            const pct = grandTotal > 0 ? (skill.total / grandTotal) * 100 : 0;
+                                                            return (
+                                                                <tr key={`${skill.id}-${idx}`}>
+                                                                    <th scope="row">
+                                                                        <span className="axi-table__who">
+                                                                            <InlineIconLabel name={skill.name} iconUrl={skill.icon} iconClassName="h-4 w-4" />
+                                                                        </span>
+                                                                    </th>
+                                                                    <td>{formatWithCommas(skill.hits, 0)}</td>
+                                                                    <td className="axi-table__num">{formatWithCommas(skill.total, 0)}</td>
+                                                                    <td>{formatWithCommas(avg, 0)}</td>
+                                                                    <td>{formatWithCommas(skill.max, 0)}</td>
+                                                                    <td>{formatWithCommas(pct, 1)}%</td>
+                                                                </tr>
+                                                            );
+                                                        })
+                                                    )}
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </div>
                                 );

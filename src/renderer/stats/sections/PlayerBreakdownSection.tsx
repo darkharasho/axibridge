@@ -108,6 +108,9 @@ export const PlayerBreakdownSection = ({
         });
         return rows;
     }, [activeClassBreakdown, activeClassRows, activeClassSkill, classSort]);
+    const classAriaSort = (key: 'down' | 'damage' | 'dps'): 'ascending' | 'descending' | undefined =>
+        classSort.key !== key ? undefined : classSort.dir === 'asc' ? 'ascending' : 'descending';
+
     const toggleClassSort = (key: 'down' | 'damage' | 'dps') => {
         setClassSort((prev) => {
             if (prev.key !== key) return { key, dir: 'desc' };
@@ -518,7 +521,7 @@ export const PlayerBreakdownSection = ({
                                             );
                                         })() : (
                                             <>
-                                                <div className="stats-table-shell__head-stack">
+                                                <div className="stats-table-shell__header">
                                                     <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
                                                         <div className="flex flex-col gap-2 min-w-0">
                                                             <div className="flex items-center gap-2 min-w-0 flex-wrap">
@@ -540,12 +543,17 @@ export const PlayerBreakdownSection = ({
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="stats-table-column-header grid grid-cols-[1.2fr_0.8fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
-                                                        <div>Metric</div>
-                                                        <div className="text-right">Value</div>
-                                                    </div>
                                                 </div>
-                                                <div className={`stats-table-shell__rows ${expandedSection === 'player-breakdown' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-72 overflow-y-auto'}`}>
+                                                <div className={`axi-table__scroll ${expandedSection === 'player-breakdown' ? 'flex-1 min-h-0' : 'max-h-72'}`}>
+                                                <table className="axi-table axi-table--fixed axi-table--sticky axi-table--dense">
+                                                    <colgroup>
+                                                        <col style={{ width: '60%' }} />
+                                                        <col style={{ width: '40%' }} />
+                                                    </colgroup>
+                                                    <thead>
+                                                        <tr><th scope="col">Metric</th><th scope="col">Value</th></tr>
+                                                    </thead>
+                                                    <tbody>
                                                     {([
                                                         { label: 'Down Contribution', value: formatTopStatValue(activePlayerSkill?.downContribution || 0) },
                                                         { label: 'Total Damage', value: formatTopStatValue(activePlayerSkill?.damage || 0) },
@@ -577,11 +585,13 @@ export const PlayerBreakdownSection = ({
                                                                 : '—'
                                                         }
                                                     ]).map((row) => (
-                                                        <div key={row.label} className="grid grid-cols-[1.2fr_0.8fr] px-3 py-2 text-xs text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                                            <div className="font-semibold axi-ink-plain">{row.label}</div>
-                                                            <div className="text-right font-mono text-[color:var(--text-secondary)]">{row.value}</div>
-                                                        </div>
+                                                        <tr key={row.label}>
+                                                            <th scope="row">{row.label}</th>
+                                                            <td>{row.value}</td>
+                                                        </tr>
                                                     ))}
+                                                    </tbody>
+                                                </table>
                                                 </div>
                                             </>
                                         )}
@@ -774,7 +784,7 @@ export const PlayerBreakdownSection = ({
                                             );
                                         })() : (
                                             <>
-                                                <div className="stats-table-shell__head-stack">
+                                                <div className="stats-table-shell__header">
                                                     <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
                                                         <div className="flex flex-col gap-2 min-w-0">
                                                             <div className="flex items-center gap-2 min-w-0 flex-wrap">
@@ -796,54 +806,60 @@ export const PlayerBreakdownSection = ({
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="stats-table-column-header grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
-                                                        <div>Player</div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => toggleClassSort('down')}
-                                                            className={`text-right flex items-center justify-end gap-1 transition-colors ${classSort.key === 'down' ? 'axi-ink-meta' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
-                                                        >
-                                                            Down Contrib
-                                                            <span className="text-[10px]">{classSort.key === 'down' ? (classSort.dir === 'desc' ? '↓' : '↑') : ''}</span>
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => toggleClassSort('damage')}
-                                                            className={`text-right flex items-center justify-end gap-1 transition-colors ${classSort.key === 'damage' ? 'axi-ink-meta' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
-                                                        >
-                                                            Damage
-                                                            <span className="text-[10px]">{classSort.key === 'damage' ? (classSort.dir === 'desc' ? '↓' : '↑') : ''}</span>
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => toggleClassSort('dps')}
-                                                            className={`text-right flex items-center justify-end gap-1 transition-colors ${classSort.key === 'dps' ? 'axi-ink-meta' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
-                                                        >
-                                                            DPS
-                                                            <span className="text-[10px]">{classSort.key === 'dps' ? (classSort.dir === 'desc' ? '↓' : '↑') : ''}</span>
-                                                        </button>
-                                                    </div>
                                                 </div>
-                                                <div className={`stats-table-shell__rows ${expandedSection === 'player-breakdown' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-72 overflow-y-auto'}`}>
+                                                <div className={`axi-table__scroll ${expandedSection === 'player-breakdown' ? 'flex-1 min-h-0' : 'max-h-72'}`}>
+                                                <table className="axi-table axi-table--fixed axi-table--sticky axi-table--dense">
+                                                    <colgroup>
+                                                        <col style={{ width: '40%' }} />
+                                                        <col style={{ width: '20%' }} />
+                                                        <col style={{ width: '20%' }} />
+                                                        <col style={{ width: '20%' }} />
+                                                    </colgroup>
+                                                    <thead>
+                                                    <tr>
+                                                        <th scope="col">Player</th>
+                                                        <th scope="col" aria-sort={classAriaSort('down')}>
+                                                            <button type="button" className="axi-table__sort" onClick={() => toggleClassSort('down')}>
+                                                                Down Contrib
+                                                                <span>{classSort.key === 'down' ? (classSort.dir === 'desc' ? '↓' : '↑') : ''}</span>
+                                                            </button>
+                                                        </th>
+                                                        <th scope="col" aria-sort={classAriaSort('damage')}>
+                                                            <button type="button" className="axi-table__sort" onClick={() => toggleClassSort('damage')}>
+                                                                Damage
+                                                                <span>{classSort.key === 'damage' ? (classSort.dir === 'desc' ? '↓' : '↑') : ''}</span>
+                                                            </button>
+                                                        </th>
+                                                        <th scope="col" aria-sort={classAriaSort('dps')}>
+                                                            <button type="button" className="axi-table__sort" onClick={() => toggleClassSort('dps')}>
+                                                                DPS
+                                                                <span>{classSort.key === 'dps' ? (classSort.dir === 'desc' ? '↓' : '↑') : ''}</span>
+                                                            </button>
+                                                        </th>
+                                                    </tr>
+                                                    </thead>
+                                                    <tbody>
                                                     {sortedClassRows.map((player) => {
                                                         const skillEntry = getPlayerSkillEntry(player, activeClassSkill?.id || '');
                                                         const downContribution = Number(skillEntry?.downContribution || 0);
                                                         const damage = Number(skillEntry?.damage || 0);
                                                         const dps = player.totalFightMs > 0 ? damage / (player.totalFightMs / 1000) : 0;
                                                         return (
-                                                            <div key={`${activeClassBreakdown.profession}-${player.key}`} data-player-account={player.account} className="grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] px-3 py-2 text-xs text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                                                <div className="flex items-center gap-2 min-w-0">
-                                                                    {renderProfessionIcon(player.profession, player.professionList, 'w-4 h-4')}
-                                                                    <div className="min-w-0">
-                                                                        <div className="font-semibold axi-ink-plain truncate">{player.displayName}</div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="text-right font-mono text-[color:var(--text-secondary)]">{formatTopStatValue(downContribution)}</div>
-                                                                <div className="text-right font-mono text-[color:var(--text-secondary)]">{formatTopStatValue(damage)}</div>
-                                                                <div className="text-right font-mono text-[color:var(--text-secondary)]">{formatWithCommas(dps, 1)}</div>
-                                                            </div>
+                                                            <tr key={`${activeClassBreakdown.profession}-${player.key}`} data-player-account={player.account}>
+                                                                <th scope="row">
+                                                                    <span className="axi-table__who">
+                                                                        {renderProfessionIcon(player.profession, player.professionList, 'w-4 h-4')}
+                                                                        <span>{player.displayName}</span>
+                                                                    </span>
+                                                                </th>
+                                                                <td className={classSort.key === 'down' ? 'axi-table__cell--sorted' : undefined}>{formatTopStatValue(downContribution)}</td>
+                                                                <td className={classSort.key === 'damage' ? 'axi-table__cell--sorted' : undefined}>{formatTopStatValue(damage)}</td>
+                                                                <td className={classSort.key === 'dps' ? 'axi-table__cell--sorted' : undefined}>{formatWithCommas(dps, 1)}</td>
+                                                            </tr>
                                                         );
                                                     })}
+                                                    </tbody>
+                                                </table>
                                                 </div>
                                             </>
                                         )}

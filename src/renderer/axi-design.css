@@ -863,29 +863,11 @@
    agree because both follow one rule, rather than because one was drawn to
    match the other.
 
-   Converting the grid divs to real tables would let them take `.axi-table`
-   outright, and is the honest end state; it is a markup slice, not a CSS one. */
-[data-axi-accent] body .stats-table-shell__columns {
-  background: var(--axi-surface-raised);
-  /* The one-surface-many-elements case upstream's .axi-table documents: a themed
-     surface is allowed to be a gradient, and glass makes this one, so a row of
-     cells each restarting it arrives as separately lit boxes with a seam
-     between them. Sharing the painting area resolves them back into one strip. */
-  background-attachment: fixed;
-  color: var(--axi-text);
-  border-bottom: var(--axi-border-control) solid var(--axi-rule);
-  border-top-left-radius: var(--axi-radius-sm);
-  border-top-right-radius: var(--axi-radius-sm);
-}
-[data-axi-accent] body .stats-table-shell__columns > * { border-bottom: none; }
-[data-axi-accent] body .stats-table-shell__rows > * + * {
-  border-top: var(--axi-border-hairline) solid var(--axi-rule);
-}
-[data-axi-accent] body .stats-table-shell__rows > *:hover {
-  background: var(--axi-surface-raised);
-  background-attachment: fixed;
-  color: var(--axi-text);
-}
+   Those grid divs are real tables now, so every rule that stood in for
+   `.axi-table` here is gone: the head, the row rules and the hover are the
+   component's, drawn once, for every table in the app. What the shell still
+   owns is `stats-table-shell__header` - the toolbar above the table, which is
+   not table markup and never was. */
 
 /* ---------------------------------------------------------------------------
    THE CHART CHROME

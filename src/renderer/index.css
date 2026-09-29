@@ -732,12 +732,6 @@ body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-tabl
     border-color: transparent !important;
 }
 
-/* Table header stacks — flat, no elevation. */
-.stats-table-shell__head-stack {
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
 /* Shared TOC structure for in-app + web Proof of Work sidebars. */
 .proof-of-work-sidebar .proof-of-work-toc-item--l1 {
     padding-left: 0.55rem;

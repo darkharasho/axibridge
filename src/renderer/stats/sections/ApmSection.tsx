@@ -66,6 +66,11 @@ export const ApmSection = ({
         ? 'axi-rail__nav axi-rail__nav--quiet overflow-y-auto pr-1 flex-1 min-h-0'
         : `${sidebarListClass} max-h-72 overflow-y-auto`;
 
+    const allSkillsAriaSort = (
+        key: 'apm' | 'apmNoAuto' | 'apmNoProcs'
+    ): 'ascending' | 'descending' | undefined =>
+        allSkillsSort.key !== key ? undefined : allSkillsSort.dir === 'asc' ? 'ascending' : 'descending';
+
     const toggleAllSkillsSort = (key: 'apm' | 'apmNoAuto' | 'apmNoProcs') => {
         setAllSkillsSort((prev) => ({
             key,
@@ -427,7 +432,7 @@ export const ApmSection = ({
                                     })()
                                 ) : (
                                     <>
-                                        <div className="stats-table-shell__head-stack">
+                                        <div className="stats-table-shell__header">
                                             <div className="flex items-center justify-between gap-2 px-4 py-3">
                                                 <div className="min-w-0 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                                                     <div className="flex items-center gap-2 min-w-0">
@@ -447,101 +452,102 @@ export const ApmSection = ({
                                                         : `${(activeApmSkill as any)?.totalCasts ?? 0} casts`}
                                                 </div>
                                             </div>
-                                            {isAllApmSkills || !activeApmSkill ? (
-                                                <div className="stats-table-column-header grid grid-cols-[1.4fr_0.6fr_0.7fr_0.8fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
-                                                    <div>Player</div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => toggleAllSkillsSort('apm')}
-                                                        className="text-right transition-colors"
-                                                        style={{ color: allSkillsSort.key === 'apm' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
-                                                    >
-                                                        {apmView === 'perSecond' ? 'APS' : 'APM'}{allSkillsSort.key === 'apm' ? (allSkillsSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => toggleAllSkillsSort('apmNoAuto')}
-                                                        className="text-right transition-colors"
-                                                        style={{ color: allSkillsSort.key === 'apmNoAuto' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
-                                                    >
-                                                        {apmView === 'perSecond' ? 'APS' : 'APM'} (No Auto){allSkillsSort.key === 'apmNoAuto' ? (allSkillsSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => toggleAllSkillsSort('apmNoProcs')}
-                                                        className="text-right transition-colors"
-                                                        style={{ color: allSkillsSort.key === 'apmNoProcs' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
-                                                    >
-                                                        {apmView === 'perSecond' ? 'APS' : 'APM'} (No Procs){allSkillsSort.key === 'apmNoProcs' ? (allSkillsSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <div className="stats-table-column-header grid grid-cols-[1.4fr_0.8fr_0.8fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
-                                                    <div>Player</div>
-                                                    <div className="text-right">Casts</div>
-                                                    <div className="text-right">{apmView === 'perSecond' ? 'APS' : 'APM'}</div>
-                                                </div>
-                                            )}
                                         </div>
                                         {isAllApmSkills || !activeApmSkill ? (
-                                            <>
-                                                <div className={`stats-table-shell__rows ${expandedSection === 'apm-stats' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-72 overflow-y-auto'}`}>
-                                                    {sortedAllSkillsRows.map((row: ApmPlayerRow, index: number) => (
-                                                        <div
-                                                            key={`${activeApmSpecTable.profession}-all-${row.key}`}
-                                                            className="grid grid-cols-[1.4fr_0.6fr_0.7fr_0.8fr] px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]"
-                                                            style={{ color: 'var(--text-primary)' }}
-                                                        >
-                                                            <div className="flex items-center gap-2 min-w-0">
-                                                                <span className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: 'var(--text-muted)' }}>{`#${index + 1}`}</span>
-                                                                {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
-                                                                <div className="min-w-0">
-                                                                    <div className="font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{row.displayName}</div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                                {formatApmValue(apmView === 'perSecond' ? row.aps : row.apm)}
-                                                            </div>
-                                                            <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                                {formatApmValue(apmView === 'perSecond' ? row.apsNoAuto : row.apmNoAuto)}
-                                                            </div>
-                                                            <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                                {formatApmValue(apmView === 'perSecond' ? row.apsNoProcs : row.apmNoProcs)}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </>
+                                            <div className={`axi-table__scroll ${expandedSection === 'apm-stats' ? 'flex-1 min-h-0' : 'max-h-72'}`}>
+                                                <table className="axi-table axi-table--fixed axi-table--sticky axi-table--dense">
+                                                    <colgroup>
+                                                        <col style={{ width: '40%' }} />
+                                                        <col style={{ width: '17.1429%' }} />
+                                                        <col style={{ width: '20%' }} />
+                                                        <col style={{ width: '22.8571%' }} />
+                                                    </colgroup>
+                                                    <thead>
+                                                        <tr>
+                                                            <th scope="col">Player</th>
+                                                            <th scope="col" aria-sort={allSkillsAriaSort('apm')}>
+                                                                <button type="button" className="axi-table__sort" onClick={() => toggleAllSkillsSort('apm')}>
+                                                                    {apmView === 'perSecond' ? 'APS' : 'APM'}{allSkillsSort.key === 'apm' ? (allSkillsSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
+                                                                </button>
+                                                            </th>
+                                                            <th scope="col" aria-sort={allSkillsAriaSort('apmNoAuto')}>
+                                                                <button type="button" className="axi-table__sort" onClick={() => toggleAllSkillsSort('apmNoAuto')}>
+                                                                    {apmView === 'perSecond' ? 'APS' : 'APM'} (No Auto){allSkillsSort.key === 'apmNoAuto' ? (allSkillsSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
+                                                                </button>
+                                                            </th>
+                                                            <th scope="col" aria-sort={allSkillsAriaSort('apmNoProcs')}>
+                                                                <button type="button" className="axi-table__sort" onClick={() => toggleAllSkillsSort('apmNoProcs')}>
+                                                                    {apmView === 'perSecond' ? 'APS' : 'APM'} (No Procs){allSkillsSort.key === 'apmNoProcs' ? (allSkillsSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
+                                                                </button>
+                                                            </th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {sortedAllSkillsRows.map((row: ApmPlayerRow, index: number) => (
+                                                            <tr key={`${activeApmSpecTable.profession}-all-${row.key}`}>
+                                                                <th scope="row">
+                                                                    <span className="axi-table__who">
+                                                                        <span className="axi-ink-muted">{`#${index + 1}`}</span>
+                                                                        {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
+                                                                        <span>{row.displayName}</span>
+                                                                    </span>
+                                                                </th>
+                                                                <td className={allSkillsSort.key === 'apm' ? 'axi-table__cell--sorted' : undefined}>
+                                                                    {formatApmValue(apmView === 'perSecond' ? row.aps : row.apm)}
+                                                                </td>
+                                                                <td className={allSkillsSort.key === 'apmNoAuto' ? 'axi-table__cell--sorted' : undefined}>
+                                                                    {formatApmValue(apmView === 'perSecond' ? row.apsNoAuto : row.apmNoAuto)}
+                                                                </td>
+                                                                <td className={allSkillsSort.key === 'apmNoProcs' ? 'axi-table__cell--sorted' : undefined}>
+                                                                    {formatApmValue(apmView === 'perSecond' ? row.apsNoProcs : row.apmNoProcs)}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         ) : (
-                                            <>
-                                                <div className={`stats-table-shell__rows ${expandedSection === 'apm-stats' ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-72 overflow-y-auto'}`}>
-                                                    {((activeApmSkill as any)?.playerRows || []).length === 0 ? (
-                                                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
-                                                            No player rows available for this skill.
-                                                        </div>
-                                                    ) : (
-                                                        ((activeApmSkill as any)?.playerRows || []).map((row: any, index: number) => (
-                                                            <div
-                                                                key={`${activeApmSpecTable.profession}-${activeApmSkill.id}-${row.key}`}
-                                                                className="grid grid-cols-[1.4fr_0.8fr_0.8fr] px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]"
-                                                                style={{ color: 'var(--text-primary)' }}
-                                                            >
-                                                                <div className="flex items-center gap-2 min-w-0">
-                                                                    <span className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: 'var(--text-muted)' }}>{`#${index + 1}`}</span>
-                                                                    {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
-                                                                    <div className="min-w-0">
-                                                                        <div className="font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{row.displayName}</div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{formatCastCountValue(Number(row.count || 0))}</div>
-                                                                <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                                    {formatApmValue(apmView === 'perSecond' ? Number(row.aps || 0) : Number(row.apm || 0))}
-                                                                </div>
-                                                            </div>
-                                                        ))
-                                                    )}
-                                                </div>
-                                            </>
+                                            <div className={`axi-table__scroll ${expandedSection === 'apm-stats' ? 'flex-1 min-h-0' : 'max-h-72'}`}>
+                                                <table className="axi-table axi-table--fixed axi-table--sticky axi-table--dense">
+                                                    <colgroup>
+                                                        <col style={{ width: '46.6667%' }} />
+                                                        <col style={{ width: '26.6667%' }} />
+                                                        <col style={{ width: '26.6667%' }} />
+                                                    </colgroup>
+                                                    <thead>
+                                                        <tr>
+                                                            <th scope="col">Player</th>
+                                                            <th scope="col">Casts</th>
+                                                            <th scope="col">{apmView === 'perSecond' ? 'APS' : 'APM'}</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {((activeApmSkill as any)?.playerRows || []).length === 0 ? (
+                                                            <tr>
+                                                                <td colSpan={3} className="axi-ink-muted text-center">
+                                                                    No player rows available for this skill.
+                                                                </td>
+                                                            </tr>
+                                                        ) : (
+                                                            ((activeApmSkill as any)?.playerRows || []).map((row: any, index: number) => (
+                                                                <tr key={`${activeApmSpecTable.profession}-${activeApmSkill.id}-${row.key}`}>
+                                                                    <th scope="row">
+                                                                        <span className="axi-table__who">
+                                                                            <span className="axi-ink-muted">{`#${index + 1}`}</span>
+                                                                            {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
+                                                                            <span>{row.displayName}</span>
+                                                                        </span>
+                                                                    </th>
+                                                                    <td>{formatCastCountValue(Number(row.count || 0))}</td>
+                                                                    <td className="axi-table__num">
+                                                                        {formatApmValue(apmView === 'perSecond' ? Number(row.aps || 0) : Number(row.apm || 0))}
+                                                                    </td>
+                                                                </tr>
+                                                            ))
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         )}
                                     </>
                                 )}
