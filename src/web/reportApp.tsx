@@ -1785,7 +1785,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                     className={`axi-rail axi-rail--flush fixed inset-y-0 left-0 z-20 ${isNarrowViewport ? 'hidden' : ''}`}
                     style={{ '--axi-rail-w': '16rem', '--axi-rail-pad': '0' } as CSSProperties}
                 >
-                    <div className="flex flex-col w-full">
+                    <div className="flex flex-col w-full flex-1 min-h-0">
                         <div className="px-6 pt-6 pb-5">
                             <div className="flex items-center gap-3">
                                 <div
@@ -1830,7 +1830,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                 <kbd className="ml-auto shrink-0 text-[10px] px-1.5 py-px rounded-[3px] font-sans tracking-[0.04em]">Ctrl K</kbd>
                             </button>
                         </div>
-                        <nav className="px-4 space-y-2 text-sm flex-1 overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
+                        <nav className="px-4 space-y-2 text-sm flex-1 min-h-0 overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
                             {navGroups.map((group) => {
                                 const GroupIcon = group.icon;
                                 const isActive = group.id === activeGroup;
@@ -1887,7 +1887,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                 );
                             })}
                         </nav>
-                        {showIndexChrome && <div className="border-t border-white/10">
+                        {showIndexChrome && <div className="mt-auto shrink-0 border-t border-white/10">
                             <a
                                 href={themedIndexHref}
                                 className="report-back-link w-full inline-flex items-center gap-3 px-6 py-4 bg-[color:var(--accent-bg)] text-[10px] uppercase tracking-[0.35em] text-gray-100 transition-colors hover:bg-[color:var(--accent-border)]"
