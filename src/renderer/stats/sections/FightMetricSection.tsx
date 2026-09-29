@@ -6,6 +6,7 @@ import { getProfessionColor } from '../../../shared/professionUtils';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { useStatsSharedContext } from '../StatsViewContext';
 import type { StatsTocIcon } from '../hooks/useStatsNavigation';
+import { ChartTooltipBox } from '../ui/ChartTooltip';
 
 export type FightMetricPlayer = {
     key: string;
@@ -208,7 +209,7 @@ export const FightMetricSection = ({
                             value={playerFilter}
                             onChange={(e) => setPlayerFilter(e.target.value)}
                             placeholder={searchPlaceholder}
-                            className="w-full bg-white/5 rounded px-2 py-1 text-xs axi-ink-dim placeholder-slate-500 outline-none focus:ring-1 focus:ring-indigo-500/50"
+                            className="axi-input" style={{ '--axi-input-pad': '5px 8px', '--axi-input-size': '12px' } as React.CSSProperties}
                         />
                     </div>
                     {renderAbovePlayerList && (
@@ -322,11 +323,11 @@ export const FightMetricSection = ({
                                                 const data = payload[0]?.payload as FightMetricPoint | undefined;
                                                 if (!data) return null;
                                                 return (
-                                                    <div className="bg-slate-900 border axi-edge-rule rounded-lg px-3 py-2 text-xs shadow-xl">
+                                                    <ChartTooltipBox>
                                                         <div className="axi-ink-plain font-medium mb-1">{sanitizeWvwLabel(data.fullLabel)}</div>
                                                         <div className="axi-ink-meta">{selectedPlayer?.displayName}: <strong>{formatValue(data.value)}</strong>{valueSuffix ? ` ${valueSuffix}` : ''}</div>
                                                         <div className="axi-ink-faint">Fight Max: {formatValue(data.maxValue)}</div>
-                                                    </div>
+                                                    </ChartTooltipBox>
                                                 );
                                             }}
                                         />

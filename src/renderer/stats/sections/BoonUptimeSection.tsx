@@ -19,6 +19,7 @@ import {
     toggleBoonHeatmapOverlay,
     type BoonHeatmapOverlay,
 } from './boonHeatmapOverlay';
+import { ChartTooltipBox } from '../ui/ChartTooltip';
 
 type BoonUptimeBoon = {
     id: string;
@@ -391,7 +392,7 @@ export const BoonUptimeSection = ({
                                     value={boonSearch}
                                     onChange={(event) => setBoonSearch(event.target.value)}
                                     placeholder="Search boon"
-                                    className="flex-1 bg-white/5 rounded px-2 py-1 text-xs axi-ink-dim placeholder-slate-500 outline-none focus:ring-1 focus:ring-indigo-500/50"
+                                    className="axi-input flex-1" style={{ '--axi-input-pad': '5px 8px', '--axi-input-size': '12px' } as React.CSSProperties}
                                 />
                                 <span className="text-[10px] axi-ink-faint shrink-0">
                                     {boons.length} {boons.length === 1 ? 'boon' : 'boons'}
@@ -503,7 +504,7 @@ export const BoonUptimeSection = ({
                                         const d = payload[0]?.payload;
                                         if (!d) return null;
                                         return (
-                                            <div className="bg-slate-900 border axi-edge-rule rounded-lg px-3 py-2 text-xs shadow-xl">
+                                            <ChartTooltipBox>
                                                 <div className="axi-ink-plain font-medium mb-1">{d.label}</div>
                                                 <div className="axi-ink-meta">
                                                     {showStackCapLine ? 'Stacks' : 'Uptime'}: <strong>
@@ -521,7 +522,7 @@ export const BoonUptimeSection = ({
                                                 {heatmapOverlay === 'incoming-cc' && Number(d.incomingCc || 0) > 0 && (
                                                     <div className="axi-ink-warn">{ccLabel} (5s): <strong>{formatWithCommas(Number(d.incomingCc || 0), 0)}</strong></div>
                                                 )}
-                                            </div>
+                                            </ChartTooltipBox>
                                         );
                                     }}
                                 />

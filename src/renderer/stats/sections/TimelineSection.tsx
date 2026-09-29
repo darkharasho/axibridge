@@ -3,6 +3,7 @@ import { ChartContainer } from '../ui/ChartContainer';
 import { Users } from 'lucide-react';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { useStatsSharedContext } from '../StatsViewContext';
+import { ChartTooltip } from '../ui/ChartTooltip';
 
 type TimelineSectionProps = {
     timelineData: any[];
@@ -55,7 +56,7 @@ export const TimelineSection = ({
                             width={36}
                         />
                         <Tooltip
-                            contentStyle={{ backgroundColor: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem', color: '#fff' }}
+                            content={<ChartTooltip />}
                             labelFormatter={(_value, payload) => {
                                 const point = payload?.[0]?.payload;
                                 const predicted = point?.isWin === true

@@ -2214,7 +2214,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                                 value={commanderSearchTerm}
                                                                 onChange={(event) => setCommanderSearchTerm(event.target.value)}
                                                                 placeholder="Search commanders, character names, or class..."
-                                                                className="w-full bg-white/5 border axi-edge-rule rounded-xl px-4 py-2.5 text-sm axi-ink-plain placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
+                                                                className="axi-input"
                                                             />
                                                             <select
                                                                 value={commanderProfessionFilter}
@@ -2325,7 +2325,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                                 value={playerSearchTerm}
                                                                 onChange={(event) => setPlayerSearchTerm(event.target.value)}
                                                                 placeholder="Search players, character names, or class..."
-                                                                className="w-full bg-white/5 border axi-edge-rule rounded-xl px-4 py-2.5 text-sm axi-ink-plain placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
+                                                                className="axi-input"
                                                             />
                                                             <select
                                                                 value={playerProfessionFilter}
@@ -2459,7 +2459,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                             value={searchTerm}
                             onChange={(event) => setSearchTerm(event.target.value)}
                             placeholder="Search reports, commanders, or date..."
-                            className="w-full md:flex-1 bg-white/5 border axi-edge-rule rounded-lg px-4 py-2 text-sm axi-ink-plain placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-border)]"
+                            className="axi-input md:flex-1"
                         />
                         <div className="text-[11px] sm:text-xs axi-ink-dim">
                             Showing <span className="text-[color:var(--brand-primary)]">{filteredIndex.length}</span> of{' '}

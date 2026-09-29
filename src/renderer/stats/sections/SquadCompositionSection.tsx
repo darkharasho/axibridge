@@ -2,6 +2,7 @@ import { Cell, Pie, PieChart, Tooltip } from 'recharts';
 import { ChartContainer } from '../ui/ChartContainer';
 import { Users } from 'lucide-react';
 import { useStatsSharedContext } from '../StatsViewContext';
+import { ChartTooltip } from '../ui/ChartTooltip';
 
 type SquadCompositionSectionProps = {
     sortedSquadClassData: any[];
@@ -42,8 +43,7 @@ export const SquadCompositionSection = ({
                                     ))}
                                 </Pie>
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem', color: '#fff' }}
-                                    itemStyle={{ color: '#fff' }}
+                                    content={<ChartTooltip />}
                                 />
                             </PieChart>
                         </ChartContainer>
@@ -91,8 +91,7 @@ export const SquadCompositionSection = ({
                                     ))}
                                 </Pie>
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem', color: '#fff' }}
-                                    itemStyle={{ color: '#fff' }}
+                                    content={<ChartTooltip />}
                                 />
                             </PieChart>
                         </ChartContainer>

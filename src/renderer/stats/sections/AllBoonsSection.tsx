@@ -6,6 +6,7 @@ import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
 import { getProfessionColor } from '../../../shared/professionUtils';
+import { ChartTooltipBox } from '../ui/ChartTooltip';
 
 type BoonScope = 'selfBuffs' | 'groupBuffs' | 'squadBuffs' | 'totalBuffs';
 
@@ -243,7 +244,7 @@ export const AllBoonsSection = ({
                                         value={boonSearch}
                                         onChange={(e) => setBoonSearch(e.target.value)}
                                         placeholder="Search boon"
-                                        className="w-full bg-white/5 rounded px-2 py-1.5 text-xs axi-ink-dim placeholder-slate-500 outline-none focus:ring-1 focus:ring-indigo-500/50"
+                                        className="axi-input" style={{ '--axi-input-pad': '5px 8px', '--axi-input-size': '12px' } as React.CSSProperties}
                                         autoFocus
                                     />
                                 </div>
@@ -351,12 +352,12 @@ export const AllBoonsSection = ({
                                     const data = payload[0]?.payload;
                                     if (!data) return null;
                                     return (
-                                        <div className="bg-slate-900 border axi-edge-rule rounded-lg px-3 py-2 text-xs shadow-xl">
+                                        <ChartTooltipBox>
                                             <div className="axi-ink-plain font-medium mb-1">{sanitizeLabel(data.fullLabel)}</div>
                                             <div className="axi-ink-meta">
                                                 Total Generation: <strong>{formatWithCommas(data.value / 1000, 0)}</strong>
                                             </div>
-                                        </div>
+                                        </ChartTooltipBox>
                                     );
                                 }} />
                                 <Line
@@ -452,7 +453,7 @@ export const AllBoonsSection = ({
                                             if (!active || !payload?.length) return null;
                                             const sorted = [...payload].sort((a, b) => Number(b.value || 0) - Number(a.value || 0));
                                             return (
-                                                <div className="bg-slate-900 border axi-edge-rule rounded-lg px-3 py-2 text-xs shadow-xl max-h-64 overflow-y-auto">
+                                                <ChartTooltipBox className="max-h-64 overflow-y-auto">
                                                     <div className="axi-ink-plain font-medium mb-1">{(payload[0]?.payload as any)?.label}</div>
                                                     {sorted.slice(0, 10).map((entry) => (
                                                         <div key={entry.dataKey as string} className="flex items-center gap-1.5">
@@ -466,7 +467,7 @@ export const AllBoonsSection = ({
                                                     {sorted.length > 10 && (
                                                         <div className="axi-ink-faint mt-1">+{sorted.length - 10} more</div>
                                                     )}
-                                                </div>
+                                                </ChartTooltipBox>
                                             );
                                         }} />
                                         {drilldownPlayers.map((player) => {

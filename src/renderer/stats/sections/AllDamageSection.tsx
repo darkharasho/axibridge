@@ -6,6 +6,7 @@ import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { getProfessionColor } from '../../../shared/professionUtils';
 import type { AllDamageFight, AllDamagePlayerBucket } from '../computeAllDamageData';
+import { ChartTooltipBox } from '../ui/ChartTooltip';
 
 type AllDamageSectionProps = {
     fights: AllDamageFight[];
@@ -236,12 +237,12 @@ export const AllDamageSection = ({
                                     const data = payload[0]?.payload;
                                     if (!data) return null;
                                     return (
-                                        <div className="bg-slate-900 border axi-edge-rule rounded-lg px-3 py-2 text-xs shadow-xl">
+                                        <ChartTooltipBox>
                                             <div className="axi-ink-plain font-medium mb-1">{sanitizeLabel(data.fullLabel)}</div>
                                             <div className="axi-ink-meta">
                                                 {mode === 'damage' ? 'Total Damage' : 'Down Contribution'}: <strong>{formatWithCommas(data.value, 0)}</strong>
                                             </div>
-                                        </div>
+                                        </ChartTooltipBox>
                                     );
                                 }} />
                                 <Line
@@ -337,7 +338,7 @@ export const AllDamageSection = ({
                                             if (!active || !payload?.length) return null;
                                             const sorted = [...payload].sort((a, b) => Number(b.value || 0) - Number(a.value || 0));
                                             return (
-                                                <div className="bg-slate-900 border axi-edge-rule rounded-lg px-3 py-2 text-xs shadow-xl max-h-64 overflow-y-auto">
+                                                <ChartTooltipBox className="max-h-64 overflow-y-auto">
                                                     <div className="axi-ink-plain font-medium mb-1">{(payload[0]?.payload as any)?.label}</div>
                                                     {sorted.slice(0, 10).map((entry) => (
                                                         <div key={entry.dataKey as string} className="flex items-center gap-1.5">
@@ -351,7 +352,7 @@ export const AllDamageSection = ({
                                                     {sorted.length > 10 && (
                                                         <div className="axi-ink-faint mt-1">+{sorted.length - 10} more</div>
                                                     )}
-                                                </div>
+                                                </ChartTooltipBox>
                                             );
                                         }} />
                                         {drilldownPlayers.map((player) => {
