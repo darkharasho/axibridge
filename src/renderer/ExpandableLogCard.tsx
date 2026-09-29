@@ -724,7 +724,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
             ? `font-semibold ${colorClass} mb-2 uppercase tracking-wider text-[10px]`
             : `font-black ${colorClass} mb-3 uppercase tracking-widest ${fullHeight ? 'text-base' : 'text-xs'}`;
         return (
-            <div className={`log-detail-tile rounded-[4px] ${compact ? 'p-3' : 'p-4'} shadow-lg ${fullHeight ? 'h-full' : ''}`} style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-default))' }}>
+            <div className={`axi-panel axi-panel--tile ${fullHeight ? 'h-full' : ''}`}>
                 <h5 className={`${headerClass} border-b axi-edge-rule pb-2`} style={headerColorHex ? { color: headerColorHex } : undefined}>{title}</h5>
                 {limitedCounts.length > 0 ? (
                     <div className={`grid grid-flow-col auto-cols-fr gap-2 font-mono axi-ink-plain ${fullHeight ? 'text-base' : compact ? 'text-[11px]' : 'text-sm'}`}>
@@ -785,7 +785,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         });
 
         return (
-            <div className={`log-detail-tile rounded-[4px] p-3 shadow-inner ${fullHeight ? 'h-full' : ''}`} style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
+            <div className={`axi-panel axi-panel--tile ${fullHeight ? 'h-full' : ''}`}>
                 <h5 className={`font-semibold axi-ink-plain mb-2 border-b axi-edge-rule pb-1 uppercase tracking-tighter ${fullHeight ? 'text-sm' : 'text-[11px]'}`}>{title}</h5>
                 {hasData ? (
                     <div className={`font-mono space-y-1 axi-ink-dim ${fullHeight ? 'text-base' : 'text-[10px]'}`}>
@@ -1097,7 +1097,12 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: DURATION.slow, ease: EASE.outExpo }}
-                        className="log-detail-drawer shadow-inner" style={{ borderTop: 'var(--detail-drawer-cut-w, 1px) solid var(--detail-drawer-cut, var(--border-default))', background: 'var(--detail-drawer-bg, var(--bg-card-inner))', overflow: 'hidden' }}
+                        // Not `.axi-well`: a well is a free-standing recess with an edge
+                        // all the way round and a radius. This is flush inside the card and
+                        // cut from it by one line along the top. The language has no word
+                        // for that band yet, so the fill and the cut stay in
+                        // axi-design.css, where the reason is written down.
+                        className="log-detail-drawer" style={{ overflow: 'hidden' }}
                     >
                         <div className="p-4 space-y-4">
                             {(settings.showSquadSummary || settings.showEnemySummary) && (
@@ -1106,7 +1111,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                     style={{ gridTemplateColumns: `repeat(${summaryColumnCount}, minmax(0, 1fr))` }}
                                 >
                                     {settings.showSquadSummary && (
-                                        <div className="log-detail-tile rounded-[4px] p-3" style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
+                                        <div className="axi-panel axi-panel--tile">
                                             <h5 className="font-semibold axi-ink-ok mb-2 uppercase tracking-wider text-[10px]">Squad Summary</h5>
                                             <div className="font-mono axi-ink-dim space-y-1">
                                                 <div className="flex justify-between"><span>Count:</span> <span>{squadDisplayCount} {nonSquadDisplayCount > 0 ? `(+${nonSquadDisplayCount})` : ''}</span></div>
@@ -1118,7 +1123,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                         </div>
                                     )}
                                     {settings.showEnemySummary && (!splitEnemiesByTeam || enemyTeamSummaryStats.length === 0) && (
-                                        <div className="log-detail-tile rounded-[4px] p-3" style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
+                                        <div className="axi-panel axi-panel--tile">
                                             <h5 className="font-semibold axi-ink-danger mb-2 uppercase tracking-wider text-[10px]">Enemy Summary</h5>
                                             <div className="font-mono axi-ink-dim space-y-1">
                                                 <div className="flex justify-between"><span>Count:</span> <span>{enemyCount}</span></div>
@@ -1130,7 +1135,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                         </div>
                                     )}
                                     {settings.showEnemySummary && splitEnemiesByTeam && enemyTeamSummaryStats.map((team) => (
-                                        <div key={`expanded-team-summary-${team.teamId}`} className="log-detail-tile rounded-[4px] p-3" style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
+                                        <div key={`expanded-team-summary-${team.teamId}`} className="axi-panel axi-panel--tile">
                                             <h5 className="font-semibold mb-2 uppercase tracking-wider text-[10px]" style={{ color: WVW_TEAM_COLOR_META[team.color].hex }}>{`${WVW_TEAM_COLOR_META[team.color].label} team`}</h5>
                                             <div className="font-mono axi-ink-dim space-y-1">
                                                 <div className="flex justify-between"><span>Count:</span> <span>{team.count}</span></div>
@@ -1163,8 +1168,15 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                             )}
 
                             {settings.showIncomingStats && (
-                                <div className="grid grid-cols-3 gap-2">
-                                    <div className="log-detail-tile rounded-[4px] p-2" style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
+                                // Three tiles across, with 9px headings: denser than the
+                                // stacked ones above, so they state the tile pad. It is set
+                                // once here rather than three times below because a custom
+                                // property inherits, and the row is the thing that is dense.
+                                <div
+                                    className="grid grid-cols-3 gap-2"
+                                    style={{ '--axi-panel-pad': '8px' } as React.CSSProperties}
+                                >
+                                    <div className="axi-panel axi-panel--tile">
                                         <h5 className="font-semibold axi-ink-meta mb-1 uppercase tracking-wider text-[9px]">Incoming Attack</h5>
                                         <div className="font-mono text-[10px] axi-ink-dim">
                                             <div className="flex justify-between axi-ink-faint"><span>Miss:</span> <span className="axi-ink-dim">{totalMiss}</span></div>
@@ -1172,7 +1184,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                             <div className="flex justify-between axi-ink-faint"><span>Total:</span> <span className="axi-ink-dim">{totalMiss + totalBlock + totalEvade + totalDodge}</span></div>
                                         </div>
                                     </div>
-                                    <div className="log-detail-tile rounded-[4px] p-2" style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
+                                    <div className="axi-panel axi-panel--tile">
                                         <h5 className="font-semibold axi-ink-meta mb-1 uppercase tracking-wider text-[9px]">Incoming CC</h5>
                                         <div className="font-mono text-[10px] axi-ink-dim">
                                             <div className="flex justify-between axi-ink-faint"><span>Miss:</span> <span className="axi-ink-dim">{totalCCMissed}</span></div>
@@ -1181,7 +1193,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                         </div>
                                     </div>
 
-                                    <div className="log-detail-tile rounded-[4px] p-2" style={{ background: 'var(--detail-tile-bg, var(--bg-card-inner))', border: 'var(--detail-tile-border-w, 1px) solid var(--detail-tile-line, var(--border-subtle))' }}>
+                                    <div className="axi-panel axi-panel--tile">
                                         <h5 className="font-semibold axi-ink-warn mb-1 uppercase tracking-wider text-[9px]">Incoming Strips</h5>
                                         <div className="font-mono text-[10px] axi-ink-dim">
                                             <div className="flex justify-between axi-ink-faint"><span>Miss:</span> <span className="axi-ink-dim">{totalStripsMissed}</span></div>

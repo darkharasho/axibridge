@@ -405,10 +405,6 @@
 [data-axi-accent] body .shadow-2xl {
   box-shadow: var(--axi-shadow-panel);
 }
-/* An inner shadow is a lit edge, which is the one thing a flat surface cannot
-   have. Depth here is the ground colour, and that is already handled. */
-[data-axi-accent] body .shadow-inner { box-shadow: none; }
-
 /* Blur is a frosted-glass idiom and this language has no glass: every surface
    is opaque, so there is nothing behind one to see through. (It also does
    nothing on Linux, so half the app was paying for it already.) */
@@ -793,21 +789,20 @@
    Opening a log card drops a drawer of summary tiles, and every tile was
    filled with the same colour as the drawer behind it and outlined with a
    hairline - eight rectangles you could only find by reading their headings.
-   The drawer is a well cut into the card: it takes the ground, and the cut
-   above it is the panel step, because that line is where the card ends. The
-   tiles stand in the well, so they take the surface and the ink edge. */
+   The tiles stand in the drawer, so they are raised off it: all eight now say
+   `.axi-panel .axi-panel--tile` in the markup and this file has nothing left
+   to say about them.
+
+   The drawer itself is the part with no upstream word. It is not a well: a
+   well is a free-standing recess, edged all the way round and cornered. This
+   is flush inside the card and cut from it by a single line along the top,
+   where the card ends - so the cut is the panel step, and the fill is the
+   ground the tiles are raised off. Three indirection variables used to carry
+   those two facts from here into an inline style; they said the same thing
+   with one more level of indirection than it needed. */
 [data-axi-accent] body .log-detail-drawer {
-  --detail-drawer-bg: var(--axi-ground);
-  --detail-drawer-cut-w: var(--axi-border-panel);
-  --detail-drawer-cut: var(--axi-ink-line);
-  box-shadow: none;
-}
-[data-axi-accent] body .log-detail-tile {
-  --detail-tile-bg: var(--axi-surface);
-  --detail-tile-line: var(--axi-ink-line);
-  --detail-tile-border-w: var(--axi-border-control);
-  border-radius: var(--axi-radius-sm);
-  box-shadow: none;
+  background: var(--axi-ground);
+  border-top: var(--axi-border-panel) solid var(--axi-ink-line);
 }
 
 /* ---------------------------------------------------------------------------

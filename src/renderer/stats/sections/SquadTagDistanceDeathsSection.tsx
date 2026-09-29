@@ -90,11 +90,11 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                 <>
                     {/* Summary stats */}
                     <div className="flex gap-4 mb-4">
-                        <div className="px-3 py-2 rounded-[var(--radius-md)] bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)]">
+                        <div className="axi-well axi-well--sm" style={{ '--axi-well-pad': '8px 12px' } as React.CSSProperties}>
                             <div className="text-[10px] uppercase tracking-[0.25em] text-[color:var(--text-secondary)]">Avg Distance</div>
                             <div className="text-sm font-mono text-[color:var(--text-primary)] mt-0.5">{formatWithCommas(overallAvg, 0)}</div>
                         </div>
-                        <div className="px-3 py-2 rounded-[var(--radius-md)] bg-[var(--bg-card-inner)] border border-[color:var(--border-subtle)]">
+                        <div className="axi-well axi-well--sm" style={{ '--axi-well-pad': '8px 12px' } as React.CSSProperties}>
                             <div className="text-[10px] uppercase tracking-[0.25em] text-[color:var(--text-secondary)]">Total Deaths</div>
                             <div className="text-sm font-mono text-[color:var(--text-primary)] mt-0.5">{totalDeaths}</div>
                         </div>

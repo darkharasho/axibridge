@@ -1516,7 +1516,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         className="hidden lg:flex flex-col gap-3 min-h-0"
                         style={{ willChange: 'transform, opacity' }}
                     >
-                        <div className="rounded-[4px] p-3" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
+                        <div className="axi-well axi-well--sm">
                             <div className="relative">
                                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 axi-ink-faint pointer-events-none" />
                                 <input
@@ -1538,7 +1538,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 )}
                             </div>
                         </div>
-                        <div className="rounded-[4px] p-3 flex-1 min-h-0" style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
+                        <div className="axi-well axi-well--sm flex-1 min-h-0">
                             <div className="text-[11px] uppercase tracking-[0.25em] axi-ink-faint mb-2">Sections</div>
                             <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
                                 <SettingsNav
@@ -1917,7 +1917,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             )}
                         </div>
                         {githubUserCode && githubVerificationUri && (
-                            <div className="bg-black/40 border axi-edge-rule rounded-[4px] px-4 py-3 text-sm axi-ink-dim mb-4 animate-[fadeUp_0.6s_ease-out]">
+                            <div className="axi-well axi-well--sm text-sm axi-ink-dim mb-4 animate-[fadeUp_0.6s_ease-out]" style={{ '--axi-well-pad': '12px 16px' } as React.CSSProperties}>
                                 <div className="text-xs uppercase tracking-widest axi-ink-faint mb-1">Authorize in Browser</div>
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="font-mono text-lg axi-ink-plain">{githubUserCode}</div>
@@ -1932,7 +1932,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             </div>
                         )}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                            <div className="md:col-span-2 bg-black/30 border axi-edge-rule rounded-[4px] p-3">
+                            <div className="md:col-span-2 axi-well axi-well--sm">
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="text-xs uppercase tracking-widest axi-ink-faint">Repository</div>
                                     <div className="flex items-center gap-2">
@@ -2099,7 +2099,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         {githubTemplateStatus}
                                     </div>
                                 )}
-                                <div className="github-pages-url-card bg-black/40 border axi-edge-rule rounded-[4px] px-4 py-3 flex items-center gap-3 mt-3">
+                                <div className="github-pages-url-card axi-well axi-well--sm flex items-center gap-3 mt-3" style={{ '--axi-well-pad': '12px 16px' } as React.CSSProperties}>
                                     <div className="flex-1 min-w-0">
                                         <div className="text-xs uppercase tracking-widest axi-ink-faint mb-1">GitHub Pages URL</div>
                                         <input
@@ -2120,7 +2120,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             </div>
 
                         </div>
-                        <div className="bg-black/30 border axi-edge-rule rounded-[4px] p-4 mb-4">
+                        <div className="axi-well axi-well--sm mb-4" style={{ '--axi-well-pad': '16px' } as React.CSSProperties}>
                             <div className="text-xs uppercase tracking-widest axi-ink-faint mb-3">Logo</div>
                             <div className="flex items-center gap-3">
                                 <button
@@ -2278,7 +2278,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             to install, update or choose.
                         </p>
 
-                        <div className="bg-black/30 border axi-edge-rule rounded-[4px] p-4 mb-4" data-testid="parser-status-card">
+                        <div className="axi-well axi-well--sm mb-4" style={{ '--axi-well-pad': '16px' } as React.CSSProperties} data-testid="parser-status-card">
                             <div className="text-xs uppercase tracking-widest axi-ink-faint mb-3">Parse Engine</div>
                             {/*
                               * The removal deleted an install and, for some users, a
@@ -2332,7 +2332,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
 
                         {/* Parser Options */}
                         {parserSettings && (
-                            <div className="bg-black/30 border axi-edge-rule rounded-[4px] p-4">
+                            <div className="axi-well axi-well--sm" style={{ '--axi-well-pad': '16px' } as React.CSSProperties}>
                                 <div className="text-xs uppercase tracking-widest axi-ink-faint mb-2">Analysis</div>
                                 <div className="divide-y divide-white/5">
                                     <Toggle
@@ -2875,10 +2875,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             The arcdps folder AxiBridge watches for new logs.
                         </p>
                         <div className="flex items-center gap-2">
-                            <code
-                                className="flex-1 truncate rounded-[4px] px-2 py-1.5 text-xs"
-                                style={{ background: 'var(--bg-input)', color: logDirectory ? 'var(--text-secondary)' : 'var(--text-muted)' }}
-                            >
+                            <code className={`axi-code flex-1 truncate px-2 py-1.5 ${logDirectory ? '' : 'axi-ink-faint'}`}>
                                 {logDirectory || 'No log folder selected.'}
                             </code>
                             <button
@@ -3417,7 +3414,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             {dpsCacheBusy ? 'Clearing dps.report cache…' : 'Clear dps.report cache'}
                                         </button>
                                         {(dpsCacheBusy || dpsCacheStatus) && (
-                                            <div className="rounded-[4px] border axi-edge-rule bg-black/20 px-3 py-2">
+                                            <div className="axi-well axi-well--sm" style={{ '--axi-well-pad': '8px 12px' } as React.CSSProperties}>
                                                 {dpsCacheBusy && (
                                                     <>
                                                         <div className="text-xs axi-ink-dim mb-1">{dpsCacheProgressLabel || 'Clearing cache…'}</div>
@@ -3741,103 +3738,54 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     metricsSpecHeadingCountsRef.current = new Map();
                     return null;
                 })()}
+                {/* `.axi-prose` (on ProofOfWorkModal's content wrapper) owns the
+                    typography: h1-h3, p, ul, ol, li, blockquote, table, th, td, pre and
+                    the inline code span. Three things survive, and none of them is style.
+
+                    The headings carry the ids the table of contents scrolls to and
+                    tracks — which is why they are here at all. With prose owning their
+                    type they no longer differ by anything but their tag, so they are one
+                    factory rather than three copies.
+
+                    `a` must be a <button> calling openExternal: an <a href> inside
+                    Electron navigates the renderer instead of opening a browser. `table`
+                    keeps a wrapper carrying only a scroll, because the metrics spec has
+                    tables wider than this modal and prose has no opinion about overflow
+                    on one. */
+                }
                 <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
-                        h1: ({ children }) => {
-                            const label = extractHeadingText(children);
-                            const id = buildHeadingId(label);
-                            return (
-                                <h1
-                                    id={id}
-                                    data-heading-id={id}
-                                    data-heading-key={slugifyHeading(label)}
-                                    className="text-2xl font-bold axi-ink-plain scroll-mt-6"
-                                >
-                                    {children}
-                                </h1>
-                            );
-                        },
-                        h2: ({ children }) => {
-                            const label = extractHeadingText(children);
-                            const id = buildHeadingId(label);
-                            return (
-                                <h2
-                                    id={id}
-                                    data-heading-id={id}
-                                    data-heading-key={slugifyHeading(label)}
-                                    className="text-xl font-semibold axi-ink-plain scroll-mt-6"
-                                >
-                                    {children}
-                                </h2>
-                            );
-                        },
-                        h3: ({ children }) => {
-                            const label = extractHeadingText(children);
-                            const id = buildHeadingId(label);
-                            return (
-                                <h3
-                                    id={id}
-                                    data-heading-id={id}
-                                    data-heading-key={slugifyHeading(label)}
-                                    className="text-lg font-semibold axi-ink-plain scroll-mt-6"
-                                >
-                                    {children}
-                                </h3>
-                            );
-                        },
-                        p: ({ children }) => <p className="leading-6 axi-ink-plain">{children}</p>,
-                        ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 axi-ink-plain">{children}</ul>,
-                        ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 axi-ink-plain">{children}</ol>,
-                        li: ({ children }) => <li className="leading-6">{children}</li>,
-                        blockquote: ({ children }) => (
-                            <blockquote className="border-l-2 axi-edge-meta pl-4 axi-ink-dim italic">
-                                {children}
-                            </blockquote>
-                        ),
+                        ...Object.fromEntries((['h1', 'h2', 'h3'] as const).map((Tag) => [
+                            Tag,
+                            ({ children }: { children?: React.ReactNode }) => {
+                                const label = extractHeadingText(children);
+                                const id = buildHeadingId(label);
+                                return (
+                                    <Tag
+                                        id={id}
+                                        data-heading-id={id}
+                                        data-heading-key={slugifyHeading(label)}
+                                        className="scroll-mt-6"
+                                    >
+                                        {children}
+                                    </Tag>
+                                );
+                            },
+                        ])),
                         a: ({ href, children }) => (
                             <button
-                                className="axi-ink-meta hover:text-blue-200 underline underline-offset-2"
+                                className="axi-ink-meta underline underline-offset-2"
                                 onClick={() => href && window.electronAPI.openExternal(href)}
                             >
                                 {children}
                             </button>
                         ),
                         table: ({ children }) => (
-                            <div className="overflow-x-auto rounded-[4px] border axi-edge-rule bg-black/30">
-                                <table className="stats-table w-full border-collapse text-left text-sm">
-                                    {children}
-                                </table>
+                            <div className="overflow-x-auto">
+                                <table>{children}</table>
                             </div>
                         ),
-                        th: ({ children }) => (
-                            <th className="border-b axi-edge-rule bg-white/5 px-3 py-2 text-xs uppercase tracking-wide axi-ink-dim">
-                                {children}
-                            </th>
-                        ),
-                        td: ({ children }) => (
-                            <td className="border-b axi-edge-rule px-3 py-2 axi-ink-plain">
-                                {children}
-                            </td>
-                        ),
-                        pre: ({ children }) => (
-                            <pre className="overflow-x-auto rounded-[4px] bg-black/40 p-4 text-xs axi-ink-meta">
-                                {children}
-                            </pre>
-                        ),
-                        code: (props: any) => {
-                            const { inline, className, children } = props;
-                            const isInline = inline ?? !className;
-                            return isInline ? (
-                                <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] axi-ink-meta">
-                                    {children}
-                                </code>
-                            ) : (
-                                <code className="whitespace-pre-wrap axi-ink-meta">
-                                    {children}
-                                </code>
-                            );
-                        }
                     }}
                 >
                     {metricsSpecMarkdown}

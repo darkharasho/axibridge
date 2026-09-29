@@ -235,8 +235,28 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                                 <p className="text-sm axi-ink-dim mt-2">{selectedNode.summary}</p>
                             )}
 
+                            {/* `.axi-prose` is the language's typography for rendered
+                                markdown: h1-h4, p, strong, a, ul, ol, li, code, pre,
+                                blockquote, table, th, td, hr and img. Everything this
+                                component's `components` map used to spell out by hand.
+
+                                What it replaced was worse than duplication: the container
+                                asked for `prose prose-invert prose-p:my-3 prose-li:my-1`,
+                                and @tailwindcss/typography is not a dependency of this
+                                app — so those four classes emitted nothing, and the
+                                hand-written map below them was the only typography there
+                                had ever been.
+
+                                Two overrides survive, and both are behaviour rather than
+                                style. `img` implements this content's own `icon:` protocol
+                                against ICON_MAP. `a` has to be a <button> calling
+                                openExternal, because an <a href> inside Electron navigates
+                                the renderer instead of opening a browser. The headings keep
+                                `flex items-center` and nothing else: 83 of the 129 icon
+                                refs in how-to-tree.json sit on a heading line, and without
+                                it the icon does not sit on the text's baseline. */}
                             {selectedNode.content && (
-                                <div className="mt-4 text-sm axi-ink-plain leading-6 prose prose-invert max-w-none prose-p:my-3 prose-li:my-1">
+                                <div className="axi-prose mt-4 max-w-none">
                                     <ReactMarkdown
                                         remarkPlugins={[remarkGfm]}
                                         urlTransform={(url) => url}
@@ -248,31 +268,18 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                                                 }
                                                 return <img src={src} alt={alt} className="rounded-lg" />;
                                             },
-                                            h1: ({ children }) => <h1 className="text-2xl font-bold axi-ink-plain flex items-center">{children}</h1>,
-                                            h2: ({ children }) => <h2 className="text-xl font-semibold axi-ink-plain mt-5 flex items-center">{children}</h2>,
-                                            h3: ({ children }) => <h3 className="text-lg font-semibold axi-ink-plain mt-4 flex items-center">{children}</h3>,
-                                            p: ({ children }) => <p className="my-3 leading-6 axi-ink-plain">{children}</p>,
-                                            ul: ({ children }) => <ul className="my-3 list-disc pl-5 space-y-1 axi-ink-plain">{children}</ul>,
-                                            ol: ({ children }) => <ol className="my-3 list-decimal pl-5 space-y-1 axi-ink-plain">{children}</ol>,
-                                            li: ({ children }) => <li className="leading-6">{children}</li>,
-                                            strong: ({ children }) => <strong className="font-semibold axi-ink-plain">{children}</strong>,
+                                            h1: ({ children }) => <h1 className="flex items-center">{children}</h1>,
+                                            h2: ({ children }) => <h2 className="flex items-center">{children}</h2>,
+                                            h3: ({ children }) => <h3 className="flex items-center">{children}</h3>,
                                             a: ({ href, children }) => (
                                                 <button
                                                     type="button"
-                                                    className="axi-ink-meta hover:text-blue-200 underline underline-offset-2"
+                                                    className="axi-ink-meta underline underline-offset-2"
                                                     onClick={() => href && window.electronAPI?.openExternal?.(href)}
                                                 >
                                                     {children}
                                                 </button>
                                             ),
-                                            code: ({ children }) => (
-                                                <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] axi-ink-meta">{children}</code>
-                                            ),
-                                            blockquote: ({ children }) => (
-                                                <blockquote className="my-3 border-l-2 axi-edge-meta pl-3 italic axi-ink-dim">
-                                                    {children}
-                                                </blockquote>
-                                            )
                                         }}
                                     >
                                         {selectedNode.content}

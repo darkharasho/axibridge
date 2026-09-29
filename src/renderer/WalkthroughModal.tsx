@@ -78,7 +78,7 @@ export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughMo
                                 return (
                                     <div
                                         key={step.title}
-                                        className="rounded-[4px] px-4 py-4 flex gap-4 items-start"
+                                        className="axi-well axi-well--sm flex gap-4 items-start"
                                         style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
                                     >
                                         <div className="mt-0.5 rounded-[4px] border axi-edge-meta bg-blue-500/15 p-2">

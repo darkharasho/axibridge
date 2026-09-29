@@ -89,7 +89,7 @@ export function ReportWebhooksCard({
                     const rawTags = draftValue(hook, 'forumTagIds');
                     const parsedTags = parseForumTagIds(rawTags);
                     return (
-                        <div key={hook.id} className="rounded-[4px] border p-3 space-y-2" style={{ background: 'var(--bg-input)', borderColor: 'var(--border-subtle)' }}>
+                        <div key={hook.id} className="axi-well axi-well--sm space-y-2">
                             <div className="flex items-center gap-2">
                                 <input
                                     type="text"

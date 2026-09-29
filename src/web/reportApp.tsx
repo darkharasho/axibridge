@@ -1493,78 +1493,44 @@ export function ReportApp({ injectedSource, assetBase }: {
                 metricsSpecHeadingCountsRef.current = new Map();
                 return null;
             })()}
+            {/* `.axi-prose` (on ProofOfWorkModal's content wrapper) owns the
+                typography. What survives is only what it cannot know: the heading
+                ids the table of contents scrolls to and tracks, and a table wrapper
+                carrying nothing but a scroll, because the metrics spec has tables
+                wider than this modal.
+
+                The `code` override that used to be here was broken, and adopting
+                prose is what fixes it. react-markdown removed the `inline` prop in
+                v9; this file tested `inline === true`, which is now never true, so
+                every inline code span in the published report rendered through the
+                fenced-block branch — no box, no mono, just wrapped text. The two
+                other copies of this map in the app tested `inline ?? !className` and
+                happened to stay correct, via a fallback written for a prop that no
+                longer exists.
+
+                Prose distinguishes the two cases in CSS instead: `code` styles every
+                literal, `pre code` unstyles the one inside a block. That is a fact
+                the DOM actually carries, so there is no prop to go stale. */}
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                    h1: ({ children }) => {
-                        const label = extractHeadingText(children);
-                        const id = buildMetricsSpecHeadingId(label);
-                        return <h1 id={id} data-heading-id={id} className="text-2xl font-bold axi-ink-plain scroll-mt-6">{children}</h1>;
-                    },
-                    h2: ({ children }) => {
-                        const label = extractHeadingText(children);
-                        const id = buildMetricsSpecHeadingId(label);
-                        return <h2 id={id} data-heading-id={id} className="text-xl font-semibold axi-ink-plain scroll-mt-6">{children}</h2>;
-                    },
-                    h3: ({ children }) => {
-                        const label = extractHeadingText(children);
-                        const id = buildMetricsSpecHeadingId(label);
-                        return <h3 id={id} data-heading-id={id} className="text-lg font-semibold axi-ink-plain scroll-mt-6">{children}</h3>;
-                    },
-                    p: ({ children }) => <p className="leading-6 axi-ink-plain">{children}</p>,
-                    ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 axi-ink-plain">{children}</ul>,
-                    ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 axi-ink-plain">{children}</ol>,
-                    li: ({ children }) => <li className="leading-6">{children}</li>,
-                    blockquote: ({ children }) => (
-                        <blockquote className="border-l-2 border-[color:var(--accent-border)] pl-4 axi-ink-dim italic">
-                            {children}
-                        </blockquote>
-                    ),
-                    a: ({ href, children }) => (
-                        <a
-                            className="text-[color:var(--brand-primary)] hover:text-white underline underline-offset-2"
-                            href={href}
-                            target="_blank"
-                            rel="noreferrer"
-                        >
-                            {children}
-                        </a>
-                    ),
+                    ...Object.fromEntries((['h1', 'h2', 'h3'] as const).map((Tag) => [
+                        Tag,
+                        ({ children }: { children?: React.ReactNode }) => {
+                            const label = extractHeadingText(children);
+                            const id = buildMetricsSpecHeadingId(label);
+                            return (
+                                <Tag id={id} data-heading-id={id} className="scroll-mt-6">
+                                    {children}
+                                </Tag>
+                            );
+                        },
+                    ])),
                     table: ({ children }) => (
-                        <div className="overflow-x-auto rounded-xl border axi-edge-rule bg-black/30">
-                            <table className="w-full border-collapse text-left text-sm">
-                                {children}
-                            </table>
+                        <div className="overflow-x-auto">
+                            <table>{children}</table>
                         </div>
                     ),
-                    th: ({ children }) => (
-                        <th className="border-b axi-edge-rule bg-white/5 px-3 py-2 text-xs uppercase tracking-wide axi-ink-dim">
-                            {children}
-                        </th>
-                    ),
-                    td: ({ children }) => (
-                        <td className="border-b axi-edge-rule px-3 py-2 axi-ink-plain">
-                            {children}
-                        </td>
-                    ),
-                    pre: ({ children }) => (
-                        <pre className="overflow-x-auto rounded-xl bg-black/40 p-4 text-xs axi-ink-plain">
-                            {children}
-                        </pre>
-                    ),
-                    code: (props: any) => {
-                        const { inline, children } = props;
-                        const isInline = inline === true;
-                        return isInline ? (
-                            <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] text-[color:var(--brand-primary)]">
-                                {children}
-                            </code>
-                        ) : (
-                            <code className="whitespace-pre-wrap axi-ink-plain">
-                                {children}
-                            </code>
-                        );
-                    }
                 }}
             >
                 {metricsSpecMarkdown}
@@ -2206,7 +2172,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                             ) : rollupData.noEgoMode ? (
                                                 <NoEgoRollup commanderRows={rollupData.commanderRows} playerRows={[]} />
                                             ) : (
-                                                <div className="rounded-2xl border axi-edge-rule bg-black/25 overflow-hidden">
+                                                <div className="axi-well overflow-hidden" style={{ '--axi-well-pad': '0' } as React.CSSProperties}>
                                                     <div className="border-b axi-edge-rule px-3 py-3 sm:px-4">
                                                         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_180px_140px_140px] gap-3">
                                                             <input
@@ -2317,7 +2283,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                             ) : rollupData.noEgoMode ? (
                                                 <NoEgoRollup commanderRows={[]} playerRows={rollupData.playerRows} />
                                             ) : (
-                                                <div className="rounded-2xl border axi-edge-rule bg-black/25 overflow-hidden">
+                                                <div className="axi-well overflow-hidden" style={{ '--axi-well-pad': '0' } as React.CSSProperties}>
                                                     <div className="border-b axi-edge-rule px-3 py-3 sm:px-4">
                                                         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_180px_140px_140px] gap-3">
                                                             <input

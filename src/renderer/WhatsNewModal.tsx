@@ -50,65 +50,32 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                     </div>
                     <div className="whats-new-modal__body axi-modal__body">
                         <div className="whats-new-modal__scroll max-h-[65vh] overflow-y-auto pr-2">
-                            <div className="space-y-4 text-sm axi-ink-plain">
+                            {/* `.axi-prose` owns every element this map used to spell out:
+                                h1-h3, p, ul, ol, li, blockquote, table, th, td, pre and the
+                                inline code span. What is left are the two things it cannot
+                                know. `a` must be a <button> calling openExternal, because an
+                                <a href> inside Electron navigates the renderer rather than
+                                opening a browser. `table` keeps a wrapper with nothing on it
+                                but a scroll: prose styles the table itself, but a release note
+                                can carry a table wider than this modal and prose has no
+                                opinion about overflow on one. */}
+                            <div className="axi-prose">
                                 <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                     components={{
-                                        h1: ({ children }) => <h1 className="text-2xl font-bold axi-ink-plain">{children}</h1>,
-                                        h2: ({ children }) => <h2 className="text-xl font-semibold axi-ink-plain">{children}</h2>,
-                                        h3: ({ children }) => <h3 className="text-lg font-semibold axi-ink-plain">{children}</h3>,
-                                        p: ({ children }) => <p className="leading-6 axi-ink-plain">{children}</p>,
-                                        ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 axi-ink-plain">{children}</ul>,
-                                        ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 axi-ink-plain">{children}</ol>,
-                                        li: ({ children }) => <li className="leading-6">{children}</li>,
-                                        blockquote: ({ children }) => (
-                                            <blockquote className="border-l-2 axi-edge-meta pl-4 axi-ink-dim italic">
-                                                {children}
-                                            </blockquote>
-                                        ),
                                         a: ({ href, children }) => (
                                             <button
-                                                className="axi-ink-meta hover:text-blue-200 underline underline-offset-2"
+                                                className="axi-ink-meta underline underline-offset-2"
                                                 onClick={() => href && window.electronAPI.openExternal(href)}
                                             >
                                                 {children}
                                             </button>
                                         ),
                                         table: ({ children }) => (
-                                            <div className="overflow-x-auto rounded-[4px]" style={{ border: 'var(--panel-border-w, 1px) solid var(--border-default)', background: 'var(--bg-card-inner)' }}>
-                                                <table className="stats-table w-full border-collapse text-left text-sm">
-                                                    {children}
-                                                </table>
+                                            <div className="overflow-x-auto">
+                                                <table>{children}</table>
                                             </div>
                                         ),
-                                        th: ({ children }) => (
-                                            <th className="border-b axi-edge-rule bg-white/5 px-3 py-2 text-xs uppercase tracking-wide axi-ink-dim">
-                                                {children}
-                                            </th>
-                                        ),
-                                        td: ({ children }) => (
-                                            <td className="border-b axi-edge-rule px-3 py-2 axi-ink-plain">
-                                                {children}
-                                            </td>
-                                        ),
-                                        pre: ({ children }) => (
-                                            <pre className="overflow-x-auto rounded-[4px] p-4 text-xs axi-ink-meta" style={{ background: 'var(--bg-card-inner)' }}>
-                                                {children}
-                                            </pre>
-                                        ),
-                                        code: (props: any) => {
-                                            const { inline, className, children } = props;
-                                            const isInline = inline ?? !className;
-                                            return isInline ? (
-                                                <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] axi-ink-meta">
-                                                    {children}
-                                                </code>
-                                            ) : (
-                                                <code className="whitespace-pre-wrap axi-ink-meta">
-                                                    {children}
-                                                </code>
-                                            );
-                                        }
                                     }}
                                 >
                                     {releaseNotes || 'Release notes unavailable.'}

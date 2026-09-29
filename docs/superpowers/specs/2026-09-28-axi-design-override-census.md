@@ -1064,8 +1064,8 @@ seven levers the group's trough needed.
 
 ### What this leaves
 
-- **Wells and panels (216 sites)** - the `.axi-well` adoption proper, and now the
-  largest block by a wide margin.
+- ~~**Wells and panels (216 sites)**~~ - done; the count was a fill, and the
+  160 tags under it were ten different objects. See the wells section below.
 - **Links and bare glyphs (122 sites)** - still no upstream word. A `<button>`
   with no chrome, `axi-ink-meta` and an underline is a link; the language has
   `.axi-prose a` and nothing standalone.
@@ -1081,3 +1081,144 @@ seven levers the group's trough needed.
 - **List and menu rows (51)**, **meters and bars (27)**, **chips (6)**,
   **tables (9)**.
 
+
+## What the wells slice found: one colour name, ten objects
+
+The previous section named **Wells and panels (216 sites)**, the largest block
+left. The number came from a fill — every site painting `--bg-card-inner`,
+`--bg-input` or a `bg-black/N`. Parsing whole JSX opening tags rather than lines
+(the same `tagEnd` walker the buttons and pills slices needed, because
+`onClick={() => …}` contains a `>`) finds **160 such tags**, and the tag name
+alone splits most of them:
+
+| what it is | sites | the word it wanted |
+|---|---|---|
+| a well | 50 | `.axi-well` (+ the new `--sm`) |
+| a press with a resting fill | 35 | `.axi-btn` / `.axi-pill` |
+| a text field or a select | 28 | `.axi-input` / `.axi-select` |
+| rendered markdown | 4 maps | `.axi-prose` |
+| a quoted literal | 7 | `.axi-code` (new) |
+| a trough a bar fills | 7 | `.axi-meter` |
+| a chip | 8 | `.axi-chip` |
+| a band cut into a surface | 4 | *no word yet* |
+| a modal scrim | 2 | `.axi-scrim` — but see below |
+| a table header row, an SVG stroke | 2 | neither is a surface |
+
+Then the "well" column split again on reading. A modal scrim, a status banner,
+five inline annotations, two joined control groups and a checkbox were all in
+it, because all six painted a container-scale neutral fill. **The fill is not
+the unit.** This is the third slice running where the census's own count came
+from a property rather than an object, after the corner (pills) and the tag
+(buttons).
+
+### Four copies of a typography layer that was never installed
+
+`HowToModal`, `WhatsNewModal`, `SettingsView` and `reportApp` each passed
+ReactMarkdown a `components` map spelling out `h1 h2 h3 p ul ol li blockquote
+table th td pre code` by hand — three of them with the identical element set.
+`.axi-prose` covers every one of those elements, including `ol`, which a first
+pass over the selector list appeared to show missing and which a second pass
+found declared in a comma form.
+
+The container of one of them asked for `prose prose-invert prose-p:my-3
+prose-li:my-1`. **`@tailwindcss/typography` is not a dependency of this app.**
+Those four classes emit nothing, and the hand-written map below them was the
+only typography there had ever been.
+
+What survives the migration is only what prose cannot know: the heading ids the
+metrics-spec table of contents scrolls to, an `img` implementing the how-to's
+own `icon:` protocol, an `a` that has to be a `<button>` calling `openExternal`
+because an `<a href>` in Electron navigates the renderer, and a table wrapper
+carrying nothing but a scroll. With prose owning the type, the three heading
+factories in each of two files stopped differing by anything but their tag, and
+collapsed to one.
+
+### A measured bug, found by counting spellings
+
+The three surviving `code` overrides tested "is this inline" three ways:
+`inline ?? !className` twice, and `inline === true` once. **react-markdown
+removed the `inline` prop in v9**, and this app is on 9.1.0. Rendering a
+document with both forms and logging the props:
+
+```
+inline span:  {}                          inline===true => false   inline ?? !className => true
+fenced block: {"className":"language-js"} inline===true => false   inline ?? !className => false
+```
+
+So `reportApp`'s copy — the published web report — rendered **every inline code
+span through the fenced-block branch**: no box, no mono, just wrapped text. The
+other two stayed correct only via a fallback written for a prop that no longer
+exists. Prose fixes it by asking the DOM instead: `code` styles every literal,
+`pre code` unstyles the one inside a block. There is no prop to go stale.
+
+### Upstream: axi-design 1.33.0 and 1.34.0
+
+**1.33.0 — `.axi-code`.** The language's only word for a quoted literal was
+`.axi-prose code`, reachable only by adopting a whole typography layer for a
+document. A consumer naming one slash command inside a sentence of interface
+copy cannot do that without restyling the sentence, so it draws its own box:
+this app had **three spellings across six spans, and the sixth had given up and
+drawn no box at all**. Shipped as ONE rule carrying both selectors
+(`.axi-code, .axi-prose code`), not two rules that agree, with a test that
+asserts they are in the same rule — because only that assertion fails when
+someone splits them. Sized in `em` so a literal tracks the text around it; on
+`--axi-ground` where `.axi-kbd` is on `--axi-surface`, for the reason already
+written beside the key. RULES.md states the general form: *a style only
+reachable through a layer will be re-invented*.
+
+**1.34.0 — `.axi-well--sm`.** `.axi-well`'s comment has always said a well is
+used at two scales and that reading-scale instances "say `--axi-radius-sm` here
+rather than reaching for a modifier". That is right for the handful it imagined;
+this consumer has fifty, and fifty inline style attributes is what a class
+exists to prevent — the same argument that produced `.axi-btn--sm` one release
+earlier. The modifier sets the radius and nothing else, pinned by a test to
+exactly one declaration. Measured under glass: well 16px / `--sm` 10px, pad
+10px on both.
+
+### The trap this slice had to measure first
+
+**axi.css loads after Tailwind** (`index.css` imports utilities at line 4 and
+axi.css at line 12; in the built bundle `.p-3` is at byte 20,588 and `.axi-well`
+at 51,703). So adding `axi-well` to a `p-3 rounded-[4px]` div silently resets
+both its padding and its radius. Every adoption site in this slice states its
+pad through `--axi-well-pad` or deliberately takes the well's own.
+
+### A regression caught before it shipped
+
+Two modal scrims looked like an easy `.axi-scrim` adoption. **`.axi-scrim` is
+`z-index: 50` and `.axi-sheet` is `z-index: 45`** — the scrim would have landed
+*above* the pane it exists to dim. `.axi-scrim`'s z is tuned for the drawer
+(z-51) and is not a knob, so no consumer stacking it under anything below 50 can
+use it. Left unmigrated; `z-index: var(--axi-scrim-z, 50)` is the one-line
+upstream fix and is not yet made.
+
+### What this slice changed
+
+- The **four markdown maps** collapsed onto `.axi-prose`, and with them the
+  broken `inline === true` branch in the published report.
+- **31 wells** onto `.axi-well --sm`; the **8 expanded-card tiles** onto
+  `.axi-panel--tile`, which deleted the `--detail-tile-*` reskin entirely — three
+  indirection variables carrying two facts — and with it the dead
+  `log-detail-tile` class, which by then styled nothing and located nothing.
+- **6 code spans** onto `.axi-code`, **4 inline annotations** onto `.axi-chip`.
+- The Cloudflare connect panel's three tones became a well wearing a status
+  edge, deleting `bg-emerald-400/5` and `bg-amber-400/5` — **rule 2 exactly**: a
+  colour at partial opacity over the ground.
+- The liveness guard fired a **fourth** time, on `shadow-inner`, whose last two
+  users were the tiles. Bridged utilities **84 -> 83**.
+- Legacy custom-property references in `.tsx`: **2,537 -> 2,410** (measured with
+  one method against both trees, rather than reusing a figure a different method
+  produced).
+
+### Still open after this slice
+
+- **The presses (35) and the fields (28)** found by this census — the two
+  largest blocks the fill was hiding. `.axi-input` sets `width: 100%`, which
+  outranks a Tailwind width for the same reason `.axi-well` outranks `p-3`, so
+  the narrow fields need the wrapper the manifest's own search example
+  prescribes.
+- **The band** (4 sites, plus the expanded log card's drawer): a region flush
+  inside its container, cut from it by one line, with no radius. Not a well — a
+  well is free-standing, edged all the way round and cornered. The drawer's fill
+  and cut stay in `axi-design.css` with that reason written down.
+- `.axi-scrim`'s fixed z-index, above.
