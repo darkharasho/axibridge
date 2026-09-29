@@ -42,7 +42,7 @@ export const SupportSection = ({
 }: SupportSectionProps) => {
     const { stats, roundCountStats, formatWithCommas, renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, sidebarListClass } = useStatsSharedContext();
     const {
-        sortState, updateSort,
+        sortState, updateSort, ariaSort,
         denseSort, setDenseSort,
         selectedColumnIds: selectedSupportColumnIds, setSelectedColumnIds: setSelectedSupportColumnIds,
         selectedPlayers: selectedSupportPlayers, setSelectedPlayers: setSelectedSupportPlayers,
@@ -447,43 +447,34 @@ export const SupportSection = ({
                                 <StatsTableShell
                                     expanded={expandedSection === 'support-detailed'}
                                     animationKey={`${activeSupportStat}-${supportViewMode}`}
-                                    header={null}
-                                    columns={
-                                        <>
-                                            <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
-                                                <div className="text-center">#</div>
-                                                <div>Player</div>
-                                                <button
+                                    cols={['0.4fr', '1.5fr', '1fr', '0.9fr']}
+head={
+<>
+<th scope="col">#</th>
+<th scope="col">Player</th>
+<th scope="col" aria-sort={ariaSort('value')}><button
                                                     type="button"
-                                                    onClick={() => updateSort('value')}
-                                                    className="text-right transition-colors"
-                                                    style={{ color: sortState.key === 'value' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
+                                                    onClick={() => updateSort('value')} className="axi-table__sort"
                                                 >
                                                     {supportViewMode === 'total' ? 'Total' : supportViewMode === 'per1s' ? 'Stat/1s' : 'Stat/60s'}
                                                     {sortState.key === 'value' ? (sortState.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                                </button>
-                                                <button
+                                                </button></th>
+<th scope="col" aria-sort={ariaSort('fightTime')}><button
                                                     type="button"
-                                                    onClick={() => updateSort('fightTime')}
-                                                    className="text-right transition-colors"
-                                                    style={{ color: sortState.key === 'fightTime' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
+                                                    onClick={() => updateSort('fightTime')} className="axi-table__sort"
                                                 >
                                                     Fight Time{sortState.key === 'fightTime' ? (sortState.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                                </button>
-                                            </div>
-                                        </>
-                                    }
-                                    rows={
+                                                </button></th>
+</>
+}
+rows={
                                         <>
                                             {rows.map((row: any, idx: number) => (
-                                                <div key={`${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }}>
-                                                    <div className="text-center font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</div>
-                                                    <div className="flex items-center gap-2 min-w-0">
-                                                        {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
-                                                        <span className="truncate">{row.account}</span>
-                                                    </div>
-                                                    <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                        {(() => {
+                                                <tr key={`${metric.id}-${row.account}-${idx}`}>
+<td>{idx + 1}</td>
+<th scope="row"><span className="axi-table__who">{renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
+                                                        <span className="truncate">{row.account}</span></span></th>
+<td>{(() => {
                                                             const value = supportViewMode === 'total'
                                                                 ? row.total
                                                                 : supportViewMode === 'per1s'
@@ -493,12 +484,9 @@ export const SupportSection = ({
                                                                 ? 1
                                                                 : (roundCountStats && supportViewMode === 'total' ? 0 : 2);
                                                             return formatWithCommas(value, decimals);
-                                                        })()}
-                                                    </div>
-                                                    <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                        {row.activeMs ? `${(row.activeMs / 1000).toFixed(1)}s` : '-'}
-                                                    </div>
-                                                </div>
+                                                        })()}</td>
+<td>{row.activeMs ? `${(row.activeMs / 1000).toFixed(1)}s` : '-'}</td>
+</tr>
                                             ))}
                                         </>
                                     }

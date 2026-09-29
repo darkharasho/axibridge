@@ -36,7 +36,7 @@ export const OffenseSection = ({
 }: OffenseSectionProps) => {
     const { stats, roundCountStats, formatWithCommas, renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, sidebarListClass } = useStatsSharedContext();
     const {
-        sortState, updateSort,
+        sortState, updateSort, ariaSort,
         denseSort, setDenseSort,
         selectedColumnIds: selectedOffenseColumnIds, setSelectedColumnIds: setSelectedOffenseColumnIds,
         selectedPlayers: selectedOffensePlayers, setSelectedPlayers: setSelectedOffensePlayers,
@@ -401,42 +401,36 @@ export const OffenseSection = ({
                                 <StatsTableShell
                                     expanded={expandedSection === 'offense-detailed'}
                                     animationKey={`${activeOffenseStat}-${offenseViewMode}`}
-                                    header={null}
-                                    columns={
+                                    cols={['0.4fr', '1.5fr', '1fr', '0.9fr']}
+                                    head={
                                         <>
-                                            <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
-                                                <div className="text-center">#</div>
-                                                <div>Player</div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => updateSort('value')}
-                                                    className="text-right transition-colors"
-                                                    style={{ color: sortState.key === 'value' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
-                                                >
+                                            <th scope="col">#</th>
+                                            <th scope="col">Player</th>
+                                            <th scope="col" aria-sort={ariaSort('value')}>
+                                                <button type="button" className="axi-table__sort" onClick={() => updateSort('value')}>
                                                     {offenseViewMode === 'total' ? 'Total' : offenseViewMode === 'per1s' ? 'Stat/1s' : 'Stat/60s'}
                                                     {sortState.key === 'value' ? (sortState.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                                 </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => updateSort('fightTime')}
-                                                    className="text-right transition-colors"
-                                                    style={{ color: sortState.key === 'fightTime' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
-                                                >
+                                            </th>
+                                            <th scope="col" aria-sort={ariaSort('fightTime')}>
+                                                <button type="button" className="axi-table__sort" onClick={() => updateSort('fightTime')}>
                                                     Fight Time{sortState.key === 'fightTime' ? (sortState.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                                 </button>
-                                            </div>
+                                            </th>
                                         </>
                                     }
                                     rows={
                                         <>
                                             {rows.map((row: any, idx: number) => (
-                                                <div key={`${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }}>
-                                                    <div className="text-center font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</div>
-                                                    <div className="flex items-center gap-2 min-w-0">
-                                                        {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
-                                                        <span className="truncate">{row.account}</span>
-                                                    </div>
-                                                    <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
+                                                <tr key={`${metric.id}-${row.account}-${idx}`}>
+                                                    <td className="axi-ink-muted">{idx + 1}</td>
+                                                    <th scope="row">
+                                                        <span className="axi-table__who">
+                                                            {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
+                                                            <span>{row.account}</span>
+                                                        </span>
+                                                    </th>
+                                                    <td className={sortState.key === 'value' ? 'axi-table__cell--sorted' : undefined}>
                                                         {(() => {
                                                             const value = offenseViewMode === 'total'
                                                                 ? row.total
@@ -445,11 +439,11 @@ export const OffenseSection = ({
                                                                     : row.per60s;
                                                             return formatValue(value);
                                                         })()}
-                                                    </div>
-                                                    <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
+                                                    </td>
+                                                    <td className={sortState.key === 'fightTime' ? 'axi-table__cell--sorted' : undefined}>
                                                         {row.totalFightMs ? `${(row.totalFightMs / 1000).toFixed(1)}s` : '-'}
-                                                    </div>
-                                                </div>
+                                                    </td>
+                                                </tr>
                                             ))}
                                         </>
                                     }

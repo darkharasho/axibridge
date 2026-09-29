@@ -19,7 +19,7 @@ type ConditionsSectionProps = {
     setActiveConditionName: (value: string) => void;
     conditionDirection: 'outgoing' | 'incoming';
     setConditionDirection: (value: 'outgoing' | 'incoming') => void;
-    conditionGridClass: string;
+    conditionCols: string[];
     effectiveConditionSort: { key: 'applications' | 'damage' | 'uptime' | 'avgUptime'; dir: 'asc' | 'desc' };
     setConditionSort: (value: { key: 'applications' | 'damage' | 'uptime' | 'avgUptime'; dir: 'asc' | 'desc' }) => void;
     showConditionDamage: boolean;
@@ -34,11 +34,18 @@ export const ConditionsSection = ({
     setActiveConditionName,
     conditionDirection,
     setConditionDirection,
-    conditionGridClass,
+    conditionCols,
     effectiveConditionSort,
     setConditionSort,
     showConditionDamage
 }: ConditionsSectionProps) => {
+    const ariaSort = (
+        key: 'applications' | 'damage' | 'uptime' | 'avgUptime'
+    ): 'ascending' | 'descending' | undefined =>
+        effectiveConditionSort.key !== key
+            ? undefined
+            : effectiveConditionSort.dir === 'asc' ? 'ascending' : 'descending';
+
     const { renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, sidebarListClass } = useStatsSharedContext();
     const isExpanded = expandedSection === 'conditions-outgoing';
     const [selectedConditionColumns, setSelectedConditionColumns] = useState<string[]>([]);
@@ -385,13 +392,13 @@ export const ConditionsSection = ({
                     <StatsTableShell
                         expanded={expandedSection === 'conditions-outgoing'}
                         animationKey={`${activeConditionName}-${conditionDirection}`}
-                        header={null}
-                        columns={
+                        cols={conditionCols}
+                        head={
                             <>
-                            <div className={`grid ${conditionGridClass} text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]`}>
-                                <div className="text-center">#</div>
-                                <div>Player</div>
-                                <button
+                                <th scope="col">#</th>
+                                <th scope="col">Player</th>
+                                <th scope="col" aria-sort={ariaSort('applications')}>
+<button
                                     type="button"
                                     onClick={() => {
                                         setConditionSort({
@@ -399,12 +406,14 @@ export const ConditionsSection = ({
                                             dir: effectiveConditionSort.key === 'applications' ? (effectiveConditionSort.dir === 'desc' ? 'asc' : 'desc') : 'desc'
                                         });
                                     }}
-                                    className={`text-right transition-colors ${effectiveConditionSort.key === 'applications' ? 'text-[color:var(--brand-primary)]' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
+                                    className="axi-table__sort"
                                 >
                                     Applications {effectiveConditionSort.key === 'applications' ? (effectiveConditionSort.dir === 'desc' ? '↓' : '↑') : ''}
                                 </button>
+</th>
                                 {conditionDirection === 'outgoing' ? (
-                                    <button
+                                    <th scope="col" aria-sort={ariaSort('uptime')}>
+<button
                                         type="button"
                                         onClick={() => {
                                             setConditionSort({
@@ -412,13 +421,15 @@ export const ConditionsSection = ({
                                                 dir: effectiveConditionSort.key === 'uptime' ? (effectiveConditionSort.dir === 'desc' ? 'asc' : 'desc') : 'desc'
                                             });
                                         }}
-                                        className={`text-right transition-colors ${effectiveConditionSort.key === 'uptime' ? 'text-[color:var(--brand-primary)]' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
+                                        className="axi-table__sort"
                                     >
                                         Uptime {effectiveConditionSort.key === 'uptime' ? (effectiveConditionSort.dir === 'desc' ? '↓' : '↑') : ''}
                                     </button>
+</th>
                                 ) : null}
                                 {conditionDirection === 'outgoing' ? (
-                                    <button
+                                    <th scope="col" aria-sort={ariaSort('avgUptime')}>
+<button
                                         type="button"
                                         onClick={() => {
                                             setConditionSort({
@@ -427,13 +438,15 @@ export const ConditionsSection = ({
                                             });
                                         }}
                                         title="Average duration each application stayed on the target. Lower than the skill's nominal duration indicates cleansing or natural expiry."
-                                        className={`text-right transition-colors ${effectiveConditionSort.key === 'avgUptime' ? 'text-[color:var(--brand-primary)]' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
+                                        className="axi-table__sort"
                                     >
                                         Avg/app {effectiveConditionSort.key === 'avgUptime' ? (effectiveConditionSort.dir === 'desc' ? '↓' : '↑') : ''}
                                     </button>
+</th>
                                 ) : null}
                                 {showConditionDamage ? (
-                                    <button
+                                    <th scope="col" aria-sort={ariaSort('damage')}>
+<button
                                         type="button"
                                         onClick={() => {
                                             setConditionSort({
@@ -441,12 +454,12 @@ export const ConditionsSection = ({
                                                 dir: effectiveConditionSort.key === 'damage' ? (effectiveConditionSort.dir === 'desc' ? 'asc' : 'desc') : 'desc'
                                             });
                                         }}
-                                        className={`text-right transition-colors ${effectiveConditionSort.key === 'damage' ? 'text-[color:var(--brand-primary)]' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
+                                        className="axi-table__sort"
                                     >
                                         Damage {effectiveConditionSort.key === 'damage' ? (effectiveConditionSort.dir === 'desc' ? '↓' : '↑') : ''}
                                     </button>
+</th>
                                 ) : null}
-                            </div>
                             </>
                         }
                         rows={
@@ -532,13 +545,15 @@ export const ConditionsSection = ({
                                         const applicationsValue = Math.round(entry.applications || 0).toLocaleString();
                                         const damageValue = Math.round(entry.damage || 0).toLocaleString();
                                         return (
-                                            <div key={`${entry.account}-${idx}`} className={`grid ${conditionGridClass} px-3 py-2 text-xs text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]`}>
-                                                <div className="text-center text-[color:var(--text-muted)] font-mono">{idx + 1}</div>
-                                                <div className="flex items-center gap-2 min-w-0">
-                                                    {renderProfessionIcon(entry.profession, entry.professionList, 'w-4 h-4')}
-                                                    <span className="truncate">{entry.account}</span>
-                                                </div>
-                                                <div className="text-right font-mono text-[color:var(--text-secondary)]">
+                                            <tr key={`${entry.account}-${idx}`}>
+                                                <td className="axi-ink-muted">{idx + 1}</td>
+                                                <th scope="row">
+                                                    <span className="axi-table__who">
+                                                        {renderProfessionIcon(entry.profession, entry.professionList, 'w-4 h-4')}
+                                                        <span>{entry.account}</span>
+                                                    </span>
+                                                </th>
+                                                <td>
                                                     {showTooltip ? (
                                                         <SkillBreakdownTooltip
                                                             value={applicationsValue}
@@ -553,24 +568,21 @@ export const ConditionsSection = ({
                                                     ) : (
                                                         applicationsValue
                                                     )}
-                                                </div>
+                                                </td>
                                                 {conditionDirection === 'outgoing' ? (
-                                                    <div className="text-right font-mono text-[color:var(--text-secondary)]">
+                                                    <td>
                                                         {Math.round((entry.uptimeMs || 0) / 1000).toLocaleString()}s
-                                                    </div>
+                                                    </td>
                                                 ) : null}
                                                 {conditionDirection === 'outgoing' ? (
-                                                    <div
-                                                        className="text-right font-mono text-[color:var(--text-secondary)]"
-                                                        title="Average duration each application stayed on the target"
-                                                    >
+                                                    <td title="Average duration each application stayed on the target">
                                                         {entry.applications > 0
                                                             ? `${(((entry.uptimeMs || 0) / entry.applications) / 1000).toFixed(1)}s`
                                                             : '—'}
-                                                    </div>
+                                                    </td>
                                                 ) : null}
                                                 {showConditionDamage ? (
-                                                    <div className="text-right font-mono text-[color:var(--text-secondary)]">
+                                                    <td>
                                                         {showDamageTooltip ? (
                                                             <SkillBreakdownTooltip
                                                                 value={damageValue}
@@ -585,9 +597,9 @@ export const ConditionsSection = ({
                                                         ) : (
                                                             damageValue
                                                         )}
-                                                    </div>
+                                                    </td>
                                                 ) : null}
-                                            </div>
+                                            </tr>
                                         );
                                     });
                                 })()}

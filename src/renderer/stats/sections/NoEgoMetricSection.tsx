@@ -195,31 +195,23 @@ export const NoEgoMetricSection: React.FC<NoEgoMetricSectionProps> = ({
                                             <StatsTableShell
                                                 expanded={false}
                                                 animationKey={`${keyPrefix}-${activeStatId}-${viewMode}`}
-                                                header={null}
-                                                columns={
-                                                    <div className="grid grid-cols-[1.5fr_1fr_0.9fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
-                                                        <div>Player</div>
-                                                        <div className="text-right">
-                                                            {viewMode === 'total' ? 'Total' : viewMode === 'per1s' ? 'Stat/1s' : 'Stat/60s'}
-                                                        </div>
-                                                        <div className="text-right">Fight Time</div>
-                                                    </div>
-                                                }
-                                                rows={
+                                                cols={['1.5fr', '1fr', '0.9fr']}
+head={
+<>
+<th scope="col">Player</th>
+<th scope="col">{viewMode === 'total' ? 'Total' : viewMode === 'per1s' ? 'Stat/1s' : 'Stat/60s'}</th>
+<th scope="col">Fight Time</th>
+</>
+}
+rows={
                                                     <>
                                                         {rows.map((row: any, idx: number) => (
-                                                            <div key={`${keyPrefix}-${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[1.5fr_1fr_0.9fr] px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }}>
-                                                                <div className="flex items-center gap-2 min-w-0">
-                                                                    {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
-                                                                    <span className="truncate">{row.account}</span>
-                                                                </div>
-                                                                <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                                    {fmtVal(viewMode === 'total' ? row.total : viewMode === 'per1s' ? row.per1s : row.per60s)}
-                                                                </div>
-                                                                <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-                                                                    {fightTimeMs(row) ? `${(fightTimeMs(row) / 1000).toFixed(1)}s` : '-'}
-                                                                </div>
-                                                            </div>
+                                                            <tr key={`${keyPrefix}-${metric.id}-${row.account}-${idx}`}>
+<th scope="row"><span className="axi-table__who">{renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
+                                                                    <span className="truncate">{row.account}</span></span></th>
+<td>{fmtVal(viewMode === 'total' ? row.total : viewMode === 'per1s' ? row.per1s : row.per60s)}</td>
+<td>{fightTimeMs(row) ? `${(fightTimeMs(row) / 1000).toFixed(1)}s` : '-'}</td>
+</tr>
                                                         ))}
                                                     </>
                                                 }

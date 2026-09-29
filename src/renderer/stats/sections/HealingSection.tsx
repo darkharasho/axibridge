@@ -31,7 +31,7 @@ export const HealingSection = ({
 }: HealingSectionProps) => {
     const { stats, formatWithCommas, renderProfessionIcon, expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection } = useStatsSharedContext();
     const {
-        sortState, updateSort,
+        sortState, updateSort, ariaSort,
         denseSort, setDenseSort,
         selectedColumnIds: selectedHealingColumnIds, setSelectedColumnIds: setSelectedHealingColumnIds,
         selectedPlayers: selectedHealingPlayers, setSelectedPlayers: setSelectedHealingPlayers,
@@ -374,51 +374,49 @@ export const HealingSection = ({
                                 <StatsTableShell
                                     expanded={expandedSection === 'healing-stats'}
                                     animationKey={`${activeHealingMetric}-${healingCategory}`}
-                                    header={null}
-                                    columns={
+                                    cols={['0.4fr', '1.5fr', '1fr', '0.9fr']}
+                                    head={
                                         <>
-                                            <div className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] px-3 py-2 border-b border-[color:var(--border-default)]">
-                                                <div className="text-center">#</div>
-                                                <div>Player</div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => updateSort('value')}
-                                                    className="text-right transition-colors"
-                                                    style={{ color: sortState.key === 'value' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
-                                                >
+                                            <th scope="col">#</th>
+                                            <th scope="col">Player</th>
+                                            <th scope="col" aria-sort={ariaSort('value')}>
+                                                <button type="button" className="axi-table__sort" onClick={() => updateSort('value')}>
                                                     {metric.label}{sortState.key === 'value' ? (sortState.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                                 </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => updateSort('fightTime')}
-                                                    className="text-right transition-colors"
-                                                    style={{ color: sortState.key === 'fightTime' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
-                                                >
+                                            </th>
+                                            <th scope="col" aria-sort={ariaSort('fightTime')}>
+                                                <button type="button" className="axi-table__sort" onClick={() => updateSort('fightTime')}>
                                                     Fight Time{sortState.key === 'fightTime' ? (sortState.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                                 </button>
-                                            </div>
+                                            </th>
                                         </>
                                     }
                                     rows={
                                         <>
                                             {rows.length === 0 ? (
-                                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No healing data for this view</div>
+                                                <tr>
+                                                    <td colSpan={4} className="axi-ink-muted text-center">No healing data for this view</td>
+                                                </tr>
                                             ) : (
                                                 rows.map((row: any, idx: number) => (
-                                                    <div key={`${metric.id}-${row.account}-${idx}`} className="grid grid-cols-[0.4fr_1.5fr_1fr_0.9fr] px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }}>
-                                                        <div className="text-center font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</div>
-                                                        <div className="flex items-center gap-2 min-w-0">
-                                                            {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
-                                                            <span className="truncate">{row.account}</span>
-                                                        </div>
-                                                        <div className="text-right font-mono inline-flex items-center justify-end gap-1.5" style={{ color: 'var(--text-secondary)' }}>
-                                                            <span>{formatWithCommas(row.value, metric.decimals)}</span>
-                                                            {row.hasHealAddon === false && <PartialMarker />}
-                                                        </div>
-                                                        <div className="text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
+                                                    <tr key={`${metric.id}-${row.account}-${idx}`}>
+                                                        <td className="axi-ink-muted">{idx + 1}</td>
+                                                        <th scope="row">
+                                                            <span className="axi-table__who">
+                                                                {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
+                                                                <span>{row.account}</span>
+                                                            </span>
+                                                        </th>
+                                                        <td className={sortState.key === 'value' ? 'axi-table__cell--sorted' : undefined}>
+                                                            <span className="inline-flex items-center justify-end gap-1.5">
+                                                                <span>{formatWithCommas(row.value, metric.decimals)}</span>
+                                                                {row.hasHealAddon === false && <PartialMarker />}
+                                                            </span>
+                                                        </td>
+                                                        <td className={sortState.key === 'fightTime' ? 'axi-table__cell--sorted' : undefined}>
                                                             {row.activeMs ? `${(row.activeMs / 1000).toFixed(1)}s` : '-'}
-                                                        </div>
-                                                    </div>
+                                                        </td>
+                                                    </tr>
                                                 ))
                                             )}
                                         </>

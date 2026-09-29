@@ -1010,15 +1010,21 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     const showConditionDamage = !isNonDamagingCondition;
     const hasUptimeColumn = conditionDirection === 'outgoing';
     const hasAvgUptimeColumn = conditionDirection === 'outgoing';
-    const conditionGridClass = showConditionDamage && hasUptimeColumn && hasAvgUptimeColumn
-        ? 'grid-cols-[0.4fr_1.6fr_1fr_1fr_1fr_1fr]'
-        : showConditionDamage && (hasUptimeColumn || hasAvgUptimeColumn)
-            ? 'grid-cols-[0.4fr_1.6fr_1fr_1fr_1fr]'
-            : (hasUptimeColumn && hasAvgUptimeColumn)
-                ? 'grid-cols-[0.4fr_1.6fr_1fr_1fr_1fr]'
-                : showConditionDamage || hasUptimeColumn || hasAvgUptimeColumn
-                    ? 'grid-cols-[0.4fr_1.6fr_1fr_1fr]'
-                    : 'grid-cols-[0.4fr_1.6fr_1fr]';
+    // One entry per column the table actually renders, in render order: the
+    // rank, the player, applications, then whichever of the three optional
+    // columns their own flags turn on. This replaced a five-branch ternary over
+    // the same three booleans that spelled out a width string per combination -
+    // two of its branches produced the same string, and nothing tied any of
+    // them to the cells being rendered, so a new column meant editing a count
+    // in one place and a cell in another.
+    const conditionCols = [
+        '0.4fr',
+        '1.6fr',
+        '1fr',
+        ...(hasUptimeColumn ? ['1fr'] : []),
+        ...(hasAvgUptimeColumn ? ['1fr'] : []),
+        ...(showConditionDamage ? ['1fr'] : []),
+    ];
     const effectiveConditionSort = showConditionDamage
         ? conditionSort
         : conditionSort.key === 'damage'
@@ -4831,7 +4837,7 @@ type SpikeFight = {
                                 setActiveConditionName={setActiveConditionName}
                                 conditionDirection={conditionDirection}
                                 setConditionDirection={setConditionDirection}
-                                conditionGridClass={conditionGridClass}
+                                conditionCols={conditionCols}
                                 effectiveConditionSort={effectiveConditionSort as any}
                                 setConditionSort={setConditionSort as any}
                                 showConditionDamage={showConditionDamage}
@@ -5202,7 +5208,7 @@ type SpikeFight = {
                                 setActiveConditionName={setActiveConditionName}
                                 conditionDirection={conditionDirection}
                                 setConditionDirection={setConditionDirection}
-                                conditionGridClass={conditionGridClass}
+                                conditionCols={conditionCols}
                                 effectiveConditionSort={effectiveConditionSort as any}
                                 setConditionSort={setConditionSort as any}
                                 showConditionDamage={showConditionDamage}
