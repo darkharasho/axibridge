@@ -173,6 +173,8 @@ const LayersPanelInner: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
                 {HEATMAP_OPTIONS.map(opt => (
                     <label key={opt.value} title={opt.title} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--text-primary)', padding: '3px 0', cursor: 'pointer' }}>
                         <input type="radio" name="replay-heatmap"
+                               className="axi-radio"
+                               style={{ '--axi-check-size': '14px' } as React.CSSProperties}
                                value={opt.value}
                                checked={layers.heatmap === opt.value}
                                onChange={() => setReplayHeatmapMode(opt.value)} />

@@ -910,8 +910,9 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                             {filePickerSubmitting ? (
                                                 <>
                                                     {/* Adding a few hundred logs takes long enough that the
-                                                        click looked ignored. The cells count the queue down. */}
-                                                    <span className="bridge-step-spinner" aria-hidden="true"><i /><i /><i /><i /></span>
+                                                        click looked ignored. Sized down from upstream's 20px
+                                                        default: this sits beside 12px text. */}
+                                                    <span className="axi-spinner" aria-hidden="true" style={{ '--axi-spinner-size': '12px' } as React.CSSProperties} />
                                                     Adding {filePickerSelected.size} log{filePickerSelected.size === 1 ? '' : 's'}
                                                 </>
                                             ) : (
