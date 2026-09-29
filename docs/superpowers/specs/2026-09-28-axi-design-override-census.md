@@ -208,3 +208,49 @@ two things worth recording:
   wanted to rank them had exactly one tool: spend a hue. That is why the MVP cards
   were gold/silver/bronze-tinted in the first place. `.axi-panel--tile` gives the
   ramp its second step, and rank becomes a form question instead of a colour one.
+
+## What the second cards slice found
+
+The five remaining card families — the dashboard rail's cards, the Overview
+scoreboard, the Settings sections, the History report cards, the Replay fight
+picker — turned out to be one rule wearing five names.
+
+Every one of them wrote its frame as an **inline literal** in the markup
+(`border: 1px solid`, `borderRadius: 8`, `padding: 8`, `rounded-[4px] p-3`),
+and an inline shorthand beats any selector. So the override layer could not
+restate the frame; it could only reach *through* the literal by re-resolving a
+variable the literal happened to read — `--panel-border-w`, `--history-edge-w`.
+That is why these five rules looked so unlike the rest of the layer: they set
+almost no properties. They were levers, not descriptions.
+
+**A lever is a reskin that has run out of room.** Naming the object deletes the
+lever and the literal together. Every one of these sites lost its inline frame
+entirely; four of the five override rules went with it, and the fifth
+(`.overview-card`) kept only the knobs that describe what is *inside* it.
+
+Two rulings the slice had to make:
+
+- **The History cards stay panels, not tiles.** A report is a page's worth of
+  content, and the chrome around them — source bar, search field, filter — sits
+  at the control step. That one step of difference is what makes the cards read
+  as the thing you are meant to click. Tiles would have flattened them into
+  their own chrome.
+- **Picked is an edge, never a fill.** The picker's active fight was
+  `--accent-bg-strong` *and* an accent border. The fill goes; `.axi-edge-accent`
+  alone says it, which is rule 2 and is also what the leader tile and the
+  delete-marked History card now say. `whileHover={{ borderColor }}` went with
+  it — a rule-coloured hover is invisible against a 4px ink edge, and the
+  language's hover is the block lifting, not the edge changing.
+
+The slice also found a latent bug in `.axi-panel--tile` as shipped in 1.23.0:
+it took the control border and the control block but inherited the panel's
+`--axi-radius`. `--axi-radius`'s own note says control-sized surfaces read
+`--axi-radius-sm`. Both are 0 in every theme this app uses, so nothing on
+screen could have revealed it — fixed in 1.23.1 by reading the token rather
+than by looking at the result.
+
+**Still deferred, and now deliberately:** `.app-modal-card` (12 sites, three
+different radii, some with inline frames) belongs to the Modals & menus slice,
+and `.report-shell-card` is drawn by `src/web/reportShell.css` before the
+viewer bundle loads, so it cannot assume `axi.css` is present. Neither is a
+card problem.

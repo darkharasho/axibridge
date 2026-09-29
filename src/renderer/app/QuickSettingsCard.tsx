@@ -39,8 +39,7 @@ const QuickToggle = memo(function QuickToggle({ enabled, disabled, label, onChan
 export function QuickSettingsCard({ context }: { context: QuickSettingsContext }) {
     return (
         <div
-            className="rail-card rounded-[4px] border p-3"
-            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+            className="rail-card axi-panel axi-panel--tile [--axi-panel-pad:8px_10px]"
         >
             <div className="rail-card__label text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
                 Quick Settings

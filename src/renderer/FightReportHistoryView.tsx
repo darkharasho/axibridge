@@ -656,13 +656,15 @@ export function FightReportHistoryView() {
                                     transition={{ duration: 0.3, delay: Math.min(i * 0.05, 0.4), ease: 'easeOut' }}
                                     onClick={() => handleCardClick(entry)}
                                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCardClick(entry); } }}
-                                    className="history-card relative text-left rounded-[6px] p-4 transition-colors cursor-pointer"
-                                    style={{
-                                        background: 'var(--bg-card)',
-                                        border: `var(--history-edge-w, 1px) solid ${selectedForDelete.has(entry.id) ? 'var(--brand-primary)' : 'var(--border-default)'}`,
-                                        opacity: detailLoading === entry.id ? 0.6 : 1
-                                    }}
-                                    whileHover={{ scale: 1.01, borderColor: 'var(--history-card-hover-edge, rgba(255,255,255,0.15))' }}
+                                    /* A report is a page's worth of content, so these stay at the
+                                       panel step rather than becoming tiles: the chrome above them -
+                                       the source bar, the search field, the filter - is at the control
+                                       step, and that gap is what makes the cards read as the thing you
+                                       are meant to click. Being marked for deletion is a thing you
+                                       picked, which is what the accent edge means. */
+                                    className={`history-card relative text-left cursor-pointer axi-panel [--axi-panel-pad:16px] ${selectedForDelete.has(entry.id) ? 'axi-edge-accent' : ''}`}
+                                    style={{ opacity: detailLoading === entry.id ? 0.6 : 1 }}
+                                    whileHover={{ scale: 1.01 }}
                                     whileTap={{ scale: 0.99 }}
                                 >
                                     {/* 3-dot menu */}

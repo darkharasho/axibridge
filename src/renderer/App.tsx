@@ -895,7 +895,7 @@ function App() {
             className="rail-stack flex flex-col gap-3"
         >
             {/* Watch Folder card */}
-            <div className="rail-card rounded-[4px] border p-3" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+            <div className="rail-card axi-panel axi-panel--tile [--axi-panel-pad:8px_10px]">
                 <div className="rail-card__label text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Watch Folder</div>
                 <div className="flex gap-1 w-full max-w-full">
                     <div className="flex-1 min-w-0 rounded-[4px] border px-1.5 h-8 flex items-center gap-2 transition-colors" style={{ background: 'var(--bg-input)', borderColor: 'var(--border-default)' }}>
@@ -934,7 +934,7 @@ function App() {
             </div>
 
             {/* Status card */}
-            <div className="rail-card rounded-[4px] border p-3" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+            <div className="rail-card axi-panel axi-panel--tile [--axi-panel-pad:8px_10px]">
                 <div className="rail-card__label text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Status</div>
                 <div className="space-y-0">
                     <div className="rail-row flex items-center justify-between py-1.5">
@@ -961,7 +961,7 @@ function App() {
             </div>
 
             {/* Discord Webhook card */}
-            <div className="rail-card rounded-[4px] border p-3" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+            <div className="rail-card axi-panel axi-panel--tile [--axi-panel-pad:8px_10px]">
                 <div className="rail-card__label text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Discord Webhook</div>
                 <div className="flex gap-1 w-full">
                     <div ref={webhookDropdownRef} className="relative flex-1 min-w-0">
@@ -1019,7 +1019,7 @@ function App() {
             </div>
 
             {/* Session card */}
-            <div className="rail-card rounded-[4px] border p-3" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+            <div className="rail-card axi-panel axi-panel--tile [--axi-panel-pad:8px_10px]">
                 <div className="rail-card__label text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Session</div>
                 <div className="space-y-0">
                     <div className="rail-row flex items-center justify-between py-1.5">

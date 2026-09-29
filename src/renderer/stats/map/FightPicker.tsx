@@ -101,13 +101,13 @@ export const FightPicker: React.FC<FightPickerProps> = ({ fights, onSelect }) =>
                         role="option"
                         aria-selected={active}
                         onClick={() => { setSelectedReplayFight(fight.fightId); onSelect?.(); }}
-                        className={`replay-picker-card${active ? ' is-active' : ''}`}
-                        style={{
-                            width: 180, flexShrink: 0, padding: 8, borderRadius: 8,
-                            background: active ? 'var(--accent-bg-strong)' : 'var(--bg-input)',
-                            border: `var(--panel-border-w, 1px) solid ${active ? 'var(--brand-primary)' : 'var(--border-default)'}`,
-                            textAlign: 'left', cursor: 'pointer',
-                        }}
+                        // A strip of cards of one kind, each one pressable: the tile step,
+                        // which brings its own surface, edge, block and hover lift. The
+                        // fight you are looking at used to be named by a tinted fill as
+                        // well as an accent edge; the edge alone says it, and a tint over
+                        // the surface is the thing the language declines to do.
+                        className={`replay-picker-card axi-panel axi-panel--tile ${active ? 'is-active axi-edge-accent' : ''}`}
+                        style={{ width: 180, flexShrink: 0, textAlign: 'left', cursor: 'pointer' }}
                     >
                         <Thumbnail fight={fight} />
                         <div style={{ marginTop: 6, fontSize: 12, fontWeight: 600 }}>{fight.label}</div>
