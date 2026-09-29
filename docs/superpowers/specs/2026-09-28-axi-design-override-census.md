@@ -1488,3 +1488,90 @@ in the app where that release could not reach it.
 That is the argument for the whole exercise, stated by a defect rather than by a
 preference: a reskin does not just duplicate the component, it duplicates the
 component's bugs, and then only one of the two copies ever gets fixed.
+
+## What the table slice actually found (shipped)
+
+All 29 tables now carry `.axi-table`. Three findings worth keeping, none of
+which was the thing the census predicted.
+
+### The count was of tables; the object is the cell
+
+"30 tables" was the fifth undercount in this census. Each table hand-wrote what
+the component gives, once per cell. Across the 16 table files:
+
+| utility | before | after |
+|---|---:|---:|
+| `text-right` | 266 | 46 |
+| `py-2 px-3` | 250 | 10 |
+| `font-mono` | 131 | 32 |
+| `uppercase tracking-widest` | 70 | 49 |
+| `whitespace-nowrap` | 30 | 6 |
+
+The survivors are real exceptions - a left-aligned seventh column, a status
+colour the component cannot know. `font-mono` and `tabular-nums` were the same
+claim twice: `.axi-table` sets `font-variant-numeric: tabular-nums` on the table.
+
+### 13 clickable `<th>`s, 0 keyboard-reachable — closed
+
+Not 14; the recount is 13. None had a nested button, a `tabIndex` or a role.
+All 13 now wrap their heading in `.axi-table__sort` and carry `aria-sort`.
+`EnemyAttentionSection` had already factored its heading into a `th()` helper -
+it had factored the *utilities* rather than the component, so one edit fixed six
+columns. That is the shape of this whole project in miniature.
+
+### The dead utility that would have woken up
+
+The 13 sticky heads carried `bg-[color:var(--bg-elevated)]`. Measured:
+
+| | inside `.stats-table` | the utility alone |
+|---|---|---|
+| classic | `rgb(43,49,61)` | `rgb(34,39,49)` |
+| glass | gradient, `.5`→`.38` alpha | **`rgba(45,53,72,0.486)`** |
+
+The utility was **dead** - out-ranked by the reskin's `[data-axi-accent] body
+.stats-table thead th`. Deleting the reskin without adopting `--sticky` would
+have woken it at 48.6% alpha: rows visibly scrolling through the header. (The
+reskin's own glass fill was a `.5`→`.38` gradient, so they already did.)
+`.axi-table--sticky` reads `--axi-surface-float` at `.97`, which is what that
+token exists for.
+
+**The general lesson:** before deleting a reskin, check what its specificity was
+*suppressing*. A reskin does not only add rules, it silences the ones underneath,
+and those come back.
+
+### The shell-built tables: the rule adopted where the class cannot reach
+
+A dozen sections build rows as `grid-cols-[...]` divs. `.axi-table` selects
+`th`, `td` and `tbody tr`, so there is no element for it to match. Its *rule*
+still applies: those five rules drew the same frame and the same `--axi-ground`
+zebra, and now draw neither. Converting the divs to real tables is the honest end
+state and is a markup slice, not a CSS one.
+
+## Upstream, this slice
+
+- **1.37.0 `fix(table)`** - one surface assembled from cells, painted once.
+  A themed surface may be a gradient; a strip made of cells restarts it per cell
+  and arrives as separately lit boxes. `background-attachment: fixed`, the idiom
+  `body`/`.axi-mast`/`.axi-sheet` already use. Its derived guard immediately found
+  a fourth instance nobody was looking for: `.axi-prose th`.
+- **1.37.0 `feat(table)`** - `tr[aria-current]`, from 27 hand-written selected-row
+  fills across 8 Tailwind hues, 5 of them in one file.
+- **1.37.1 `fix(table)`** - **the feature above was wrong and the probe caught
+  it.** It filled the selection from `--axi-surface-float` on the theory that
+  float is the step past raised. It is not: the default theme aliases it to
+  `--axi-surface` (selection invisible) and glass sets it darker than raised
+  (selection a step backwards). Float is a promise about *opacity* for things over
+  content - which `.axi-table--sticky`'s own comment says, one screen up in the
+  same file.
+
+  What let it through matters more: the test asserted an ordering over a `RAMP`
+  array written in the test file, then checked the rule's token against its index
+  in that array. **It compared the author's assumption with itself and passed.**
+  The replacement reads `tokens.css` and every file in `themes/`. The rule is now
+  the `.axi-rail__nav--quiet` answer one component over: selection and hover share
+  the raised fill and are told apart by an accent leading edge, reserved
+  transparent on every body row so lighting it costs no reflow.
+
+Measured after, both themes: frame `0px`; unselected edge transparent at the same
+width as selected; selected `rgb(43,49,61)` + `rgb(59,130,246)` in classic, the
+raised gradient + the same accent in glass.

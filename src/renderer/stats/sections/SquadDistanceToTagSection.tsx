@@ -73,6 +73,11 @@ export const SquadDistanceToTagSection = (props: Props) => {
 
     const sortIcon = (key: SortKey) =>
         key !== sortKey ? null : sortDir === 'asc' ? <ArrowUp className="w-3 h-3 inline-block" /> : <ArrowDown className="w-3 h-3 inline-block" />;
+    // aria-sort is both the announcement and the styling hook: upstream's
+    // .axi-table th[aria-sort] marks the sorted column off this attribute, so a
+    // class saying the same thing would be a second source of truth for one fact.
+    const ariaSort = (key: SortKey): 'ascending' | 'descending' | undefined =>
+        key !== sortKey ? undefined : sortDir === 'asc' ? 'ascending' : 'descending';
 
     const sourceBadge = (source: DistanceToTagRow['source']) => {
         const label = source === 'replay' ? 'replay' : source === 'fightAvg' ? 'avg' : 'mixed';
@@ -158,35 +163,47 @@ export const SquadDistanceToTagSection = (props: Props) => {
                 </div>
             ) : (
                 <>
-                    <div className={`rounded-[var(--radius-md)] overflow-hidden ${visibleRows.length > 12 ? 'max-h-[30rem] overflow-y-auto' : ''}`}>
-                        <table className="stats-table w-full text-xs table-auto min-w-full border-separate border-spacing-0" style={{ color: 'var(--text-primary)' }}>
+                    <div className={`axi-table__scroll rounded-[var(--radius-md)] ${visibleRows.length > 12 ? 'max-h-[30rem]' : ''}`}>
+                        <table className="axi-table axi-table--sticky">
                             <thead>
-                                <tr className="text-[10px] uppercase tracking-widest border-b border-[color:var(--border-default)]" style={{ color: 'var(--text-secondary)' }}>
-                                    <th className="text-left py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer" onClick={() => onSort('account')}>Player {sortIcon('account')}</th>
-                                    <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer" onClick={() => onSort('fightCount')}># Fights {sortIcon('fightCount')}</th>
-                                    <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer" onClick={() => onSort('sampleCount')}>Samples {sortIcon('sampleCount')}</th>
-                                    <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer" onClick={() => onSort('avg')}>Avg {sortIcon('avg')}</th>
-                                    <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer" onClick={() => onSort('median')}>Median {sortIcon('median')}</th>
-                                    <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)] cursor-pointer" onClick={() => onSort('p95')}>p95 {sortIcon('p95')}</th>
-                                    <th className="text-left py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Source</th>
+                                <tr>
+                                    <th scope="col" aria-sort={ariaSort('account')}>
+                                        <button type="button" className="axi-table__sort" onClick={() => onSort('account')}>Player {sortIcon('account')}</button>
+                                    </th>
+                                    <th scope="col" aria-sort={ariaSort('fightCount')}>
+                                        <button type="button" className="axi-table__sort" onClick={() => onSort('fightCount')}># Fights {sortIcon('fightCount')}</button>
+                                    </th>
+                                    <th scope="col" aria-sort={ariaSort('sampleCount')}>
+                                        <button type="button" className="axi-table__sort" onClick={() => onSort('sampleCount')}>Samples {sortIcon('sampleCount')}</button>
+                                    </th>
+                                    <th scope="col" aria-sort={ariaSort('avg')}>
+                                        <button type="button" className="axi-table__sort" onClick={() => onSort('avg')}>Avg {sortIcon('avg')}</button>
+                                    </th>
+                                    <th scope="col" aria-sort={ariaSort('median')}>
+                                        <button type="button" className="axi-table__sort" onClick={() => onSort('median')}>Median {sortIcon('median')}</button>
+                                    </th>
+                                    <th scope="col" aria-sort={ariaSort('p95')}>
+                                        <button type="button" className="axi-table__sort" onClick={() => onSort('p95')}>p95 {sortIcon('p95')}</button>
+                                    </th>
+                                    <th scope="col" className="text-left">Source</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {visibleRows.map(r => (
-                                    <tr key={r.account} className="align-top border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                        <td className="py-2 px-3 whitespace-nowrap">
-                                            <span className="inline-flex items-center gap-1.5">
+                                    <tr key={r.account} className="align-top">
+                                        <td>
+                                            <span className="axi-table__who">
                                                 {renderProfessionIcon(r.profession, r.professionList, 'w-4 h-4 flex-shrink-0')}
                                                 <span>{r.account}</span>
                                                 {r.isCommander && <span title="Commander" style={{ color: 'var(--status-warning)' }}>★</span>}
                                             </span>
                                         </td>
-                                        <td className="text-right py-2 px-3 font-mono whitespace-nowrap">{r.fightCount}</td>
-                                        <td className="text-right py-2 px-3 font-mono whitespace-nowrap">{formatWithCommas(r.sampleCount, 0)}</td>
-                                        <td className="text-right py-2 px-3 font-mono whitespace-nowrap">{formatWithCommas(r.avg, 0)}</td>
-                                        <td className="text-right py-2 px-3 font-mono whitespace-nowrap">{formatWithCommas(r.median, 0)}</td>
-                                        <td className="text-right py-2 px-3 font-mono whitespace-nowrap">{formatWithCommas(r.p95, 0)}</td>
-                                        <td className="py-2 px-3 whitespace-nowrap">{sourceBadge(r.source)}</td>
+                                        <td className="axi-table__num">{r.fightCount}</td>
+                                        <td className="axi-table__num">{formatWithCommas(r.sampleCount, 0)}</td>
+                                        <td className="axi-table__num">{formatWithCommas(r.avg, 0)}</td>
+                                        <td className="axi-table__num">{formatWithCommas(r.median, 0)}</td>
+                                        <td className="axi-table__num">{formatWithCommas(r.p95, 0)}</td>
+                                        <td className="text-left">{sourceBadge(r.source)}</td>
                                     </tr>
                                 ))}
                             </tbody>

@@ -230,7 +230,7 @@ export const FightDiffModeSection = () => {
                             )}
                             columns={targetFocusRows.length > 0 ? (
                                 <div className="overflow-x-auto">
-                                    <table className="stats-table w-full min-w-[700px] table-fixed text-xs">
+                                    <table className="axi-table min-w-[700px] table-fixed">
                                         <colgroup>
                                             <col className="w-[220px]" />
                                             <col className="w-[120px]" />
@@ -240,29 +240,29 @@ export const FightDiffModeSection = () => {
                                             <col className="w-[120px]" />
                                         </colgroup>
                                         <thead>
-                                            <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
-                                                <th className="text-left py-2 px-3">Target</th>
-                                                <th className="text-right py-2 px-3 whitespace-nowrap">
+                                            <tr>
+                                                <th>Target</th>
+                                                <th>
                                                     <button type="button" className={sortButtonClass('aDamage')} onClick={() => toggleTargetSort('aDamage')}>
                                                         {selectedFightA?.shortLabel} Damage{sortArrow('aDamage')}
                                                     </button>
                                                 </th>
-                                                <th className="text-right py-2 px-3 whitespace-nowrap">
+                                                <th>
                                                     <button type="button" className={sortButtonClass('aShare')} onClick={() => toggleTargetSort('aShare')}>
                                                         {selectedFightA?.shortLabel} Share{sortArrow('aShare')}
                                                     </button>
                                                 </th>
-                                                <th className="text-right py-2 px-3 whitespace-nowrap">
+                                                <th>
                                                     <button type="button" className={sortButtonClass('bDamage')} onClick={() => toggleTargetSort('bDamage')}>
                                                         {selectedFightB?.shortLabel} Damage{sortArrow('bDamage')}
                                                     </button>
                                                 </th>
-                                                <th className="text-right py-2 px-3 whitespace-nowrap">
+                                                <th>
                                                     <button type="button" className={sortButtonClass('bShare')} onClick={() => toggleTargetSort('bShare')}>
                                                         {selectedFightB?.shortLabel} Share{sortArrow('bShare')}
                                                     </button>
                                                 </th>
-                                                <th className="text-right py-2 px-3 whitespace-nowrap">
+                                                <th>
                                                     <button type="button" className={sortButtonClass('shareDelta')} onClick={() => toggleTargetSort('shareDelta')}>
                                                         Share Delta{sortArrow('shareDelta')}
                                                     </button>
@@ -274,7 +274,7 @@ export const FightDiffModeSection = () => {
                             ) : null}
                             rows={targetFocusRows.length > 0 ? (
                                 <div className="overflow-x-auto">
-                                    <table className="stats-table w-full min-w-[700px] table-fixed text-xs">
+                                    <table className="axi-table min-w-[700px] table-fixed">
                                         <colgroup>
                                             <col className="w-[220px]" />
                                             <col className="w-[120px]" />
@@ -285,12 +285,12 @@ export const FightDiffModeSection = () => {
                                         </colgroup>
                                         <tbody>
                                             {sortedTargetFocusRows.map((row) => (
-                                                <tr key={`focus-${row.label}`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                                    <td className="py-2 px-3 text-[color:var(--text-primary)]">{row.label}</td>
-                                                    <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatWithCommas(row.aDamage, 0)}</td>
-                                                    <td className="py-2 px-3 text-right font-mono text-[color:var(--text-secondary)]">{formatPct(row.aShare)}</td>
-                                                    <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatWithCommas(row.bDamage, 0)}</td>
-                                                    <td className="py-2 px-3 text-right font-mono text-[color:var(--text-secondary)]">{formatPct(row.bShare)}</td>
+                                                <tr key={`focus-${row.label}`}>
+                                                    <td className="axi-ink-plain">{row.label}</td>
+                                                    <td className="axi-table__num">{formatWithCommas(row.aDamage, 0)}</td>
+                                                    <td className="text-[color:var(--text-secondary)]">{formatPct(row.aShare)}</td>
+                                                    <td className="axi-table__num">{formatWithCommas(row.bDamage, 0)}</td>
+                                                    <td className="text-[color:var(--text-secondary)]">{formatPct(row.bShare)}</td>
                                                     <td className={`py-2 px-3 text-right font-mono ${row.shareDelta >= 0 ? 'axi-ink-ok' : 'axi-ink-danger'}`}>
                                                         {row.shareDelta >= 0 ? '+' : ''}{formatPct(row.shareDelta)}
                                                     </td>
@@ -319,7 +319,7 @@ export const FightDiffModeSection = () => {
                             )}
                             columns={squadMetricRows.length > 0 ? (
                                 <div className="overflow-x-auto">
-                                    <table className="stats-table w-full min-w-[680px] table-fixed text-xs">
+                                    <table className="axi-table min-w-[680px] table-fixed">
                                         <colgroup>
                                             <col className="w-[320px]" />
                                             <col className="w-[120px]" />
@@ -327,11 +327,11 @@ export const FightDiffModeSection = () => {
                                             <col className="w-[120px]" />
                                         </colgroup>
                                         <thead>
-                                            <tr className="text-[color:var(--text-secondary)] uppercase tracking-widest text-[10px] border-b border-[color:var(--border-default)]">
-                                                <th className="text-left py-2 px-3">Metric</th>
-                                                <th className="text-right py-2 px-3">{selectedFightA?.shortLabel} Value</th>
-                                                <th className="text-right py-2 px-3">{selectedFightB?.shortLabel} Value</th>
-                                                <th className="text-right py-2 px-3">Delta</th>
+                                            <tr>
+                                                <th>Metric</th>
+                                                <th>{selectedFightA?.shortLabel} Value</th>
+                                                <th>{selectedFightB?.shortLabel} Value</th>
+                                                <th>Delta</th>
                                             </tr>
                                         </thead>
                                     </table>
@@ -339,7 +339,7 @@ export const FightDiffModeSection = () => {
                             ) : null}
                             rows={squadMetricRows.length > 0 ? (
                                 <div className="overflow-x-auto">
-                                    <table className="stats-table w-full min-w-[680px] table-fixed text-xs">
+                                    <table className="axi-table min-w-[680px] table-fixed">
                                         <colgroup>
                                             <col className="w-[320px]" />
                                             <col className="w-[120px]" />
@@ -351,10 +351,10 @@ export const FightDiffModeSection = () => {
                                                 const improving = row.higherIsBetter ? row.delta >= 0 : row.delta <= 0;
                                                 const decimals = metricDecimals(row.metricId);
                                                 return (
-                                                    <tr key={`performer-${row.metricId}`} className="border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                                        <td className="py-2 px-3 text-[color:var(--text-primary)]">{row.metricLabel}</td>
-                                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatWithCommas(Number(row.a?.value || 0), decimals)}</td>
-                                                        <td className="py-2 px-3 text-right font-mono text-[color:var(--text-primary)]">{formatWithCommas(Number(row.b?.value || 0), decimals)}</td>
+                                                    <tr key={`performer-${row.metricId}`}>
+                                                        <td className="axi-ink-plain">{row.metricLabel}</td>
+                                                        <td className="axi-table__num">{formatWithCommas(Number(row.a?.value || 0), decimals)}</td>
+                                                        <td className="axi-table__num">{formatWithCommas(Number(row.b?.value || 0), decimals)}</td>
                                                         <td className={`py-2 px-3 text-right font-mono ${improving ? 'axi-ink-ok' : 'axi-ink-danger'}`}>
                                                             {row.delta > 0 ? '+' : ''}{formatWithCommas(row.delta, decimals)}
                                                         </td>

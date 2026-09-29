@@ -91,39 +91,39 @@ export const PinPressureSection = ({ result }: Props) => {
             ) : (
                 <>
                     <div className={`rounded-[var(--radius-md)] overflow-hidden ${visible.length > 12 && !isExpanded ? 'max-h-[30rem] overflow-y-auto' : ''}`}>
-                        <table className="stats-table w-full text-xs table-auto min-w-full border-separate border-spacing-0" style={{ color: 'var(--text-primary)' }}>
+                        <table className="axi-table axi-table--sticky" style={{ color: 'var(--text-primary)' }}>
                             <thead>
-                                <tr className="text-[10px] uppercase tracking-widest border-b border-[color:var(--border-default)]" style={{ color: 'var(--text-secondary)' }}>
-                                    <th className="text-left py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title="Ordered by how hard the enemy converged on the tag, hardest first — not chronologically.">Fight<span className="ml-1 normal-case tracking-normal opacity-70">(hardest first)</span></th>
-                                    <th className="text-left py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Commander</th>
-                                    <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title={`Aimed casts in the ${windowSeconds}s before each of the tag's downs, per down, over the same figure for the rest of the squad before theirs. Both halves come from this fight, so its length, size and lethality divide out.`}>Focus at Down</th>
-                                    <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title={`Aimed casts in the ${windowSeconds}s before each tag down, per down.`}>Tag / Down</th>
-                                    <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title={`The same figure for every other squad member who went down — this fight's own baseline.`}>Squad / Down</th>
-                                    <th className="text-right py-2 px-3 sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title="How many times the tag went down in this fight, and how many downs the rest of the squad took. These are counts, not a rate — they are the denominators the two columns to the left are divided by.">Downs<span className="ml-1 normal-case tracking-normal opacity-70">(tag / squad)</span></th>
+                                <tr style={{ color: 'var(--text-secondary)' }}>
+                                    <th className="sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title="Ordered by how hard the enemy converged on the tag, hardest first — not chronologically.">Fight<span className="ml-1 normal-case tracking-normal opacity-70">(hardest first)</span></th>
+                                    <th className="text-left sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Commander</th>
+                                    <th className="sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title={`Aimed casts in the ${windowSeconds}s before each of the tag's downs, per down, over the same figure for the rest of the squad before theirs. Both halves come from this fight, so its length, size and lethality divide out.`}>Focus at Down</th>
+                                    <th className="sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title={`Aimed casts in the ${windowSeconds}s before each tag down, per down.`}>Tag / Down</th>
+                                    <th className="sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title={`The same figure for every other squad member who went down — this fight's own baseline.`}>Squad / Down</th>
+                                    <th className="sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title="How many times the tag went down in this fight, and how many downs the rest of the squad took. These are counts, not a rate — they are the denominators the two columns to the left are divided by.">Downs<span className="ml-1 normal-case tracking-normal opacity-70">(tag / squad)</span></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {visible.map(f => (
-                                    <tr key={f.fightId} className="align-top border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)]">
-                                        <td className="py-2 px-3 whitespace-nowrap">{f.label}</td>
-                                        <td className="py-2 px-3 whitespace-nowrap">
-                                            <span className="inline-flex items-center gap-1.5">
+                                    <tr key={f.fightId} className="align-top">
+                                        <td>{f.label}</td>
+                                        <td>
+                                            <span className="axi-table__who">
                                                 {renderProfessionIcon(f.tagProfession, f.tagProfessionList, 'w-4 h-4 flex-shrink-0')}
                                                 <span>{f.tagAccount}</span>
                                             </span>
                                         </td>
                                         {f.comparable ? (
                                             <>
-                                                <td className="py-2 px-3 text-right font-mono" style={{ color: bandColor(f) }}>
+                                                <td style={{ color: bandColor(f) }}>
                                                     {f.ratio.toFixed(2)}×
                                                     <span className="ml-1.5 text-[10px] uppercase tracking-wide">{f.band !== 'normal' ? BAND_LABEL[f.band] : ''}</span>
                                                 </td>
-                                                <td className="py-2 px-3 text-right font-mono">{f.tagPerDown.toFixed(1)}</td>
-                                                <td className="py-2 px-3 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{f.otherPerDown.toFixed(1)}</td>
-                                                <td className="py-2 px-3 text-right font-mono">{f.tagDowns} / {f.otherDowns}</td>
+                                                <td>{f.tagPerDown.toFixed(1)}</td>
+                                                <td style={{ color: 'var(--text-secondary)' }}>{f.otherPerDown.toFixed(1)}</td>
+                                                <td>{f.tagDowns} / {f.otherDowns}</td>
                                             </>
                                         ) : (
-                                            <td className="py-2 px-3 text-right text-[10px]" colSpan={4} style={{ color: 'var(--text-secondary)' }}>
+                                            <td colSpan={4} style={{ color: 'var(--text-secondary)' }}>
                                                 {f.tagDowns === 0
                                                     ? 'no comparison — the tag never went down'
                                                     : `no comparison — only ${f.otherDowns} other squad ${f.otherDowns === 1 ? 'down' : 'downs'} to compare against`}

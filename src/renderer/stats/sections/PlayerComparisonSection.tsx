@@ -286,13 +286,13 @@ const HeadToHeadView = ({
                 </div>
             ) : (
                 <div className="rounded-[var(--radius-md)] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
-                    <table className="stats-table w-full" style={{ borderCollapse: 'collapse' }}>
+                    <table className="axi-table" style={{ borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ borderBottom: '2px solid var(--border-default)' }}>
-                                <th className="text-left px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)', width: '30%' }}>Metric</th>
-                                <th className="text-right px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)', width: '25%' }}>{playerA.account}</th>
-                                <th className="text-right px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)', width: '25%' }}>{playerB.account}</th>
-                                <th className="text-right px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)', width: '20%' }}>Diff</th>
+                                <th className="text-[11px]" style={{ color: 'var(--text-muted)', width: '30%' }}>Metric</th>
+                                <th className="text-[11px]" style={{ color: 'var(--text-muted)', width: '25%' }}>{playerA.account}</th>
+                                <th className="text-[11px]" style={{ color: 'var(--text-muted)', width: '25%' }}>{playerB.account}</th>
+                                <th className="text-[11px]" style={{ color: 'var(--text-muted)', width: '20%' }}>Diff</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -305,14 +305,14 @@ const HeadToHeadView = ({
 
                                 return (
                                     <tr key={metric.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                                        <td className="px-4 py-2.5 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{metric.label}</td>
-                                        <td className="px-4 py-2.5 text-right text-sm font-semibold" style={{ background: colorA.bg || undefined, color: colorA.text || 'var(--text-primary)' }}>
+                                        <td className="text-sm" style={{ color: 'var(--text-primary)' }}>{metric.label}</td>
+                                        <td className="text-sm font-semibold" style={{ background: colorA.bg || undefined, color: colorA.text || 'var(--text-primary)' }}>
                                             {formatValue(valA, metric)}
                                         </td>
-                                        <td className="px-4 py-2.5 text-right text-sm font-semibold" style={{ background: colorB.bg || undefined, color: colorB.text || 'var(--text-primary)' }}>
+                                        <td className="text-sm font-semibold" style={{ background: colorB.bg || undefined, color: colorB.text || 'var(--text-primary)' }}>
                                             {formatValue(valB, metric)}
                                         </td>
-                                        <td className="px-4 py-2.5 text-right text-xs" style={{ color: diff !== null && diff >= 0 ? 'var(--status-success)' : diff !== null ? 'var(--status-error)' : 'var(--text-muted)' }}>
+                                        <td style={{ color: diff !== null && diff>= 0 ? 'var(--status-success)' : diff !== null ? 'var(--status-error)' : 'var(--text-muted)' }}>
                                             {diff !== null ? `${diff >= 0 ? '+' : ''}${diff.toFixed(0)}%` : '—'}
                                         </td>
                                     </tr>
@@ -377,40 +377,43 @@ const VsAverageView = ({
 
     return (
         <div className="rounded-[var(--radius-md)] overflow-x-auto" style={{ border: '1px solid var(--border-default)' }}>
-            <table className="stats-table w-full" style={{ borderCollapse: 'collapse' }}>
+            <table className="axi-table">
                 <thead>
-                    <tr style={{ borderBottom: '2px solid var(--border-default)' }}>
-                        <th className="text-left px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Player</th>
+                    <tr>
+                        <th scope="col">Player</th>
                         {metrics.map((metric) => (
                             <th
                                 key={metric.id}
-                                className="text-right px-3 py-2.5 text-[11px] font-medium uppercase tracking-wide cursor-pointer hover:bg-[var(--bg-hover)]"
-                                style={{ color: 'var(--text-muted)' }}
-                                onClick={() => onSort(metric.id)}
+                                scope="col"
+                                // aria-sort carries both the announcement and the mark
+                                // upstream's .axi-table th[aria-sort] draws.
+                                aria-sort={sortMetric === metric.id ? (sortDir === 'desc' ? 'descending' : 'ascending') : undefined}
                             >
-                                {metric.label}
-                                {sortMetric === metric.id && (
-                                    <span className="ml-1">{sortDir === 'desc' ? '▼' : '▲'}</span>
-                                )}
+                                <button type="button" className="axi-table__sort" onClick={() => onSort(metric.id)}>
+                                    {metric.label}
+                                    {sortMetric === metric.id && (
+                                        <span>{sortDir === 'desc' ? '▼' : '▲'}</span>
+                                    )}
+                                </button>
                             </th>
                         ))}
                     </tr>
                 </thead>
                 <tbody>
                     {/* Squad Average row */}
-                    <tr style={{ borderBottom: '2px solid var(--border-default)', background: 'var(--bg-card-inner)' }}>
-                        <td className="px-4 py-2.5 text-sm font-semibold italic" style={{ color: 'var(--text-muted)' }}>Squad Average</td>
+                    <tr style={{ background: 'var(--bg-card-inner)' }}>
+                        <td className="italic" style={{ color: 'var(--text-muted)' }}>Squad Average</td>
                         {metrics.map((metric) => (
-                            <td key={metric.id} className="px-3 py-2.5 text-right text-sm" style={{ color: 'var(--text-muted)' }}>
+                            <td key={metric.id} style={{ color: 'var(--text-muted)' }}>
                                 {formatValue(averages[metric.id], metric)}
                             </td>
                         ))}
                     </tr>
                     {/* Player rows */}
                     {sortedPlayers.map((player: any) => (
-                        <tr key={player.account} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                            <td className="px-4 py-2.5 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                                <span className="inline-flex items-center gap-2">
+                        <tr key={player.account}>
+                            <td>
+                                <span className="axi-table__who">
                                     {renderProfessionIcon(player.profession, player.professionList, 'w-4 h-4')}
                                     {player.account}
                                 </span>
@@ -421,7 +424,7 @@ const VsAverageView = ({
                                 return (
                                     <td
                                         key={metric.id}
-                                        className="px-3 py-2.5 text-right text-sm font-semibold"
+                                        className="axi-table__num"
                                         style={{ background: color.bg || undefined, color: color.text || 'var(--text-primary)' }}
                                     >
                                         {formatValue(value, metric)}
