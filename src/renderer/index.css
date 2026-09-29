@@ -1818,17 +1818,6 @@ body.web-report {
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* The web report's nav strip is the same object as .stats-dashboard-nav-panel
-   on the desktop side: fixed, with the report scrolling behind it.
-   0.9, not 0.95: the two deleted homegrown glass themes left three conflicting
-   alphas between them (the first theme: 0.85 then 0.9, the second winning by
-   source order at equal specificity; the second theme: 0.7). 0.9 is what
-   actually rendered before this migration, so this is a restoration, not a
-   new decision. */
-[data-axi-accent][data-axi-theme="glass"] .report-nav-sidebar {
-  background: rgba(15, 18, 25, 0.9) !important;
-}
-
 /* Sticky table headers: rows scroll under them, and --bg-card is a glass tint,
    so the tint is layered over a solid dark base rather than used alone. */
 [data-axi-accent][data-axi-theme="glass"] .stats-table thead th {
