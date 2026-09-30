@@ -1040,7 +1040,7 @@
 
    They take the control step rather than the panel step. A dropdown is chrome
    you open, act in and dismiss; the panel step belongs to the things you are
-   reading. The block is what lifts them off the page. */
+   reading. The block is what lifts them off the page.
    Nothing is written here for them any more. The ten dropdowns that hang off a
    trigger are .axi-panel--tile --float: the tile is the control step this block
    used to reach for, the float is the opaque fill index.css used to pin with
@@ -1057,7 +1057,7 @@
    other three sides already contradicted the single border, and the tile's block
    separates them from the map better than the seam did while finally giving them
    a hover state. .app-dropdown survives on all of them, and on the fight-slice
-   tray, as the entrance animation and nothing else.
+   tray, as the entrance animation and nothing else. */
 
 /* A dropdown's rows are a list inside a well, not a stack of little panels, so
    they step down to the small radius rather than keeping the panel-sized one
