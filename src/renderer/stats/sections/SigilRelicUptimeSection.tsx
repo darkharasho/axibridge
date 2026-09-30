@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Maximize2, X } from 'lucide-react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
 import { Gw2SigilIcon } from '../../ui/Gw2SigilIcon';
 import { StatsTableLayout } from '../ui/StatsTableLayout';
 import { StatsTableShell } from '../ui/StatsTableShell';
@@ -52,16 +52,11 @@ export const SigilRelicUptimeSection = ({
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <span className="flex shrink-0" style={{ color: 'var(--section-support)' }}><Gw2SigilIcon className="w-4 h-4" /></span>
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Sigil/Relic Uptime</h3>
-                <button
-                    type="button"
-                    onClick={() => (expandedSection === 'sigil-relic-uptime' ? closeExpandedSection() : openExpandedSection('sigil-relic-uptime'))}
-                    className="ml-auto flex items-center justify-center w-[26px] h-[26px]"
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                    aria-label={expandedSection === 'sigil-relic-uptime' ? 'Close Sigil/Relic Uptime' : 'Expand Sigil/Relic Uptime'}
-                    title={expandedSection === 'sigil-relic-uptime' ? 'Close' : 'Expand'}
-                >
-                    {expandedSection === 'sigil-relic-uptime' ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                </button>
+                <SectionExpandButton
+                    expanded={expandedSection === 'sigil-relic-uptime'}
+                    onToggle={() => (expandedSection === 'sigil-relic-uptime' ? closeExpandedSection() : openExpandedSection('sigil-relic-uptime'))}
+                    section="Sigil/Relic Uptime"
+                />
             </div>
             {!hasSigilRelicTables ? (
                 <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No sigil/relic uptime data available</div>

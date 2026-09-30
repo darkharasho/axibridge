@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Maximize2, X, Columns, Users } from 'lucide-react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
+import { Columns, Users } from 'lucide-react';
 import { Gw2ApmIcon } from '../../ui/Gw2ApmIcon';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
@@ -96,16 +97,11 @@ export const ApmSection = ({
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
             <span className="flex shrink-0" style={{ color: 'var(--brand-primary)' }}><Gw2ApmIcon className="w-4 h-4" /></span>
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>APM Breakdown</h3>
-            <button
-                type="button"
-                onClick={() => (expandedSection === 'apm-stats' ? closeExpandedSection() : openExpandedSection('apm-stats'))}
-                className="ml-auto flex items-center justify-center w-[26px] h-[26px]"
-                style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                aria-label={expandedSection === 'apm-stats' ? 'Close APM Breakdown' : 'Expand APM Breakdown'}
-                title={expandedSection === 'apm-stats' ? 'Close' : 'Expand'}
-            >
-                {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-            </button>
+            <SectionExpandButton
+                expanded={isExpanded}
+                onToggle={() => (expandedSection === 'apm-stats' ? closeExpandedSection() : openExpandedSection('apm-stats'))}
+                section="APM Breakdown"
+            />
         </div>
         <div className={expandedSection === 'apm-stats' ? 'flex-1 min-h-0 flex flex-col' : ''}>
             {!apmSpecAvailable ? (

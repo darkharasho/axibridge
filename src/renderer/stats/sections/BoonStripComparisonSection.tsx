@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
 import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer } from '../ui/ChartContainer';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
-import { Eraser, Maximize2, X } from 'lucide-react';
+import { Eraser } from 'lucide-react';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { expandedPaneProps } from './expandedPane';
 
@@ -68,16 +69,11 @@ export const BoonStripComparisonSection = () => {
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <Eraser className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Boon Strips</h3>
-                <button
-                    type="button"
-                    onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
-                    className="ml-auto flex items-center justify-center w-[26px] h-[26px]"
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                    aria-label={isExpanded ? 'Close Boon Strips' : 'Expand Boon Strips'}
-                    title={isExpanded ? 'Close' : 'Expand'}
-                >
-                    {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                </button>
+                <SectionExpandButton
+                    expanded={isExpanded}
+                    onToggle={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
+                    section="Boon Strips"
+                />
             </div>
 
             {chartData.length === 0 ? (

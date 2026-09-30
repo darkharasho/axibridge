@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { Maximize2, X, Columns, Users } from 'lucide-react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
+import { Columns, Users } from 'lucide-react';
 import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
@@ -108,16 +109,11 @@ export const BoonOutputSection = ({
                         ]}
                     />
                 )}
-                <button
-                    type="button"
-                    onClick={() => (expandedSection === 'boon-output' ? closeExpandedSection() : openExpandedSection('boon-output'))}
-                    className="flex items-center justify-center w-[26px] h-[26px]"
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                    aria-label={expandedSection === 'boon-output' ? 'Close Boon Output' : 'Expand Boon Output'}
-                    title={expandedSection === 'boon-output' ? 'Close' : 'Expand'}
-                >
-                    {expandedSection === 'boon-output' ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                </button>
+                <SectionExpandButton
+                    expanded={expandedSection === 'boon-output'}
+                    onToggle={() => (expandedSection === 'boon-output' ? closeExpandedSection() : openExpandedSection('boon-output'))}
+                    section="Boon Output"
+                />
             </div>
         </div>
         {stats.boonTables.length === 0 ? (

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Maximize2, X, ListTree, AlertTriangle } from 'lucide-react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
+import { ListTree, AlertTriangle } from 'lucide-react';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
 import { InlineIconLabel } from '../ui/StatsViewShared';
@@ -99,16 +100,11 @@ export const HealingBreakdownSection = ({
                             { value: 'barrier', label: 'Barrier' }
                         ]}
                     />
-                    <button
-                        type="button"
-                        onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
-                        className="flex items-center justify-center w-[26px] h-[26px]"
-                        style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                        aria-label={isExpanded ? 'Close Healing Breakdown' : 'Expand Healing Breakdown'}
-                        title={isExpanded ? 'Close' : 'Expand'}
-                    >
-                        {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                    </button>
+                    <SectionExpandButton
+                        expanded={isExpanded}
+                        onToggle={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
+                        section="Healing Breakdown"
+                    />
                 </div>
             </div>
 

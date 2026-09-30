@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
 import { useMetricSectionState } from '../hooks/useMetricSectionState';
-import { Maximize2, X, Columns, Users, Shield } from 'lucide-react';
+import { Columns, Users, Shield } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
@@ -145,16 +146,11 @@ export const DefenseSection = ({
                         ]}
                     />
                 )}
-                <button
-                    type="button"
-                    onClick={() => (expandedSection === 'defense-detailed' ? closeExpandedSection() : openExpandedSection('defense-detailed'))}
-                    className="flex items-center justify-center w-[26px] h-[26px]"
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                    aria-label={expandedSection === 'defense-detailed' ? 'Close Defense Detailed' : 'Expand Defense Detailed'}
-                    title={expandedSection === 'defense-detailed' ? 'Close' : 'Expand'}
-                >
-                    {expandedSection === 'defense-detailed' ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                </button>
+                <SectionExpandButton
+                    expanded={expandedSection === 'defense-detailed'}
+                    onToggle={() => (expandedSection === 'defense-detailed' ? closeExpandedSection() : openExpandedSection('defense-detailed'))}
+                    section="Defense Detailed"
+                />
             </div>
         </div>
         {stats.defensePlayers.length === 0 ? (

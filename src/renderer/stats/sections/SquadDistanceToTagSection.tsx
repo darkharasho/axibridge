@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Maximize2, X, Crosshair, ArrowUp, ArrowDown } from 'lucide-react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
+import { Crosshair, ArrowUp, ArrowDown } from 'lucide-react';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { renderProfessionIcon } from '../ui/StatsViewShared';
 import type { DistanceToTagResult, DistanceToTagRow } from '../computeDistanceToTag';
@@ -145,16 +146,12 @@ export const SquadDistanceToTagSection = (props: Props) => {
                         )}
                     </div>
                 )}
-                <button
-                    type="button"
-                    onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
-                    className={`${rows.length > 0 ? '' : 'ml-auto '}flex items-center justify-center w-[26px] h-[26px]`}
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                    aria-label={isExpanded ? 'Close Distance to Tag' : 'Expand Distance to Tag'}
-                    title={isExpanded ? 'Close' : 'Expand'}
-                >
-                    {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                </button>
+                <SectionExpandButton
+                    expanded={isExpanded}
+                    onToggle={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
+                    section="Distance to Tag"
+                    className={rows.length > 0 ? undefined : 'ml-auto'}
+                />
             </div>
 
             {rows.length === 0 ? (
