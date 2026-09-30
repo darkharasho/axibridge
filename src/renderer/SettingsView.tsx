@@ -2571,7 +2571,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 type="button"
                                                 onClick={() => updateStatsViewSettingValue('topSkillDamageSource', option.id)}
                                                 aria-pressed={isActive}
-                                                className={`axi-card ${isActive ? 'axi-edge-accent' : ''}`}
+                                                className="axi-card"
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="text-sm font-semibold">{option.label}</div>
@@ -2623,7 +2623,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 type="button"
                                                 onClick={() => updateStatsViewSettingValue('topSkillsMetric', option.id)}
                                                 aria-pressed={isActive}
-                                                className={`axi-card ${isActive ? 'axi-edge-accent' : ''}`}
+                                                className="axi-card"
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="text-sm font-semibold">{option.label}</div>
@@ -2658,7 +2658,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 key={key}
                                                 onClick={() => setDisruptionMethod(key as DisruptionMethod)}
                                                 aria-pressed={isActive}
-                                                className={`axi-card ${isActive ? 'axi-edge-accent' : ''}`}
+                                                className="axi-card"
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="text-sm font-semibold">{method.label}</div>
@@ -2969,17 +2969,13 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         key={palette.id}
                                         type="button"
                                         onClick={() => { setColorPalette(palette.id); onColorPaletteSaved?.(palette.id); }}
-                                        // The picked palette is edged in the accent, which is what
-                                        // the accent means. It used to say border-white/40 against
-                                        // border-white/10, and both of those resolved to --axi-rule
-                                        // through the palette bridge - so the selected swatch has
-                                        // been indistinguishable from the rest since the theme
-                                        // landed, and the test asserting the distinction was
-                                        // asserting a class with no effect.
-                                        className={`rounded-[4px] border px-3 py-3 text-left transition-colors ${isActive
-                                            ? 'axi-edge-accent bg-white/10'
-                                            : 'axi-edge-rule bg-white/5 hover:border-white/30'
-                                            }`}
+                                        // A card you press, one of which is picked: the language
+                                        // draws the accent edge from aria-pressed. This used to be a
+                                        // hand-built box whose selected edge resolved to --axi-rule
+                                        // through the palette bridge, so the picked swatch had been
+                                        // indistinguishable from the rest.
+                                        aria-pressed={isActive}
+                                        className="axi-card"
                                     >
                                         {/* A flat chip of `primary`, not `palette.gradient`.
                                             The accent chain now runs from
@@ -3033,10 +3029,10 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         return (
                                             <label
                                                 key={id}
-                                                className={`rounded-[4px] border px-3 py-3 text-left cursor-pointer transition-colors ${isActive
-                                                    ? 'axi-edge-accent bg-white/10'
-                                                    : 'axi-edge-rule bg-white/5 hover:border-white/30'
-                                                    }`}
+                                                // A label wrapping its own radio: the input carries the
+                                                // state and the card lights from `:has(> input:checked)`,
+                                                // so there is nothing to copy onto the label.
+                                                className="axi-card cursor-pointer"
                                             >
                                                 <input
                                                     type="radio"
@@ -3075,7 +3071,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             <button
                                 onClick={() => setCloseBehavior('minimize')}
                                 aria-pressed={closeBehavior === 'minimize'}
-                                className={`axi-card items-center text-center ${closeBehavior === 'minimize' ? 'axi-edge-accent' : ''}`}
+                                className="axi-card items-center text-center"
                             >
                                 <Minimize className="w-6 h-6" />
                                 <div className="text-center">

@@ -272,7 +272,7 @@ describe('SettingsView', () => {
             selectSettingsCategory('Application');
             await waitFor(() => {
                 const amberButton = screen.getByRole('button', { name: 'Amber Warm' });
-                expect(amberButton.className).toMatch(/axi-edge-accent/);
+                expect(amberButton.getAttribute('aria-pressed')).toBe('true');
             });
         });
     });
@@ -354,7 +354,7 @@ describe('SettingsView', () => {
             const amberBtn = screen.getByRole('button', { name: 'Amber Warm' });
             fireEvent.click(amberBtn);
 
-            expect(amberBtn.className).toMatch(/axi-edge-accent/);
+            expect(amberBtn.getAttribute('aria-pressed')).toBe('true');
         });
 
         // One radio per theme the package ships, and no survivors of the four
@@ -413,10 +413,13 @@ describe('SettingsView', () => {
             selectSettingsCategory('Application');
             await screen.findByRole('heading', { name: 'Appearance' });
 
+            // The card lights from `:has(> input:checked)` upstream, so the state
+            // to assert is the radio's, on the label's own child.
             const picked = screen.getByText(AXI_THEMES.flat.label).closest('label');
-            expect(picked?.className).toMatch(/axi-edge-accent/);
+            expect(picked?.className).toMatch(/axi-card/);
+            expect((picked?.querySelector(':scope > input') as HTMLInputElement).checked).toBe(true);
             const other = screen.getByText(AXI_THEMES.glass.label).closest('label');
-            expect(other?.className).not.toMatch(/axi-edge-accent/);
+            expect((other?.querySelector(':scope > input') as HTMLInputElement).checked).toBe(false);
         });
 
         // paletteLocked is gone: it existed because Lillifox Mode painted its own
@@ -743,7 +746,7 @@ describe('SettingsView', () => {
 
             const minimizeBtn = screen.getByRole('button', { name: /Minimize to Tray/i });
             expect(minimizeBtn.getAttribute('aria-pressed')).toBe('true');
-            expect(minimizeBtn.className).toContain('axi-edge-accent');
+            expect(minimizeBtn.className).toContain('axi-card');
         });
     });
 

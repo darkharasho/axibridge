@@ -105,8 +105,9 @@ export const FightPicker: React.FC<FightPickerProps> = ({ fights, onSelect }) =>
                         // which brings its own surface, edge, block and hover lift. The
                         // fight you are looking at used to be named by a tinted fill as
                         // well as an accent edge; the edge alone says it, and a tint over
-                        // the surface is the thing the language declines to do.
-                        className={`replay-picker-card axi-panel axi-panel--tile ${active ? 'is-active axi-edge-accent' : ''}`}
+                        // the surface is the thing the language declines to do. The edge
+                        // is drawn from aria-selected above.
+                        className="replay-picker-card axi-panel axi-panel--tile"
                         style={{ width: 180, flexShrink: 0, textAlign: 'left', cursor: 'pointer' }}
                     >
                         <Thumbnail fight={fight} />

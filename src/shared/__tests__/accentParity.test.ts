@@ -13,7 +13,7 @@ import { PALETTES, type ColorPalette } from '../webThemes';
 describe('accent parity with @axiapps/axi-design', () => {
     const upstream = accents as Array<{ id: string; label: string; hex: string }>;
 
-    it('ships the same 11 accent ids the app offers', () => {
+    it('ships the same 12 accent ids the app offers', () => {
         expect(upstream.map((a) => a.id).sort()).toEqual(Object.keys(PALETTES).sort());
     });
 
@@ -41,7 +41,7 @@ describe('accent parity with @axiapps/axi-design', () => {
  * `secondary` cannot be pinned (it is an independent second hue), so it is checked
  * only for its appearance inside `gradient`.
  *
- * All 11 palettes were verified consistently derived before these assertions were
+ * All 12 palettes were verified consistently derived before these assertions were
  * written, so this is a pin on real regularity, not a shape forced onto the data.
  */
 describe('derived accent fields follow primary', () => {

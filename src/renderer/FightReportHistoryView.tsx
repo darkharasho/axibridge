@@ -548,6 +548,10 @@ export function FightReportHistoryView() {
                                     <button
                                         type="button"
                                         onClick={() => setCommanderDropdownOpen((v) => !v)}
+                                        aria-expanded={commanderDropdownOpen}
+                                        /* A filter that is set is a thing you picked, and the accent
+                                           edge is the ink layer's word for that on a control that is
+                                           not a panel. */
                                         className={`axi-picker__btn justify-between ${commanderFilter ? 'axi-edge-accent' : ''}`}
                                     >
                                         <span className="truncate max-w-[140px]">{commanderFilter || 'Commander'}</span>
@@ -639,8 +643,10 @@ export function FightReportHistoryView() {
                                        the source bar, the search field, the filter - is at the control
                                        step, and that gap is what makes the cards read as the thing you
                                        are meant to click. Being marked for deletion is a thing you
-                                       picked, which is what the accent edge means. */
-                                    className={`history-card relative text-left cursor-pointer axi-panel [--axi-panel-pad:16px] ${selectedForDelete.has(entry.id) ? 'axi-edge-accent' : ''}`}
+                                       picked: the panel says so from aria-pressed, which is also the
+                                       first time assistive tech has been told. */
+                                    aria-pressed={deleteMode ? selectedForDelete.has(entry.id) : undefined}
+                                    className="history-card relative text-left cursor-pointer axi-panel [--axi-panel-pad:16px]"
                                     style={{ opacity: detailLoading === entry.id ? 0.6 : 1 }}
                                     whileHover={{ scale: 1.01 }}
                                     whileTap={{ scale: 0.99 }}

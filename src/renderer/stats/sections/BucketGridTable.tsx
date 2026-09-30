@@ -94,7 +94,12 @@ export interface BucketGridTableProps {
     rows: BucketGridRow[];
     bucketCount: number;
     bucketMs: number;
-    accent: string;
+    /**
+     * Unused since the fill moved into the language: a cell's band is mixed
+     * from `--axi-accent` by `.axi-table--matrix`, so the component no longer
+     * needs to know the colour. Kept in the type so callers do not churn.
+     */
+    accent?: string;
     /**
      * Renders the class icon for a row. Injected rather than imported so this
      * stays presentational and the sections keep sourcing it from the shared
@@ -126,23 +131,6 @@ const fmtBucketLabel = (i: number, bucketMs: number) => {
  */
 const labelStride = (bucketMs: number) => Math.max(1, Math.round(30000 / bucketMs));
 
-/** `#rrggbb` -> `rgba(r, g, b, a)`. Falls back to the raw value for any other notation. */
-const withAlpha = (color: string, alpha: number) => {
-    const hex = /^#([0-9a-f]{6})$/i.exec(color);
-    if (!hex) return color;
-    const n = parseInt(hex[1], 16);
-    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha.toFixed(3)})`;
-};
-
-/**
- * Shade via the background's alpha channel, never the cell's `opacity`:
- * `opacity` composites the whole element, fading the digit along with its
- * backdrop, so exactly the low-intensity cells a reader is scanning for
- * become unreadable. The floor keeps a present-but-small value visibly
- * present against an empty one.
- */
-const ALPHA_FLOOR = 0.1;
-
 /**
  * Row count above which a capped grid scrolls instead of growing, and the cap
  * it grows to. Both match the other roster tables (On Tag Review, Squad
@@ -167,7 +155,7 @@ const CELL_PX = 26;
 const CELL_MAX_PX = 64;
 
 export const BucketGridTable: React.FC<BucketGridTableProps> = ({
-    rows, bucketCount, bucketMs, accent, renderIcon, notRecordedMessage, recorded, capHeight = true,
+    rows, bucketCount, bucketMs, renderIcon, notRecordedMessage, recorded, capHeight = true,
 }) => {
     const max = useMemo(
         () => rows.reduce((m, r) => r.buckets.reduce((rm, v) => Math.max(rm, v), m), 0),
@@ -175,7 +163,7 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
     );
 
     if (!recorded) {
-        return <div className="bucket-grid__empty rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">{notRecordedMessage}</div>;
+        return <div className="bucket-grid__empty axi-well axi-ink-dim px-4 py-6 text-center text-xs">{notRecordedMessage}</div>;
     }
 
     const stride = labelStride(bucketMs);
@@ -187,19 +175,29 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
     // The header only sticks when the grid is the thing scrolling. Sticking it
     // unconditionally would pin it to whatever scrolls outside instead.
     const scrolls = capHeight && rows.length > SCROLL_ROW_THRESHOLD;
-    const headClass = scrolls ? ' bucket-grid__head' : '';
 
+    /* Upstream's matrix: `.axi-table--matrix` bands each occupied cell in four
+       opaque steps mixed from the accent and prints the digit on it, which is
+       the condition rule 9 admits intensity under. `--ruler` draws the 30s
+       ticks down the field from `data-tick`; `[data-group-start]` rules a
+       change of subgroup in ink; `--sticky` keeps the ruler on the float
+       surface (opaque under glass, where the old raised surface let rows
+       slide through it); `--pinned` keeps the name column; `--fixed` plus the
+       <colgroup> share one grid between head and body. The continuous alpha
+       ramp this component used to paint inline was a second encoding of the
+       same number at rule 2's faded ink, and the only reason the bands ever
+       needed !important. */
     return (
         <div
-            className={`bucket-grid overflow-x-auto${scrolls ? ' overflow-y-auto' : ''}`}
+            className={`bucket-grid axi-table__scroll${scrolls ? ' overflow-y-auto' : ''}`}
             style={scrolls ? { maxHeight: CAPPED_MAX_HEIGHT } : undefined}
         >
             <table
-                className="text-xs border-separate border-spacing-0"
+                className={`axi-table axi-table--dense axi-table--matrix axi-table--ruler axi-table--pinned axi-table--fixed${scrolls ? ' axi-table--sticky' : ''}`}
                 // Fill the panel, but never below the width at which cells hit
                 // their floor — past that the wrapper scrolls horizontally, as
                 // it always did for a long fight.
-                style={{ tableLayout: 'fixed', width: '100%', minWidth: NAME_COL_PX + bucketCount * CELL_PX }}
+                style={{ width: '100%', minWidth: NAME_COL_PX + bucketCount * CELL_PX }}
             >
                 {/* `table-layout: fixed` takes column widths from <col> (or the first
                     row's `width`), and ignores min-width/max-width entirely — so the
@@ -215,25 +213,20 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
                 </colgroup>
                 <thead>
                     <tr>
-                        <th scope="col" className={`bucket-grid__pin${headClass} text-left pr-3 pb-1.5 border-b axi-edge-rule text-[9px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-secondary)]`}>Player</th>
+                        <th scope="col">Player</th>
                         {cols.map(i => {
                             const tick = i > 0 && i % stride === 0;
                             return (
-                                <th
-                                    key={i}
-                                    scope="col"
-                                    data-tick={tick || undefined}
-                                    // Labels are left-aligned, not centred, so a label's
-                                    // left edge sits exactly on its column's tick line.
-                                    // Centring puts the text half a cell to the right of
-                                    // the moment it names.
-                                    className={`${headClass} pb-1.5 text-left text-[9px] font-semibold tabular-nums whitespace-nowrap text-[color:var(--text-secondary)] border-b axi-edge-rule ${tick ? 'border-l axi-edge-rule' : ''}`}
-                                >
+                                // Labels are left-aligned by --ruler, so a label's left
+                                // edge sits exactly on its column's tick line. Centring
+                                // puts the text half a cell to the right of the moment
+                                // it names.
+                                <th key={i} scope="col" data-tick={tick || undefined}>
                                     {i % stride === 0 ? fmtBucketLabel(i, bucketMs) : ''}
                                 </th>
                             );
                         })}
-                        <th aria-hidden data-spacer className="pb-1.5 border-b axi-edge-rule" />
+                        <th aria-hidden data-spacer />
                     </tr>
                 </thead>
                 <tbody>
@@ -242,15 +235,11 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
                         // subgroup boundary — rule it, rather than leaving one
                         // undifferentiated block of names.
                         const startsGroup = rowIndex > 0 && rows[rowIndex - 1].group !== row.group;
-                        const edge = startsGroup ? 'border-t axi-edge-rule' : '';
                         return (
-                            <tr key={row.key} data-group-start={startsGroup || undefined} className="group/row">
-                                <th
-                                    scope="row"
-                                    className={`bucket-grid__pin text-left pr-3 truncate border-b axi-edge-rule text-[11px] font-medium text-[color:var(--text-primary)] ${edge}`}
-                                >
+                            <tr key={row.key} data-group-start={startsGroup || undefined}>
+                                <th scope="row">
                                     <span className="flex items-center gap-1.5">
-                                        <span className="w-2 shrink-0 text-[9px] tabular-nums text-[color:var(--text-secondary)]">{row.group || ''}</span>
+                                        <span className="w-2 shrink-0 axi-ink-faint tabular-nums">{row.group || ''}</span>
                                         {renderIcon?.(row.profession)}
                                         <span className="truncate">{row.displayName}</span>
                                     </span>
@@ -259,11 +248,9 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
                                     const value = row.buckets[i] || 0;
                                     const intensity = max > 0 ? value / max : 0;
                                     const tick = i > 0 && i % stride === 0;
-                                    // A four-step band beside the continuous alpha. Themes
-                                    // that shade by alpha ignore it; a theme that cannot put
-                                    // colour at partial opacity over its ground (axi) needs a
-                                    // discrete step it can answer with an opaque fill, and a
-                                    // band is also where the digit has to flip to dark ink.
+                                    // Four opaque steps, and the digit on every one of
+                                    // them. The band lets the eye find the shape; the
+                                    // digit is the legible copy of the number.
                                     const heat = value <= 0 ? 0
                                         : intensity > 0.75 ? 4
                                             : intensity > 0.5 ? 3
@@ -273,24 +260,14 @@ export const BucketGridTable: React.FC<BucketGridTableProps> = ({
                                             key={i}
                                             data-bucket-cell
                                             data-tick={tick || undefined}
-                                            data-intensity={String(intensity)}
                                             data-heat={heat || undefined}
-                                            // No per-cell vertical ruling: the shaded blocks
-                                            // are the data, and a line around every one of
-                                            // 60+ columns reads as a spreadsheet rather than
-                                            // a heatmap. Verticals appear only on the 30s
-                                            // ticks, matching the header labels.
-                                            className={`h-6 text-center text-[10px] tabular-nums text-[color:var(--text-primary)] border-b axi-edge-rule group-hover/row:bg-white/[0.02] ${tick ? 'border-l axi-edge-rule' : ''} ${edge}`}
-                                            style={value > 0
-                                                ? { backgroundColor: withAlpha(accent, ALPHA_FLOOR + intensity * (1 - ALPHA_FLOOR)) }
-                                                : undefined}
                                             title={`${row.displayName} \u2014 ${fmtBucketLabel(i, bucketMs)}: ${value}`}
                                         >
                                             {value > 0 ? value : ''}
                                         </td>
                                     );
                                 })}
-                                <td aria-hidden data-spacer className={`border-b axi-edge-rule group-hover/row:bg-white/[0.02] ${edge}`} />
+                                <td aria-hidden data-spacer />
                             </tr>
                         );
                     })}

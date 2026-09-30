@@ -29,40 +29,43 @@ const cells = (container: HTMLElement) =>
 
 describe('BucketGridTable shading', () => {
     /**
-     * The regression this guards: shading with the cell's `opacity` composites
-     * the whole element, so the digit fades with its backdrop and the
-     * low-intensity cells a reader is scanning for become unreadable.
+     * The fill is the language's, not the component's. `.axi-table--matrix`
+     * bands each occupied cell in four opaque steps from `data-heat`, and the
+     * digit is printed on every band - which is the condition rule 9 admits
+     * intensity under. The regression this guards is the old continuous alpha
+     * ramp painted inline: a second encoding of the same number, at partial
+     * opacity over the ground, that the bands then had to out-rank.
      */
-    it('shades with background alpha and never with cell opacity', () => {
+    it('paints nothing inline: no background, no opacity', () => {
         const { container } = renderGrid();
         for (const cell of cells(container)) {
             expect(cell.style.opacity).toBe('');
+            expect(cell.style.backgroundColor).toBe('');
+            expect(cell.hasAttribute('data-intensity')).toBe(false);
         }
-        // jsdom normalises a full-alpha rgba() back to rgb(), so accept either.
-        const [peak] = cells(container);
-        expect(peak.style.backgroundColor).toMatch(/^rgba?\(232, 121, 249[,)]/);
     });
 
-    it('keeps a minimum alpha so the smallest non-zero value stays visible', () => {
-        const { container } = renderGrid();
-        const alphaOf = (el: HTMLElement) => {
-            const bg = el.style.backgroundColor;
-            if (!bg) return 0;
-            // rgb() means jsdom dropped a fully opaque alpha.
-            return Number(/rgba\([^)]*,\s*([0-9.]+)\)/.exec(bg)?.[1] ?? '1');
-        };
-
-        const all = cells(container);
-        const peak = all[0];          // 8 of 8
-        const faintest = all[1];      // 1 of 8 — would be opacity 0.125 under the old scheme
-        expect(alphaOf(peak)).toBeCloseTo(1, 3);
-        expect(alphaOf(faintest)).toBeGreaterThanOrEqual(0.1);
-        expect(alphaOf(faintest)).toBeLessThan(alphaOf(peak));
+    it('steps the band from the fight peak, and the smallest value still gets a band', () => {
+        const all = cells(renderGrid().container);
+        expect(all[0].getAttribute('data-heat')).toBe('4'); // 8 of 8
+        expect(all[1].getAttribute('data-heat')).toBe('1'); // 1 of 8
+        expect(all[4].getAttribute('data-heat')).toBe('1'); // 2 of 8
     });
 
-    it('leaves zero buckets unpainted', () => {
-        const { container } = renderGrid();
-        expect(cells(container)[2].style.backgroundColor).toBe('');
+    it('leaves zero buckets unbanded and prints no digit in them', () => {
+        const all = cells(renderGrid().container);
+        expect(all[2].hasAttribute('data-heat')).toBe(false);
+        expect(all[2].textContent).toBe('');
+        // And every banded cell carries its number.
+        expect(all[0].textContent).toBe('8');
+        expect(all[1].textContent).toBe('1');
+    });
+
+    it('is a matrix of the language, with the ruler and the pinned names', () => {
+        const table = renderGrid().container.querySelector('table');
+        for (const m of ['axi-table', 'axi-table--matrix', 'axi-table--ruler', 'axi-table--pinned', 'axi-table--fixed', 'axi-table--dense']) {
+            expect(table?.className).toContain(m);
+        }
     });
 });
 
@@ -116,7 +119,8 @@ describe('BucketGridTable ruling', () => {
 
     it('rules only the 30s ticks, not every column', () => {
         const { container } = renderGrid({ bucketCount: 14, bucketMs: 5000 });
-        const ruled = cells(container).filter(c => c.className.includes('border-l'));
+        // The tick is an attribute; `.axi-table--ruler` draws the line from it.
+        const ruled = cells(container).filter(c => c.hasAttribute('data-tick'));
         // 14 buckets at a 6-bucket stride: ticks at 6 and 12, per row, and
         // never at column 0 (the pinned name column already bounds it).
         expect(ruled).toHaveLength(2 * rows.length);
@@ -152,7 +156,7 @@ describe('FightPicker', () => {
         expect((scroller as HTMLElement).style.maxHeight).toBe('30rem');
         // Without the sticky header the timestamps scroll away, leaving the
         // reader with a wall of numbers and no time axis.
-        expect(container.querySelector('thead th')?.className).toContain('bucket-grid__head');
+        expect(container.querySelector('table')?.className).toContain('axi-table--sticky');
     });
 
     it('leaves a roster that fits below the cap uncapped and unstuck', () => {
@@ -160,7 +164,7 @@ describe('FightPicker', () => {
         const scroller = container.querySelector('div');
         expect(scroller?.className).not.toContain('overflow-y-auto');
         expect((scroller as HTMLElement).style.maxHeight).toBe('');
-        expect(container.querySelector('thead th')?.className).not.toContain('bucket-grid__head');
+        expect(container.querySelector('table')?.className).not.toContain('axi-table--sticky');
     });
 
     it('never caps when the section turns capHeight off, however long the roster', () => {

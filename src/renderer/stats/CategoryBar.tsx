@@ -110,7 +110,7 @@ export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed, unpub
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
             >
-                <div ref={scrollContainerRef} className="h-full min-h-0 overflow-y-auto overflow-x-hidden py-3 px-2 space-y-1.5">
+                <div ref={scrollContainerRef} className="axi-scroll-quiet h-full min-h-0 overflow-y-auto overflow-x-hidden py-3 px-2 space-y-1.5">
                     {/* Header: padding/gap via CSS transition */}
                     <div
                         className="h-5 flex items-center"

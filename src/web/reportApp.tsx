@@ -1685,7 +1685,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                 Back to Reports
                             </a>
                         </div>}
-                        <nav className="flex-1 min-h-0 px-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] space-y-2 text-sm overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
+                        <nav className="axi-scroll-quiet flex-1 min-h-0 px-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] space-y-2 text-sm overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
                             {navGroups.map((group) => {
                                 const GroupIcon = group.icon;
                                 const isActive = group.id === activeGroup;
@@ -1805,7 +1805,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                 <kbd className="axi-kbd">Ctrl K</kbd>
                             </button>
                         </div>
-                        <nav className="px-4 space-y-2 text-sm flex-1 min-h-0 overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
+                        <nav className="axi-scroll-quiet px-4 space-y-2 text-sm flex-1 min-h-0 overflow-y-auto [overflow-anchor:none]" onWheel={handleNavWheel}>
                             {navGroups.map((group) => {
                                 const GroupIcon = group.icon;
                                 const isActive = group.id === activeGroup;
@@ -1956,24 +1956,26 @@ export function ReportApp({ injectedSource, assetBase }: {
                     )}
                     <div className={`${isNarrowViewport && isCompactViewport ? '' : 'hidden'} mb-4`}>
                         <div className="text-[10px] uppercase tracking-widest axi-ink-dim mb-2">Jump to</div>
-                        <div className="mobile-jump-chips flex gap-2 overflow-x-auto pr-2 pb-1 snap-x snap-mandatory">
+                        {/* A tab strip that outgrows its room: upstream's .axi-tabs--scroll.
+                            The section you are reading is aria-current="page", which is
+                            the same claim a tab makes and the same drawing - filled and
+                            blocked, the rest transparent until hovered. */}
+                        <nav className="mobile-jump-chips axi-tabs axi-tabs--scroll" aria-label="Jump to">
                             {(activeGroupDef?.items || []).map((item) => {
                                 const Icon = item.icon;
                                 return (
                                     <button
                                         key={`chip-${item.id}`}
+                                        type="button"
                                         onClick={() => handleSubNavClick(activeGroupDef?.id || 'overview', item.id)}
-                                        data-on={activeSectionId === item.id ? '' : undefined}
-                                        className={`group flex items-center gap-2 px-3 py-2 rounded-full text-[10px] uppercase tracking-widest whitespace-nowrap border bg-gradient-to-br shadow-[0_10px_25px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-all duration-200 active:translate-y-0 active:scale-[0.98] snap-start ${activeSectionId === item.id ? 'axi-ink-plain border-[color:var(--accent-border)] from-[color:var(--accent-bg)] via-white/10 to-transparent' : 'axi-ink-plain axi-edge-rule from-white/10 via-white/5 to-transparent hover:-translate-y-0.5 hover:border-[color:var(--accent-border)] hover:shadow-[0_18px_35px_rgba(0,0,0,0.45)]'}`}
+                                        aria-current={activeSectionId === item.id ? 'page' : undefined}
                                     >
-                                        <span className="mobile-jump-chip-icon flex items-center justify-center w-6 h-6 rounded-full bg-white/10 border axi-edge-rule group-hover:border-[color:var(--accent-border)] group-hover:bg-[color:var(--accent-bg)] transition-colors">
-                                            <Icon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                                        </span>
+                                        <Icon className="w-4 h-4 shrink-0" aria-hidden />
                                         {item.label}
                                     </button>
                                 );
                             })}
-                        </div>
+                        </nav>
                     </div>
                     <div ref={statsWrapperRef} onWheelCapture={handleStatsWheel} className="flex-1 min-w-0">
                         <div id="stats-view-top">
@@ -2016,34 +2018,30 @@ export function ReportApp({ injectedSource, assetBase }: {
                         flex-shrink has nothing to give and the last item runs
                         off-screen. Stacking drops the row to ~291px and the
                         flex-1/truncate pair keeps it bounded on narrower phones. */}
-                    <div className="flex items-stretch gap-1.5 rounded-2xl bg-slate-950/70 border axi-edge-rule backdrop-blur-xl px-3 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.45)]">
+                    {/* Upstream's floating toolbar, one row that may not wrap, holding
+                        four stacked buttons that each shrink and elide. The bar takes the
+                        panel step and the actions inside it the control step, which is
+                        why none of the four claims the accent: they are the same size
+                        of action. */}
+                    <div className="axi-toolbar axi-toolbar--float axi-toolbar--nowrap" style={{ '--axi-toolbar-pad': '8px' } as CSSProperties}>
                         {showIndexChrome && <a
                             href={themedIndexHref}
-                            className="flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-1.5 rounded-xl bg-white/5 border axi-edge-rule text-[10px] uppercase tracking-widest axi-ink-plain"
+                            className="axi-btn axi-btn--xs axi-btn--stack flex-1"
                         >
-                            <ArrowLeft className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                            <span className="max-w-full truncate">Back</span>
+                            <ArrowLeft className="w-4 h-4 shrink-0" aria-hidden />
+                            <span>Back</span>
                         </a>}
-                        <button
-                            onClick={() => setTocOpen(true)}
-                            className="axi-btn axi-btn--xs flex-1 min-w-0 flex-col justify-center axi-edge-rule axi-ink-plain"
-                        >
-                            <PanelLeft className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                            <span className="max-w-full truncate">Contents</span>
+                        <button type="button" onClick={() => setTocOpen(true)} className="axi-btn axi-btn--xs axi-btn--stack flex-1">
+                            <PanelLeft className="w-4 h-4 shrink-0" aria-hidden />
+                            <span>Contents</span>
                         </button>
-                        <button
-                            onClick={() => searchOpenRef.current?.()}
-                            className="axi-btn axi-btn--xs flex-1 min-w-0 flex-col justify-center axi-edge-rule axi-ink-plain"
-                        >
-                            <Search className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                            <span className="max-w-full truncate">Search</span>
+                        <button type="button" onClick={() => searchOpenRef.current?.()} className="axi-btn axi-btn--xs axi-btn--stack flex-1">
+                            <Search className="w-4 h-4 shrink-0" aria-hidden />
+                            <span>Search</span>
                         </button>
-                        <button
-                            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                            className="axi-btn axi-btn--xs flex-1 min-w-0 flex-col justify-center axi-edge-rule axi-ink-plain"
-                        >
-                            <ArrowUp className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
-                            <span className="max-w-full truncate">Top</span>
+                        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="axi-btn axi-btn--xs axi-btn--stack flex-1">
+                            <ArrowUp className="w-4 h-4 shrink-0" aria-hidden />
+                            <span>Top</span>
                         </button>
                     </div>
                 </div>
