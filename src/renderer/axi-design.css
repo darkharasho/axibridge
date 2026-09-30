@@ -325,7 +325,19 @@
 [data-axi-accent] body .bg-white\/\[0\.03\],
 [data-axi-accent] body .bg-white\/\[0\.035\],
 [data-axi-accent] body .bg-white\/\[0\.04\],
-[data-axi-accent] body .bg-white\/\[0\.07\] { background-color: var(--axi-ground); }
+[data-axi-accent] body .bg-white\/\[0\.07\] {
+  /* --axi-well-fill, not --axi-ground. This group is the one the comment above
+     calls a well, and it named the ground because it was written before the
+     language had a word for the level. The two are the same value in the main
+     theme, which is why nothing showed; they stop being the same the instant a
+     theme makes its surfaces translucent. Upstream says it plainly at the token:
+     an opaque page colour inside a translucent pane is a black patch rather than
+     a recess. Measured under glass before this line: rgb(10, 12, 16) - the page,
+     opaque, inside a pane you can see through. --axi-well-fill is restated by
+     both themes as a darkening (glass rgba(6, 8, 14, .32), flat #141822), so the
+     pane's own tint carries through and the recess reads as one. */
+  background-color: var(--axi-well-fill);
+}
 
 [data-axi-accent] body .bg-blue-400\/90 { background-color: var(--axi-meta); }
 

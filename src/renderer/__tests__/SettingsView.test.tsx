@@ -4,6 +4,7 @@ import { join as pathJoin, resolve as pathResolve } from 'node:path';
 import { render, screen, waitFor, fireEvent, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
+import { AXI_THEMES } from '../../shared/webThemes';
 import {
     SettingsView,
     slugifyHeading,
@@ -65,7 +66,7 @@ function renderSettings(
         onStatsViewSettingsSaved: vi.fn(),
         onDisruptionMethodSaved: vi.fn(),
         onColorPaletteSaved: vi.fn(),
-        onGlassSaved: vi.fn(),
+        onAxiThemeSaved: vi.fn(),
         onOpenWhatsNew: vi.fn(),
         onOpenWalkthrough: vi.fn(),
         webhooks: [],
@@ -356,34 +357,72 @@ describe('SettingsView', () => {
             expect(amberBtn.className).toMatch(/axi-edge-accent/);
         });
 
-        it('shows exactly one surface toggle, labelled Glass', async () => {
+        // One radio per theme the package ships, and no survivors of the four
+        // appearance controls this replaced.
+        it('offers one radio per theme and nothing left of the old controls', async () => {
             renderSettings();
             selectSettingsCategory('Application');
             await screen.findByRole('heading', { name: 'Appearance' });
 
-            expect(screen.getByText('Glass')).toBeInTheDocument();
+            const radios = screen.getAllByRole('radio');
+            expect(radios).toHaveLength(Object.keys(AXI_THEMES).length);
+            for (const label of Object.values(AXI_THEMES).map((t) => t.label)) {
+                expect(screen.getByText(label)).toBeInTheDocument();
+            }
             expect(screen.queryByText('Glass Surfaces')).toBeNull();
             expect(screen.queryByText('Lillifox Mode')).toBeNull();
             expect(screen.queryByText('Axi Design')).toBeNull();
         });
 
-        it('fires onGlassSaved after toggling glass', async () => {
+        // The theme this whole change exists to make reachable. Picking it has to
+        // report 'flat' and not a boolean — a toggle could not have said this.
+        it('fires onAxiThemeSaved with the picked theme id', async () => {
             const { mock, callbacks } = renderSettings();
             await waitForLoad(mock);
-            callbacks.onGlassSaved.mockClear();
+            callbacks.onAxiThemeSaved.mockClear();
             selectSettingsCategory('Application');
 
-            fireEvent.click(screen.getByText('Glass'));
+            fireEvent.click(screen.getByText(AXI_THEMES.flat.label));
 
             await waitFor(() => {
-                expect(callbacks.onGlassSaved).toHaveBeenCalledWith(true);
+                expect(callbacks.onAxiThemeSaved).toHaveBeenCalledWith('flat');
             }, { timeout: 1000 });
+        });
+
+        it('fires onAxiThemeSaved with glass when glass is picked', async () => {
+            const { mock, callbacks } = renderSettings();
+            await waitForLoad(mock);
+            callbacks.onAxiThemeSaved.mockClear();
+            selectSettingsCategory('Application');
+
+            fireEvent.click(screen.getByText(AXI_THEMES.glass.label));
+
+            await waitFor(() => {
+                expect(callbacks.onAxiThemeSaved).toHaveBeenCalledWith('glass');
+            }, { timeout: 1000 });
+        });
+
+        // The selected theme has to be visibly selected. Asserted because the
+        // accent picker beside it shipped a release where it was not: both arms of
+        // its border resolved to --axi-rule, so the marked swatch was identical to
+        // the rest and the test asserting the distinction was asserting a class
+        // with no effect.
+        it('marks the current theme with the accent edge', async () => {
+            const { mock } = renderSettings({}, { axiTheme: 'flat' });
+            await waitForLoad(mock);
+            selectSettingsCategory('Application');
+            await screen.findByRole('heading', { name: 'Appearance' });
+
+            const picked = screen.getByText(AXI_THEMES.flat.label).closest('label');
+            expect(picked?.className).toMatch(/axi-edge-accent/);
+            const other = screen.getByText(AXI_THEMES.glass.label).closest('label');
+            expect(other?.className).not.toMatch(/axi-edge-accent/);
         });
 
         // paletteLocked is gone: it existed because Lillifox Mode painted its own
         // accents and pinned the picker. Nothing pins it now.
         it('never disables the palette grid', async () => {
-            const { mock } = renderSettings({}, { glass: true });
+            const { mock } = renderSettings({}, { axiTheme: 'glass' });
             await waitForLoad(mock);
             selectSettingsCategory('Application');
             await screen.findByRole('heading', { name: 'Appearance' });

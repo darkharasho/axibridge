@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto'
 
 import { spawn } from 'node:child_process'
 import { migrateGlassSetting } from './glassSettingMigration';
+import { asAxiTheme, axiThemeFromLegacyGlass } from '../shared/webThemes';
 import { buildFightLabelV2, computeFightAvgPosition } from '../shared/mapUtils';
 import { DEFAULT_DISRUPTION_METHOD, DisruptionMethod } from '../shared/metricsSettings';
 import { LogWatcher } from './watcher'
@@ -1835,7 +1836,7 @@ if (!gotTheLock) {
             console.log(msg);
         });
 
-        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], reportWebhooks?: any[], selectedWebhookId?: string | null, enabledWebhookIds?: string[], dpsReportToken?: string | null, dpsReportEnabled?: boolean, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, mvpWeightProfiles?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, colorPalette?: string, glass?: boolean, particlesEnabled?: boolean, githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean, allowLocalJson?: boolean, r2AccountId?: string | null, r2AccessKeyId?: string | null, r2SecretAccessKey?: string | null, r2BucketName?: string | null, r2PublicUrl?: string | null, r2PreciseReplay?: boolean, r2HostingEnabled?: boolean, r2SliceEnabled?: boolean, reportWebhookSelection?: string[], reportWebhookSeen?: string[] }) => {
+        const applySettings = (settings: { logDirectory?: string | null, discordWebhookUrl?: string | null, discordNotificationType?: 'embed', discordEnemySplitSettings?: { image?: boolean; embed?: boolean; tiled?: boolean }, discordSplitEnemiesByTeam?: boolean, webhooks?: any[], reportWebhooks?: any[], selectedWebhookId?: string | null, enabledWebhookIds?: string[], dpsReportToken?: string | null, dpsReportEnabled?: boolean, closeBehavior?: 'minimize' | 'quit', embedStatSettings?: any, mvpWeights?: any, mvpWeightProfiles?: any, statsViewSettings?: any, disruptionMethod?: DisruptionMethod, colorPalette?: string, axiTheme?: string, glass?: boolean, particlesEnabled?: boolean, githubRepoOwner?: string | null, githubRepoName?: string | null, githubBranch?: string | null, githubPagesBaseUrl?: string | null, githubToken?: string | null, githubLogoPath?: string | null, githubFavoriteRepos?: string[], walkthroughSeen?: boolean, allowLocalJson?: boolean, r2AccountId?: string | null, r2AccessKeyId?: string | null, r2SecretAccessKey?: string | null, r2BucketName?: string | null, r2PublicUrl?: string | null, r2PreciseReplay?: boolean, r2HostingEnabled?: boolean, r2SliceEnabled?: boolean, reportWebhookSelection?: string[], reportWebhookSeen?: string[] }) => {
             if (settings.logDirectory !== undefined) {
                 store.set('logDirectory', settings.logDirectory);
                 if (settings.logDirectory) watcher?.start(settings.logDirectory);
@@ -1925,8 +1926,12 @@ if (!gotTheLock) {
             if (settings.colorPalette !== undefined) {
                 store.set('colorPalette', settings.colorPalette);
             }
-            if (settings.glass !== undefined) {
-                store.set('glass', settings.glass);
+            if (settings.axiTheme !== undefined) {
+                store.set('axiTheme', asAxiTheme(settings.axiTheme));
+            } else if (settings.glass !== undefined) {
+                // A settings payload written before the theme setting had more than one
+                // value. Accepted, never written back — see axiThemeFromLegacyGlass.
+                store.set('axiTheme', axiThemeFromLegacyGlass(settings.glass));
             }
             if (settings.particlesEnabled !== undefined) {
                 store.set('particlesEnabled', settings.particlesEnabled);

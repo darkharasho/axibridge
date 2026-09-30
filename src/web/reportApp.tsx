@@ -2,7 +2,7 @@ import { CSSProperties, MouseEvent as ReactMouseEvent, startTransition, useCallb
 import { StatsView } from '../renderer/StatsView';
 import { STATS_TOC_GROUPS } from '../renderer/stats/hooks/useStatsNavigation';
 import { resolveSectionTarget } from '../renderer/stats/statsTaxonomy';
-import type { ColorPalette } from '../shared/webThemes';
+import type { ColorPalette, AxiTheme } from '../shared/webThemes';
 import { readPaletteFromReport } from './paletteReader';
 import { resolveMapAccentFromStats, MAP_ACCENT_CSS_VARS, type MapAccent } from '../shared/mapAccent';
 import { applyAxiTheme } from '../shared/applyAxiTheme';
@@ -367,7 +367,7 @@ export function ReportApp({ injectedSource, assetBase }: {
     const [reportPathHint, setReportPathHint] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [colorPalette, setColorPalette] = useState<ColorPalette>('electric-blue');
-    const [glass, setGlass] = useState(false);
+    const [theme, setTheme] = useState<AxiTheme>('default');
     const [mapAccent, setMapAccent] = useState<MapAccent | null>(null);
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [logoIsDefault, setLogoIsDefault] = useState(false);
@@ -524,11 +524,11 @@ export function ReportApp({ injectedSource, assetBase }: {
         if (!isNarrowViewport) setTocOpen(false);
     }, [isNarrowViewport]);
 
-    // The publisher's accent and glass choice, applied the same way the renderer
+    // The publisher's accent and theme choice, applied the same way the renderer
     // applies them — two data attributes on <html>, nothing else.
     useEffect(() => {
         document.body.classList.add('web-report');
-        applyAxiTheme(document.documentElement, { accent: colorPalette, glass });
+        applyAxiTheme(document.documentElement, { accent: colorPalette, theme });
         // A share link's accent comes from the map it was fought on rather than
         // from the publisher's palette. Inline properties on <body> beat the
         // [data-axi-accent] rule on <html> by proximity, so this overrides the
@@ -539,7 +539,7 @@ export function ReportApp({ injectedSource, assetBase }: {
             if (mapAccent) document.body.style.setProperty(cssVar, mapAccent[key]);
             else document.body.style.removeProperty(cssVar);
         }
-    }, [colorPalette, glass, mapAccent]);
+    }, [colorPalette, theme, mapAccent]);
 
     useEffect(() => {
         setAssetBasePath(assetBasePathCandidates[0] || '/');
@@ -1031,11 +1031,11 @@ export function ReportApp({ injectedSource, assetBase }: {
             setReportPathHint(null);
             // A share link is accented by the WvW map the fights were on rather
             // than by the publisher's palette (see the mapAccent call below), but
-            // it follows the publisher's glass choice like any other report.
+            // it follows the publisher's theme choice like any other report.
             // There is no language to force on any more — axi is the only one.
-            const { palette, glass: publishedGlass } = readPaletteFromReport(injectedSource.report.stats);
+            const { palette, theme: publishedTheme } = readPaletteFromReport(injectedSource.report.stats);
             setColorPalette(palette);
-            setGlass(publishedGlass);
+            setTheme(publishedTheme);
             setMapAccent(resolveMapAccentFromStats(injectedSource.report.stats));
             setReport(injectedSource.report);
             return () => {
@@ -1054,9 +1054,9 @@ export function ReportApp({ injectedSource, assetBase }: {
         setReportPathHint(reportId ? reportPath : null);
 
         const applyPaletteFromReport = (reportData: ReportPayload) => {
-            const { palette, glass: publishedGlass } = readPaletteFromReport(reportData.stats);
+            const { palette, theme: publishedTheme } = readPaletteFromReport(reportData.stats);
             setColorPalette(palette);
-            setGlass(publishedGlass);
+            setTheme(publishedTheme);
         };
 
         const loadIndex = (suppressError = false) => {
@@ -1067,11 +1067,11 @@ export function ReportApp({ injectedSource, assetBase }: {
                     // Support new object format { siteTheme, entries } and legacy plain array.
                     const entries = Array.isArray(data) ? data : (Array.isArray(data?.entries) ? data.entries : []);
                     setIndex(entries);
-                    // Apply site-wide palette and glass from index.json
+                    // Apply site-wide palette and theme from index.json
                     if (!Array.isArray(data) && data?.colorPalette) {
-                        const { palette, glass: siteGlass } = readPaletteFromReport(data);
+                        const { palette, theme: siteTheme } = readPaletteFromReport(data);
                         setColorPalette(palette);
-                        setGlass(siteGlass);
+                        setTheme(siteTheme);
                     }
                 })
                 .catch(() => {

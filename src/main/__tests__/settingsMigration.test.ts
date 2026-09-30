@@ -27,12 +27,12 @@ describe('LEGACY_THEME_TO_PALETTE', () => {
 });
 
 describe('migrateGlassSetting', () => {
-    it('maps a legacy uiTheme to a palette, leaving glass off', () => {
+    it('maps a legacy uiTheme to a palette, landing on the main theme', () => {
         const store = makeStore({ uiTheme: 'dark-glass' });
         migrateGlassSetting(store);
         expect(store.data.colorPalette).toBe('electric-blue');
         // The palette carries over; the legacy theme's glassiness does not.
-        expect(store.data.glass).toBe(false);
+        expect(store.data.axiTheme).toBe('default');
         expect(store.data.uiTheme).toBeUndefined();
     });
 
@@ -57,7 +57,7 @@ describe('migrateGlassSetting', () => {
     it('retires the legacy booleans without enabling glass', () => {
         const store = makeStore({ glassSurfaces: true, glassmorphic: false, axiDesign: true });
         migrateGlassSetting(store);
-        expect(store.data.glass).toBe(false);
+        expect(store.data.axiTheme).toBe('default');
         expect(store.data.glassSurfaces).toBeUndefined();
         expect(store.data.glassmorphic).toBeUndefined();
         expect(store.data.axiDesign).toBeUndefined();
@@ -66,36 +66,58 @@ describe('migrateGlassSetting', () => {
     it('does not fold glassmorphic into glass', () => {
         const store = makeStore({ glassmorphic: true });
         migrateGlassSetting(store);
-        expect(store.data.glass).toBe(false);
+        expect(store.data.axiTheme).toBe('default');
     });
 
     it('leaves glass off when neither glass boolean was set', () => {
         const store = makeStore({ axiDesign: true });
         migrateGlassSetting(store);
-        expect(store.data.glass).toBe(false);
+        expect(store.data.axiTheme).toBe('default');
     });
 
-    // The `!store.has('glass')` guard still matters: once a user opts in from
-    // Settings, no later launch may quietly switch them back off.
-    it('does not clobber a user who opted in, on a second launch', () => {
+    // The whole point of the second generation of this migration: a user who had
+    // glass on has to still have glass on. This is the one assertion here where a
+    // regression is visible to someone on the next launch.
+    it('carries a user who had glass on to the glass theme', () => {
         const store = makeStore({ glass: true });
         migrateGlassSetting(store);
-        expect(store.data.glass).toBe(true);
-        migrateGlassSetting(store);
-        expect(store.data.glass).toBe(true);
+        expect(store.data.axiTheme).toBe('glass');
+        expect(store.data.glass).toBeUndefined();
     });
 
-    it('does not clobber a user who has since turned glass off', () => {
+    // `false` meant the main theme, which is what those users were looking at. It
+    // must never arrive as `flat` — a theme nobody has ever seen.
+    it('carries a user who had glass off to the main theme, never to flat', () => {
         const store = makeStore({ glass: false });
         migrateGlassSetting(store);
-        expect(store.data.glass).toBe(false);
+        expect(store.data.axiTheme).toBe('default');
+    });
+
+    // The `!store.has('axiTheme')` guard. This runs every launch and deletes its own
+    // input, so without the guard the second pass would read an absent `glass` as
+    // false and switch a user's theme back to the default permanently.
+    it('does not clobber the choice on a second launch', () => {
+        const store = makeStore({ glass: true });
+        migrateGlassSetting(store);
+        expect(store.data.axiTheme).toBe('glass');
+        migrateGlassSetting(store);
+        expect(store.data.axiTheme).toBe('glass');
+    });
+
+    it('leaves a theme only reachable through the picker alone', () => {
+        // flat can only have come from the picker — no legacy key maps to it — so a
+        // launch must not touch it.
+        const store = makeStore({ axiTheme: 'flat' });
+        migrateGlassSetting(store);
+        migrateGlassSetting(store);
+        expect(store.data.axiTheme).toBe('flat');
     });
 
     it('is a no-op on a fresh store', () => {
         const store = makeStore({});
         migrateGlassSetting(store);
-        expect(store.data.glass).toBe(false);
-        expect(Object.keys(store.data)).toEqual(['glass']);
+        expect(store.data.axiTheme).toBe('default');
+        expect(Object.keys(store.data)).toEqual(['axiTheme']);
     });
 });
 
@@ -106,7 +128,8 @@ describe('collapseGlassKeys', () => {
     it('collapses the booleans on an imported settings object', () => {
         const settings: Record<string, any> = { colorPalette: 'rose-pink', glassSurfaces: true, axiDesign: true };
         collapseGlassKeys(settings);
-        expect(settings.glass).toBe(true);
+        expect(settings.axiTheme).toBe('glass');
+        expect(settings.glass).toBeUndefined();
         expect(settings.glassSurfaces).toBeUndefined();
         expect(settings.axiDesign).toBeUndefined();
         expect(settings.colorPalette).toBe('rose-pink');
@@ -115,19 +138,29 @@ describe('collapseGlassKeys', () => {
     it('folds glassmorphic alone into glass', () => {
         const settings: Record<string, any> = { glassmorphic: true };
         collapseGlassKeys(settings);
-        expect(settings.glass).toBe(true);
+        expect(settings.axiTheme).toBe('glass');
+    });
+
+    // An export written by a build that had the theme picker: the id wins outright,
+    // including over booleans that disagree with it, because the booleans cannot say
+    // flat and reading them first would flatten every flat export to the default.
+    it('prefers an axiTheme the file already carries', () => {
+        const settings: Record<string, any> = { axiTheme: 'flat', glass: true, glassSurfaces: true };
+        collapseGlassKeys(settings);
+        expect(settings.axiTheme).toBe('flat');
+        expect(settings.glass).toBeUndefined();
     });
 
     it('respects a glass key the file already carries', () => {
         const settings: Record<string, any> = { glass: false, glassSurfaces: true };
         collapseGlassKeys(settings);
-        expect(settings.glass).toBe(false);
+        expect(settings.axiTheme).toBe('default');
     });
 
-    it('writes glass: false for a file that carries neither', () => {
+    it('writes the main theme for a file that carries neither', () => {
         const settings: Record<string, any> = { colorPalette: 'slate-silver' };
         collapseGlassKeys(settings);
-        expect(settings.glass).toBe(false);
+        expect(settings.axiTheme).toBe('default');
     });
 });
 
@@ -139,7 +172,8 @@ describe('normalizeImportedSettings', () => {
     it('collapses glassSurfaces on a file with no glass and no uiTheme', () => {
         const settings: Record<string, any> = { colorPalette: 'rose-pink', glassSurfaces: true };
         normalizeImportedSettings(settings);
-        expect(settings.glass).toBe(true);
+        expect(settings.axiTheme).toBe('glass');
+        expect(settings.glass).toBeUndefined();
         expect(settings.glassSurfaces).toBeUndefined();
         expect(settings.glassmorphic).toBeUndefined();
         expect(settings.axiDesign).toBeUndefined();
@@ -148,25 +182,25 @@ describe('normalizeImportedSettings', () => {
     it('collapses glassmorphic alone', () => {
         const settings: Record<string, any> = { glassmorphic: true };
         normalizeImportedSettings(settings);
-        expect(settings.glass).toBe(true);
+        expect(settings.axiTheme).toBe('glass');
     });
 
-    it('maps a legacy uiTheme to its palette and glass value', () => {
+    it('maps a legacy uiTheme to its palette and theme', () => {
         // dark-glass is the one legacy theme LEGACY_THEME_TO_PALETTE marks glass: true.
         const settings: Record<string, any> = { uiTheme: 'dark-glass' };
         normalizeImportedSettings(settings);
         expect(settings.colorPalette).toBe('electric-blue');
-        expect(settings.glass).toBe(true);
+        expect(settings.axiTheme).toBe('glass');
         expect(settings.uiTheme).toBeUndefined();
     });
 
-    // Review Focus 2, restated: collapseGlassKeys already fabricates glass: false
-    // when neither legacy boolean is true and no glass key is present — this is
-    // existing behaviour (see 'writes glass: false for a file that carries
-    // neither' above), not something normalizeImportedSettings changes or fixes.
-    it('leaves glass false (collapseGlassKeys default) for a file with none of the legacy keys', () => {
+    // Review Focus 2, restated: collapseGlassKeys already fabricates a theme when
+    // neither legacy boolean is true and no theme key is present — this is existing
+    // behaviour (see 'writes the main theme for a file that carries neither' above),
+    // not something normalizeImportedSettings changes or fixes.
+    it('lands on the main theme for a file with none of the legacy keys', () => {
         const settings: Record<string, any> = { colorPalette: 'slate-silver' };
         normalizeImportedSettings(settings);
-        expect(settings.glass).toBe(false);
+        expect(settings.axiTheme).toBe('default');
     });
 });

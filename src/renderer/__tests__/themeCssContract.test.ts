@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+import { AXI_THEMES, DEFAULT_AXI_THEME } from '../../shared/webThemes';
 
 /**
  * Text-level invariants on the two stylesheets. These are not style assertions —
@@ -373,6 +374,55 @@ describe('docs/view/viewer.js', () => {
     it('carries the classes the app has adopted since', () => {
         for (const name of ['axi-dock', 'axi-toolbar--float', 'axi-panel--tile', 'axi-sheet']) {
             expect(bundle.includes(name), `docs/view/viewer.js does not ship .${name}`).toBe(true);
+        }
+    });
+});
+
+/**
+ * The picker and the stylesheets have to name the same themes.
+ *
+ * AXI_THEMES is what the settings UI offers and what the applier clamps against;
+ * index.css's @import list is what actually has rules behind it. They are two lists
+ * in two languages with nothing connecting them, and both failure directions are
+ * silent:
+ *
+ *   - An id offered with no stylesheet imported lands on <html> and renders as the
+ *     main theme, with the attribute claiming a theme is on. That is what the flat
+ *     theme was for a release: shipped in the package, unreachable in the app.
+ *   - A stylesheet imported with no id offered is bytes nobody can select.
+ *
+ * `default` is not in the import list and must not be: it IS the absence of a theme,
+ * and axi.css carries its tokens.
+ */
+describe('the themes the app offers and the themes it imports', () => {
+    const indexCss = read('index.css');
+
+    const imported = [...indexCss.matchAll(/@import '@axiapps\/axi-design\/themes\/([a-z-]+)\.css';/g)]
+        .map((m) => m[1]);
+
+    const offered = Object.keys(AXI_THEMES).filter((id) => id !== DEFAULT_AXI_THEME);
+
+    it('finds the imports it is meant to be checking', () => {
+        expect(imported.length).toBeGreaterThan(0);
+    });
+
+    it('imports a stylesheet for every theme the picker offers', () => {
+        expect(imported.slice().sort()).toEqual(offered.slice().sort());
+    });
+
+    it('does not import a stylesheet for the default theme', () => {
+        // There is no themes/default.css upstream: the main theme is axi.css's own
+        // :root, and its spelling here is the absence of the attribute.
+        expect(imported).not.toContain(DEFAULT_AXI_THEME);
+    });
+
+    it('ships a stylesheet in the installed package for each one', () => {
+        for (const id of imported) {
+            const file = path.resolve(
+                __dirname, '..', '..', '..',
+                'node_modules/@axiapps/axi-design/dist/themes', `${id}.css`,
+            );
+            expect(fs.existsSync(file), `@axiapps/axi-design ships no themes/${id}.css`).toBe(true);
         }
     });
 });

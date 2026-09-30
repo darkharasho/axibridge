@@ -14,6 +14,7 @@ import {
 } from '../../web/rollup';
 import { parseAttendanceFile, updateAttendanceForPublish, type AttendanceRaid } from '../../web/attendance';
 import { startReportPost } from '../reportPostRunner';
+import { asAxiTheme, DEFAULT_AXI_THEME, type AxiTheme } from '../../shared/webThemes';
 import { type IReportWebhook, selectReportWebhooks } from '../../shared/reportWebhooks';
 import { buildReportCardModel } from '../../shared/reportCardModel';
 import { renderReportCard } from '../reportCardRenderer';
@@ -962,17 +963,25 @@ const buildWebReportPayload = (
     reportMeta: any,
     sourceStats: any,
     colorPalette: string,
-    glass: boolean
+    axiTheme: AxiTheme
 ) => {
+    // `axiTheme` is the field current viewers read. The two booleans are the same
+    // choice in the shape the setting had when it could only be on or off, written
+    // for viewers already deployed in the field: a published report keeps the viewer
+    // bundle from its last publish, so those readers are still out there and only
+    // know that spelling. They cannot express `flat`, which reads as the main theme
+    // to an old viewer — the honest degradation, and the reason the new field exists
+    // rather than the boolean being stretched. See STUB_STATS_KEYS in
+    // webReportParts.ts and readPaletteFromReport in src/web/paletteReader.ts.
+    const legacyGlass = axiTheme === 'glass';
     const payload = {
         meta: { ...(reportMeta || {}) },
         stats: {
             ...(sourceStats || {}),
             colorPalette,
-            glass,
-            // The same value under its old name, for viewers already deployed in
-            // the field. See STUB_STATS_KEYS in webReportParts.ts.
-            glassSurfaces: glass
+            axiTheme,
+            glass: legacyGlass,
+            glassSurfaces: legacyGlass
         } as Record<string, any>
     };
 
@@ -2163,7 +2172,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             }
 
             const paletteValue = (store.get('colorPalette', 'electric-blue') as string) || 'electric-blue';
-            const glassValue = !!store.get('glass', false);
+            const axiThemeValue = asAxiTheme(store.get('axiTheme', DEFAULT_AXI_THEME));
 
             // R2: if configured, strip replayFights from the main payload and upload separately.
             const { uploader: r2, missingFields: r2MissingFields, partiallyConfigured } = resolveR2Uploader(store);
@@ -2228,7 +2237,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 reportMeta,
                 sourceStats,
                 paletteValue,
-                glassValue
+                axiThemeValue
             );
 
             let replayHostedOnPages = false;
@@ -2426,8 +2435,9 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const mergedEntries = [indexEntry, ...existingEntries.filter((entry) => entry?.id !== reportMeta.id)];
             const indexPayload = {
                 colorPalette: paletteValue,
-                glass: glassValue,
-                glassSurfaces: glassValue,
+                axiTheme: axiThemeValue,
+                glass: axiThemeValue === 'glass',
+                glassSurfaces: axiThemeValue === 'glass',
                 entries: mergedEntries
             };
 
@@ -2743,12 +2753,12 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 appVersion: app.getVersion()
             };
             const localPalette = (store.get('colorPalette', 'electric-blue') as string) || 'electric-blue';
-            const localGlass = !!store.get('glass', false);
+            const localTheme = asAxiTheme(store.get('axiTheme', DEFAULT_AXI_THEME));
             const builtReport = buildWebReportPayload(
                 reportMeta,
                 payload.stats || {},
                 localPalette,
-                localGlass
+                localTheme
             );
             const reportsRoot = path.join(webRoot, 'reports');
             const reportDir = path.join(reportsRoot, reportMeta.id);
@@ -2831,8 +2841,9 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const mergedLocalEntries = [indexEntry, ...normalizedExistingEntries.filter((entry) => entry?.id !== reportMeta.id)];
             const localIndexPayload = {
                 colorPalette: localPalette,
-                glass: localGlass,
-                glassSurfaces: localGlass,
+                axiTheme: localTheme,
+                glass: localTheme === 'glass',
+                glassSurfaces: localTheme === 'glass',
                 entries: mergedLocalEntries
             };
             fs.writeFileSync(indexPath, JSON.stringify(localIndexPayload, null, 2));
