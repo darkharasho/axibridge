@@ -227,115 +227,111 @@ describe('axi-design.css', () => {
 });
 
 /**
- * The flat-surface-token contract under glass.
+ * The surface-paint contract.
  *
  * Mechanism: `background-color: var(--X)` where --X resolves to a linear-gradient
  * is invalid at computed-value time — it does not fall back, it drops, and the
- * element computes to `transparent` with NO fill. Upstream's glass theme makes
- * --axi-surface and --axi-surface-raised alpha gradients, and axi-design.css
- * remaps sixteen of the app's own tokens onto those two. Roughly 200 markup sites
- * consume those tokens through Tailwind arbitrary utilities (`bg-[var(--bg-hover)]`),
- * which compile to `background-color` by construction and have no shorthand
- * spelling, so the only place the fix can live is the token itself.
+ * element computes to `transparent` with NO fill. `fill` is worse: it takes
+ * <paint> and not <image>, and because `fill` INHERITS, an invalid one does not
+ * even fall back to its own initial value, it adopts the ancestor's. color-mix()
+ * takes colours only and fails the same way.
  *
- * This test enumerates the affected tokens OUT OF axi-design.css rather than from a
- * hand-kept list, so it fails on three distinct regressions:
- *   1. the glass flat-token block in index.css is deleted or renamed;
- *   2. any one token in it is re-pointed back at a gradient-valued --axi-* token;
- *   3. a NEW app token is remapped onto --axi-surface/-raised in axi-design.css
- *      without a flat counterpart being added here.
- * It also fails if the glass block's selector loses its trailing ` body`, which is
- * the form that ships inert: the remaps are declared directly ON body, and an
- * inherited custom property from <html> always loses to a declaration on the
- * element regardless of specificity.
+ * A theme is allowed to paint a surface with a gradient — rule 1's one relief
+ * upstream, and BOTH shipped themes take it. So any app token remapped onto
+ * --axi-surface or --axi-surface-raised is gradient-valued under a theme, and
+ * about thirty of the consuming sites are Tailwind arbitrary utilities
+ * (`bg-[var(--bg-hover)]`) which compile to `background-color` by construction
+ * and have no shorthand spelling. The fix can only live in the token.
+ *
+ * This used to be seventeen hand-picked flat values in index.css, scoped to
+ * glass. It was correct for glass and structurally one theme behind: when the
+ * flat theme arrived and graded its surfaces the same way, every one of those
+ * sites lost its fill again with nothing pinned. Measured under flat before the
+ * fix — rgb(0, 0, 0) on the chart's brush slide and bar cursor, and no fill at
+ * all on the bucket grid's heat ramp.
+ *
+ * axi-design 1.42.0 gave every surface a `-paint` companion holding that same
+ * surface as one flat <color>, in every theme, so the contract is now
+ * theme-independent and asserted as such. The tokens are enumerated OUT OF
+ * axi-design.css rather than from a hand-kept list, so this fails on:
+ *   1. any app token remapped onto a bare surface instead of its companion;
+ *   2. either stylesheet reading a bare surface token where only a colour is
+ *      legal — background-color, fill, stroke, a border colour, a color-mix
+ *      operand;
+ *   3. the per-theme pin block coming back, which would mean a third theme got
+ *      fixed the old way.
  */
-describe('flat app surface tokens under glass', () => {
+describe('the surface-paint contract', () => {
     const axiDesign = read('axi-design.css');
     const indexCss = read('index.css');
 
-    // Every block whose selector is exactly `[data-axi-accent] body` — the app's
-    // body-level token layer. Component blocks (`... body .foo`) are excluded on
-    // purpose: the tokens they declare are read by `background:` shorthands, where a
-    // gradient is valid, and they are out of a body-scoped block's reach anyway.
-    const gradientValued = new Map<string, string>();
-    for (const block of axiDesign.matchAll(/^\[data-axi-accent\] body \{([^}]*)\}/gm)) {
-        for (const decl of block[1].matchAll(/(--[\w-]+):\s*var\((--axi-surface(?:-raised)?)\)\s*;/g)) {
-            gradientValued.set(decl[1], decl[2]);
-        }
+    // Every app token in axi-design.css whose value is a surface token, wherever
+    // it is declared: the body-level layer and the component-scoped blocks alike,
+    // because a token declared in one is consumed by the same utilities as one
+    // declared in the other. What matters is the VALUE, not the selector.
+    const remapped = new Map<string, string>();
+    for (const decl of axiDesign.matchAll(
+        /(--(?!axi-)[\w-]+):\s*var\((--axi-surface(?:-raised|-float)?)(-paint)?\)\s*;/g
+    )) {
+        remapped.set(decl[1], decl[3] ? `${decl[2]}-paint` : decl[2]);
     }
 
-    const glassBlock = indexCss.match(
-        /\[data-axi-accent\]\[data-axi-theme="glass"\] body \{([^}]*)\}/
-    );
-
-    const FLAT = /^(#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)|hsla?\([^)]*\))$/;
-
     it('finds the remapped tokens it is meant to guard', () => {
-        // Guards the enumeration itself: if the selector shape in axi-design.css
-        // changes, this test must fail loudly rather than pass over an empty set.
-        expect(gradientValued.size).toBeGreaterThanOrEqual(16);
+        // Guards the enumeration itself: if the spelling in axi-design.css
+        // changes, this must fail loudly rather than pass over an empty set.
+        expect(remapped.size).toBeGreaterThanOrEqual(16);
         for (const token of ['--bg-card', '--bg-elevated', '--bg-hover', '--accent-bg', '--accent-bg-strong']) {
-            expect(gradientValued.has(token), `${token} should be remapped onto a surface token`).toBe(true);
+            expect(remapped.has(token), `${token} should be remapped onto a surface`).toBe(true);
         }
     });
 
-    it('re-declares them on body, where a declaration beats inheritance', () => {
-        expect(glassBlock, 'the [data-axi-accent][data-axi-theme="glass"] body token block').not.toBeNull();
+    // The whole contract in one assertion. An app token naming a bare surface is
+    // gradient-valued under every theme that grades that surface, and there is no
+    // longer anywhere to paper over it.
+    it('remaps every app token onto a paint companion, never a bare surface', () => {
+        const bare = [...remapped].filter(([, source]) => !source.endsWith('-paint'));
+        expect(
+            bare.map(([token, source]) => `${token} -> ${source}`),
+            'these name a surface a theme may paint with a gradient; name its -paint companion instead'
+        ).toEqual([]);
     });
 
-    it('gives every one of them a flat colour under glass', () => {
-        const declared = new Map<string, string>();
-        for (const decl of glassBlock![1].matchAll(/(--[\w-]+):\s*([^;]+);/g)) {
-            declared.set(decl[1], decl[2].trim());
-        }
-        for (const [token, source] of gradientValued) {
-            const value = declared.get(token);
-            expect(value, `${token} maps to ${source} (a gradient under glass) and needs a flat value here`)
-                .toBeDefined();
-            expect(value, `${token} is still gradient-valued under glass`).toMatch(FLAT);
-        }
-    });
-
-    it('does not redeclare upstream’s own tokens', () => {
-        // Upstream's .axi-* components read --axi-surface directly and must keep
-        // their gradients; this block is only for AxiBridge's vocabulary.
-        expect(glassBlock![1]).not.toMatch(/--axi-[\w-]+\s*:/);
-    });
-
-    // The hand-written third of the same problem. These five tokens are
-    // gradient-valued under glass, so neither stylesheet may consume them through a
-    // property that only accepts a colour: `background-color` or a color-mix()
-    // operand. The flat block above makes them safe today, which is exactly why a
-    // regression here would be silent — it only resurfaces if a token moves.
-    //
-    // This list is deliberately five of the sixteen, not all of them. The other
-    // eleven ARE still read through `background-color` — `--status-success-bg` and
-    // `--status-error-bg` at index.css:941,947 and 951,957 — and are rescued by the
-    // flat block rather than by avoiding the property, so widening this regex would
-    // fail on correct code. The invariant these five carry is the stronger one:
-    // never reach for a colour-only property with a surface token in the first place.
-    const COLOUR_ONLY_TOKENS = 'bg-card|bg-elevated|bg-hover|accent-bg|accent-bg-strong';
-    it.each(['index.css', 'axi-design.css'])('%s never reads a surface token where only a colour is legal', (file) => {
+    it.each(['index.css', 'axi-design.css'])('%s never reads a bare surface where only a colour is legal', (file) => {
         const css = file === 'index.css' ? indexCss : axiDesign;
-        expect(css, 'background-color: var(<surface token>)')
-            .not.toMatch(new RegExp(String.raw`background-color:\s*var\(--(${COLOUR_ONLY_TOKENS})[,)]`));
+        const BARE = String.raw`var\(--axi-surface(?:-raised|-float)?\)`;
+        expect(css, 'background-color: var(<bare surface>)')
+            .not.toMatch(new RegExp(String.raw`background-color:\s*${BARE}`));
+        expect(css, 'fill/stroke from a bare surface is invalid and inherits instead')
+            .not.toMatch(new RegExp(String.raw`(?:fill|stroke):\s*${BARE}`));
+        expect(css, 'a border colour from a bare surface')
+            .not.toMatch(new RegExp(String.raw`border(?:-[a-z]+)?-color:\s*${BARE}`));
         expect(css, 'color-mix() with a gradient-valued operand')
-            .not.toMatch(/color-mix\([^;]*var\(--axi-surface(-raised)?\)/);
+            .not.toMatch(new RegExp(String.raw`color-mix\([^;]*${BARE}`));
     });
 
-    // SVG `fill` is the fifth population of the same mechanism, and the one that
-    // hides best: `fill` takes <paint>, not <image>, so a gradient-valued token
-    // makes the declaration invalid — and because `fill` INHERITS, the element does
-    // not fall back to its own initial value, it silently adopts the ancestor's
-    // fill. Measured in Chrome: a gradient-valued `fill` computed to the ancestor's
-    // purple, not to any surface. Nothing in the app sets fill on a recharts
-    // ancestor, so under glass the brush slide, the brush travellers and the
-    // tooltip hover band rendered initial black.
-    it('never paints SVG fill from a gradient-valued token', () => {
-        for (const [file, css] of [['index.css', indexCss], ['axi-design.css', axiDesign]] as const) {
-            expect(css, `${file}: fill: var(--axi-surface…) is invalid and inherits instead`)
-                .not.toMatch(/fill:\s*var\(--axi-surface(-raised)?\)/);
+    // The same check pointed at the markup, where most of the consuming sites
+    // are. A Tailwind arbitrary utility compiles to one property, and for `bg-[…]`
+    // that property is background-color — so a bare surface token there is the
+    // defect with no CSS anywhere to read it in.
+    it('never reads a bare surface token from a Tailwind arbitrary utility', () => {
+        const sources = jsxSources();
+        expect(sources.length, 'no markup sources found to scan').toBeGreaterThan(50);
+        const offenders: string[] = [];
+        for (const text of sources) {
+            for (const m of text.matchAll(
+                /\b(?:bg|border|fill|stroke|from|via|to|ring|outline|decoration|accent|caret)-\[var\(--axi-surface(?:-raised|-float)?\)\]/g
+            )) {
+                offenders.push(m[0]);
+            }
         }
+        expect(offenders).toEqual([]);
+    });
+
+    it('does not bring back the per-theme pin block', () => {
+        // The shape that shipped: a body-level block of flat literals hooked on
+        // one theme. Correct for that theme, wrong for the next one.
+        expect(indexCss, 'a [data-axi-theme="<id>"] body token block is a per-theme patch')
+            .not.toMatch(/\[data-axi-accent\]\[data-axi-theme="[a-z]+"\] body \{/);
     });
 });
 

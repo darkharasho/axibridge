@@ -49,17 +49,42 @@
   --axi-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
   /* --- remap: surfaces --- */
-  /* bg-card-inner is the ground rather than a third surface: in axi a thing
+  /* Every one of these names a surface's -paint companion and not the surface
+     itself, and that is not a detail. A theme is allowed to paint a surface
+     with a gradient, and both of ours do; a gradient is only ever valid as a
+     background. What consumes these tokens is the app's own vocabulary, and
+     about thirty of those sites are Tailwind arbitrary utilities -
+     `bg-[var(--bg-hover)]` and its kin - which compile to `background-color`
+     by construction and have no shorthand spelling at all. A gradient there is
+     invalid at computed-value time and does not fall back: the element
+     computes to no fill.
+
+     That used to be papered over in index.css with a block of seventeen
+     hand-picked flat values, scoped to glass. It worked, for glass. Then the
+     flat theme arrived, graded its surfaces the same way, and every one of
+     those sites lost its fill again - measured, under flat: rgb(0, 0, 0) on
+     the chart's brush slide and bar cursor, and no fill whatsoever on the
+     bucket grid's heat ramp, thirty markup sites and two result badges. A
+     per-theme patch can only ever be behind by one theme.
+
+     The companions are the theme-independent answer, so the patch is gone and
+     this is the whole of it. Upstream components are unaffected: .axi-panel
+     and the rest read --axi-surface directly and keep their gradient. The rule
+     is that a gradient belongs to a surface the LANGUAGE paints, and the app's
+     shim vocabulary - read through background-color, fill and color-mix - gets
+     that same surface as one flat colour.
+
+     bg-card-inner is the ground rather than a third surface: in axi a thing
      sunk inside a panel goes back down to the page colour, which is what makes
      a stat tile read as content instead of as another floating card. */
   --bg-base: var(--axi-ground);
-  --bg-elevated: var(--axi-surface);
-  --bg-card: var(--axi-surface);
+  --bg-elevated: var(--axi-surface-paint);
+  --bg-card: var(--axi-surface-paint);
   --bg-card-inner: var(--axi-ground);
   --bg-input: var(--axi-ground);
   /* Rule 2: no colour at partial opacity over the ground. The app's hover is a
      5% white wash; here it is the next surface up the neutral ramp. */
-  --bg-hover: var(--axi-surface-raised);
+  --bg-hover: var(--axi-surface-raised-paint);
 
   /* --- remap: borders --- */
   /* Every border in this language is opaque and near-black. The app's three
@@ -103,7 +128,7 @@
   /* accent-bg-strong is used as a tint behind accent-coloured text, which rule
      2 does not allow. It becomes an opaque neutral, so the accent stays in the
      text where it is doing the work. */
-  --accent-bg-strong: var(--axi-surface-raised);
+  --accent-bg-strong: var(--axi-surface-raised-paint);
   /* The next three make every secondary button in the app - the folder picker,
      the webhook gear, Add Logs. They were a coloured outline round a tinted
      fill round coloured text, which is rule 5's annotation chip, not a button:
@@ -115,7 +140,7 @@
      The fill is the surface rather than the ground `.axi-btn` uses, for the
      reason the whole `--axi-well-line` note gives: ink reads against a fill
      lighter than itself, and half these buttons sit on the ground already. */
-  --accent-bg: var(--axi-surface);
+  --accent-bg: var(--axi-surface-paint);
   --accent-border: var(--axi-ink-line);
   --button-label: var(--axi-text-dim);
   /* Nothing glows. A glow is an element lit from inside, which is the opposite
@@ -153,31 +178,31 @@
      translucent backgrounds change, for the same reason accent-bg did. */
   --status-success: var(--axi-ok);
   --status-success-muted: var(--axi-ok);
-  --status-success-bg: var(--axi-surface-raised);
+  --status-success-bg: var(--axi-surface-raised-paint);
   --status-success-border: var(--axi-ok);
   --status-error: var(--axi-danger);
   --status-error-muted: var(--axi-danger);
-  --status-error-bg: var(--axi-surface-raised);
+  --status-error-bg: var(--axi-surface-raised-paint);
   --status-error-border: var(--axi-danger);
   --status-warning: var(--axi-warn);
   --status-warning-muted: var(--axi-warn);
-  --status-warning-bg: var(--axi-surface-raised);
+  --status-warning-bg: var(--axi-surface-raised-paint);
   --status-warning-border: var(--axi-warn);
   /* meta is the one cool ink, and info is exactly what it is for. */
   --status-info: var(--axi-meta);
-  --status-info-bg: var(--axi-surface-raised);
+  --status-info-bg: var(--axi-surface-raised-paint);
   --status-info-border: var(--axi-meta);
 
   /* --- remap: section accents --- */
   /* Rule 10's third case: past two series the data owns its palette. Eleven
      stats categories are a domain palette, so the hues stay; only the washes
      behind them go opaque. */
-  --section-offense-bg: var(--axi-surface-raised);
-  --section-defense-bg: var(--axi-surface-raised);
-  --section-mitigation-bg: var(--axi-surface-raised);
-  --section-support-bg: var(--axi-surface-raised);
-  --section-healing-bg: var(--axi-surface-raised);
-  --section-boon-bg: var(--axi-surface-raised);
+  --section-offense-bg: var(--axi-surface-raised-paint);
+  --section-defense-bg: var(--axi-surface-raised-paint);
+  --section-mitigation-bg: var(--axi-surface-raised-paint);
+  --section-support-bg: var(--axi-surface-raised-paint);
+  --section-healing-bg: var(--axi-surface-raised-paint);
+  --section-boon-bg: var(--axi-surface-raised-paint);
   /* The one category hue that has to move. Boons were amber (#fbbf24), which
      is the accent to within a few percent, so a Boons panel's edge read as a
      selection. Rotated to the one clearly-distinct hue the eleven-category
@@ -548,7 +573,7 @@
   --stats-group-accent-w: var(--axi-border-panel);
   /* Rule 2: a hue at 20% over the ground is a wash. The mark keeps the hue in
      its icon and takes its ground from the surface above it. */
-  --stats-group-mark-bg: var(--axi-surface-raised);
+  --stats-group-mark-bg: var(--axi-surface-raised-paint);
 }
 [data-axi-accent] body .stats-group-container { border-radius: var(--axi-radius); }
 
@@ -878,10 +903,6 @@
    what keeps the cards reading as the thing you are meant to click. */
 [data-axi-accent] body .history-view {
   --history-edge-w: var(--axi-border-control);
-  /* The filter's "on" state was the accent at 15% over the ground. An accent
-     at partial opacity is rule 2 exactly; the state is carried by the accent
-     edge and the accent label it already has, so the fill just goes opaque. */
-  --history-filter-on-bg: var(--axi-surface-raised);
 }
 
 /* The map split is a quantity read as length, so it keeps its proportions and
@@ -1151,19 +1172,21 @@
   border-radius: 0;
 }
 /* The heat ramp mixes the accent into the panel colour. The second operand is
-   --bg-card rather than --axi-surface: outside glass they are the same value, but
-   under glass --axi-surface is an alpha gradient and color-mix() takes colours
-   only, so the whole declaration would be invalid at computed-value time and the
-   heat cells would lose their fill. --bg-card is flat under glass (see the token
-   block in index.css), so the mix is valid in both themes. */
+   --axi-surface-paint and not --axi-surface, because color-mix() takes colours
+   only and a theme is allowed to paint a surface with a gradient - which both
+   of ours do. The companion is that same surface as one flat colour, which is
+   exactly what a mix operand needs. This used to go through the app's --bg-card
+   shim for the same reason, and that only ever worked under glass, where
+   index.css happened to pin the shim flat; under flat the mix was invalid and
+   every heat cell lost its fill. */
 [data-axi-accent] body .bucket-grid td[data-heat='1'] {
-  background-color: color-mix(in srgb, var(--axi-accent) 18%, var(--bg-card)) !important;
+  background-color: color-mix(in srgb, var(--axi-accent) 18%, var(--axi-surface-paint)) !important;
 }
 [data-axi-accent] body .bucket-grid td[data-heat='2'] {
-  background-color: color-mix(in srgb, var(--axi-accent) 42%, var(--bg-card)) !important;
+  background-color: color-mix(in srgb, var(--axi-accent) 42%, var(--axi-surface-paint)) !important;
 }
 [data-axi-accent] body .bucket-grid td[data-heat='3'] {
-  background-color: color-mix(in srgb, var(--axi-accent) 70%, var(--bg-card)) !important;
+  background-color: color-mix(in srgb, var(--axi-accent) 70%, var(--axi-surface-paint)) !important;
   color: var(--axi-accent-ink);
 }
 [data-axi-accent] body .bucket-grid td[data-heat='4'] {
@@ -1366,20 +1389,22 @@
    language never had an opinion about those. What it has an opinion about is
    everything drawn around them.
 
-   FOUND, NOT FIXED - and not this file's to fix. Two of the fills below reach
-   a surface colour through the app's --bg-card and --bg-hover shims, because
-   `fill` takes <paint> and not <image> and every surface token in the language
-   is a linear-gradient under both the glass and the flat theme. index.css pins
-   those shims flat under glass. It does not under flat, so with the app's own
-   stylesheets loaded the flat theme computes the brush slide and the bar cursor
-   as rgb(0, 0, 0) - and, for the same reason, drops the bucket grid's whole
-   heat ramp to rgba(0, 0, 0, 0), because color-mix() takes colours only.
-   Measured in all three themes; default and glass are correct.
+   Three of the fills below used to reach a surface colour through the app's
+   --bg-card and --bg-hover shims, because `fill` takes <paint> and not <image>
+   and every surface token was a linear-gradient under both the glass and the
+   flat theme. index.css pinned those shims flat under glass and had nothing to
+   offer under flat, so the flat theme computed the brush slide and the bar
+   cursor as rgb(0, 0, 0) and dropped the bucket grid's whole heat ramp to
+   rgba(0, 0, 0, 0), color-mix() taking colours only. Recorded here as found and
+   not fixed, because the gap was the language's: a surface that may be a
+   gradient has nothing to offer anything that needs a paint or a mix operand,
+   and pinning the shims flat under flat would have fixed these three while
+   flattening every panel in the theme.
 
-   The gap is upstream's: a language whose surfaces are gradients has nothing to
-   offer anything that needs a paint or a mix operand. Pinning the shims flat
-   under flat would fix these three and flatten every panel in the theme, which
-   is not a trade this file gets to make. */
+   Fixed upstream instead, in axi-design 1.42.0. Every surface now has a -paint
+   companion holding the same surface as one flat <color>, so the three read
+   --axi-surface-paint and --axi-surface-raised-paint directly and the shims are
+   out of it. Measured in all three themes after the change. */
 
 [data-axi-accent] body {
   /* A grid line is quieter than a rule: a rule divides two things, a grid is
@@ -1458,7 +1483,9 @@
 /* Rule 2 again: the hover band was white at a few percent over the ground.
    Here it is the next surface up, which is a fill change rather than a wash. */
 [data-axi-accent] body .recharts-tooltip-cursor {
-  fill: var(--bg-hover);
+  /* The raised step's -paint companion, for the reason the brush slide gives
+     just below: a fill cannot be a gradient. */
+  fill: var(--axi-surface-raised-paint);
   fill-opacity: 1;
   stroke: var(--axi-rule);
   /* The band's outline used to be declared alone, 68 rules up the file, at the
@@ -1509,13 +1536,11 @@
   stroke: var(--axi-well-line);
   stroke-width: var(--axi-border-control);
 }
-/* `fill` takes <paint> and not <image>, and the glass and flat themes both
-   define --axi-surface as a linear-gradient - so this cannot name the surface
-   token directly. It goes through the app's shim, which index.css pins to a
-   flat value under glass. Under flat it is still the gradient, and this fill is
-   therefore invalid and inherits: see the note at the head of this section. */
+/* --axi-surface-paint and not --axi-surface: `fill` takes <paint> and not
+   <image>, and both themes paint the surface with a gradient. The companion is
+   that surface as one flat colour. */
 [data-axi-accent] body .recharts-brush-slide {
-  fill: var(--bg-card);
+  fill: var(--axi-surface-paint);
   fill-opacity: 1;
 }
 /* The two travellers are the only thing in any chart in the app you can grab,

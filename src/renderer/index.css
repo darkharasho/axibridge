@@ -1405,98 +1405,36 @@ body.web-report {
 }
 
 /* ---------------------------------------------------------------------------
-   FLAT APP SURFACE TOKENS UNDER GLASS
+   THE FLAT-TOKEN BLOCK THAT USED TO BE HERE
 
-   Upstream's glass theme declares --axi-surface and --axi-surface-raised as
-   alpha GRADIENTS (glass.css:7-8). axi-design.css remaps sixteen of the app's
-   own --bg-, --accent-, --status- and --section- tokens onto those two, and a
-   gradient in `background-color` is invalid at computed-value time: the whole
-   declaration drops and the surface computes to `transparent`, losing ALL fill.
-   The same trap is written up at the .bg-white\/4 remap above.
+   Seventeen of the app's own --bg-, --accent-, --status- and --section- tokens
+   were re-declared here at hand-picked flat values, scoped to glass, because
+   axi-design.css remapped them onto --axi-surface and --axi-surface-raised and
+   the glass theme paints both with an alpha gradient - and a gradient reaching
+   `background-color` is invalid at computed-value time, does not fall back, and
+   leaves the element with no fill. About thirty of the consuming sites are
+   Tailwind arbitrary utilities (`bg-[var(--bg-hover)]`), which compile to
+   background-color by construction and have no shorthand spelling, so the fix
+   could only live in the token.
 
-   Converting the declaration to the `background:` shorthand is the fix wherever
-   the declaration is ours to edit. It is not, for two whole populations:
+   It worked, for glass, and it was only ever going to work for glass. The flat
+   theme then graded its surfaces the same way and every one of those sites lost
+   its fill again, this time with nothing pinned: measured under flat, rgb(0, 0,
+   0) on the chart's brush slide and bar cursor and no fill at all on the bucket
+   grid's heat ramp. A per-theme patch is always one theme behind.
 
-     - Tailwind arbitrary-value utilities. `bg-[var(--bg-hover)]` and
-       `bg-[color:var(--bg-elevated)]` compile to `background-color: var(...)`
-       BY CONSTRUCTION - there is no shorthand spelling of them. 78 markup
-       sites use --bg-hover and 74 use --accent-bg-strong.
-     - Inline React styles on components we do not want to teach about themes.
+   Fixed in the language instead, in axi-design 1.42.0: every surface has a
+   -paint companion holding that same surface as one flat <color>, in every
+   theme. axi-design.css's remaps now name the companions, so the values arrive
+   correct under glass, flat and the main theme without a word here. The block's
+   own arithmetic turned out to be the derivation upstream adopted - each flat
+   value was the gradient's midpoint, which is exactly what a companion holds -
+   so the numbers survive; they are just no longer this file's to keep.
 
-   So the fix goes at the token, not the call site: under glass the app's own
-   tokens become the flat colour the gradient would have composited to. Upstream's
-   own .axi-* components read --axi-surface DIRECTLY and are untouched by this
-   block, so they keep their gradients; only AxiBridge's variables go flat. This
-   is what the two deleted homegrown glass themes did (flat rgba()), which is why
-   they never had this defect.
-
-   WHY THE SELECTOR ENDS IN ` body`. The remaps are declared ON body
-   (`[data-axi-accent] body`, 0,1,1). A custom property declared on <html>
-   inherits to body, and an inherited value always loses to a declaration made
-   directly on the element - specificity never enters it. A block on
-   `[data-axi-accent][data-axi-theme="glass"]` alone would therefore be inert no
-   matter how specific. With ` body` this is (0,2,1) against (0,1,1) on the same
-   element, so it wins on specificity and does not depend on load order (index.css
-   loads BEFORE axi-design.css).
-
-   THE ARITHMETIC. Each flat value is the gradient's 50% midpoint composited over
-   the glass ground #0a0c10 = rgb(10,12,16) (glass.css:5). Gradient stops
-   interpolate in premultiplied alpha, and compositing then un-premultiplies, so
-   the result is just mean(premultiplied stops) + ground x (1 - mean alpha):
-
-     --axi-surface: linear-gradient(145deg, rgba(58,68,92,.55), rgba(28,33,46,.42))
-       premultiplied stops (31.90,37.40,50.60) and (11.76,13.86,19.32); mean
-       (21.83,25.63,34.96) at alpha .485; + rgb(10,12,16) x .515 = (5.15,6.18,8.24)
-       => rgb(26.98,31.81,43.20) => #1b202b
-     --axi-surface-raised: linear-gradient(145deg, rgba(86,99,130,.5), rgba(44,52,71,.38))
-       premultiplied stops (43.00,49.50,65.00) and (16.72,19.76,26.98); mean
-       (29.86,34.63,45.99) at alpha .44; + rgb(10,12,16) x .56 = (5.60,6.72,8.96)
-       => rgb(35.46,41.35,54.95) => #232937
-
-   The values below are those means UN-premultiplied, so each token keeps the
-   gradient's average colour AND its alpha: (21.83,25.63,34.96)/.485 =>
-   rgba(45,53,72,.485), and (29.86,34.63,45.99)/.44 => rgba(68,79,105,.44). They
-   composite over the glass ground to exactly the #1b202b / #232937 above, so the
-   average appearance is unchanged - but because they stay translucent, the three
-   radial gradients of --axi-ground-image still show through. An earlier revision
-   of this block used the composited hex directly. That was a mistake: the tokens
-   feed `background:` shorthand sites too, not only the colour-only ones that
-   forced this block to exist, so opaque values stripped the tint off every
-   surface in the app and left glass reading as a flat dark theme.
-
-   What is lost is only the 145deg direction of the gradient; a single colour
-   cannot carry it. Floating surfaces are unaffected either way - the block below
-   gives each of them its own opaque fill with !important.
-
-   src/renderer/__tests__/themeCssContract.test.ts enumerates the remapped tokens
-   out of axi-design.css and fails if any of them is missing here. --- */
-[data-axi-accent][data-axi-theme="glass"] body {
-    /* surfaces */
-    --bg-elevated: rgba(45, 53, 72, 0.485);
-    --bg-card: rgba(45, 53, 72, 0.485);
-    --bg-hover: rgba(68, 79, 105, 0.44);
-    /* accent washes turned neutral by the remap */
-    --accent-bg: rgba(45, 53, 72, 0.485);
-    --accent-bg-strong: rgba(68, 79, 105, 0.44);
-    /* status washes: --status-success-bg and --status-error-bg are read as
-       `background-color` by the two upload-row rules above, the rest by inline
-       `background:` shorthands. They all resolve to --axi-surface-raised, so one
-       value covers the set. */
-    --status-success-bg: rgba(68, 79, 105, 0.44);
-    --status-error-bg: rgba(68, 79, 105, 0.44);
-    --status-warning-bg: rgba(68, 79, 105, 0.44);
-    --status-info-bg: rgba(68, 79, 105, 0.44);
-    /* the stats-group mark's ground, declared body-level so it lands here too. */
-    --stats-group-mark-bg: rgba(68, 79, 105, 0.44);
-    /* section washes: same target token, same flat value. */
-    --section-offense-bg: rgba(68, 79, 105, 0.44);
-    --section-defense-bg: rgba(68, 79, 105, 0.44);
-    --section-mitigation-bg: rgba(68, 79, 105, 0.44);
-    --section-support-bg: rgba(68, 79, 105, 0.44);
-    --section-healing-bg: rgba(68, 79, 105, 0.44);
-    --section-boon-bg: rgba(68, 79, 105, 0.44);
-}
-
+   The FLOATING SURFACES block below stays. That one is not about a gradient
+   reaching a colour-only property, it is about opacity: a translucent pane is
+   illegible once content scrolls under it, and blur is a no-op on Linux.
+   --------------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------------
    FLOATING SURFACES UNDER GLASS
 
