@@ -108,11 +108,10 @@ const MapLegendInner: React.FC<{ style?: React.CSSProperties }> = ({ style }) =>
                 aria-expanded={expanded}
                 title={expanded ? 'Hide the legend' : 'Show what the marks on the map mean'}
                 onClick={() => setExpanded(!expanded)}
+                className="axi-action axi-ink-faint"
                 style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
-                    padding: 0, background: 'none', border: 'none', cursor: 'pointer',
                     fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase',
-                    color: 'var(--text-muted)',
                 }}
             >
                 On the map

@@ -148,7 +148,7 @@ export const SkillUsageSection = ({
                             });
                         }}
                         disabled={allPlayerKeys.length === 0}
-                        className="skill-usage-player-list-item axi-btn axi-btn--xs disabled:cursor-not-allowed disabled:opacity-50"
+                        className="skill-usage-player-list-item axi-btn axi-btn--xs"
                     >
                         {hasAllPlayersSelected ? 'Clear All' : 'Select All'}
                     </button>

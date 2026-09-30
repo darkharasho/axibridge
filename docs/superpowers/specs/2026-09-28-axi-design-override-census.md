@@ -1575,3 +1575,103 @@ state and is a markup slice, not a CSS one.
 Measured after, both themes: frame `0px`; unselected edge transparent at the same
 width as selected; selected `rgb(43,49,61)` + `rgb(59,130,246)` in classic, the
 raised gradient + the same accent in glass.
+
+## The chromeless slice (1.38.0 - 1.41.0)
+
+The census named this block "~30 quiet text actions, ~14 bare glyphs". Counting
+by the *property* - no border, no fill, has a handler - found 197, which were
+four different things:
+
+| what | count |
+|---|---|
+| already upstream (`.axi-table__sort`) | 44 |
+| not chromeless at all: a border in an **inline style object** | 31 |
+| the replay map's controls | 18 |
+| genuinely chromeless | 77 |
+
+**A className census cannot see an inline `style` object.** Those 31 were one
+component written thirty-one times - the section expand button - each drawing
+`border: 1px solid var(--border-default)` inline. An inline style has no
+`:hover`, and not one of them carried a hover utility, so the app's
+most-repeated control gave no feedback at all. Extracted to
+`SectionExpandButton` on `.axi-btn`: 218 insertions against 343 deletions.
+
+**What was wrong with the other 77 was the hover, not the rest.** Fifteen
+distinct hover colours across ninety sites, every one a Tailwind literal, so
+ninety controls left the theme at the instant the cursor arrived. Two buttons in
+one toggle group disagreed about which red meant the same state; a stepper's two
+arrows disagreed about which grey meant "off". Three did worse than leave the
+theme: a control resting on the warning ink hovered to neutral, one on danger
+hovered to white - the verdict vanishing exactly as the reader reaches for it.
+
+- **1.39.0 `feat(action)`** - `.axi-action` / `.axi-action--glyph`: a control
+  that is only its label. Its hover adds an underline as well as a brighten,
+  because the brighten is a fallback the ink layer beats by design, so an inked
+  action would otherwise get nothing.
+- **1.39.0 `fix(table)`** - `.axi-table tbody tr:hover :is(td, th)` weighed three
+  classes and four elements against a resting rule of one class, so every inked
+  cell in a hovered row went plain. Live: this app had six `axi-ink-danger` and
+  six `axi-ink-ok` cells at the time.
+- **The hover guard states the invariant as arithmetic** - a hover may not put a
+  colour further out of reach than rest does - rather than "wrap your hovers in
+  `:where()`". That is why it found eighteen cases, sixteen of which nobody had
+  met. Three are state colours argued beside their rules; one was the live bug
+  above; the remaining sixteen are ratcheted, because wrapping them is visually
+  inert but three sibling guards match those selectors by exact text. The ratchet
+  has two teeth: nothing new joins, and nothing on the list stops offending.
+
+### The dead state: 1.41.0
+
+Auditing the map's stepper - which swapped its ink to a dimmer token when
+disabled - turned up a gap the census had no column for. Twenty-four objects in
+the language are interactive: twenty-three declare `cursor: pointer`, and the
+twenty-fourth is `.axi-input`. **Two of them said anything when disabled.**
+Probed: an enabled `.axi-btn` and a disabled one returned the same fill, border,
+ink and `opacity: 1` - and both claimed `cursor: pointer`.
+
+So every consumer invented it. This app had twenty-eight `disabled:opacity-50
+disabled:cursor-not-allowed` pairs - the two declarations `forms.css` already
+contained, retyped once per control - plus the stepper's third answer.
+
+The state is opacity and the cursor and deliberately nothing else: a disabled
+control must stay recognisable as the control it is, and opacity is the only
+form that does not fight the ink layer. The stepper's colour swap is exactly the
+defect the ink layer exists to prevent. The guard is **derived, not listed** - it
+reads the interactive surface out of the stylesheet by `cursor: pointer` - so a
+new interactive component cannot ship without the state and the list cannot rot.
+
+### The replay map: five named, eighteen found, and not all of them chromeless
+
+The census named five controls here. There are eighteen, and counting by
+property split them three ways rather than one: **8 chromeless** (both fight
+steppers, the fight label, the legend header, both panel collapse arrows, the
+party header, the spotlight crosshair) to `.axi-action`; **6 bordered** (the four
+zoom buttons, play, the three dismiss chips) to `.axi-btn--icon` and
+`.axi-chip--action`; **3 state-holders** (the lanes toggle, the speed ladder) to
+`.axi-pill`. None of them had ever hovered, for the same reason the 31 expand
+buttons had not.
+
+Two findings from doing it:
+
+- **`.axi-pill` and `.axi-chip` both uppercase**, correctly, because both are
+  label objects. The follow chip carries a *player's account name*, and the
+  language has no name-bearing chip - so one `text-transform: none` is taken back
+  at that site, with the reason written down.
+- **`PartyMemberCard` is not a rail item**, though a roster row you pick from is
+  what it looks like. `.axi-rail__item` sets padding, a font, a gap and
+  `display: flex`; the card is a dense two-row card with its own type, so wearing
+  the rail would mean cancelling four declarations to get back to here. It keeps
+  its own box and takes the language's *tokens* instead. An upstream pressable
+  card with a selected state is the thing that would claim it; `aria-current` is
+  declared already so that state would find it.
+
+### Found, not fixed
+
+- The sixteen ratcheted `:where()`-less hovers.
+- `.axi-tabs a` and `.axi-crumbs a` address children **by element**, so an ink
+  class loses to them *at rest*. A real defect, and a larger one than the hover.
+- `.axi-scrim`'s hard-coded `z-index: 50`; the app's two modal scrims are still
+  unmigrated.
+- No upstream object for a pressable card with a selected state.
+- No way to say "an action whose hover signal is colour only" without borrowing
+  `--glyph`, which also imposes a hit target.

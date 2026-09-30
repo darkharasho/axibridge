@@ -108,11 +108,23 @@ export const PartyMemberCard: React.FC<PartyMemberCardProps> = ({
         <button
             type="button"
             onClick={() => onFollow?.(member.account || member.name)}
+            // Not `.axi-rail__item`, though a roster row you pick from is what
+            // it looks like from outside. That object sets padding, a font, a
+            // gap and `display: flex`, and this is a dense two-row card with
+            // its own type inside it - wearing the rail would mean cancelling
+            // four of its declarations to get back to here, which is the same
+            // drawing-chrome-only-to-undo-it the panels slice removed.
+            //
+            // So it stays hand-drawn, with the one thing it can take from the
+            // language: its colours by name. `aria-current` is still declared,
+            // because that is what "followed" means, and it is what an upstream
+            // pressable-card state would key on when there is one.
+            aria-current={isFollowed || undefined}
             style={{
                 display: 'block', width: '100%', textAlign: 'left',
-                padding: '4px 7px', borderRadius: 4, margin: '1px 0',
-                background: isFollowed ? 'var(--status-info-bg)' : 'var(--bg-input)',
-                border: `1px solid ${isFollowed ? 'var(--status-info)' : 'transparent'}`,
+                padding: '4px 7px', borderRadius: 'var(--axi-radius-xs)', margin: '1px 0',
+                background: isFollowed ? 'var(--axi-surface-raised)' : 'var(--axi-well-fill)',
+                border: `var(--axi-border-control) solid ${isFollowed ? 'var(--axi-meta)' : 'transparent'}`,
                 cursor: 'pointer',
             }}
         >

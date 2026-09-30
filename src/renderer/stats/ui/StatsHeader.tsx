@@ -214,7 +214,7 @@ export const StatsHeader = ({
                         <button
                             onClick={onDevMockUpload}
                             disabled={devMockUploadState.uploading || actionsDisabled}
-                            className="axi-btn disabled:opacity-50 axi-ink-warn axi-edge-warn"
+                            className="axi-btn axi-ink-warn axi-edge-warn"
                         >
                             <Sparkles className="w-4 h-4 axi-ink-warn" />
                             {devMockUploadState.uploading ? 'Building...' : 'Dev Mock Upload'}
@@ -226,7 +226,7 @@ export const StatsHeader = ({
                                 onClick={() => startPublish(null)}
                                 disabled={uploadDisabled}
                                 aria-disabled={uploadDisabled}
-                                className="axi-btn axi-btn--primary stats-action-upload disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="axi-btn axi-btn--primary stats-action-upload"
                                 /* A split control is a shape this language has no
                                    word for, so the squared join is inline: a radius
                                    utility here would lose to .axi-btn's shorthand. */
@@ -244,7 +244,7 @@ export const StatsHeader = ({
                                     disabled={uploadDisabled}
                                     aria-haspopup="menu"
                                     aria-expanded={uploadMenuOpen}
-                                    className="axi-btn axi-btn--primary axi-btn--icon stats-action-upload justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="axi-btn axi-btn--primary axi-btn--icon stats-action-upload justify-center"
                                     style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: 'none' }}
                                     title="Choose upload repository"
                                 >

@@ -195,7 +195,7 @@ export function CloudflareConnect({ onChanged }: Props) {
                 type="button"
                 onClick={connect}
                 disabled={busy}
-                className="axi-btn axi-btn--sm axi-edge-meta axi-ink-meta disabled:opacity-60"
+                className="axi-btn axi-btn--sm axi-edge-meta axi-ink-meta"
             >
                 {busy
                     ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Waiting for your browser&hellip;</>

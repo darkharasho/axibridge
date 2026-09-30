@@ -1168,7 +1168,7 @@ function App() {
                                     type="button"
                                     onClick={handleResumeUploadRetries}
                                     disabled={retryQueueBusy}
-                                    className="axi-btn axi-btn--xs axi-edge-danger axi-ink-danger disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="axi-btn axi-btn--xs axi-edge-danger axi-ink-danger"
                                 >
                                     {retryQueueBusy ? 'Resuming...' : 'Resume'}
                                 </button>
@@ -1177,7 +1177,7 @@ function App() {
                                 type="button"
                                 onClick={handleRetryFailedUploads}
                                 disabled={retryQueueBusy || uploadRetryQueue.failed === 0 || uploadRetryQueue.paused}
-                                className="axi-btn axi-btn--xs axi-edge-danger axi-ink-danger disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="axi-btn axi-btn--xs axi-edge-danger axi-ink-danger"
                             >
                                 {retryQueueBusy ? 'Retrying...' : 'Retry failed'}
                             </button>

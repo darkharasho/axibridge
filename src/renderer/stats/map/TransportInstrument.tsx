@@ -154,13 +154,19 @@ export const TransportInstrument: React.FC<TransportInstrumentProps> = ({ durati
                                 key={s}
                                 type="button"
                                 onClick={() => { setReplayPlayhead({ speed: s }); setLadderOpen(false); }}
+                                // The ladder is a set of pills holding one state
+                                // between them. `aria-pressed` is what the rung
+                                // means and what `.axi-pill` draws, so the three
+                                // colour pairs the rung used to swap by hand -
+                                // fill, border and ink, twice over - collapse into
+                                // the state the markup already declared.
+                                className="axi-pill"
+                                aria-pressed={speed === s}
                                 style={{
-                                    padding: '3px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600,
-                                    fontVariantNumeric: 'tabular-nums', cursor: 'pointer',
-                                    background: speed === s ? 'var(--status-info-bg)' : 'var(--bg-input)',
-                                    border: `1px solid ${speed === s ? 'var(--status-info-border)' : 'var(--border-subtle)'}`,
-                                    color: speed === s ? 'var(--status-info)' : 'var(--text-muted)',
-                                }}
+                                    '--axi-pill-pad': '3px 8px', '--axi-pill-size': '10px',
+                                    '--axi-pill-fill': 'var(--axi-meta)',
+                                    fontVariantNumeric: 'tabular-nums',
+                                } as React.CSSProperties}
                             >
                                 {s}×
                             </button>
@@ -181,13 +187,13 @@ export const TransportInstrument: React.FC<TransportInstrumentProps> = ({ durati
                     // where a click had landed you.
                     onClick={() => setLadderOpen(true)}
                     onFocus={() => setLadderOpen(true)}
-                    style={{
-                        padding: '1px 5px', borderRadius: 4, fontSize: 10.5, fontWeight: 600,
-                        fontVariantNumeric: 'tabular-nums', cursor: 'pointer',
-                        background: 'var(--status-info-bg)',
-                        border: '1px solid var(--status-info-border)',
-                        color: 'var(--status-info)',
-                    }}
+                    // A filled chip you can press, not a pill: this opens the
+                    // ladder rather than holding a state, and it already says so
+                    // with `aria-expanded`. Reaching for `aria-pressed` here
+                    // would be borrowing an ARIA attribute for its appearance
+                    // and telling a screen reader the trigger is a toggle.
+                    className="axi-chip axi-chip--meta axi-chip--action"
+                    style={{ padding: '1px 5px', fontSize: 10.5, fontVariantNumeric: 'tabular-nums' }}
                 >
                     {speed}×
                 </button>

@@ -774,7 +774,7 @@ export function FightReportHistoryView() {
                                 </span>
                                 <ParticleHover className="rounded-[4px]" color="#ef4444">
                                     <button type="button" onClick={handleDeleteSelected} disabled={deleteLoading}
-                                        className="axi-btn axi-ink-danger axi-edge-danger disabled:opacity-50">
+                                        className="axi-btn axi-ink-danger axi-edge-danger">
                                         {deleteLoading ? 'Deleting...' : 'Delete Selected'}
                                     </button>
                                 </ParticleHover>
