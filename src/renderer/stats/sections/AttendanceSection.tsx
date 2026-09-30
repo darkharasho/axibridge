@@ -163,7 +163,7 @@ export const AttendanceSection = ({
                                         <button
                                             type="button"
                                             onClick={() => updateSort('fight')}
-                                            className="transition-colors whitespace-nowrap"
+                                            className="axi-action whitespace-nowrap"
                                             style={{ color: sortKey === 'fight' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
                                         >
                                             Total Fight Time{sortKey === 'fight' ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
@@ -173,7 +173,7 @@ export const AttendanceSection = ({
                                         <button
                                             type="button"
                                             onClick={() => updateSort('squad')}
-                                            className="transition-colors whitespace-nowrap"
+                                            className="axi-action whitespace-nowrap"
                                             style={{ color: sortKey === 'squad' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
                                         >
                                             Total Squad Time{sortKey === 'squad' ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}

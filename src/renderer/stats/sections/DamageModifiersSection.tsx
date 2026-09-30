@@ -406,28 +406,28 @@ head={
 <th scope="col"><button
                                         type="button"
                                         onClick={() => updateCollapsedSort('damageGain')}
-                                        className={`text-right transition-colors ${collapsedSort.key === 'damageGain' ? 'axi-ink-accent' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
+                                        className={`axi-action text-right ${collapsedSort.key === 'damageGain' ? 'axi-ink-accent' : ''}`}
                                     >
                                         Dmg Gain{collapsedSort.key === 'damageGain' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                     </button></th>
 <th scope="col"><button
                                         type="button"
                                         onClick={() => updateCollapsedSort('pctTotal')}
-                                        className={`text-right transition-colors ${collapsedSort.key === 'pctTotal' ? 'axi-ink-accent' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
+                                        className={`axi-action text-right ${collapsedSort.key === 'pctTotal' ? 'axi-ink-accent' : ''}`}
                                     >
                                         % Total{collapsedSort.key === 'pctTotal' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                     </button></th>
 <th scope="col"><button
                                         type="button"
                                         onClick={() => updateCollapsedSort('hitCoverage')}
-                                        className={`text-right transition-colors ${collapsedSort.key === 'hitCoverage' ? 'axi-ink-accent' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
+                                        className={`axi-action text-right ${collapsedSort.key === 'hitCoverage' ? 'axi-ink-accent' : ''}`}
                                     >
                                         Hits{collapsedSort.key === 'hitCoverage' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                     </button></th>
 <th scope="col"><button
                                         type="button"
                                         onClick={() => updateCollapsedSort('fightTime')}
-                                        className={`text-right transition-colors ${collapsedSort.key === 'fightTime' ? 'axi-ink-accent' : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'}`}
+                                        className={`axi-action text-right ${collapsedSort.key === 'fightTime' ? 'axi-ink-accent' : ''}`}
                                     >
                                         Fight Time{collapsedSort.key === 'fightTime' ? (collapsedSort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
                                     </button></th>

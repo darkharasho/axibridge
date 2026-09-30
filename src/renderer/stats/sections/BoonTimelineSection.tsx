@@ -240,10 +240,10 @@ export const BoonTimelineSection = ({
                     onClick={() => setHeatmapOverlay(toggleBoonHeatmapOverlay(heatmapOverlay, 'incoming-damage'))}
                     title="Shade the drilldown buckets by squad incoming damage"
                     aria-pressed={heatmapOverlay === 'incoming-damage'}
-                    className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                    className={`axi-action text-[10px] uppercase tracking-[0.16em] ${
                         heatmapOverlay === 'incoming-damage'
-                            ? 'axi-ink-danger hover:text-red-100'
-                            : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
+                            ? 'axi-ink-danger'
+                            : ''
                     }`}
                 >
                     Incoming Damage
@@ -253,10 +253,10 @@ export const BoonTimelineSection = ({
                     onClick={() => setHeatmapOverlay(toggleBoonHeatmapOverlay(heatmapOverlay, 'incoming-strips'))}
                     title="Shade the drilldown buckets by boons stripped off the squad"
                     aria-pressed={heatmapOverlay === 'incoming-strips'}
-                    className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                    className={`axi-action text-[10px] uppercase tracking-[0.16em] ${
                         heatmapOverlay === 'incoming-strips'
-                            ? 'axi-ink-danger hover:text-red-200'
-                            : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
+                            ? 'axi-ink-danger'
+                            : ''
                     }`}
                 >
                     Incoming Strips
@@ -266,10 +266,10 @@ export const BoonTimelineSection = ({
                     onClick={() => setHeatmapOverlay(toggleBoonHeatmapOverlay(heatmapOverlay, 'incoming-cc'))}
                     title="Shade the drilldown buckets by crowd control landed on the squad"
                     aria-pressed={heatmapOverlay === 'incoming-cc'}
-                    className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                    className={`axi-action text-[10px] uppercase tracking-[0.16em] ${
                         heatmapOverlay === 'incoming-cc'
-                            ? 'axi-ink-warn hover:text-amber-200'
-                            : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
+                            ? 'axi-ink-warn'
+                            : ''
                     }`}
                 >
                     Incoming CC
@@ -279,7 +279,7 @@ export const BoonTimelineSection = ({
                 <div className="relative" ref={dropdownRef}>
                     <button
                         onClick={() => setBoonDropdownOpen(!boonDropdownOpen)}
-                        className="flex items-center gap-1.5 text-xs axi-ink-dim hover:text-slate-200 transition-colors"
+                        className="axi-action flex items-center gap-1.5 text-xs axi-ink-dim"
                     >
                         <span className="axi-ink-faint">·</span>
                         {activeBoon?.icon ? (

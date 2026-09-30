@@ -153,7 +153,7 @@ export function Terminal({ isOpen, onClose }: TerminalProps) {
                         <div className="flex items-center gap-1">
                             <button
                                 onClick={clearLogs}
-                                className="terminal-btn"
+                                className="axi-action axi-action--glyph"
                                 title="Clear Terminal"
                             >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -161,7 +161,7 @@ export function Terminal({ isOpen, onClose }: TerminalProps) {
                             <span className="terminal-divider" />
                             <button
                                 onClick={onClose}
-                                className="terminal-btn"
+                                className="axi-action axi-action--glyph"
                                 title="Close Terminal"
                             >
                                 <ChevronDown className="w-3.5 h-3.5" />

@@ -160,7 +160,7 @@ export function SearchPalette({ open, onClose, index, onSelect }: SearchPaletteP
                                 onMouseEnter={() => setActiveIdx(idx)}
                                 onClick={() => selectAt(idx)}
                                 data-active={isActive ? '' : undefined}
-                                className="axi-palette__row"
+                                className="axi-action axi-palette__row"
                             >
                                 {Icon && <Icon className="w-3.5 h-3.5 shrink-0 text-[color:var(--axi-accent)]" />}
                                 <span className="truncate font-medium">{entry.label}</span>

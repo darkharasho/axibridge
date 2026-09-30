@@ -1665,7 +1665,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                             <div className="text-[11px] uppercase tracking-[0.4em] axi-ink-dim">Contents</div>
                             <button
                                 onClick={() => setTocOpen(false)}
-                                className="axi-ink-dim hover:text-white transition-colors"
+                                className="axi-action axi-action--glyph axi-ink-dim"
                                 aria-label="Close table of contents"
                             >
                                 ×
@@ -1792,7 +1792,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                 onClick={() => searchOpenRef.current?.()}
                                 title="Search (Ctrl+K)"
                                 aria-label="Search report"
-                                className="report-nav-search axi-palette__trigger h-[34px]"
+                                className="axi-action report-nav-search axi-palette__trigger h-[34px]"
                             >
                                 {/* The glyph gets its own element so the language can
                                     cap the well with it. See .axi-palette__mark. */}

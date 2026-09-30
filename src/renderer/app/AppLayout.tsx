@@ -214,13 +214,13 @@ export function AppLayout({ ctx }: { ctx: any }) {
                     ) : null}
                 </div>
                 <div className="flex items-center gap-4 no-drag">
-                    <button onClick={() => window.electronAPI.windowControl('minimize')} className="axi-ink-dim hover:text-white transition-colors">
+                    <button onClick={() => window.electronAPI.windowControl('minimize')} className="axi-action axi-action--glyph axi-ink-dim">
                         <Minus className="w-4 h-4" />
                     </button>
-                    <button onClick={() => window.electronAPI.windowControl('maximize')} className="axi-ink-dim hover:text-white transition-colors">
+                    <button onClick={() => window.electronAPI.windowControl('maximize')} className="axi-action axi-action--glyph axi-ink-dim">
                         <Square className="w-3 h-3" />
                     </button>
-                    <button onClick={() => window.electronAPI.windowControl('close')} className="axi-ink-dim hover:text-red-400 transition-colors">
+                    <button onClick={() => window.electronAPI.windowControl('close')} className="axi-action axi-action--glyph axi-ink-dim">
                         <X className="w-4 h-4" />
                     </button>
                 </div>
@@ -246,7 +246,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                             title={label}
                             aria-current={activeNavView === id ? 'page' : undefined}
                             onClick={() => handleNavViewChange(id)}
-                            className="inline-flex items-center gap-1.5"
+                            className="axi-action inline-flex items-center gap-1.5"
                         >
                             <Icon className="w-3.5 h-3.5" />
                             {label}

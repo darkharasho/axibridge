@@ -420,7 +420,7 @@ export const AllBoonsSection = ({
                                 </div>
                                 <button
                                     onClick={() => { setSelectedFightIndex(null); setSelectedPlayerKey(null); }}
-                                    className="text-[10px] uppercase tracking-wider axi-ink-faint hover:text-slate-300 transition-colors"
+                                    className="axi-action text-[10px] uppercase tracking-wider axi-ink-faint"
                                 >
                                     Clear
                                 </button>
@@ -512,7 +512,7 @@ export const AllBoonsSection = ({
                                     return (
                                         <button
                                             key={player.key}
-                                            className={`flex items-center gap-1.5 text-xs transition-opacity ${isDimmed ? 'opacity-30' : 'opacity-100'} hover:opacity-100`}
+                                            className={`axi-action flex items-center gap-1.5 text-xs transition-opacity ${isDimmed ? 'opacity-30' : 'opacity-100'} hover:opacity-100`}
                                             onClick={() => setSelectedPlayerKey(isSelected ? null : player.key)}
                                             onMouseEnter={() => setHoveredPlayerKey(player.key)}
                                             onMouseLeave={() => setHoveredPlayerKey(null)}

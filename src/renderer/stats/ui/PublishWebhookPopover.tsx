@@ -57,7 +57,7 @@ export const PublishWebhookPopover = ({ webhooks, initialSelection, onConfirm, o
                     <div className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Publish report</div>
                     <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>Post the report link to&hellip;</div>
                 </div>
-                <button type="button" onClick={toggleAll} className="text-[11px] font-semibold whitespace-nowrap" style={{ color: 'var(--brand-primary)' }}>
+                <button type="button" onClick={toggleAll} className="axi-action text-[11px] font-semibold whitespace-nowrap" style={{ color: 'var(--brand-primary)' }}>
                     {allChecked ? 'Clear all' : 'Select all'}
                 </button>
             </div>

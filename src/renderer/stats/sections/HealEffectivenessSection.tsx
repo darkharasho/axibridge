@@ -240,7 +240,7 @@ export const HealEffectivenessSection = ({ fights }: HealEffectivenessSectionPro
                                     <button
                                         type="button"
                                         onClick={() => setSelectedFightIndex(null)}
-                                        className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] shrink-0"
+                                        className="axi-action text-[10px] uppercase tracking-[0.2em] shrink-0"
                                     >
                                         Clear
                                     </button>

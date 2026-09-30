@@ -132,7 +132,7 @@ export function ProofOfWorkModal<TToc extends ProofOfWorkTocItem, TResult extend
                                                 key={`${item.id}-${item.level}-${idx}`}
                                                 type="button"
                                                 data-toc-active={isActive ? 'true' : 'false'}
-                                                className={`proof-of-work-toc-item ${item.level === 1 ? 'proof-of-work-toc-item--l1' : item.level === 2 ? 'proof-of-work-toc-item--l2' : 'proof-of-work-toc-item--l3'} w-full text-left flex items-center gap-2 min-w-0 transition-colors ${isActive ? 'proof-of-work-toc-item--active !axi-ink-meta hover:!axi-ink-meta' : (item.level === 1 ? 'axi-ink-plain hover:text-white' : 'axi-ink-dim hover:text-gray-200')}`}
+                                                className={`axi-action proof-of-work-toc-item ${item.level === 1 ? 'proof-of-work-toc-item--l1' : item.level === 2 ? 'proof-of-work-toc-item--l2' : 'proof-of-work-toc-item--l3'} w-full text-left flex items-center gap-2 min-w-0 ${isActive ? 'proof-of-work-toc-item--active !axi-ink-meta hover:!axi-ink-meta' : (item.level === 1 ? 'axi-ink-plain' : 'axi-ink-dim')}`}
                                                 onClick={() => onTocClick(item)}
                                             >
                                                 <span className={`proof-of-work-toc-dot ${isActive ? '!bg-cyan-300' : ''}`} aria-hidden="true" />

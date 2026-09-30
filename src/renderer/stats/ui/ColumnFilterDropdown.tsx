@@ -63,7 +63,7 @@ export const ColumnFilterDropdown = ({
                         <button
                             type="button"
                             onClick={onClear}
-                            className="hover:text-white"
+                            className="axi-action"
                             style={{ color: 'var(--text-secondary)' }}
                         >
                             Clear

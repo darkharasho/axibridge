@@ -209,10 +209,10 @@ export const StabPerformanceSection = ({
                     onClick={() => setHeatmapOverlay(toggleStabPerfOverlay(heatmapOverlay, 'incoming-damage'))}
                     title="Shade the drilldown buckets by party incoming damage"
                     aria-pressed={heatmapOverlay === 'incoming-damage'}
-                    className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                    className={`axi-action text-[10px] uppercase tracking-[0.16em] ${
                         heatmapOverlay === 'incoming-damage'
-                            ? 'axi-ink-danger hover:text-red-100'
-                            : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
+                            ? 'axi-ink-danger'
+                            : ''
                     }`}
                 >
                     Party Damage
@@ -222,10 +222,10 @@ export const StabPerformanceSection = ({
                     onClick={() => setHeatmapOverlay(toggleStabPerfOverlay(heatmapOverlay, 'strips-taken'))}
                     title="Shade the drilldown buckets by boons stripped off the party"
                     aria-pressed={heatmapOverlay === 'strips-taken'}
-                    className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                    className={`axi-action text-[10px] uppercase tracking-[0.16em] ${
                         heatmapOverlay === 'strips-taken'
-                            ? 'axi-ink-danger hover:text-red-200'
-                            : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
+                            ? 'axi-ink-danger'
+                            : ''
                     }`}
                 >
                     Strips Taken
@@ -234,10 +234,10 @@ export const StabPerformanceSection = ({
                     type="button"
                     onClick={() => setShowPartyDeaths(!showPartyDeaths)}
                     title="Mark party member deaths on the drilldown chart"
-                    className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                    className={`axi-action text-[10px] uppercase tracking-[0.16em] ${
                         showPartyDeaths
-                            ? 'axi-ink-danger hover:text-red-200'
-                            : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
+                            ? 'axi-ink-danger'
+                            : ''
                     }`}
                 >
                     Deaths
@@ -246,10 +246,10 @@ export const StabPerformanceSection = ({
                     type="button"
                     onClick={() => setShowPartyDistance(!showPartyDistance)}
                     title="Flags party members who averaged more than 600 units from the commander during this fight"
-                    className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                    className={`axi-action text-[10px] uppercase tracking-[0.16em] ${
                         showPartyDistance
-                            ? 'axi-ink-warn hover:text-yellow-100'
-                            : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
+                            ? 'axi-ink-warn'
+                            : ''
                     }`}
                 >
                     Distance

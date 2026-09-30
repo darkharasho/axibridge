@@ -102,7 +102,7 @@ const UtilityRow = ({ utility, expanded, onToggle }: {
                             onClick={onToggle}
                             aria-expanded={expanded}
                             aria-label={`${expanded ? 'Collapse' : 'Expand'} ${utility.name} casters`}
-                            className="flex items-center gap-1.5 min-w-0 text-left"
+                            className="axi-action flex items-center gap-1.5 min-w-0 text-left"
                         >
                             <ChevronRight
                                 className="w-3 h-3 flex-shrink-0 transition-transform"

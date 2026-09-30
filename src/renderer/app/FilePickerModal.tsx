@@ -455,7 +455,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                         <div className="relative">
                                                             <button
                                                                 onClick={() => setSelectSinceMonthOpen((prev: boolean) => !prev)}
-                                                                className="text-sm font-semibold axi-ink-plain hover:text-white"
+                                                                className="axi-action text-sm font-semibold axi-ink-plain"
                                                             >
                                                                 {selectSinceView.toLocaleString(undefined, { month: 'long', year: 'numeric' })}
                                                             </button>
@@ -576,7 +576,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                             <div className="relative">
                                                                 <button
                                                                     onClick={() => setSelectSinceMonthOpen((prev: boolean) => !prev)}
-                                                                    className="text-sm font-semibold axi-ink-plain hover:text-white"
+                                                                    className="axi-action text-sm font-semibold axi-ink-plain"
                                                                 >
                                                                     {selectSinceView.toLocaleString(undefined, { month: 'long', year: 'numeric' })}
                                                                 </button>
@@ -901,7 +901,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                         <div className="text-xs axi-ink-dim">
                                             {filePickerSelected.size > 0 ? `${filePickerSelected.size} log${filePickerSelected.size === 1 ? '' : 's'} selected` : `${filteredAvailable.length} log${filteredAvailable.length === 1 ? '' : 's'} available`}
                                         </div>
-                                        {filePickerSelected.size > 0 && (<button onClick={() => setFilePickerSelected(new Set())} className="text-[10px] axi-ink-faint hover:text-gray-300 transition-colors">Clear</button>)}
+                                        {filePickerSelected.size > 0 && (<button onClick={() => setFilePickerSelected(new Set())} className="axi-action text-[10px] axi-ink-faint">Clear</button>)}
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button onClick={handleClose} className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule">Cancel</button>

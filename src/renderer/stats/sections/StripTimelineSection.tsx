@@ -95,10 +95,10 @@ export const StripTimelineSection: React.FC<StripTimelineSectionProps> = ({
                     onClick={() => setDirection('out')}
                     aria-pressed={direction === 'out'}
                     title="Boons this player removed from enemies"
-                    className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                    className={`axi-action text-[10px] uppercase tracking-[0.16em] ${
                         direction === 'out'
-                            ? 'axi-ink-meta hover:text-fuchsia-100'
-                            : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
+                            ? 'axi-ink-meta'
+                            : ''
                     }`}
                 >
                     Outgoing
@@ -108,10 +108,10 @@ export const StripTimelineSection: React.FC<StripTimelineSectionProps> = ({
                     onClick={() => setDirection('in')}
                     aria-pressed={direction === 'in'}
                     title="Boons removed from this player by enemies"
-                    className={`text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                    className={`axi-action text-[10px] uppercase tracking-[0.16em] ${
                         direction === 'in'
-                            ? 'axi-ink-danger hover:text-red-200'
-                            : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
+                            ? 'axi-ink-danger'
+                            : ''
                     }`}
                 >
                     Incoming

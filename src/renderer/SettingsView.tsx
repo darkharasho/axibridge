@@ -1530,7 +1530,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     <button
                                         type="button"
                                         onClick={() => setSettingsSearch('')}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 axi-ink-faint hover:text-gray-300 transition-colors"
+                                        className="axi-action axi-action--glyph absolute right-2 top-1/2 -translate-y-1/2 axi-ink-faint"
                                     >
                                         <CloseIcon className="w-3.5 h-3.5" />
                                     </button>
@@ -1718,7 +1718,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         <div className="flex justify-end mb-2">
                             <button
                                 onClick={() => setAllTopLists(!allTopListsEnabled)}
-                                className="text-xs axi-ink-meta hover:text-blue-300 transition-colors"
+                                className="axi-action text-xs axi-ink-meta"
                             >
                                 {allTopListsEnabled ? 'Disable All' : 'Enable All'}
                             </button>
@@ -2012,7 +2012,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                                         event.stopPropagation();
                                                                         toggleFavoriteRepo(repo.full_name);
                                                                     }}
-                                                                    className={`p-1 rounded-md transition-colors ${isFavorite ? 'axi-ink-warn' : 'axi-ink-faint hover:text-gray-200'}`}
+                                                                    className={`axi-action axi-action--glyph p-1 rounded-md ${isFavorite ? 'axi-ink-warn' : 'axi-ink-faint'}`}
                                                                     title={isFavorite ? 'Remove favorite' : 'Favorite repo'}
                                                                 >
                                                                     <Star className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current' : 'fill-transparent'}`} />
@@ -2298,7 +2298,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             setParserStatus((prev: IParserStatus | null) => (prev ? { ...prev, eliteInsightsRemoval: null } : prev));
                                             window.electronAPI?.ackEliteInsightsRemovalNotice?.();
                                         }}
-                                        className="text-xs axi-ink-meta hover:text-blue-100 flex-shrink-0"
+                                        className="axi-action text-xs axi-ink-meta flex-shrink-0"
                                     >
                                         Got it
                                     </button>
@@ -2453,7 +2453,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     <div className="text-sm font-medium axi-ink-plain">Top Stats Cards</div>
                                     <div className="text-xs axi-ink-faint">
                                         {normalizeEnabledTopStats(statsViewSettings.enabledTopStats).length} of {TOP_STATS_CATALOG.length} enabled
-                                        <button type="button" onClick={resetTopStats} className="ml-2 axi-ink-meta hover:text-blue-200">Reset to defaults</button>
+                                        <button type="button" onClick={resetTopStats} className="axi-action ml-2 axi-ink-meta">Reset to defaults</button>
                                     </div>
                                 </div>
                                 {CATEGORY_ORDER.map((cat: TopStatCategory) => {
@@ -2688,7 +2688,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     </button>
                                 ))}
                             </div>
-                            <button type="button" onClick={resetMvpProfiles} className="text-xs axi-ink-meta hover:text-blue-200">Reset to defaults</button>
+                            <button type="button" onClick={resetMvpProfiles} className="axi-action text-xs axi-ink-meta">Reset to defaults</button>
                         </div>
                         <p className="text-xs axi-ink-faint mb-3">Weight any stat toward this MVP. 0 = ignored. Offensive &amp; Defensive also include the General weights.</p>
                         {CATEGORY_ORDER.map((cat: TopStatCategory) => {
@@ -2710,9 +2710,9 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 <div key={def.id} className="inline-flex items-center rounded-lg border overflow-hidden"
                                                     style={on ? { borderColor: `${meta.color}66`, background: `${meta.color}1f` } : { borderColor: 'var(--border-default)', background: 'var(--bg-input)' }}>
                                                     <span className="pl-2.5 pr-1 py-1 text-xs font-semibold" style={{ color: on ? meta.color : '#6b7280' }}>{mvpStatLabel(def)}</span>
-                                                    <button type="button" aria-label={`decrease ${mvpStatLabel(def)}`} onClick={() => setMvpWeight(mvpBucket, def.id, w - 0.05)} className="w-5 h-6 text-sm leading-none" style={{ color: on ? meta.color : '#4b5563' }}>−</button>
-                                                    <span className="min-w-[30px] text-center text-xs font-bold tabular-nums" style={{ color: on ? meta.color : '#4b5563' }}>{w.toFixed(2)}</span>
-                                                    <button type="button" aria-label={`increase ${mvpStatLabel(def)}`} onClick={() => setMvpWeight(mvpBucket, def.id, w + 0.05)} className="w-5 h-6 text-sm leading-none pr-1" style={{ color: on ? meta.color : '#9ca3af' }}>+</button>
+                                                    <button type="button" aria-label={`decrease ${mvpStatLabel(def)}`} onClick={() => setMvpWeight(mvpBucket, def.id, w - 0.05)} className="axi-action axi-action--glyph w-5 h-6 text-sm leading-none" style={{ color: on ? meta.color : 'var(--axi-text-faint)' }}>−</button>
+                                                    <span className="min-w-[30px] text-center text-xs font-bold tabular-nums" style={{ color: on ? meta.color : 'var(--axi-text-faint)' }}>{w.toFixed(2)}</span>
+                                                    <button type="button" aria-label={`increase ${mvpStatLabel(def)}`} onClick={() => setMvpWeight(mvpBucket, def.id, w + 0.05)} className="axi-action axi-action--glyph w-5 h-6 text-sm leading-none pr-1" style={{ color: on ? meta.color : 'var(--axi-text-faint)' }}>+</button>
                                                 </div>
                                             );
                                         })}
@@ -2786,7 +2786,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             </p>
                             <button
                                 onClick={() => setCommanderThresholds(DEFAULT_COMMANDER_THRESHOLDS)}
-                                className="text-xs font-semibold axi-ink-meta hover:text-blue-200 transition-colors"
+                                className="axi-action text-xs font-semibold axi-ink-meta"
                             >
                                 Reset all
                             </button>
@@ -2845,7 +2845,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             onClick={() =>
                                                 setCommanderThresholds((prev) => ({ ...prev, [key]: DEFAULT_COMMANDER_THRESHOLDS[key] } as CommanderThresholds))
                                             }
-                                            className="text-[10px] uppercase tracking-wide axi-ink-faint hover:text-gray-200"
+                                            className="axi-action text-[10px] uppercase tracking-wide axi-ink-faint"
                                         >
                                             Default
                                         </button>
@@ -3235,7 +3235,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 navigateToSection(item.id);
                                                 setSettingsNavOpen(false);
                                             }}
-                                            className={`settings-nav-item w-full text-left flex items-center gap-2 py-1 min-w-0 overflow-hidden axi-ink-dim`}
+                                            className="axi-action w-full text-left flex items-center gap-2 py-1 min-w-0 overflow-hidden axi-ink-dim"
                                         >
                                             <span className="flex items-center justify-center w-5 text-[10px] tabular-nums axi-ink-faint">
                                                 {FLATTENED_SECTIONS.findIndex((section) => section.id === item.id) + 1}
