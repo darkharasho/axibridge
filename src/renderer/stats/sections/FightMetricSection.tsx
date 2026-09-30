@@ -219,7 +219,7 @@ export const FightMetricSection = ({
                         <div className="text-[10px] uppercase tracking-wider axi-ink-faint">{listTitle}</div>
                         <button
                             onClick={() => setPlayerSortMode(playerSortMode === 'group' ? 'player' : 'group')}
-                            className="flex items-center gap-1 text-[10px] axi-ink-faint hover:text-slate-300 transition-colors"
+                            className="axi-action flex items-center gap-1 text-[10px] axi-ink-faint"
                             title={playerSortMode === 'group' ? 'Sorted by class group' : 'Sorted by player'}
                         >
                             {playerSortMode === 'group' ? <Users className="w-3 h-3" /> : <User className="w-3 h-3" />}
@@ -398,7 +398,7 @@ export const FightMetricSection = ({
                                 {drilldownExtras}
                                 <button
                                     onClick={() => setSelectedFightIndex?.(null)}
-                                    className="text-[10px] uppercase tracking-wider axi-ink-faint hover:text-slate-300 transition-colors"
+                                    className="axi-action text-[10px] uppercase tracking-wider axi-ink-faint"
                                 >
                                     Clear
                                 </button>

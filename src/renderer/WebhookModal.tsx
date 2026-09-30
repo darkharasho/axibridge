@@ -87,7 +87,7 @@ export function WebhookModal({ isOpen, onClose, webhooks, enabledWebhookIds, onS
                     <div className="flex justify-end gap-3 px-6 py-4" style={{ borderTop: '1px solid var(--border-default)' }}>
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium axi-ink-dim hover:text-white transition-colors"
+                            className="axi-action px-4 py-2 text-sm font-medium axi-ink-dim"
                         >
                             Close
                         </button>

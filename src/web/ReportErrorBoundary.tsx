@@ -63,7 +63,7 @@ export class ReportErrorBoundary extends Component<Props, State> {
                         <div className="report-shell-actions">
                             <button
                                 type="button"
-                                className="report-shell-btn"
+                                className="axi-action report-shell-btn"
                                 onClick={() => window.location.reload()}
                             >
                                 Reload

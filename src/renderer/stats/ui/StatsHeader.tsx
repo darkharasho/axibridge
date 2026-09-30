@@ -193,7 +193,7 @@ export const StatsHeader = ({
                         onClick={onSearchClick}
                         title="Search (Ctrl+K)"
                         aria-label="Search"
-                        className="axi-palette__trigger h-[30px]"
+                        className="axi-action axi-palette__trigger h-[30px]"
                     >
                         {/* Its own element so the language can cap the well with the
                             glyph instead of floating it in the fill. */}

@@ -208,7 +208,7 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                                         <button
                                             type="button"
                                             onClick={() => setSelectedId(node.id)}
-                                            className={`transition-colors ${idx === breadcrumb.length - 1 ? 'axi-ink-meta' : 'axi-ink-dim hover:text-white'
+                                            className={`axi-action ${idx === breadcrumb.length - 1 ? 'axi-ink-meta' : 'axi-ink-dim'
                                                 }`}
                                         >
                                             {node.title}

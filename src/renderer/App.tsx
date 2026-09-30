@@ -1008,7 +1008,7 @@ function App() {
                         <button
                             type="button"
                             onClick={() => setDiscordDestinationStatus(null)}
-                            className="shrink-0 text-[10px] axi-ink-faint hover:text-gray-300"
+                            className="axi-action shrink-0 text-[10px] axi-ink-faint"
                         >
                             Dismiss
                         </button>

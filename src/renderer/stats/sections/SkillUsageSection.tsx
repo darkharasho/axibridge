@@ -121,7 +121,7 @@ export const SkillUsageSection = ({
                         <span key={player.key} className="axi-chip axi-chip--accent max-w-full">
                             <span className="truncate max-w-[140px]">{player.displayName}</span>
                             <span className="text-[10px]">{player.logs} {player.logs === 1 ? 'log' : 'logs'}</span>
-                            <button type="button" onClick={() => removeSelectedPlayer(player.key)} className="p-1">
+                            <button type="button" onClick={() => removeSelectedPlayer(player.key)} className="axi-action axi-action--glyph p-1">
                                 <XCircle className="w-3 h-3" />
                             </button>
                         </span>

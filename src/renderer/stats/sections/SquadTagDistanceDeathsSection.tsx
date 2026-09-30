@@ -204,7 +204,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                 <button
                                     type="button"
                                     onClick={() => setSelectedFightIndex(null)}
-                                    className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                                    className="axi-action text-[10px] uppercase tracking-[0.2em]"
                                 >
                                     Clear
                                 </button>

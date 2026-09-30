@@ -119,7 +119,7 @@ head={
 <th scope="col"><button
                                                 type="button"
                                                 onClick={() => setSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
-                                                className="text-right transition-colors text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                                                className="axi-action text-right"
                                             >
                                                 Uptime {sortDirection === 'desc' ? '↓' : '↑'}
                                             </button></th>
