@@ -74,12 +74,8 @@ const TransportBarInner: React.FC<TransportBarProps> = ({ fight, style }) => {
                 type="button"
                 aria-label={playing ? 'Pause' : 'Play'}
                 onClick={() => setReplayPlayhead({ playing: !playing })}
-                style={{
-                    width: 24, height: 24, borderRadius: 6, flexShrink: 0,
-                    background: 'var(--bg-input)', border: '1px solid var(--border-default)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'var(--text-secondary)', cursor: 'pointer',
-                }}
+                className="axi-btn axi-btn--icon axi-btn--xs"
+                style={{ flexShrink: 0 }}
             >
                 {playing ? <Pause size={12} /> : <Play size={12} />}
             </button>
@@ -103,13 +99,15 @@ const TransportBarInner: React.FC<TransportBarProps> = ({ fight, style }) => {
                 aria-label="CC and strip lanes"
                 aria-pressed={lanesExpanded}
                 onClick={() => setReplayLanesExpanded(!lanesExpanded)}
+                // A pill, because it holds a state: pressed is what `aria-pressed`
+                // already said, and `.axi-pill` is the object that draws it. The
+                // amber it filled and outlined with was `#f59e0b` written twice
+                // by hand; `--axi-pill-fill` takes the warning colour by name and
+                // the theme decides how a pressed pill wears it.
+                className="axi-pill axi-pill--xs"
                 style={{
-                    width: 22, height: 22, borderRadius: 5, flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                    background: lanesExpanded ? 'rgba(245,158,11,0.18)' : 'var(--bg-input)',
-                    border: `1px solid ${lanesExpanded ? '#f59e0b' : 'var(--border-subtle)'}`,
-                    color: lanesExpanded ? '#f59e0b' : 'var(--text-muted)',
-                }}
+                    flexShrink: 0, '--axi-pill-pad': '4px', '--axi-pill-fill': 'var(--axi-warn)',
+                } as React.CSSProperties}
             >
                 <LanesGlyph />
             </button>

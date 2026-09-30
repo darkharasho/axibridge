@@ -94,7 +94,8 @@ const ReplaySquadPanelInner: React.FC<ReplaySquadPanelProps> = ({ fight, collaps
                         type="button"
                         title="Collapse squad panel"
                         onClick={onToggle}
-                        style={{ fontSize: 11, color: 'var(--text-muted)', padding: '2px 4px', borderRadius: 3, background: 'none', border: 'none', cursor: 'pointer' }}
+                        className="axi-action axi-action--glyph axi-ink-faint"
+                        style={{ fontSize: 11, '--axi-action-hit': '18px' } as React.CSSProperties}
                     >
                         ▶
                     </button>
@@ -125,12 +126,11 @@ const ReplaySquadPanelInner: React.FC<ReplaySquadPanelProps> = ({ fight, collaps
                                     title={isCollapsed ? `Expand Party ${group}` : `Collapse Party ${group}`}
                                     aria-expanded={!isCollapsed}
                                     onClick={() => toggleParty(group)}
+                                    className={`axi-action ${isSpotlit ? 'axi-ink-warn' : 'axi-ink-faint'}`}
                                     style={{
                                         flex: 1, display: 'flex', alignItems: 'center', gap: 3,
-                                        textAlign: 'left', padding: '2px 4px',
+                                        textAlign: 'left',
                                         fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase',
-                                        color: isSpotlit ? 'var(--status-warning)' : 'var(--text-muted)',
-                                        background: 'none', border: 'none', cursor: 'pointer',
                                     }}
                                 >
                                     {isCollapsed ? <ChevronRight size={10} /> : <ChevronDown size={10} />}
@@ -142,12 +142,8 @@ const ReplaySquadPanelInner: React.FC<ReplaySquadPanelProps> = ({ fight, collaps
                                     title={isSpotlit ? `Clear spotlight on Party ${group}` : `Spotlight Party ${group}`}
                                     aria-pressed={isSpotlit}
                                     onClick={() => setReplaySpotlightParty(isSpotlit ? null : group)}
-                                    style={{
-                                        width: 18, height: 18, borderRadius: 3, flexShrink: 0,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        background: 'none', border: 'none', cursor: 'pointer',
-                                        color: isSpotlit ? 'var(--status-warning)' : 'var(--text-muted)',
-                                    }}
+                                    className={`axi-action axi-action--glyph ${isSpotlit ? 'axi-ink-warn' : 'axi-ink-faint'}`}
+                                    style={{ flexShrink: 0, '--axi-action-hit': '18px' } as React.CSSProperties}
                                 >
                                     <Crosshair size={11} />
                                 </button>

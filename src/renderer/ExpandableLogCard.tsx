@@ -1225,7 +1225,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                         void handleCreateShareLink();
                                     }}
                                     disabled={isSharing}
-                                    className="axi-btn w-full justify-center active:scale-[0.98] disabled:cursor-not-allowed disabled:axi-ink-faint"
+                                    className="axi-btn w-full justify-center active:scale-[0.98] disabled:axi-ink-faint"
                                 >
                                     <Share2 className="w-4 h-4" />
                                     <span>{isSharing ? 'Creating Share Link...' : 'Create Share Link'}</span>

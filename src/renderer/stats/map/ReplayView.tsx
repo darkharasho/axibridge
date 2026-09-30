@@ -29,19 +29,18 @@ interface ReplayViewProps {
     style?: React.CSSProperties;
 }
 
-const ctrlBtnStyle: React.CSSProperties = {
-    width: 26, height: 26, borderRadius: 5,
-    background: 'var(--bg-elevated)', border: 'var(--panel-border-w, 1px) solid var(--border-default)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: 'var(--text-secondary)', cursor: 'pointer', backdropFilter: 'blur(4px)',
-};
+/* The zoom cluster and the dismiss chips drew their own fill, border, radius
+   and blur inline - which is why neither had ever hovered: an inline style has
+   no `:hover` to hang one on, and these four buttons are the only way to zoom a
+   map with the mouse wheel captured. `.axi-btn--icon` and `.axi-chip--action`
+   carry the same chrome from the theme, and bring the hover with them - a chip
+   rather than a pill, because these dismiss and re-centre rather than hold a
+   state between them.
 
-const chipStyle: React.CSSProperties = {
-    background: 'var(--bg-elevated)', backdropFilter: 'blur(4px)',
-    border: 'var(--panel-border-w, 1px) solid var(--border-default)', borderRadius: 20,
-    padding: '3px 10px', fontSize: 10, display: 'flex', alignItems: 'center',
-    cursor: 'pointer',
-};
+   The chips' `borderColor`/`color` pairs are gone too. Each was a status said
+   twice in literal form; `.axi-edge-*` with its matching `.axi-ink-*` says it
+   once, by name, and keeps saying it when the theme changes. */
+const CHIP_PAD = { padding: '3px 10px', fontSize: 10 } as React.CSSProperties;
 
 /**
  * Narrow containers collapse the floating cards so they never eat the map —
@@ -471,7 +470,8 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                                 type="button"
                                                 title="Re-center on followed player"
                                                 onClick={() => setCenteredOnFollow(true)}
-                                                style={{ ...chipStyle, borderColor: 'var(--status-warning)', color: 'var(--status-warning)' }}
+                                                className="axi-chip axi-chip--action axi-ink-warn axi-edge-warn"
+                                                style={CHIP_PAD}
                                             >
                                                 <Crosshair size={11} style={{ marginRight: 4 }} /> Re-center
                                             </button>
@@ -479,7 +479,13 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                         <button
                                             type="button"
                                             onClick={() => setReplayFollowTarget(null)}
-                                            style={{ ...chipStyle, borderColor: 'var(--status-info-border)', color: 'var(--status-info)' }}
+                                            className="axi-chip axi-chip--action axi-ink-meta axi-edge-meta"
+                                            // The one chip whose text is a proper noun. Every
+                                            // small-label object in the language uppercases -
+                                            // correctly, for a label - and there is no
+                                            // name-bearing chip, so the one declaration that
+                                            // would shout a player's account is taken back here.
+                                            style={{ ...CHIP_PAD, textTransform: 'none' }}
                                         >
                                             {followLabel} <X size={10} style={{ marginLeft: 4 }} />
                                         </button>
@@ -500,10 +506,10 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
 
                         {/* 7. Zoom cluster, right of centre, left of the squad card */}
                         <div style={{ position: 'absolute', top: 8, right: (squadEffectivelyCollapsed ? 28 : 216) + 16, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 4, transition: 'right 0.15s' }}>
-                            <button type="button" onClick={() => viewport.zoomIn()} title="Zoom in" style={ctrlBtnStyle}><Plus size={12} /></button>
-                            <button type="button" onClick={() => viewport.zoomOut()} title="Zoom out" style={ctrlBtnStyle}><Minus size={12} /></button>
-                            <button type="button" onClick={() => viewport.resetViewport()} title="Reset zoom" style={ctrlBtnStyle}><RotateCcw size={12} /></button>
-                            <button type="button" onClick={() => setFullscreen(v => !v)} title="Fullscreen" style={ctrlBtnStyle}>
+                            <button type="button" onClick={() => viewport.zoomIn()} title="Zoom in" className="axi-btn axi-btn--icon axi-btn--xs"><Plus size={12} /></button>
+                            <button type="button" onClick={() => viewport.zoomOut()} title="Zoom out" className="axi-btn axi-btn--icon axi-btn--xs"><Minus size={12} /></button>
+                            <button type="button" onClick={() => viewport.resetViewport()} title="Reset zoom" className="axi-btn axi-btn--icon axi-btn--xs"><RotateCcw size={12} /></button>
+                            <button type="button" onClick={() => setFullscreen(v => !v)} title="Fullscreen" className="axi-btn axi-btn--icon axi-btn--xs">
                                 {fullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
                             </button>
                         </div>
@@ -515,7 +521,8 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                             <button
                                 type="button"
                                 onClick={() => setReplaySpotlightParty(null)}
-                                style={{ position: 'absolute', top: 42, left: '50%', transform: 'translateX(-50%)', zIndex: 10, ...chipStyle, borderColor: 'var(--status-warning)', color: 'var(--status-warning)' }}
+                                className="axi-chip axi-chip--action axi-ink-warn axi-edge-warn"
+                                style={{ position: 'absolute', top: 42, left: '50%', transform: 'translateX(-50%)', zIndex: 10, ...CHIP_PAD }}
                             >
                                 Spotlight: Party {spotlightParty} <X size={10} style={{ marginLeft: 4 }} />
                             </button>

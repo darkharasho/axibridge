@@ -323,7 +323,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                         <button
                             onClick={handleAdd}
                             disabled={!newName.trim() || !newUrl.trim()}
-                            className="axi-btn flex-1 justify-center axi-ink-meta disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="axi-btn flex-1 justify-center axi-ink-meta"
                         >
                             <Plus className="w-4 h-4" />
                             Add
@@ -372,7 +372,7 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                         <button
                             onClick={handleLinkSubmit}
                             disabled={!bridgeKey.trim() || bridgeLinking}
-                            className="axi-btn flex-1 justify-center axi-ink-meta disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="axi-btn flex-1 justify-center axi-ink-meta"
                         >
                             <Zap className="w-4 h-4" />
                             {bridgeLinking ? 'Linking…' : 'Link'}

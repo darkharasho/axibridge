@@ -905,10 +905,10 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button onClick={handleClose} className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule">Cancel</button>
-                                        {/* Not disabled while busy: disabled:opacity-50 would dim the
-                                            button and its spinner the moment you pressed it, which reads
-                                            as a dead click. handleAddSelectedFiles ignores a second press. */}
-                                        <button onClick={() => { if (filePickerSelected.size > 0) handleAddSelectedFiles(); }} disabled={filePickerSelected.size === 0} aria-busy={filePickerSubmitting} className="axi-btn axi-btn--sm axi-btn--primary file-picker-confirm disabled:opacity-50 disabled:cursor-not-allowed">
+                                        {/* Not disabled while busy: the dead state would dim the button
+                                            and its spinner the moment you pressed it, which reads as a
+                                            dead click. handleAddSelectedFiles ignores a second press. */}
+                                        <button onClick={() => { if (filePickerSelected.size > 0) handleAddSelectedFiles(); }} disabled={filePickerSelected.size === 0} aria-busy={filePickerSubmitting} className="axi-btn axi-btn--sm axi-btn--primary file-picker-confirm">
                                             {filePickerSubmitting ? (
                                                 <>
                                                     {/* Adding a few hundred logs takes long enough that the

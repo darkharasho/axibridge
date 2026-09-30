@@ -2061,7 +2061,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         <button
                                             onClick={handleCreateGithubRepo}
                                             disabled={creatingRepo || !!githubRepoError || githubAuthStatus !== 'connected'}
-                                            className="axi-btn axi-btn--sm axi-ink-meta axi-edge-meta disabled:opacity-50"
+                                            className="axi-btn axi-btn--sm axi-ink-meta axi-edge-meta"
                                         >
                                             {creatingRepo ? 'Creating...' : 'Create Now'}
                                         </button>
@@ -2105,7 +2105,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     <button
                                         onClick={handleCopyPagesUrl}
                                         disabled={!inferredPagesUrl}
-                                        className="axi-btn axi-btn--sm github-pages-url-copy axi-ink-plain axi-edge-rule disabled:opacity-50"
+                                        className="axi-btn axi-btn--sm github-pages-url-copy axi-ink-plain axi-edge-rule"
                                     >
                                         {pagesUrlCopied ? 'Copied' : 'Copy'}
                                     </button>
@@ -2910,7 +2910,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         <div className="mt-4 flex flex-wrap items-center gap-3">
                             <button
                                 onClick={handleClearDpsCache}
-                                className="axi-btn axi-ink-dim axi-edge-rule disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="axi-btn axi-ink-dim axi-edge-rule"
                                 disabled={dpsCacheBusy}
                             >
                                 <Trash2 className="w-4 h-4" />
@@ -3394,7 +3394,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         <button
                                             type="button"
                                             onClick={handleClearDpsCache}
-                                            className="axi-btn w-full justify-center axi-edge-danger axi-ink-danger disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="axi-btn w-full justify-center axi-edge-danger axi-ink-danger"
                                             disabled={dpsCacheBusy}
                                         >
                                             <Trash2 className="w-4 h-4" />

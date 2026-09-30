@@ -142,7 +142,8 @@ const LayersPanelInner: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
                     type="button"
                     title="Collapse layers panel"
                     onClick={onToggle}
-                    style={{ fontSize: 11, color: 'var(--text-muted)', padding: '2px 4px', borderRadius: 3, background: 'none', border: 'none', cursor: 'pointer' }}
+                    className="axi-action axi-action--glyph axi-ink-faint"
+                    style={{ fontSize: 11, '--axi-action-hit': '18px' } as React.CSSProperties}
                 >
                     ◀
                 </button>

@@ -9,14 +9,6 @@ export interface FightIdentityPillProps {
     onOpenPicker: () => void;
 }
 
-const stepBtn = (disabled: boolean): React.CSSProperties => ({
-    width: 20, height: 20, borderRadius: 4, flexShrink: 0,
-    background: 'transparent', border: 'none',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: disabled ? 'var(--text-muted)' : 'var(--text-secondary)',
-    cursor: disabled ? 'default' : 'pointer',
-});
-
 /**
  * Which fight you are looking at, centred over the map. Replaces the
  * full-width picker bar: the same stepping and the same doorway into the
@@ -64,7 +56,9 @@ const FightIdentityPillInner: React.FC<FightIdentityPillProps> = ({ fights, onOp
             } as React.CSSProperties}
         >
             <button type="button" title="Previous fight" aria-label="Previous fight"
-                    onClick={() => step(-1)} disabled={atFirst} style={stepBtn(atFirst)}>
+                    className="axi-action axi-action--glyph"
+                    onClick={() => step(-1)} disabled={atFirst}
+                    style={{ '--axi-action-hit': '20px', flexShrink: 0 } as React.CSSProperties}>
                 <ChevronLeft size={13} />
             </button>
 
@@ -72,10 +66,8 @@ const FightIdentityPillInner: React.FC<FightIdentityPillProps> = ({ fights, onOp
                 type="button"
                 title="Show all fights"
                 onClick={onOpenPicker}
-                style={{
-                    display: 'flex', alignItems: 'center', gap: 6, minWidth: 0,
-                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                }}
+                className="axi-action"
+                style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}
             >
                 <span style={{
                     fontSize: 11, fontWeight: 600, color: 'var(--text-primary)',
@@ -96,7 +88,9 @@ const FightIdentityPillInner: React.FC<FightIdentityPillProps> = ({ fights, onOp
             </button>
 
             <button type="button" title="Next fight" aria-label="Next fight"
-                    onClick={() => step(1)} disabled={atLast} style={stepBtn(atLast)}>
+                    className="axi-action axi-action--glyph"
+                    onClick={() => step(1)} disabled={atLast}
+                    style={{ '--axi-action-hit': '20px', flexShrink: 0 } as React.CSSProperties}>
                 <ChevronRight size={13} />
             </button>
         </div>
