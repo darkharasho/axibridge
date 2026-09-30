@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
 import { useMetricSectionState } from '../hooks/useMetricSectionState';
-import { Maximize2, X, Columns, Users } from 'lucide-react';
+import { Columns, Users } from 'lucide-react';
 import { Gw2DamMitIcon } from '../../ui/Gw2DamMitIcon';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
@@ -100,16 +101,11 @@ export const DamageMitigationSection = ({
                             ]}
                         />
                     )}
-                    <button
-                        type="button"
-                        onClick={() => (expandedSection === 'defense-mitigation' ? closeExpandedSection() : openExpandedSection('defense-mitigation'))}
-                        className="flex items-center justify-center w-[26px] h-[26px]"
-                        style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                        aria-label={expandedSection === 'defense-mitigation' ? 'Close Damage Mitigation' : 'Expand Damage Mitigation'}
-                        title={expandedSection === 'defense-mitigation' ? 'Close' : 'Expand'}
-                    >
-                        {expandedSection === 'defense-mitigation' ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                    </button>
+                    <SectionExpandButton
+                        expanded={expandedSection === 'defense-mitigation'}
+                        onToggle={() => (expandedSection === 'defense-mitigation' ? closeExpandedSection() : openExpandedSection('defense-mitigation'))}
+                        section="Damage Mitigation"
+                    />
                 </div>
             </div>
             <div className="text-xs axi-ink-warn italic mb-3">

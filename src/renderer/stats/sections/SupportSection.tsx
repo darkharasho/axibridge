@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
 import { useMetricSectionState } from '../hooks/useMetricSectionState';
-import { Maximize2, X, Columns, Users } from 'lucide-react';
+import { Columns, Users } from 'lucide-react';
 import { SupportPlusIcon } from '../../ui/SupportPlusIcon';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
@@ -161,16 +162,11 @@ export const SupportSection = ({
                         ]}
                     />
                 )}
-                <button
-                    type="button"
-                    onClick={() => (expandedSection === 'support-detailed' ? closeExpandedSection() : openExpandedSection('support-detailed'))}
-                    className="flex items-center justify-center w-[26px] h-[26px]"
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                    aria-label={expandedSection === 'support-detailed' ? 'Close Support Detailed' : 'Expand Support Detailed'}
-                    title={expandedSection === 'support-detailed' ? 'Close' : 'Expand'}
-                >
-                    {expandedSection === 'support-detailed' ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                </button>
+                <SectionExpandButton
+                    expanded={expandedSection === 'support-detailed'}
+                    onToggle={() => (expandedSection === 'support-detailed' ? closeExpandedSection() : openExpandedSection('support-detailed'))}
+                    section="Support Detailed"
+                />
             </div>
         </div>
         {stats.supportPlayers.length === 0 ? (

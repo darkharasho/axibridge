@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Maximize2, X, Skull, ArrowUp, ArrowDown } from 'lucide-react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
+import { Skull, ArrowUp, ArrowDown } from 'lucide-react';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { renderProfessionIcon } from '../ui/StatsViewShared';
 import { ON_TAG_RANGE, RUN_BACK_RANGE, type OnTagReviewResult, type OnTagReviewRow } from '../computeOnTagReview';
@@ -109,16 +110,11 @@ export const OnTagReviewSection = ({ result }: Props) => {
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
                 <Skull className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>On Tag Review</h3>
-                <button
-                    type="button"
-                    onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
-                    className="ml-auto flex items-center justify-center w-[26px] h-[26px]"
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                    aria-label={isExpanded ? 'Close On Tag Review' : 'Expand On Tag Review'}
-                    title={isExpanded ? 'Close' : 'Expand'}
-                >
-                    {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                </button>
+                <SectionExpandButton
+                    expanded={isExpanded}
+                    onToggle={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
+                    section="On Tag Review"
+                />
             </div>
             <div className="text-[10px] mb-3 ml-6" style={{ color: 'var(--text-secondary)' }}>
                 Death distance from tag · <span style={{ color: 'var(--text-primary)' }}>On</span> ≤ {formatWithCommas(ON_TAG_RANGE, 0)}

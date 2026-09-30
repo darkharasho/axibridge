@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Maximize2, X, Columns, Users, Skull } from 'lucide-react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
+import { Columns, Users, Skull } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
@@ -110,16 +111,11 @@ export const ConditionsSection = ({
                         ]}
                     />
                 )}
-                <button
-                    type="button"
-                    onClick={() => (expandedSection === 'conditions-outgoing' ? closeExpandedSection() : openExpandedSection('conditions-outgoing'))}
-                    className="flex items-center justify-center w-[26px] h-[26px]"
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                    aria-label={expandedSection === 'conditions-outgoing' ? 'Close Outgoing Conditions' : 'Expand Outgoing Conditions'}
-                    title={expandedSection === 'conditions-outgoing' ? 'Close' : 'Expand'}
-                >
-                    {expandedSection === 'conditions-outgoing' ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                </button>
+                <SectionExpandButton
+                    expanded={expandedSection === 'conditions-outgoing'}
+                    onToggle={() => (expandedSection === 'conditions-outgoing' ? closeExpandedSection() : openExpandedSection('conditions-outgoing'))}
+                    section="Outgoing Conditions"
+                />
             </div>
         </div>
         {conditionSummary && conditionSummary.length > 0 ? (

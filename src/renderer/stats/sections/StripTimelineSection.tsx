@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Eraser, Maximize2, X } from 'lucide-react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
+import { Eraser } from 'lucide-react';
 import { BucketGridTable, FightPicker, TIMELINE_NOT_RECORDED_MESSAGE, type BucketGridRow } from './BucketGridTable';
 import { renderProfessionIcon } from '../ui/StatsViewShared';
 import { CONTROL_BUCKET_MS, type ControlFightData } from '../computeControlTimeline';
@@ -77,16 +78,11 @@ export const StripTimelineSection: React.FC<StripTimelineSectionProps> = ({
                 <span className="ml-auto">
                     <FightPicker fights={fights} selectedId={fight?.id} onChange={setInternalFightId} />
                 </span>
-                <button
-                    type="button"
-                    onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(SECTION_ID))}
-                    className="flex items-center justify-center w-[26px] h-[26px]"
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                    aria-label={isExpanded ? 'Close Strip Timeline' : 'Expand Strip Timeline'}
-                    title={isExpanded ? 'Close' : 'Expand'}
-                >
-                    {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                </button>
+                <SectionExpandButton
+                    expanded={isExpanded}
+                    onToggle={() => (isExpanded ? closeExpandedSection() : openExpandedSection(SECTION_ID))}
+                    section="Strip Timeline"
+                />
             </div>
             <div className="text-[10px] mb-3 ml-6" style={{ color: 'var(--text-secondary)' }}>
                 Boon strips per player, in {CONTROL_BUCKET_MS / 1000}s buckets

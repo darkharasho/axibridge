@@ -1,5 +1,6 @@
 import { useMetricSectionState } from '../hooks/useMetricSectionState';
-import { Maximize2, X, Columns, Users, HeartPulse, AlertTriangle } from 'lucide-react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
+import { Columns, Users, HeartPulse, AlertTriangle } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
@@ -101,16 +102,11 @@ export const HealingSection = ({
                         />
                     );
                 })()}
-                <button
-                    type="button"
-                    onClick={() => (expandedSection === 'healing-stats' ? closeExpandedSection() : openExpandedSection('healing-stats'))}
-                    className="flex items-center justify-center w-[26px] h-[26px]"
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                    aria-label={expandedSection === 'healing-stats' ? 'Close Healing Stats' : 'Expand Healing Stats'}
-                    title={expandedSection === 'healing-stats' ? 'Close' : 'Expand'}
-                >
-                    {expandedSection === 'healing-stats' ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                </button>
+                <SectionExpandButton
+                    expanded={expandedSection === 'healing-stats'}
+                    onToggle={() => (expandedSection === 'healing-stats' ? closeExpandedSection() : openExpandedSection('healing-stats'))}
+                    section="Healing Stats"
+                />
             </div>
         </div>
         {stats.healingPlayers.length === 0 ? (

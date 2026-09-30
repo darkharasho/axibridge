@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
 import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer } from '../ui/ChartContainer';
-import { Maximize2, X, Waves } from 'lucide-react';
+import { Waves } from 'lucide-react';
 import { InlineIconLabel } from '../ui/StatsViewShared';
 import type { HealEffectivenessFight, HealEffectivenessSkillRow } from '../computeHealEffectivenessData';
 import { useStatsSharedContext } from '../StatsViewContext';
@@ -103,16 +104,11 @@ export const HealEffectivenessSection = ({ fights }: HealEffectivenessSectionPro
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <Waves className="w-4 h-4 shrink-0" style={{ color: 'var(--section-healing)' }} />
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Heal Effectiveness</h3>
-                <button
-                    type="button"
-                    onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
-                    className="ml-auto flex items-center justify-center w-[26px] h-[26px]"
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                    aria-label={isExpanded ? 'Close Heal Effectiveness' : 'Expand Heal Effectiveness'}
-                    title={isExpanded ? 'Close' : 'Expand'}
-                >
-                    {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                </button>
+                <SectionExpandButton
+                    expanded={isExpanded}
+                    onToggle={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
+                    section="Heal Effectiveness"
+                />
             </div>
             {fights.length === 0 ? (
                 <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No heal effectiveness data available</div>

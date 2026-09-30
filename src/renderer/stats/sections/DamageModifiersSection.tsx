@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Maximize2, X, Columns, Users, Flame, ShieldOff } from 'lucide-react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
+import { Columns, Users, Flame, ShieldOff } from 'lucide-react';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { SearchSelectDropdown, SearchSelectOption } from '../ui/SearchSelectDropdown';
@@ -166,16 +167,11 @@ export const DamageModifiersSection = ({
                             All
                         </span>
                     )}
-                    <button
-                        type="button"
-                        onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(config.sectionId))}
-                        className="flex items-center justify-center w-[26px] h-[26px]"
-                        style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                        aria-label={isExpanded ? `Close ${config.title}` : `Expand ${config.title}`}
-                        title={isExpanded ? 'Close' : 'Expand'}
-                    >
-                        {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                    </button>
+                    <SectionExpandButton
+                        expanded={isExpanded}
+                        onToggle={() => (isExpanded ? closeExpandedSection() : openExpandedSection(config.sectionId))}
+                        section={config.title}
+                    />
                 </div>
             </div>
 

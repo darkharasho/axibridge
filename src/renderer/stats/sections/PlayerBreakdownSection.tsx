@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Maximize2, X, Columns, Users, ListTree } from 'lucide-react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
+import { Columns, Users, ListTree } from 'lucide-react';
 import { InlineIconLabel } from '../ui/StatsViewShared';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
@@ -123,16 +124,11 @@ export const PlayerBreakdownSection = ({
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <ListTree className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Player Breakdown</h3>
-                <button
-                    type="button"
-                    onClick={() => (expandedSection === 'player-breakdown' ? closeExpandedSection() : openExpandedSection('player-breakdown'))}
-                    className="ml-auto flex items-center justify-center w-[26px] h-[26px]"
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                    aria-label={expandedSection === 'player-breakdown' ? 'Close Player Breakdown' : 'Expand Player Breakdown'}
-                    title={expandedSection === 'player-breakdown' ? 'Close' : 'Expand'}
-                >
-                    {expandedSection === 'player-breakdown' ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                </button>
+                <SectionExpandButton
+                    expanded={expandedSection === 'player-breakdown'}
+                    onToggle={() => (expandedSection === 'player-breakdown' ? closeExpandedSection() : openExpandedSection('player-breakdown'))}
+                    section="Player Breakdown"
+                />
             </div>
             <div className={expandedSection === 'player-breakdown' ? 'flex-1 min-h-0 flex flex-col' : ''}>
                 {playerSkillBreakdowns.length === 0 ? (

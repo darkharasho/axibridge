@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Maximize2, X, Columns, Users, Star } from 'lucide-react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
+import { Columns, Users, Star } from 'lucide-react';
 import { useMetricSectionState } from '../hooks/useMetricSectionState';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { PillToggleGroup } from '../ui/PillToggleGroup';
@@ -127,16 +128,11 @@ export const SpecialBuffsSection = ({
                     ]}
                     className="inline-flex w-auto"
                 />
-                <button
-                    type="button"
-                    onClick={() => (expandedSection === 'special-buffs' ? closeExpandedSection() : openExpandedSection('special-buffs'))}
-                    className="flex items-center justify-center w-[26px] h-[26px]"
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                    aria-label={expandedSection === 'special-buffs' ? 'Close Special Buffs' : 'Expand Special Buffs'}
-                    title={expandedSection === 'special-buffs' ? 'Close' : 'Expand'}
-                >
-                    {expandedSection === 'special-buffs' ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                </button>
+                <SectionExpandButton
+                    expanded={expandedSection === 'special-buffs'}
+                    onToggle={() => (expandedSection === 'special-buffs' ? closeExpandedSection() : openExpandedSection('special-buffs'))}
+                    section="Special Buffs"
+                />
             </div>
         </div>
         {stats.specialTables.length === 0 ? (

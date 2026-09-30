@@ -1,5 +1,6 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
+
 import type { DecodedCast } from '../computeRotationTimeline';
 
 /** `m:ss.mmm`, with a leading `-` for a cast that began before the log did.
@@ -72,15 +73,11 @@ export const RotationCastSheet: React.FC<RotationCastSheetProps> = ({
                         {sameSkill.length} {sameSkill.length === 1 ? 'cast' : 'casts'} this fight
                     </div>
                 </div>
-                <button
-                    type="button"
-                    onClick={onClose}
-                    aria-label="Close cast detail"
-                    className="flex items-center justify-center w-[26px] h-[26px] shrink-0"
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                >
-                    <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />
-                </button>
+                <SectionExpandButton
+                    expanded={true}
+                    onToggle={onClose}
+                    section="cast detail"
+                />
             </div>
             <div className="flex flex-wrap gap-x-6 mt-2.5">
                 <Field label="Cast at">{mmssMillis(cast.castTime)}</Field>

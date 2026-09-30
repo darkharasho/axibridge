@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
-import { ListOrdered, Maximize2, X } from 'lucide-react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
+import { ListOrdered } from 'lucide-react';
 import { FightPicker } from './BucketGridTable';
 import { renderProfessionIcon } from '../ui/StatsViewShared';
 import { StatsSharedContext } from '../StatsViewContext';
@@ -174,16 +175,11 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
                         ))}
                     </select>
                 </span>
-                <button
-                    type="button"
-                    onClick={() => (isExpanded ? closeExpandedSection() : openExpandedSection(SECTION_ID))}
-                    className="flex items-center justify-center w-[26px] h-[26px]"
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                    aria-label={isExpanded ? 'Close Rotation' : 'Expand Rotation'}
-                    title={isExpanded ? 'Close' : 'Expand'}
-                >
-                    {isExpanded ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                </button>
+                <SectionExpandButton
+                    expanded={isExpanded}
+                    onToggle={() => (isExpanded ? closeExpandedSection() : openExpandedSection(SECTION_ID))}
+                    section="Rotation"
+                />
             </div>
             <div className="text-[10px] mb-3 ml-6" style={{ color: 'var(--text-secondary)' }}>
                 Per-cast timeline for one player

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Maximize2, X, GitCompareArrows } from 'lucide-react';
+import { SectionExpandButton } from '../ui/SectionExpandButton';
+import { GitCompareArrows } from 'lucide-react';
 import { StatsTableShell } from '../ui/StatsTableShell';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { expandedPaneProps } from './expandedPane';
@@ -149,16 +150,11 @@ export const FightDiffModeSection = () => {
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <GitCompareArrows className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Fight Comparison</h3>
-                <button
-                    type="button"
-                    onClick={() => (expandedSection === 'fight-diff-mode' ? closeExpandedSection() : openExpandedSection('fight-diff-mode'))}
-                    className="ml-auto flex items-center justify-center w-[26px] h-[26px]"
-                    style={{ background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)' }}
-                    aria-label={expandedSection === 'fight-diff-mode' ? 'Close Fight Comparison' : 'Expand Fight Comparison'}
-                    title={expandedSection === 'fight-diff-mode' ? 'Close' : 'Expand'}
-                >
-                    {expandedSection === 'fight-diff-mode' ? <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} /> : <Maximize2 className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />}
-                </button>
+                <SectionExpandButton
+                    expanded={expandedSection === 'fight-diff-mode'}
+                    onToggle={() => (expandedSection === 'fight-diff-mode' ? closeExpandedSection() : openExpandedSection('fight-diff-mode'))}
+                    section="Fight Comparison"
+                />
             </div>
 
             {fightDiffMissingFromDataset ? (
