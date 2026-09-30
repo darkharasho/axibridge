@@ -892,11 +892,11 @@ function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="rail-stack flex flex-col gap-3"
+            className="rail-stack axi-stack [--axi-stack-gap:8px]"
         >
             {/* Watch Folder card */}
             <div className="rail-card axi-panel axi-panel--tile [--axi-panel-pad:8px_10px]">
-                <div className="rail-card__label text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Watch Folder</div>
+                <p className="rail-card__label axi-eyebrow">Watch Folder</p>
                 <div className="flex gap-1 w-full max-w-full">
                     <div className="flex-1 min-w-0 rounded-[4px] border px-1.5 h-8 flex items-center gap-2 transition-colors" style={{ background: 'var(--bg-input)', borderColor: 'var(--border-default)' }}>
                         <div className="pl-1 shrink-0">
@@ -935,34 +935,38 @@ function App() {
 
             {/* Status card */}
             <div className="rail-card axi-panel axi-panel--tile [--axi-panel-pad:8px_10px]">
-                <div className="rail-card__label text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Status</div>
-                <div className="space-y-0">
-                    <div className="rail-row flex items-center justify-between py-1.5">
-                        <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>Watcher</span>
-                        <span className="text-[11px] font-medium" style={{ color: logDirectory ? 'var(--status-success)' : 'var(--text-muted)' }}>
+                <p className="rail-card__label axi-eyebrow">Status</p>
+                {/* A readout: rows of label and reading, parted by the language's own
+                    rule. It used to draw the divider inline and restate every row's
+                    padding; upstream's tile fallback for --axi-readout-pad is the 3px
+                    this column always wanted. */}
+                <dl className="axi-readout">
+                    <div className="rail-row axi-readout__row">
+                        <dt className="axi-readout__k">Watcher</dt>
+                        <dd className={`axi-readout__v ${logDirectory ? 'axi-ink-ok' : 'axi-ink-faint'}`}>
                             {logDirectory ? 'Active' : 'Inactive'}
-                        </span>
+                        </dd>
                     </div>
-                    <div className="rail-row flex items-center justify-between py-1.5" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                        <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>Upload queue</span>
-                        <span className="text-[11px] font-medium" style={{ color: uploadingCount > 0 ? 'var(--brand-primary)' : 'var(--text-muted)' }}>
+                    <div className="rail-row axi-readout__row">
+                        <dt className="axi-readout__k">Upload queue</dt>
+                        <dd className={`axi-readout__v ${uploadingCount > 0 ? 'axi-ink-accent' : 'axi-ink-faint'}`}>
                             {uploadingCount > 0 ? `${uploadingCount} pending` : 'Idle'}
-                        </span>
+                        </dd>
                     </div>
-                    <div className="rail-row flex items-center justify-between py-1.5" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                        <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>Success / Errors</span>
-                        <span className="text-[11px] font-medium">
-                            <span style={{ color: 'var(--status-success)' }}>{successCount}</span>
-                            <span style={{ color: 'var(--text-muted)' }}> / </span>
-                            <span style={{ color: errorCount > 0 ? 'var(--status-error)' : 'var(--text-muted)' }}>{errorCount}</span>
-                        </span>
+                    <div className="rail-row axi-readout__row">
+                        <dt className="axi-readout__k">Success / Errors</dt>
+                        <dd className="axi-readout__v">
+                            <span className="axi-ink-ok">{successCount}</span>
+                            <span className="axi-ink-faint"> / </span>
+                            <span className={errorCount > 0 ? 'axi-ink-danger' : 'axi-ink-faint'}>{errorCount}</span>
+                        </dd>
                     </div>
-                </div>
+                </dl>
             </div>
 
             {/* Discord Webhook card */}
             <div className="rail-card axi-panel axi-panel--tile [--axi-panel-pad:8px_10px]">
-                <div className="rail-card__label text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Discord Webhook</div>
+                <p className="rail-card__label axi-eyebrow">Discord Webhook</p>
                 <div className="flex gap-1 w-full">
                     <div ref={webhookDropdownRef} className="relative flex-1 min-w-0">
                         <button
@@ -1018,25 +1022,25 @@ function App() {
 
             {/* Session card */}
             <div className="rail-card axi-panel axi-panel--tile [--axi-panel-pad:8px_10px]">
-                <div className="rail-card__label text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Session</div>
-                <div className="space-y-0">
-                    <div className="rail-row flex items-center justify-between py-1.5">
-                        <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>Logs uploaded</span>
-                        <span className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{totalUploads}</span>
+                <p className="rail-card__label axi-eyebrow">Session</p>
+                <dl className="axi-readout">
+                    <div className="rail-row axi-readout__row">
+                        <dt className="axi-readout__k">Logs uploaded</dt>
+                        <dd className="axi-readout__v">{totalUploads}</dd>
                     </div>
-                    <div className="rail-row flex items-center justify-between py-1.5" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                        <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>Win / Loss</span>
-                        <span className="text-[11px] font-medium">
-                            <span style={{ color: 'var(--status-success-muted)' }}>{winLoss.wins}</span>
-                            <span style={{ color: 'var(--text-muted)' }}> / </span>
-                            <span style={{ color: 'var(--status-error-muted)' }}>{winLoss.losses}</span>
-                        </span>
+                    <div className="rail-row axi-readout__row">
+                        <dt className="axi-readout__k">Win / Loss</dt>
+                        <dd className="axi-readout__v">
+                            <span className="axi-ink-ok">{winLoss.wins}</span>
+                            <span className="axi-ink-faint"> / </span>
+                            <span className="axi-ink-danger">{winLoss.losses}</span>
+                        </dd>
                     </div>
-                    <div className="rail-row flex items-center justify-between py-1.5" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                        <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>Squad KDR</span>
-                        <span className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{squadKdr}</span>
+                    <div className="rail-row axi-readout__row">
+                        <dt className="axi-readout__k">Squad KDR</dt>
+                        <dd className="axi-readout__v">{squadKdr}</dd>
                     </div>
-                </div>
+                </dl>
             </div>
 
             {/* Quick Settings card */}

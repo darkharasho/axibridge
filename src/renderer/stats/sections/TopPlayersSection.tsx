@@ -36,7 +36,8 @@ const LeaderCard = ({ icon: Icon, title, data, isBoon = false, accentColor, unit
                     onClick?.();
                 }
             }}
-            className={`leader-card axi-panel axi-panel--tile flex flex-col gap-3 group cursor-pointer relative ${active ? 'leader-card--active axi-edge-accent' : ''}`}
+            aria-pressed={Boolean(active)}
+            className="leader-card axi-panel axi-panel--tile flex flex-col gap-3 group cursor-pointer relative"
             style={{ '--axi-panel-pad': '16px' } as React.CSSProperties}
         >
             <div className="flex items-center gap-4">

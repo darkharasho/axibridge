@@ -41,31 +41,27 @@ export function QuickSettingsCard({ context }: { context: QuickSettingsContext }
         <div
             className="rail-card axi-panel axi-panel--tile [--axi-panel-pad:8px_10px]"
         >
-            <div className="rail-card__label text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
-                Quick Settings
-            </div>
-            <div className="space-y-0">
-                {QUICK_SETTINGS.filter((setting) => setting.isRelevant?.(context) ?? true).map((setting, index) => {
+            <p className="rail-card__label axi-eyebrow">Quick Settings</p>
+            <dl className="axi-readout">
+                {QUICK_SETTINGS.filter((setting) => setting.isRelevant?.(context) ?? true).map((setting) => {
                     const ready = setting.isReady(context);
                     return (
-                        <div
-                            key={setting.id}
-                            className="rail-row flex items-center justify-between gap-2 py-1.5"
-                            style={index === 0 ? undefined : { borderTop: '1px solid var(--border-subtle)' }}
-                        >
-                            <span className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }} title={setting.hint}>
+                        <div key={setting.id} className="rail-row axi-readout__row">
+                            <dt className="axi-readout__k" title={setting.hint}>
                                 {setting.label}
-                            </span>
-                            <QuickToggle
-                                enabled={setting.read(context)}
-                                disabled={!ready}
-                                label={setting.label}
-                                onChange={(value) => setting.write(context, value)}
-                            />
+                            </dt>
+                            <dd className="axi-readout__v">
+                                <QuickToggle
+                                    enabled={setting.read(context)}
+                                    disabled={!ready}
+                                    label={setting.label}
+                                    onChange={(value) => setting.write(context, value)}
+                                />
+                            </dd>
                         </div>
                     );
                 })}
-            </div>
+            </dl>
         </div>
     );
 }

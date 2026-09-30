@@ -384,7 +384,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                     >
                         {view === 'dashboard' && (
                             <div className="dashboard-view dashboard-modern flex flex-1 min-h-0 overflow-hidden matte-dashboard-shell">
-                                <div className="dashboard-rail flex flex-col gap-3 overflow-y-auto p-3" style={{ width: '300px', flexShrink: 0 }}>
+                                <div className="dashboard-rail flex flex-col overflow-hidden p-2" style={{ width: '300px', flexShrink: 0 }}>
                                     {configurationPanel}
                                 </div>
                                 <div className="flex-1 min-h-0 overflow-y-auto p-3 matte-activity-shell">

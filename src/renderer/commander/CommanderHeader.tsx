@@ -111,7 +111,8 @@ function FightSelector({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`axi-picker__btn justify-between ${open ? 'axi-edge-accent' : ''}`}
+        aria-expanded={open}
+        className="axi-picker__btn justify-between"
       >
         <span className="truncate">{selected?.label}</span>
       </button>

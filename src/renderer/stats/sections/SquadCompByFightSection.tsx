@@ -102,8 +102,9 @@ export const SquadCompByFightSection = ({
                                             onClick={() => setActiveFightId(fight.id)}
                                             /* Three stacked lines, not a label - so this is a card you
                                                press, not a rail row, and a selected card takes the
-                                               accent edge rather than the accent fill. */
-                                            className={`axi-card w-full text-left ${isActive ? 'axi-edge-accent' : ''}`}
+                                               accent edge rather than the accent fill - drawn by the
+                                               language from aria-pressed. */
+                                            className="axi-card w-full text-left"
                                             aria-pressed={isActive}
                                         >
                                             <div className={`text-[10px] uppercase tracking-widest ${isActive ? 'axi-ink-accent' : 'axi-ink-dim'}`}>{fight.label}</div>

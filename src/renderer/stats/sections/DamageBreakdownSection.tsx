@@ -107,8 +107,8 @@ export const DamageBreakdownSection = ({
                    hand-rolled here for the fixed 480px height. It wears that
                    component's class hooks so the picker treatment - the well, the
                    search control, the picked row - reaches it too. */
-                <div className="stats-table-layout grid lg:grid-cols-[280px_1fr] gap-0 h-[480px]">
-                    <div className="axi-well stats-table-layout__sidebar flex flex-col overflow-y-auto">
+                <div className="stats-table-layout axi-split h-[480px]">
+                    <div className="axi-well axi-split__nav stats-table-layout__sidebar flex flex-col overflow-y-auto">
                         <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-3">
                             Squad Players
                         </div>
@@ -121,7 +121,7 @@ export const DamageBreakdownSection = ({
                                     className="axi-input"
                                 />
                         </div>
-                        <div className="space-y-1 pr-1 flex-1 min-h-0 overflow-y-auto">
+                        <div className="axi-scroll-quiet space-y-1 pr-1 flex-1 min-h-0 overflow-y-auto">
                                 {filteredPlayers.length === 0 ? (
                                     <div className="px-3 py-4 text-xs text-[color:var(--text-muted)] italic">
                                         No players match the filter.
@@ -158,7 +158,7 @@ export const DamageBreakdownSection = ({
                             </div>
                         </div>
 
-                    <div className="stats-table-layout__content pl-3 flex flex-col min-h-0 overflow-y-auto">
+                    <div className="axi-split__body stats-table-layout__content flex flex-col min-h-0 overflow-y-auto">
                         <div className="overflow-hidden flex-1 min-h-0 flex flex-col">
                             {!selectedPlayer ? (
                                 <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">

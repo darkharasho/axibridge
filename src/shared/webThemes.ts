@@ -1,4 +1,4 @@
-export type ColorPalette = 'electric-blue' | 'refined-cyan' | 'amber-warm' | 'emerald-mint' | 'rose-pink' | 'violet-purple' | 'crimson-red' | 'slate-silver' | 'teal-ocean' | 'gold-bronze' | 'axi-gold';
+export type ColorPalette = 'electric-blue' | 'refined-cyan' | 'amber-warm' | 'emerald-mint' | 'rose-pink' | 'violet-purple' | 'crimson-red' | 'slate-silver' | 'teal-ocean' | 'gold-bronze' | 'axi-gold' | 'electric-cyan';
 
 export interface PaletteDefinition {
     id: ColorPalette;
@@ -42,6 +42,19 @@ export const PALETTES: Record<ColorPalette, PaletteDefinition> = {
         accentBg: 'rgba(59, 130, 246, 0.10)',
         accentBgStrong: 'rgba(59, 130, 246, 0.18)',
         accentBorder: 'rgba(59, 130, 246, 0.35)',
+    },
+    /* Shipped by @axiapps/axi-design 1.43.0 as its twelfth accent; the app
+       offers every accent the package ships, which accentParity.test.ts
+       enforces. The hex is the package's own. */
+    'electric-cyan': {
+        id: 'electric-cyan',
+        label: 'Electric Cyan',
+        primary: '#22d3ee',
+        secondary: '#06b6d4',
+        gradient: 'linear-gradient(135deg, #22d3ee, #06b6d4)',
+        accentBg: 'rgba(34, 211, 238, 0.10)',
+        accentBgStrong: 'rgba(34, 211, 238, 0.18)',
+        accentBorder: 'rgba(34, 211, 238, 0.35)',
     },
     'refined-cyan': {
         id: 'refined-cyan',
