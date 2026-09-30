@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS,
-    DEFAULT_GLASS, DEFAULT_PARTICLES_ENABLED, DEFAULT_MVP_WEIGHT_PROFILES,
+    DEFAULT_PARTICLES_ENABLED, DEFAULT_MVP_WEIGHT_PROFILES,
     DEFAULT_STATS_VIEW_SETTINGS, DisruptionMethod, IEmbedStatSettings, IMvpWeightProfiles,
     IStatsViewSettings,
 } from '../../global.d';
 import { normalizeMvpWeightProfiles } from '../../stats/mvpWeightProfiles';
 import { Webhook } from '../../WebhookModal';
-import { type ColorPalette } from '../../../shared/webThemes';
+import {
+    asAxiTheme, axiThemeFromLegacyGlass, DEFAULT_AXI_THEME,
+    type ColorPalette, type AxiTheme,
+} from '../../../shared/webThemes';
 import { applyAxiTheme } from '../../../shared/applyAxiTheme';
 
 interface UseSettingsOptions {
@@ -26,7 +29,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     const [r2HostingEnabled, setR2HostingEnabled] = useState(true);
     const [r2SliceEnabled, setR2SliceEnabled] = useState(true);
     const [colorPalette, setColorPalette] = useState<ColorPalette>('electric-blue');
-    const [glass, setGlass] = useState(DEFAULT_GLASS);
+    const [axiTheme, setAxiTheme] = useState<AxiTheme>(DEFAULT_AXI_THEME);
     const [particlesEnabled, setParticlesEnabled] = useState(DEFAULT_PARTICLES_ENABLED);
     const [webhooks, setWebhooks] = useState<Webhook[]>([]);
     const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
@@ -95,8 +98,14 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
             if (settings.colorPalette) {
                 setColorPalette(settings.colorPalette);
             }
-            if (typeof settings.glass === 'boolean') {
-                setGlass(settings.glass);
+            // `axiTheme` is the field; `glass` is the boolean this setting was before
+            // there was more than one theme, still readable here because a store written
+            // by an older build is exactly the case the main-process migration may not
+            // have reached yet on a downgrade-then-upgrade.
+            if (settings.axiTheme !== undefined) {
+                setAxiTheme(asAxiTheme(settings.axiTheme));
+            } else if (typeof settings.glass === 'boolean') {
+                setAxiTheme(axiThemeFromLegacyGlass(settings.glass));
             }
             if (typeof settings.particlesEnabled === 'boolean') {
                 setParticlesEnabled(settings.particlesEnabled);
@@ -163,10 +172,10 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
     useEffect(() => {
         // Two data attributes on <html> are the whole appearance API — see
         // applyAxiTheme for why the document element rather than the body.
-        applyAxiTheme(document.documentElement, { accent: colorPalette, glass });
+        applyAxiTheme(document.documentElement, { accent: colorPalette, theme: axiTheme });
         // Not part of the design language — app behaviour, so it stays a body class.
         document.body.classList.toggle('particles-disabled', !particlesEnabled);
-    }, [colorPalette, glass, particlesEnabled]);
+    }, [colorPalette, axiTheme, particlesEnabled]);
 
     return useMemo(() => ({
         logDirectory, setLogDirectory,
@@ -180,7 +189,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         r2HostingEnabled, setR2HostingEnabled,
         r2SliceEnabled, setR2SliceEnabled,
         colorPalette, setColorPalette,
-        glass, setGlass,
+        axiTheme, setAxiTheme,
         particlesEnabled, setParticlesEnabled,
         webhooks, setWebhooks,
         selectedWebhookId, setSelectedWebhookId,
@@ -195,7 +204,7 @@ export function useSettings({ onAutoUpdateSettings }: UseSettingsOptions = {}) {
         shouldOpenWhatsNew,
     }), [
         logDirectory, notificationType, embedStatSettings, mvpWeights,
-        statsViewSettings, disruptionMethod, allowLocalJson, r2PreciseReplay, r2HostingEnabled, r2SliceEnabled, colorPalette, glass, particlesEnabled,
+        statsViewSettings, disruptionMethod, allowLocalJson, r2PreciseReplay, r2HostingEnabled, r2SliceEnabled, colorPalette, axiTheme, particlesEnabled,
         webhooks, selectedWebhookId, enabledWebhookIds, discordDestinationStatus, handleUpdateSettings, handleSelectDirectory,
         settingsLoaded, whatsNewVersion, whatsNewNotes, walkthroughSeen,
         shouldOpenWhatsNew,

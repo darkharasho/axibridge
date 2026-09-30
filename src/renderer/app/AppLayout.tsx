@@ -62,8 +62,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
         statsDataProgress,
         setStatsViewSettings,
         setColorPalette,
-        glass,
-        setGlass,
+        axiTheme,
+        setAxiTheme,
         particlesEnabled,
         setParticlesEnabled,
         handleWebUpload,
@@ -442,8 +442,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 onStatsViewSettingsSaved={stableSetStatsViewSettings}
                                 onDisruptionMethodSaved={stableSetDisruptionMethod}
                                 onColorPaletteSaved={setColorPalette}
-                                onGlassSaved={setGlass}
-                                glass={glass}
+                                onAxiThemeSaved={setAxiTheme}
+                                axiTheme={axiTheme}
                                 onParticlesEnabledSaved={setParticlesEnabled}
                                 onAllowLocalJsonSaved={setAllowLocalJson}
                                 onParserSettingsSaved={setParserSettings}

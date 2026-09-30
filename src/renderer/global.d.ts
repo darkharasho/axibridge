@@ -297,9 +297,11 @@ export const DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS: IDiscordEnemySplitSettings = 
 };
 
 /* The axi design language is unconditional now, so there is no boolean for it.
-   Glass is the one appearance choice beyond the accent: upstream's
-   [data-axi-theme="glass"] token override, off by default. */
-export const DEFAULT_GLASS = false;
+   The theme is the one appearance choice beyond the accent: which of upstream's
+   [data-axi-theme="<id>"] token overrides is on, or none of them. The set and the
+   default live in src/shared/webThemes.ts next to the accents, because the settings
+   UI, the applier and the report reader all have to clamp against the same list —
+   import DEFAULT_AXI_THEME from there rather than re-spelling it here. */
 export const DEFAULT_PARTICLES_ENABLED = true;
 
 export interface CloudflareStatus {
@@ -354,6 +356,11 @@ export interface IElectronAPI {
         disruptionMethod: DisruptionMethod;
         commanderThresholds?: Partial<import('../shared/commanderThresholds').CommanderThresholds>;
         colorPalette?: ColorPalette;
+        axiTheme?: import('../shared/webThemes').AxiTheme;
+        /* The boolean the theme setting was before there was more than one theme.
+           Still on this shape because a store or an exported settings file written by
+           an older build carries it and nothing else; read at the boundary, never
+           written. See axiThemeFromLegacyGlass. */
         glass?: boolean;
         particlesEnabled?: boolean;
         autoUpdateSupported?: boolean;
@@ -406,6 +413,11 @@ export interface IElectronAPI {
         disruptionMethod?: DisruptionMethod;
         commanderThresholds?: Partial<import('../shared/commanderThresholds').CommanderThresholds>;
         colorPalette?: ColorPalette;
+        axiTheme?: import('../shared/webThemes').AxiTheme;
+        /* The boolean the theme setting was before there was more than one theme.
+           Still on this shape because a store or an exported settings file written by
+           an older build carries it and nothing else; read at the boundary, never
+           written. See axiThemeFromLegacyGlass. */
         glass?: boolean;
         particlesEnabled?: boolean;
         githubRepoOwner?: string | null;

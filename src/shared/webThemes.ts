@@ -156,3 +156,66 @@ export const LEGACY_THEME_TO_PALETTE: Record<string, { palette: ColorPalette; gl
     kinetic: { palette: 'amber-warm', glass: false },
     'dark-glass': { palette: 'electric-blue', glass: true },
 };
+
+/**
+ * The themes @axiapps/axi-design ships, as the app's own vocabulary.
+ *
+ * This is the accent picker's shape one level up: a closed set of ids, a default,
+ * and a label per entry, so the settings UI, the applier and the report reader all
+ * clamp against the same list instead of each keeping its own.
+ *
+ * `default` rather than `''`. Upstream spells the main theme as the absence of
+ * `data-axi-theme` and its own switcher uses an empty string for it, which is right
+ * for an attribute and wrong for a value that gets persisted, exported, round-tripped
+ * through JSON and put in a radio group: `'' || 'glass'` is `'glass'`, so a single
+ * careless `||` anywhere in that chain silently turns glass on. The applier is the one
+ * place the translation happens, and it is the only place that has to know.
+ *
+ * Adding a theme here is not enough to ship it — index.css must import its stylesheet,
+ * or the id lands on <html> with no rules behind it. themeCssContract.test.ts asserts
+ * the two lists agree.
+ */
+export type AxiTheme = 'default' | 'glass' | 'flat';
+
+export const AXI_THEMES: Record<AxiTheme, { label: string; description: string }> = {
+    default: {
+        label: 'Outlined',
+        description: 'Flat opaque panels with a hard offset block and square corners.',
+    },
+    glass: {
+        label: 'Glass',
+        description: 'Translucent backlit surfaces, a soft drop shadow and generous corners.',
+    },
+    flat: {
+        label: 'Flat',
+        description: 'Layered panels with a lit top edge, a hairline outline and small corners.',
+    },
+};
+
+export const DEFAULT_AXI_THEME: AxiTheme = 'default';
+
+/**
+ * Clamps anything to a theme id.
+ *
+ * hasOwnProperty, not `in`: the inputs here are a persisted settings blob, an
+ * imported export file and a report.json fetched off the network, and `in` walks the
+ * prototype chain — a theme of `"constructor"` would pass an `in` guard and land on
+ * <html>, where no rule matches it and the page renders unthemed with the attribute
+ * claiming otherwise. Same reasoning as the accent clamp in applyAxiTheme.
+ */
+export function asAxiTheme(value: unknown): AxiTheme {
+    return typeof value === 'string' && Object.prototype.hasOwnProperty.call(AXI_THEMES, value)
+        ? (value as AxiTheme)
+        : DEFAULT_AXI_THEME;
+}
+
+/**
+ * The one legacy input: the `glass` boolean this setting was before there was more
+ * than one theme to choose. Read wherever old data arrives — a settings store written
+ * by an older build, an exported settings file, a published report.json — and never
+ * written. `false` maps to `default` and not to `flat`: "glass off" meant the main
+ * theme, which is what those users have been looking at.
+ */
+export function axiThemeFromLegacyGlass(glass: unknown): AxiTheme {
+    return glass === true ? 'glass' : DEFAULT_AXI_THEME;
+}

@@ -11,7 +11,16 @@
    The components are loaded but not yet adopted — that is sub-projects 2-5. */
 @import '@axiapps/axi-design/axi.css';
 @import '@axiapps/axi-design/accents.css';
+/* Every theme the package ships, linked unconditionally rather than fetched on
+   switch. A theme file is one rule hooked on [data-axi-theme="<id>"], inert until
+   that attribute matches, so the cost of carrying all of them is a few hundred
+   bytes and the benefit is that switching cannot half-apply while a stylesheet is
+   still in flight. The set here has to match AXI_THEMES in src/shared/webThemes.ts:
+   an id the picker offers with no stylesheet behind it lands on <html> and renders
+   as the main theme with the attribute claiming otherwise. themeCssContract.test.ts
+   asserts the two agree. */
 @import '@axiapps/axi-design/themes/glass.css';
+@import '@axiapps/axi-design/themes/flat.css';
 
 :root {
   /* Electric Blue palette (default) */

@@ -24,14 +24,21 @@ const STAGING_DIRNAME = 'web-report-staging';
 export const STUB_TITLE_SUFFIX = ' — open with AxiBridge 3.10 or newer to view';
 
 /**
- * Stats fields the stub keeps so a pre-3.10 viewer still themes the page.
+ * Stats fields the stub keeps so an older viewer still themes the page.
  *
- * `glassSurfaces` is the same value as `glass`, carried under its old name for
- * viewers already deployed in the field — a published report keeps the viewer
- * bundle from its last publish, so those readers are still out there and only
- * know that spelling.
+ * Three spellings of one choice, each for a different generation of viewer, because
+ * a published report keeps the viewer bundle from its last publish and every one of
+ * those readers is still out there:
+ *   - `axiTheme` is the theme id current viewers read.
+ *   - `glass` is the boolean it was while there was only one theme to turn on.
+ *   - `glassSurfaces` is that boolean's older spelling, from before the three
+ *     appearance booleans collapsed into one.
+ *
+ * Only the first can say `flat`; to the other two a flat report reads as the main
+ * theme, which is the honest degradation and the reason the id was added rather than
+ * the boolean stretched.
  */
-const STUB_STATS_KEYS = ['colorPalette', 'glass', 'glassSurfaces'] as const;
+const STUB_STATS_KEYS = ['colorPalette', 'axiTheme', 'glass', 'glassSurfaces'] as const;
 
 const writeParts = (dir: string, gzip: Buffer, baseName: string): PartsManifest => {
     const sha256 = createHash('sha256').update(gzip).digest('hex');

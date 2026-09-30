@@ -3,7 +3,7 @@ import fs from 'fs';
 import https from 'node:https';
 import http from 'node:http';
 import path from 'node:path';
-import { LEGACY_THEME_TO_PALETTE } from '../../shared/webThemes';
+import { LEGACY_THEME_TO_PALETTE, DEFAULT_AXI_THEME } from '../../shared/webThemes';
 import { collapseGlassKeys } from '../glassSettingMigration';
 import { DEFAULT_DISRUPTION_METHOD } from '../../shared/metricsSettings';
 import { isR2SliceEnabled } from './githubHandlers';
@@ -203,7 +203,7 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             disruptionMethod: store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD),
             commanderThresholds: store.get('commanderThresholds', undefined),
             colorPalette: store.get('colorPalette', 'electric-blue'),
-            glass: store.get('glass', false),
+            axiTheme: store.get('axiTheme', DEFAULT_AXI_THEME),
             particlesEnabled: store.get('particlesEnabled', true),
             autoUpdateSupported: updateSupported,
             autoUpdateDisabledReason: updateDisabledReason,
@@ -287,7 +287,7 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             disruptionMethod: store.get('disruptionMethod', DEFAULT_DISRUPTION_METHOD),
             commanderThresholds: store.get('commanderThresholds', undefined),
             colorPalette: store.get('colorPalette', 'electric-blue'),
-            glass: store.get('glass', false),
+            axiTheme: store.get('axiTheme', DEFAULT_AXI_THEME),
             particlesEnabled: store.get('particlesEnabled', true),
             githubRepoOwner: store.get('githubRepoOwner', null),
             githubRepoName: store.get('githubRepoName', null),

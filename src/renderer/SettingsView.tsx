@@ -9,7 +9,10 @@ import type { Webhook } from './WebhookModal';
 import type { IReportWebhook } from '../shared/reportWebhooks';
 import { DEFAULT_COMMANDER_THRESHOLDS, type CommanderThresholds } from '../shared/commanderThresholds';
 import { METRICS_SPEC } from '../shared/metricsSettings';
-import { PALETTES, type ColorPalette, DEFAULT_PALETTE_ID } from '../shared/webThemes';
+import {
+    PALETTES, DEFAULT_PALETTE_ID, AXI_THEMES, DEFAULT_AXI_THEME, asAxiTheme, axiThemeFromLegacyGlass,
+    type ColorPalette, type AxiTheme,
+} from '../shared/webThemes';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
@@ -77,7 +80,7 @@ const IMPORT_SETTING_META: Array<{ key: string; label: string; description: stri
     { key: 'selectedWebhookId', label: 'Selected Webhook', description: 'Active webhook entry.', section: 'Discord' },
     { key: 'closeBehavior', label: 'Close Behavior', description: 'Minimize vs quit on close.', section: 'Application' },
     { key: 'colorPalette', label: 'Color Palette', description: 'Accent color palette for the UI.', section: 'Application' },
-    { key: 'glass', label: 'Glass', description: 'Translucent, backlit surfaces instead of flat opaque ones.', section: 'Application' },
+    { key: 'axiTheme', label: 'Theme', description: 'Which surface treatment the design language wears.', section: 'Application' },
     { key: 'particlesEnabled', label: 'Particle Effects', description: 'Enable particle animations and effects.', section: 'Application' },
     { key: 'embedStatSettings', label: 'Discord Stat Toggles', description: 'Discord summary sections and top stat lists.', section: 'Stats' },
     { key: 'mvpWeightProfiles', label: 'MVP Weights', description: 'Score weighting for MVP.', section: 'Stats' },
@@ -113,7 +116,7 @@ interface SettingsViewProps {
     onStatsViewSettingsSaved?: (settings: IStatsViewSettings) => void;
     onDisruptionMethodSaved?: (method: DisruptionMethod) => void;
     onColorPaletteSaved?: (palette: ColorPalette) => void;
-    onGlassSaved?: (glass: boolean) => void;
+    onAxiThemeSaved?: (theme: AxiTheme) => void;
     onParticlesEnabledSaved?: (enabled: boolean) => void;
     onAllowLocalJsonSaved?: (enabled: boolean) => void;
     /** Keeps App's copy (the dashboard Quick Settings card) in sync with edits made here. */
@@ -124,7 +127,7 @@ interface SettingsViewProps {
     /** Fired when a Cloudflare connect or disconnect changes whether R2 is usable. */
     onR2CredentialsChanged?: () => void;
     colorPalette?: ColorPalette;
-    glass?: boolean;
+    axiTheme?: AxiTheme;
     particlesEnabled?: boolean;
     developerSettingsTrigger?: number;
     isBulkUploadActive?: boolean;
@@ -221,7 +224,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onGlassSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onParserSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2SliceEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, glass: glassProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed, getStoredLogs, webhooks, enabledWebhookIds, onSaveWebhooks, onSetDestinationEnabled, logDirectory, onChangeLogDirectory }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onAxiThemeSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onParserSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2SliceEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, axiTheme: axiThemeProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed, getStoredLogs, webhooks, enabledWebhookIds, onSaveWebhooks, onSetDestinationEnabled, logDirectory, onChangeLogDirectory }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [dpsReportEnabled, setDpsReportEnabled] = useState<boolean>(true);
@@ -235,7 +238,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [disruptionMethod, setDisruptionMethod] = useState<DisruptionMethod>(DEFAULT_DISRUPTION_METHOD);
     const [commanderThresholds, setCommanderThresholds] = useState<CommanderThresholds>(DEFAULT_COMMANDER_THRESHOLDS);
     const [colorPalette, setColorPalette] = useState<ColorPalette>(colorPaletteProp ?? DEFAULT_PALETTE_ID);
-    const [glass, setGlass] = useState(glassProp ?? false);
+    const [axiTheme, setAxiTheme] = useState<AxiTheme>(axiThemeProp ?? DEFAULT_AXI_THEME);
     const [particlesEnabled, setParticlesEnabled] = useState(particlesEnabledProp ?? true);
     const [allowLocalJson, setAllowLocalJson] = useState(false);
     const [parserSettings, setParserSettings] = useState<IParserSettings | null>(null);
@@ -558,8 +561,13 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         if (settings.colorPalette && Object.prototype.hasOwnProperty.call(PALETTES, settings.colorPalette)) {
             setColorPalette(settings.colorPalette);
         }
-        if (typeof settings.glass === 'boolean') {
-            setGlass(settings.glass);
+        // `axiTheme` is the field; the `glass` boolean is what an exported settings
+        // file written before there was more than one theme carries. Read, never
+        // written — see axiThemeFromLegacyGlass.
+        if (settings.axiTheme !== undefined) {
+            setAxiTheme(asAxiTheme(settings.axiTheme));
+        } else if (typeof settings.glass === 'boolean') {
+            setAxiTheme(axiThemeFromLegacyGlass(settings.glass));
         }
         if (typeof settings.particlesEnabled === 'boolean') {
             setParticlesEnabled(settings.particlesEnabled);
@@ -836,7 +844,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         disruptionMethod,
         commanderThresholds,
         colorPalette,
-        glass,
+        axiTheme,
         githubRepoOwner,
         githubRepoName,
         githubToken,
@@ -1007,7 +1015,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             disruptionMethod: disruptionMethod,
             commanderThresholds: commanderThresholds,
             colorPalette,
-            glass,
+            axiTheme,
             particlesEnabled,
             githubRepoName: githubRepoName || null,
             githubRepoOwner: githubRepoOwner || null,
@@ -1029,7 +1037,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         onStatsViewSettingsSaved?.(statsViewSettings);
         onDisruptionMethodSaved?.(disruptionMethod);
         onColorPaletteSaved?.(colorPalette);
-        onGlassSaved?.(glass);
+        onAxiThemeSaved?.(axiTheme);
         onParticlesEnabledSaved?.(particlesEnabled);
         onAllowLocalJsonSaved?.(allowLocalJson);
 
@@ -1057,7 +1065,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         disruptionMethod,
         commanderThresholds,
         colorPalette,
-        glass,
+        axiTheme,
         particlesEnabled,
         githubRepoName,
         githubRepoOwner,
@@ -2992,12 +3000,63 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             })}
                         </div>
                         <div className="mt-4">
-                            <Toggle
-                                enabled={glass}
-                                onChange={(v) => { setGlass(v); onGlassSaved?.(v); }}
-                                label="Glass"
-                                description="Translucent, backlit surfaces and rounded corners instead of flat opaque ones"
-                            />
+                            {/* A radio group and not a toggle. This was a toggle while glass
+                                was the only thing to turn on; a third option is not a state a
+                                switch has, and the honest control for "one of these" is a set
+                                of radios with the current one marked.
+
+                                The list comes from AXI_THEMES rather than being written out
+                                here, so a theme the package adds is offered as soon as
+                                index.css imports its stylesheet — and themeCssContract.test.ts
+                                fails if only one of those two happens.
+
+                                Selection is `axi-edge-accent`, the same way the accent picker
+                                above marks its own choice: the picked thing is edged in the
+                                accent, which is what an accent is for. Deliberately not a
+                                `.axi-panel--selected` modifier — there is no such thing
+                                upstream, and a class with no rules behind it would render the
+                                picked theme identically to the other two. That exact mistake is
+                                recorded on the accent button just below, where the selected
+                                swatch was invisible for a release because both arms of its
+                                border resolved to --axi-rule. */}
+                            <fieldset className="mb-4 border-0 p-0 m-0">
+                                <legend className="text-[11px] uppercase tracking-[0.2em] axi-ink-faint mb-2">
+                                    Theme
+                                </legend>
+                                <p className="text-sm axi-ink-dim mb-3">
+                                    The surface treatment the design language wears. The accent above is
+                                    independent of it.
+                                </p>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    {(Object.keys(AXI_THEMES) as AxiTheme[]).map((id) => {
+                                        const isActive = axiTheme === id;
+                                        return (
+                                            <label
+                                                key={id}
+                                                className={`rounded-[4px] border px-3 py-3 text-left cursor-pointer transition-colors ${isActive
+                                                    ? 'axi-edge-accent bg-white/10'
+                                                    : 'axi-edge-rule bg-white/5 hover:border-white/30'
+                                                    }`}
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    name="axi-theme"
+                                                    className="axi-sr-only"
+                                                    value={id}
+                                                    checked={isActive}
+                                                    onChange={() => { setAxiTheme(id); onAxiThemeSaved?.(id); }}
+                                                />
+                                                <div className="text-xs font-semibold axi-ink-plain">
+                                                    {AXI_THEMES[id].label}
+                                                </div>
+                                                <div className="text-[11px] axi-ink-dim mt-1 leading-snug">
+                                                    {AXI_THEMES[id].description}
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </fieldset>
                             <Toggle
                                 enabled={particlesEnabled}
                                 onChange={(v) => { setParticlesEnabled(v); onParticlesEnabledSaved?.(v); }}

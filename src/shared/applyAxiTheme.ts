@@ -1,13 +1,20 @@
-import { PALETTES, DEFAULT_PALETTE_ID, type ColorPalette } from './webThemes';
+import {
+    PALETTES,
+    DEFAULT_PALETTE_ID,
+    asAxiTheme,
+    DEFAULT_AXI_THEME,
+    type ColorPalette,
+    type AxiTheme,
+} from './webThemes';
 
 /**
  * Applies the axi design language to a document root.
  *
  * Two attributes, and nothing else. `@axiapps/axi-design/accents.css` maps
- * `[data-axi-accent]` to `--axi-accent`, and
- * `@axiapps/axi-design/themes/glass.css` maps `[data-axi-theme="glass"]` to the
- * whole glass token set. Every surface in the app derives from those tokens, so
- * these two attributes are the entire appearance API.
+ * `[data-axi-accent]` to `--axi-accent`, and each `themes/<id>.css` maps
+ * `[data-axi-theme="<id>"]` to that theme's whole token set. Every surface in the
+ * app derives from those tokens, so these two attributes are the entire
+ * appearance API.
  *
  * `root` is `<html>` rather than `<body>` on purpose: upstream's selectors are
  * unscoped, and at the document element they cascade over every body-level rule
@@ -20,7 +27,7 @@ import { PALETTES, DEFAULT_PALETTE_ID, type ColorPalette } from './webThemes';
  */
 export function applyAxiTheme(
     root: HTMLElement,
-    opts: { accent: ColorPalette | string | null | undefined; glass: boolean },
+    opts: { accent: ColorPalette | string | null | undefined; theme: AxiTheme | string | null | undefined },
 ): void {
     // hasOwnProperty, not `in`: `in` walks the prototype chain, so
     // `'constructor' in PALETTES` is true and an accent of "constructor" — which a
@@ -34,6 +41,12 @@ export function applyAxiTheme(
 
     root.setAttribute('data-axi-accent', accent);
 
-    if (opts.glass) root.setAttribute('data-axi-theme', 'glass');
-    else root.removeAttribute('data-axi-theme');
+    // The only place `default` is translated back into upstream's spelling of the
+    // main theme, which is the absence of the attribute. Removing it rather than
+    // setting it empty is not cosmetic: `[data-axi-theme=""]` matches no theme rule,
+    // so an empty attribute renders correctly and tells everything else reading the
+    // DOM — a test, a screenshot differ, a future rule — that a theme is on.
+    const theme = asAxiTheme(opts.theme);
+    if (theme === DEFAULT_AXI_THEME) root.removeAttribute('data-axi-theme');
+    else root.setAttribute('data-axi-theme', theme);
 }
