@@ -522,20 +522,14 @@
    An ink line wherever one fill meets the next. It is not a third form step,
    it is the same outline the shape already carries continued inward, which is
    why it can be drawn at one weight - the control step - at every size.
-   The app draws its charts with recharts, so the cut is a stroke rather than a
-   border, but it is the same line: every sector and every bar segment is
-   separated from its neighbour by the ink the chart is outlined in. */
-[data-axi-accent] body .recharts-sector,
-[data-axi-accent] body .recharts-rectangle {
-  stroke: var(--axi-ink-line);
-  stroke-width: var(--axi-border-control);
-}
-/* A chart's structure is drawn in rules, its data in ink. */
-[data-axi-accent] body .recharts-cartesian-grid line,
-[data-axi-accent] body .recharts-cartesian-axis-line,
-[data-axi-accent] body .recharts-cartesian-axis-tick-line {
-  stroke: var(--axi-rule);
-}
+   The cut reaches the charts too, but it is not written here: CHARTS, at the
+   foot of this file, is the one place chart furniture is drawn. Four rules
+   used to stand here and in the brush section saying the same things one
+   section earlier, and every one of them lost - .recharts-pie-sector > path
+   and .recharts-bar-rectangle > path name the same nodes one element deeper,
+   so they outranked these, and the grid and axis rules were simply restated
+   later. A second place to write a thing down is not a second opinion, it is
+   a rule that never applies. */
 
 /* ---------------------------------------------------------------------------
    THE SECTIONS
@@ -868,92 +862,6 @@
    component's, drawn once, for every table in the app. What the shell still
    owns is `stats-table-shell__header` - the toolbar above the table, which is
    not table markup and never was. */
-
-/* ---------------------------------------------------------------------------
-   THE CHART CHROME
-   The plot itself came through the remap - the series keep their own colours,
-   which rule 10 asks for past two series - but everything recharts draws
-   around the plot was still library default. The brush under a long timeline
-   was the giveaway: a periwinkle capsule with two lavender handles, the one
-   piece of the old library's palette left anywhere in the app.
-
-   Presentation attributes set in JSX lose to CSS properties of the same name,
-   so stroke and fill can be reclaimed here without touching thirty call
-   sites. */
-/* The app's own token, not --axi-surface-raised: `fill` takes <paint> and not
-   <image>, so under glass a gradient-valued token makes this invalid — and
-   because `fill` inherits, the element adopts its ancestor's fill rather than
-   falling back. --bg-hover resolves to --axi-surface-raised outside glass, so
-   the default theme renders identically, and to a flat colour under it. */
-[data-axi-accent] body .recharts-brush .recharts-brush-slide {
-  fill: var(--bg-hover);
-  fill-opacity: 1;
-  stroke: var(--axi-ink-line);
-  stroke-width: var(--axi-border-control);
-}
-[data-axi-accent] body .recharts-brush > rect:first-of-type {
-  fill: var(--axi-ground);
-  stroke: var(--axi-ink-line);
-  stroke-width: var(--axi-border-control);
-}
-/* The two handles are the only thing in the brush you grab, so they are the
-   thing that carries the accent. */
-[data-axi-accent] body .recharts-brush-traveller rect {
-  fill: var(--axi-accent);
-  stroke: var(--axi-ink-line);
-  stroke-width: var(--axi-border-control);
-}
-[data-axi-accent] body .recharts-brush-traveller line { stroke: var(--axi-accent-ink); }
-[data-axi-accent] body .recharts-brush-texts { fill: var(--axi-text-dim); }
-
-/* A dashed grid is a texture. The grid is structure, so it is a rule, drawn
-   once, solid.
-
-   It also has to stop being white at 8%. That literal is written at 36 call
-   sites across the sections and is the single most repeated rule 2 violation
-   in the app - but it is a presentation attribute, so one selector here
-   retires all 36 without editing a section. The grid takes --axi-rule rather
-   than the ink for the --axi-well-line reason: the plot area is the ground,
-   and ink only reads against a fill lighter than itself. */
-[data-axi-accent] body .recharts-cartesian-grid line {
-  stroke-dasharray: none;
-  stroke: var(--axi-rule);
-}
-
-/* The axis is the edge of the plot, not part of its texture, so it reads one
-   step stronger than the grid it bounds. Same ground, so still not the ink. */
-[data-axi-accent] body .recharts-cartesian-axis-line,
-[data-axi-accent] body .recharts-cartesian-axis-tick-line {
-  stroke: var(--axi-text-faint);
-}
-
-/* The cursor is the reading you are taking, so it is the one line in the plot
-   allowed to be the accent. */
-[data-axi-accent] body .recharts-tooltip-cursor {
-  stroke: var(--axi-accent);
-  stroke-width: var(--axi-border-control);
-  fill: var(--bg-hover);
-  fill-opacity: 1;
-}
-[data-axi-accent] body .recharts-cartesian-axis-tick text { fill: var(--axi-text-faint); }
-[data-axi-accent] body .recharts-label, [data-axi-accent] body .recharts-legend-item-text { fill: var(--axi-text-dim); color: var(--axi-text-dim); }
-
-/* recharts' own tooltip, for the charts that did not hand-roll one. */
-[data-axi-accent] body .recharts-default-tooltip {
-  background: var(--axi-surface) !important;
-  border: var(--axi-border-control) solid var(--axi-ink-line) !important;
-  /* These two need the same hammer as the two above them. The sections pass
-     recharts a `contentStyle` object, which lands as an inline style, and an
-     inline style beats a plain rule - so a tooltip would otherwise keep its
-     0.5rem corner and its hardcoded white text while its border moved. */
-  border-radius: var(--axi-radius-sm) !important;
-  color: var(--axi-text) !important;
-  box-shadow: var(--axi-shadow-control);
-}
-
-/* A reference line is an annotation on the plot - the zero line a diverging
-   bar chart is read against. It is structure, so it reads as the axis does. */
-[data-axi-accent] body .recharts-reference-line line { stroke: var(--axi-text-faint); }
 
 /* ---------------------------------------------------------------------------
    THE HISTORY TAB
@@ -1456,17 +1364,43 @@
    drawn in the neutral ramp and recedes; the series keep their own colours,
    because those are meaning - green is the squad, red is the enemy - and the
    language never had an opinion about those. What it has an opinion about is
-   everything drawn around them. */
+   everything drawn around them.
+
+   FOUND, NOT FIXED - and not this file's to fix. Two of the fills below reach
+   a surface colour through the app's --bg-card and --bg-hover shims, because
+   `fill` takes <paint> and not <image> and every surface token in the language
+   is a linear-gradient under both the glass and the flat theme. index.css pins
+   those shims flat under glass. It does not under flat, so with the app's own
+   stylesheets loaded the flat theme computes the brush slide and the bar cursor
+   as rgb(0, 0, 0) - and, for the same reason, drops the bucket grid's whole
+   heat ramp to rgba(0, 0, 0, 0), because color-mix() takes colours only.
+   Measured in all three themes; default and glass are correct.
+
+   The gap is upstream's: a language whose surfaces are gradients has nothing to
+   offer anything that needs a paint or a mix operand. Pinning the shims flat
+   under flat would fix these three and flatten every panel in the theme, which
+   is not a trade this file gets to make. */
 
 [data-axi-accent] body {
   /* A grid line is quieter than a rule: a rule divides two things, a grid is
      scaffolding you read values against and should sit barely above the
-     ground it is drawn on. */
-  --axi-grid: #262c36;
+     ground it is drawn on.
+
+     Derived, not picked. This was #262c36 - the last hard-coded colour in the
+     file, and one that ignored the theme entirely: glass and flat both draw
+     their rules in a translucent light, and a fixed slate grid stayed slate
+     under both. 47% is where the old hex sat: #3a4250, the default --axi-rule,
+     laid over #15181d, the default ground, at that alpha gives #262c36 to
+     within one step per channel. Mixing toward `transparent` rather than the
+     ground keeps it right on a panel fill too. */
+  --axi-grid: color-mix(in srgb, var(--axi-rule) 47%, transparent);
+
 }
 
 /* Solid, not dashed. A dash is decoration, and fifteen charts of dashes is a
-   texture rather than a scale. */
+   texture rather than a scale. The white-at-8% dashed grid this replaces was
+   written at 36 call sites; because recharts spreads it as a presentation
+   attribute, one selector here retires all 36 without editing a section. */
 [data-axi-accent] body .recharts-cartesian-grid line {
   stroke: var(--axi-grid);
   stroke-dasharray: none;
@@ -1496,7 +1430,12 @@
 
 /* The tooltip is a panel that happens to follow the cursor, so it is drawn
    like every other panel: surface, ink edge at the control weight, the small
-   radius, and no shadow - this language does not float things. */
+   radius, and no shadow - this language does not float things.
+
+   The !important is not a shortcut. The sections pass recharts a `contentStyle`
+   object, which lands as an inline style, and an inline style beats a plain
+   rule - so without it a tooltip would keep its 0.5rem corner and its
+   hardcoded white text while its border moved. */
 [data-axi-accent] body .recharts-default-tooltip,
 [data-axi-accent] body .recharts-tooltip-wrapper > div {
   background: var(--axi-surface) !important;
@@ -1522,6 +1461,11 @@
   fill: var(--bg-hover);
   fill-opacity: 1;
   stroke: var(--axi-rule);
+  /* The band's outline used to be declared alone, 68 rules up the file, at the
+     control weight - the one surviving line of a rule whose fill and stroke had
+     both been overruled from down here. At the hairline it matches the axis and
+     every other line this block draws. */
+  stroke-width: var(--axi-border-hairline);
 }
 /* A line chart's cursor is a crosshair, not a band, so it stays a line. */
 [data-axi-accent] body .recharts-curve.recharts-tooltip-cursor {
@@ -1553,6 +1497,7 @@
 /* A threshold is a claim, so it is drawn at the hairline weight and solid -
    it is one of the few lines in a chart that is supposed to be read. */
 [data-axi-accent] body .recharts-reference-line-line {
+  stroke: var(--axi-text-faint);
   stroke-width: var(--axi-border-hairline);
   stroke-dasharray: none;
 }
@@ -1564,16 +1509,31 @@
   stroke: var(--axi-well-line);
   stroke-width: var(--axi-border-control);
 }
+/* `fill` takes <paint> and not <image>, and the glass and flat themes both
+   define --axi-surface as a linear-gradient - so this cannot name the surface
+   token directly. It goes through the app's shim, which index.css pins to a
+   flat value under glass. Under flat it is still the gradient, and this fill is
+   therefore invalid and inherits: see the note at the head of this section. */
 [data-axi-accent] body .recharts-brush-slide {
   fill: var(--bg-card);
   fill-opacity: 1;
 }
+/* The two travellers are the only thing in any chart in the app you can grab,
+   and they are small. That is what an accent is for: a target you have to find
+   before you can use it, unlike the tooltip cursor, which is already under the
+   pointer and so needs no colour to be located. One accent in the plot, on the
+   one control.
+
+   This is a restoration. The rule said exactly this until a later pass wrote
+   `> rect` and `> line` to be precise about the child elements and, at equal
+   specificity and later in the file, silently took the accent off with them -
+   the handles had been grey on grey ever since. */
 [data-axi-accent] body .recharts-brush-traveller > rect {
-  fill: var(--bg-hover);
+  fill: var(--axi-accent);
   stroke: var(--axi-ink-line);
   stroke-width: var(--axi-border-hairline);
 }
-[data-axi-accent] body .recharts-brush-traveller > line { stroke: var(--axi-text-faint); }
+[data-axi-accent] body .recharts-brush-traveller > line { stroke: var(--axi-accent-ink); }
 [data-axi-accent] body .recharts-brush-texts { fill: var(--axi-text-faint); }
 
 /* The preview curve inside the brush is context, not data you read off, so it
