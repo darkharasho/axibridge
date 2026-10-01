@@ -1928,13 +1928,18 @@ export function ReportApp({ injectedSource, assetBase }: {
                                         <div className="text-xs sm:text-sm axi-ink-dim mt-2">{report.meta.dateLabel || formatLocalRange(report.meta.dateStart, report.meta.dateEnd)}</div>
                                     </div>
                                 </div>
-                                <button
+                                {/* Rendered, not hidden: .axi-pill sets its own display, so a
+                                    Tailwind `hidden` on the same element loses the cascade and the
+                                    pill shows up at every width (the e2e then found two "Contents"
+                                    buttons). An element that should not exist at this width is
+                                    not in the tree. */}
+                                {isNarrowViewport && !isCompactViewport && <button
                                     onClick={() => setTocOpen(true)}
-                                    className={`${isNarrowViewport && !isCompactViewport ? 'flex' : 'hidden'} axi-pill axi-pill--xs items-center gap-2`}
+                                    className="axi-pill axi-pill--xs items-center gap-2"
                                 >
                                     <PanelLeft className="w-4 h-4" />
                                     Contents
-                                </button>
+                                </button>}
                                 <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:overflow-visible pr-1 sm:pr-2">
                                     <div className="axi-chip inline-flex items-center gap-2 min-w-0 justify-start">
                                         <CalendarDays className="w-4 h-4 shrink-0 text-[color:var(--axi-accent)]" />
