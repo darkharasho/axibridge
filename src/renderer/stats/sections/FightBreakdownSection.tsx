@@ -81,7 +81,7 @@ export const FightBreakdownSection = ({
 
     const renderReportCell = (fight: any): ReactNode => {
         const label = formatReportLabel(fight);
-        if (!fight?.permalink) return <span className="text-[color:var(--text-muted)]">Pending</span>;
+        if (!fight?.permalink) return <span className="text-[color:var(--axi-text-faint)]">Pending</span>;
         return (
             <button
                 onClick={() => {
@@ -105,7 +105,7 @@ export const FightBreakdownSection = ({
         const url = typeof fight?.dpsReportUrl === 'string' ? fight.dpsReportUrl.trim() : '';
         if (!url) {
             return (
-                <span className="text-[color:var(--text-muted)]" title="Not uploaded to dps.report">--</span>
+                <span className="text-[color:var(--axi-text-faint)]" title="Not uploaded to dps.report">--</span>
             );
         }
         return (
@@ -175,7 +175,7 @@ export const FightBreakdownSection = ({
                         count={fight.squadCount ?? 0}
                         classCounts={fight.squadClassCountsFight}
                         label="Squad Classes"
-                        className="text-[color:var(--text-primary)]"
+                        className="text-[color:var(--axi-text)]"
                     />
                 ),
                 allies: (
@@ -183,7 +183,7 @@ export const FightBreakdownSection = ({
                         count={fight.allyCount ?? 0}
                         classCounts={fight.allyClassCountsFight}
                         label="Ally Classes"
-                        className="text-[color:var(--text-primary)]"
+                        className="text-[color:var(--axi-text)]"
                     />
                 ),
                 enemies: (
@@ -191,7 +191,7 @@ export const FightBreakdownSection = ({
                         count={fight.enemyCount ?? 0}
                         classCounts={fight.enemyClassCounts}
                         label="Enemy Classes"
-                        className="text-[color:var(--text-primary)]"
+                        className="text-[color:var(--axi-text)]"
                     />
                 ),
                 alliesDown: Number(fight.alliesDown ?? 0),
@@ -229,7 +229,7 @@ export const FightBreakdownSection = ({
                 id: String(fight.id || `${fight.label}-${idx}`),
                 label: (
                     <div className="min-w-0">
-                        <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-muted)]">{fights.length - idx}</div>
+                        <div className="text-[10px] uppercase tracking-widest text-[color:var(--axi-text-faint)]">{fights.length - idx}</div>
                         {renderReportCell(fight)}
                     </div>
                 ),
@@ -242,8 +242,8 @@ export const FightBreakdownSection = ({
         <div {...expandedPaneProps(isExpanded, expandedSectionClosing)}>
             <div>
                 <div className="flex flex-wrap items-center gap-2 mb-3.5">
-                    <Swords className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Fight Breakdown</h3>
+                    <Swords className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Fight Breakdown</h3>
                     <div className="ml-auto flex flex-wrap items-center gap-2 min-w-0">
                         {!isExpanded && (
                             <PillToggleGroup
@@ -257,7 +257,7 @@ export const FightBreakdownSection = ({
                                 ]}
                             />
                         )}
-                        <span className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--axi-text-dim)' }}>
                             {fights.length} Fights
                         </span>
                         <SectionExpandButton
@@ -268,7 +268,7 @@ export const FightBreakdownSection = ({
                     </div>
                 </div>
                 {fights.length === 0 ? (
-                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No fight data available</div>
+                    <div className="axi-empty">No fight data available</div>
                 ) : isExpanded ? (
                     <DenseStatsTable
                         title="Fight Breakdown (All Columns)"
@@ -343,7 +343,7 @@ export const FightBreakdownSection = ({
                                 <tbody>
                                     {fights.map((fight: any, idx: number) => (
                                         <tr key={fight.id || `${fight.label}-${idx}`}>
-                                            <td className="text-right text-[color:var(--text-muted)] w-8">{fights.length - idx}</td>
+                                            <td className="text-right text-[color:var(--axi-text-faint)] w-8">{fights.length - idx}</td>
                                             <td className="w-[240px]">{renderReportCell(fight)}</td>
                                             <td className="axi-table__num w-20">{fight.duration || '--:--'}</td>
                                             <td
@@ -364,7 +364,7 @@ export const FightBreakdownSection = ({
                                                             count={fight.squadCount ?? 0}
                                                             classCounts={fight.squadClassCountsFight}
                                                             label="Squad Classes"
-                                                            className="text-[color:var(--text-primary)]"
+                                                            className="text-[color:var(--axi-text)]"
                                                         />
                                                     </td>
                                                     <td>
@@ -372,7 +372,7 @@ export const FightBreakdownSection = ({
                                                             count={fight.allyCount ?? 0}
                                                             classCounts={fight.allyClassCountsFight}
                                                             label="Ally Classes"
-                                                            className="text-[color:var(--text-primary)]"
+                                                            className="text-[color:var(--axi-text)]"
                                                         />
                                                     </td>
                                                     <td>
@@ -380,7 +380,7 @@ export const FightBreakdownSection = ({
                                                             count={fight.enemyCount ?? 0}
                                                             classCounts={fight.enemyClassCounts}
                                                             label="Enemy Classes"
-                                                            className="text-[color:var(--text-primary)]"
+                                                            className="text-[color:var(--axi-text)]"
                                                         />
                                                     </td>
                                                     {teamColorColumns.length === 0 ? (

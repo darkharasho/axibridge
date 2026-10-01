@@ -23,47 +23,6 @@
 @import '@axiapps/axi-design/themes/flat.css';
 
 :root {
-  /* Electric Blue palette (default) */
-  --brand-primary: #3b82f6;
-  --brand-secondary: #6366f1;
-  --brand-gradient: linear-gradient(135deg, #3b82f6, #6366f1);
-  --accent-bg: rgba(59, 130, 246, 0.10);
-  --accent-bg-strong: rgba(59, 130, 246, 0.18);
-  --accent-border: rgba(59, 130, 246, 0.35);
-
-  /* Glow */
-  --glow-primary: rgba(59, 130, 246, 0.35);
-  --glow-secondary: rgba(99, 102, 241, 0.35);
-
-  /* Backgrounds */
-  --bg-base: #090b10;
-  --bg-elevated: #0f1219;
-  --bg-card: #1a1f2e;
-  --bg-card-inner: #222838;
-  --bg-hover: rgba(255, 255, 255, 0.05);
-  --bg-input: #141822;
-
-  /* Borders */
-  --border-subtle: rgba(255, 255, 255, 0.05);
-  --border-default: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.14);
-
-  /* Text */
-  --text-primary: #e8eaed;
-  --text-secondary: #8b929e;
-  --text-muted: #4a5162;
-  --text-inverse: #0c1015;
-
-  /* Shadows */
-  --shadow-card: 0 2px 8px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3);
-  --shadow-button: 0 1px 4px rgba(0,0,0,0.3);
-  --shadow-dropdown: 0 4px 16px rgba(0,0,0,0.5);
-
-  /* Radius */
-  --radius-sm: 2px;
-  --radius-md: 4px;
-  --radius-lg: 8px;
-  --window-radius: 10px;
 
   /* Motion tokens (keep in sync with motion/tokens.ts) */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -73,23 +32,6 @@
   --duration-normal: 200ms;
   --duration-slow: 350ms;
   --duration-slower: 500ms;
-
-  /* Status / semantic colors */
-  --status-success: #4ade80;
-  --status-success-muted: #86efac;
-  --status-success-bg: rgba(74, 222, 128, 0.08);
-  --status-success-border: rgba(74, 222, 128, 0.30);
-  --status-error: #f87171;
-  --status-error-muted: #fca5a5;
-  --status-error-bg: rgba(248, 113, 113, 0.08);
-  --status-error-border: rgba(248, 113, 113, 0.30);
-  --status-warning: #fbbf24;
-  --status-warning-muted: #fde68a;
-  --status-warning-bg: rgba(251, 191, 36, 0.08);
-  --status-warning-border: rgba(251, 191, 36, 0.30);
-  --status-info: #60a5fa;
-  --status-info-bg: rgba(96, 165, 250, 0.08);
-  --status-info-border: rgba(96, 165, 250, 0.30);
 
   /* Typography scale */
   --font-size-2xs: 0.5625rem;  /* 9px  – dense table headers */
@@ -101,17 +43,11 @@
 
   /* Section semantic accent colors */
   --section-offense: #f47272;
-  --section-offense-bg: rgba(244, 114, 114, 0.08);
   --section-defense: #60a5fa;
-  --section-defense-bg: rgba(96, 165, 250, 0.08);
   --section-mitigation: #818cf8;
-  --section-mitigation-bg: rgba(129, 140, 248, 0.08);
   --section-support: #34d399;
-  --section-support-bg: rgba(52, 211, 153, 0.08);
   --section-healing: #a3e635;
-  --section-healing-bg: rgba(163, 230, 53, 0.08);
-  --section-boon: #fbbf24;
-  --section-boon-bg: rgba(251, 191, 36, 0.08);
+  --section-boon: #f472b6; /* not amber: amber is the accent to within a few percent */
 
   font-family: "Inter", system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -130,11 +66,10 @@ body {
     overflow: hidden;
     margin: 0;
     padding: 0;
-    background: var(--bg-base, #000000);
-    border-radius: var(--window-radius);
+    background: var(--axi-ground);
+    border-radius: var(--axi-radius);
     overflow: hidden;
 }
-
 
 /* Pinned player column of the CC / Strip timeline grids.
 
@@ -148,7 +83,7 @@ body {
     position: sticky;
     left: 0;
     z-index: 2;
-    background: var(--bg-card);
+    background: var(--axi-surface-paint);
     background-clip: padding-box;
     box-shadow: 6px 0 10px -6px rgba(0, 0, 0, 0.45);
 }
@@ -160,7 +95,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 3;
-    background: var(--bg-card);
+    background: var(--axi-surface-paint);
     background-clip: padding-box;
 }
 
@@ -202,14 +137,14 @@ body.web-report .stats-view .max-h-80 {
    block further down flattens the token as well, so this is belt and braces; the
    shorthand is what keeps it true if the token is ever re-pointed. */
 .file-picker-selected-cell {
-    background: var(--accent-bg-strong, rgba(59, 130, 246, 0.18)) !important;
-    border-color: var(--accent-border, rgba(59, 130, 246, 0.35)) !important;
-    color: var(--text-primary, #e8eaed) !important;
+    background: var(--axi-surface-raised-paint) !important;
+    border-color: var(--axi-ink-line) !important;
+    color: var(--axi-text) !important;
 }
 
 .file-picker-selected-item {
-    background: var(--accent-bg-strong, rgba(59, 130, 246, 0.18)) !important;
-    color: var(--text-primary, #e8eaed) !important;
+    background: var(--axi-surface-raised-paint) !important;
+    color: var(--axi-text) !important;
 }
 
 :root {
@@ -428,6 +363,15 @@ body:not(.web-report) .modal-pane> :last-child {
     min-height: 0;
 }
 
+/* And the FIRST child is the sheet's head - upstream's .axi-sheet__head, which
+   the app cannot put on the element for the same reason as above: it is the
+   section's own heading row in the collapsed state too. */
+.modal-pane > :first-child {
+    flex: none;
+    padding-bottom: 10px;
+    border-bottom: var(--axi-border-control) solid var(--axi-ink-line);
+}
+
 /* Dense expanded layouts use a `flex-col gap-4` wrapper; make the table panel fill remainder. */
 body:not(.web-report) .modal-pane>.flex.flex-col.gap-4> :last-child {
     flex: 1 1 auto;
@@ -484,7 +428,7 @@ body:not(.web-report) .modal-pane button[aria-label^="Close "] {
 .glass-datetime::-webkit-datetime-edit-hour-field,
 .glass-datetime::-webkit-datetime-edit-minute-field,
 .glass-datetime::-webkit-datetime-edit-ampm-field {
-    color: var(--text-primary);
+    color: var(--axi-text);
 }
 
 .glass-dropdown {
@@ -671,7 +615,6 @@ body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-tabl
     mask-repeat: no-repeat;
 }
 
-
 /* Stats dashboard nav entries should stay flat across themes. */
 .stats-nav-entry,
 .stats-nav-entry:hover,
@@ -685,17 +628,17 @@ body:not(.web-report) .modal-pane .dense-table.fight-breakdown-dense .dense-tabl
 /* Shared TOC structure for in-app + web Proof of Work sidebars. */
 .proof-of-work-sidebar .proof-of-work-toc-item--l1 {
     padding-left: 0.55rem;
-    color: var(--text-primary);
+    color: var(--axi-text);
 }
 
 .proof-of-work-sidebar .proof-of-work-toc-item--l2 {
     padding-left: 1.25rem;
-    color: var(--text-primary);
+    color: var(--axi-text);
 }
 
 .proof-of-work-sidebar .proof-of-work-toc-item--l3 {
     padding-left: 1.85rem;
-    color: var(--text-secondary);
+    color: var(--axi-text-dim);
 }
 
 body.web-report .stats-view .fight-comp-party-badge,
@@ -715,22 +658,22 @@ body.web-report .stats-view .fight-comp-class-icon--squad {
 }
 
 .stats-view .fight-comp-result-badge--win {
-    border-color: var(--status-success-border);
-    background-color: var(--status-success-bg);
-    color: var(--status-success-muted);
+    border-color: var(--axi-ok);
+    background-color: var(--axi-surface-raised-paint);
+    color: var(--axi-ok);
 }
 
 .stats-view .fight-comp-result-badge--loss {
-    border-color: var(--status-error-border);
-    background-color: var(--status-error-bg);
-    color: var(--status-error-muted);
+    border-color: var(--axi-danger);
+    background-color: var(--axi-surface-raised-paint);
+    color: var(--axi-danger);
 }
 
 .stats-view .fight-comp-result-badge--unknown {
-    border-color: var(--border-hover);
+    border-color: var(--axi-rule);
     /* Shorthand: --bg-hover is --axi-surface-raised, a gradient, under glass. */
-    background: var(--bg-hover);
-    color: var(--text-secondary);
+    background: var(--axi-surface-raised-paint);
+    color: var(--axi-text-dim);
 }
 
 /* Keep MVP crown icon wrappers circular in web report across theme overrides. */
@@ -841,8 +784,8 @@ body.web-report #top-players .mvp-gold-icon-badge {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 2px solid color-mix(in srgb, var(--brand-primary) 18%, transparent);
-  border-top-color: var(--brand-primary);
+  border: 2px solid color-mix(in srgb, var(--axi-accent) 18%, transparent);
+  border-top-color: var(--axi-accent);
   animation: spinner-rotate 1s linear infinite;
 }
 
@@ -861,25 +804,25 @@ body.web-report #top-players .mvp-gold-icon-badge {
 .stats-particle-spinner__particle:nth-child(1) {
   width: 4px; height: 4px;
   top: -2px; left: 50%;
-  background: var(--brand-secondary);
+  background: var(--axi-accent);
   animation: spinner-particle-pulse 1.6s ease-in-out infinite;
 }
 .stats-particle-spinner__particle:nth-child(2) {
   width: 3px; height: 3px;
   bottom: -1px; right: 2px;
-  background: var(--brand-primary);
+  background: var(--axi-accent);
   animation: spinner-particle-pulse 1.6s ease-in-out infinite 0.4s;
 }
 .stats-particle-spinner__particle:nth-child(3) {
   width: 3.5px; height: 3.5px;
   top: 50%; left: -2px;
-  background: var(--brand-secondary);
+  background: var(--axi-accent);
   animation: spinner-particle-pulse 1.6s ease-in-out infinite 0.8s;
 }
 .stats-particle-spinner__particle:nth-child(4) {
   width: 3px; height: 3px;
   bottom: 2px; left: 0;
-  background: var(--brand-primary);
+  background: var(--axi-accent);
   animation: spinner-particle-pulse 1.6s ease-in-out infinite 1.2s;
 }
 
@@ -901,7 +844,7 @@ body.web-report #top-players .mvp-gold-icon-badge {
 .stats-dissolve-joke {
   font-size: 12px;
   font-style: italic;
-  color: var(--text-secondary);
+  color: var(--axi-text-dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -918,13 +861,13 @@ body.web-report #top-players .mvp-gold-icon-badge {
 .skeleton {
   background: linear-gradient(
     90deg,
-    var(--bg-card) 25%,
-    var(--bg-hover) 50%,
-    var(--bg-card) 75%
+    var(--axi-surface-paint) 25%,
+    var(--axi-surface-raised-paint) 50%,
+    var(--axi-surface-paint) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: var(--radius-md);
+  border-radius: var(--axi-radius-sm);
 }
 
 .skeleton-text {
@@ -954,13 +897,13 @@ body.web-report #top-players .mvp-gold-icon-badge {
 }
 
 .slice-mini {
-  border: 1px solid var(--border-default);
-  background: var(--bg-card-inner);
-  border-radius: var(--radius-md);
+  border: var(--axi-border-control) solid var(--axi-ink-line);
+  background: var(--axi-ground);
+  border-radius: var(--axi-radius-sm);
   padding: 3px 8px;
   font-size: 10.5px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--axi-text-dim);
 }
 
 /* The commander picker is a real <select>, and Chromium on Linux paints the
@@ -972,7 +915,7 @@ body.web-report #top-players .mvp-gold-icon-badge {
    translucent .slice-mini treatment so it still matches the buttons beside it. */
 .slice-mini option {
   background-color: #1b2030;
-  color: var(--text-primary);
+  color: var(--axi-text);
 }
 
 /* Fight slice cards: the checkbox fills the card so the whole card is the hit
@@ -988,12 +931,12 @@ body.web-report #top-players .mvp-gold-icon-badge {
   margin: 0;
   border: 0;
   background: transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--axi-radius-sm);
   cursor: pointer;
 }
 
 .slice-card > input[type='checkbox']:focus-visible {
-  outline: 2px solid var(--accent-border);
+  outline: 2px solid var(--axi-ink-line);
   outline-offset: 2px;
 }
 
@@ -1004,8 +947,8 @@ body.web-report #top-players .mvp-gold-icon-badge {
   width: 15px;
   height: 15px;
   border-radius: 999px;
-  border: 1.5px solid var(--border-default);
-  background: var(--bg-card-inner);
+  border: 1.5px solid var(--axi-ink-line);
+  background: var(--axi-ground);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1013,8 +956,8 @@ body.web-report #top-players .mvp-gold-icon-badge {
 }
 
 .slice-card > input[type='checkbox']:checked ~ .slice-card-badge {
-  border-color: var(--accent-border);
-  background: var(--accent-border);
+  border-color: var(--axi-ink-line);
+  background: var(--axi-ink-line);
 }
 
 .slice-card > input[type='checkbox']:checked ~ .slice-card-badge::after {
@@ -1090,12 +1033,12 @@ body.bulk-uploading .stats-particle-spinner__particle {
    --axi-ground, a plain colour even under glass, so background-color is
    already correct there and shorthand would only reset properties nothing
    else in these single-property rules sets. */
-.bg-white\/4 { background: var(--bg-card) !important; }
-.bg-white\/3 { background: var(--bg-card) !important; }
-.bg-black\/25 { background: var(--bg-card) !important; }
-.bg-black\/30 { background-color: var(--bg-card-inner) !important; }
-.bg-black\/40 { background-color: var(--bg-card-inner) !important; }
-.bg-black\/50 { background-color: var(--bg-input) !important; }
+.bg-white\/4 { background: var(--axi-surface-paint) !important; }
+.bg-white\/3 { background: var(--axi-surface-paint) !important; }
+.bg-black\/25 { background: var(--axi-surface-paint) !important; }
+.bg-black\/30 { background-color: var(--axi-ground) !important; }
+.bg-black\/40 { background-color: var(--axi-ground) !important; }
+.bg-black\/50 { background-color: var(--axi-ground) !important; }
 
 /* --- Borders: unified opacity levels ---
    These four are deliberately not !important. They only have to beat Tailwind's
@@ -1103,22 +1046,22 @@ body.bulk-uploading .stats-particle-spinner__particle {
    dropping the flag lets a later stylesheet (axi-design.css) restate a hairline
    without having to shout. The hover variants further down keep their flag;
    they win on specificity regardless, so that is a separate question. */
-.border-white\/5 { border-color: var(--border-subtle); }
-.border-white\/10 { border-color: var(--border-default); }
-.border-white\/15 { border-color: var(--border-hover); }
-.border-white\/20 { border-color: var(--border-hover); }
+.border-white\/5 { border-color: var(--axi-rule); }
+.border-white\/10 { border-color: var(--axi-ink-line); }
+.border-white\/15 { border-color: var(--axi-rule); }
+.border-white\/20 { border-color: var(--axi-rule); }
 
 /* --- Text Colors: map grays to design tokens --- */
-.text-gray-200 { color: var(--text-primary) !important; }
-.text-gray-300 { color: var(--text-secondary) !important; }
-.text-gray-400 { color: var(--text-secondary) !important; }
-.text-gray-500 { color: var(--text-muted) !important; }
-.text-gray-600 { color: var(--text-muted) !important; }
+.text-gray-200 { color: var(--axi-text) !important; }
+.text-gray-300 { color: var(--axi-text-dim) !important; }
+.text-gray-400 { color: var(--axi-text-dim) !important; }
+.text-gray-500 { color: var(--axi-text-faint) !important; }
+.text-gray-600 { color: var(--axi-text-faint) !important; }
 
 /* --- Shadows: unified subtle shadows --- */
-.shadow-2xl { box-shadow: var(--shadow-card) !important; }
-.shadow-xl { box-shadow: var(--shadow-card) !important; }
-.shadow-lg { box-shadow: var(--shadow-card) !important; }
+.shadow-2xl { box-shadow: var(--axi-shadow-panel) !important; }
+.shadow-xl { box-shadow: var(--axi-shadow-panel) !important; }
+.shadow-lg { box-shadow: var(--axi-shadow-panel) !important; }
 
 /* --- Backdrop Blur: remove by default (solid surfaces) --- */
 .backdrop-blur-xl { backdrop-filter: none !important; }
@@ -1128,18 +1071,18 @@ body.bulk-uploading .stats-particle-spinner__particle {
 
 /* --- Native select/option styling --- */
 select option {
-  background: var(--bg-input);
-  color: var(--text-primary);
+  background: var(--axi-ground);
+  color: var(--axi-text);
 }
 
 /* --- Hover states ---
    Shorthand: --bg-hover is --axi-surface-raised, a gradient, under glass;
    background-color alone is invalid at computed-value time and drops to
    transparent, so every Tailwind hover fill in the app would paint nothing. */
-.hover\:bg-white\/10:hover { background: var(--bg-hover) !important; }
-.hover\:bg-white\/5:hover { background: var(--bg-hover) !important; }
-.hover\:border-white\/20:hover { border-color: var(--border-hover) !important; }
-.hover\:border-white\/30:hover { border-color: var(--border-hover) !important; }
+.hover\:bg-white\/10:hover { background: var(--axi-surface-raised-paint) !important; }
+.hover\:bg-white\/5:hover { background: var(--axi-surface-raised-paint) !important; }
+.hover\:border-white\/20:hover { border-color: var(--axi-rule) !important; }
+.hover\:border-white\/30:hover { border-color: var(--axi-rule) !important; }
 
 /* --- Recharts exclusion: never remap Tailwind utilities inside chart wrappers ---
    Recharts SVG elements and tooltip containers must not inherit background/border
@@ -1175,12 +1118,12 @@ select option {
    redundant once --bg-card needs the shorthand to survive as a gradient
    under glass (--axi-surface). */
 .bg-gradient-to-br.from-gray-900.to-gray-950 {
-  background: var(--bg-card) !important;
+  background: var(--axi-surface-paint) !important;
 }
 
 /* --- Body base background --- */
 body.web-report {
-  background-color: var(--bg-base);
+  background-color: var(--axi-ground);
 }
 
 /* ── Terminal ──────────────────────────────────────────────────────────── */
@@ -1196,8 +1139,8 @@ body.web-report {
   flex-direction: column;
   font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
   font-size: 12px;
-  background: var(--bg-base);
-  border-top: 1px solid var(--border-default);
+  background: var(--axi-ground);
+  border-top: var(--axi-border-control) solid var(--axi-ink-line);
   box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6);
 }
 
@@ -1206,8 +1149,8 @@ body.web-report {
   align-items: center;
   justify-content: space-between;
   padding: 6px 12px;
-  background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border-subtle);
+  background: var(--axi-surface-paint);
+  border-bottom: 1px solid var(--axi-rule);
   flex-shrink: 0;
 }
 
@@ -1217,19 +1160,19 @@ body.web-report {
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--text-secondary);
+  color: var(--axi-text-dim);
 }
 
 .terminal-divider {
   width: 1px;
   height: 14px;
-  background: var(--border-subtle);
+  background: var(--axi-rule);
   margin: 0 4px;
 }
 
 .terminal-meta {
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--axi-text-faint);
 }
 
 /* .terminal-btn was here: a padded, radiused, muted glyph control whose hover
@@ -1249,7 +1192,7 @@ body.web-report {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
+  color: var(--axi-text-faint);
   font-size: 12px;
   opacity: 0.6;
 }
@@ -1260,8 +1203,8 @@ body.web-report {
   transition: background-color var(--duration-fast) ease-out, box-shadow var(--duration-fast) ease-out;
 }
 .term-row:hover {
-  background: var(--bg-hover);
-  box-shadow: inset 2px 0 0 var(--brand-primary);
+  background: var(--axi-surface-raised-paint);
+  box-shadow: inset 2px 0 0 var(--axi-accent);
 }
 .term-row-error {
   background: rgba(239, 68, 68, 0.05);
@@ -1271,28 +1214,28 @@ body.web-report {
 }
 
 .term-timestamp {
-  color: var(--text-muted);
+  color: var(--axi-text-faint);
   font-variant-numeric: tabular-nums;
 }
 
 .term-info {
-  color: var(--text-secondary);
+  color: var(--axi-text-dim);
 }
 
 .term-error {
-  color: var(--status-error);
+  color: var(--axi-danger);
 }
 
 .term-error-badge {
   font-weight: 700;
-  color: var(--status-error);
+  color: var(--axi-danger);
   margin-right: 6px;
 }
 
 /* ── Syntax highlighting ── */
 
 .term-tag {
-  color: var(--brand-primary);
+  color: var(--axi-accent);
   font-weight: 600;
 }
 
@@ -1328,7 +1271,7 @@ body.web-report {
    the glass theme paints both with an alpha gradient - and a gradient reaching
    `background-color` is invalid at computed-value time, does not fall back, and
    leaves the element with no fill. About thirty of the consuming sites are
-   Tailwind arbitrary utilities (`bg-[var(--bg-hover)]`), which compile to
+   Tailwind arbitrary utilities (`bg-[var(--axi-surface-raised-paint)]`), which compile to
    background-color by construction and have no shorthand spelling, so the fix
    could only live in the token.
 
@@ -1404,7 +1347,7 @@ body.web-report {
    so the tint is layered over a solid dark base rather than used alone. */
 [data-axi-accent][data-axi-theme="glass"] .stats-table thead th {
   background-color: #0c0f16;
-  background-image: linear-gradient(var(--bg-card), var(--bg-card));
+  background-image: linear-gradient(var(--axi-surface-paint), var(--axi-surface-paint));
 }
 
 /* The bucket grids' pinned name column and time ruler are sticky in one axis
@@ -1434,25 +1377,25 @@ body.web-report {
    brighter ink. Migrated as-is from the deleted glass block. */
 [data-axi-accent][data-axi-theme="glass"] .stats-view .fight-comp-fight-nav-item:not(.text-cyan-100) {
   background-color: rgba(15, 18, 25, 0.62) !important;
-  color: var(--text-primary) !important;
+  color: var(--axi-text) !important;
 }
 
 [data-axi-accent][data-axi-theme="glass"] .stats-view .fight-comp-fight-label,
 [data-axi-accent][data-axi-theme="glass"] .stats-view .fight-comp-fight-meta {
-  color: var(--text-secondary) !important;
+  color: var(--axi-text-dim) !important;
 }
 
 [data-axi-accent][data-axi-theme="glass"] .stats-view .fight-comp-card-header {
   background-color: rgba(15, 18, 25, 0.72) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-  color: var(--text-primary) !important;
+  color: var(--axi-text) !important;
 }
 
 [data-axi-accent][data-axi-theme="glass"] .stats-view .fight-comp-count-badge,
 [data-axi-accent][data-axi-theme="glass"] .stats-view .fight-comp-party-badge {
   background-color: rgba(15, 18, 25, 0.58) !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
-  color: var(--text-primary) !important;
+  color: var(--axi-text) !important;
 }
 
 /* The glass light is painted by upstream as body's background-image, fixed. The

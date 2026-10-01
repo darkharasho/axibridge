@@ -40,19 +40,19 @@ export function CommanderHeader({ fight, fightLabel, availableFights, selectedFi
   return (
     <div
       className="commander-panel axi-panel axi-panel--tile [--axi-panel-pad:10px_12px] flex flex-col gap-2 mb-3"
-      style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
+      style={{ background: 'var(--axi-surface-paint)', borderColor: 'var(--axi-ink-line)' }}
     >
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex flex-col gap-1 min-w-0">
           <div className="flex items-baseline gap-3 flex-wrap">
-            <h2 className="text-lg font-semibold leading-none" style={{ color: 'var(--text-primary)' }}>
+            <h2 className="text-lg font-semibold leading-none" style={{ color: 'var(--axi-text)' }}>
               {fightLabel || normalizeMapLabel(fight.map)}
             </h2>
-            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <span className="text-xs" style={{ color: 'var(--axi-text-dim)' }}>
               {fmtTime(fight.startedAt)} · {fmtDuration(fight.duration)}
             </span>
           </div>
-          <div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+          <div className="text-[12px]" style={{ color: 'var(--axi-text-dim)' }}>
             Squad {m.squadCount} + Allies {m.alliesCount} vs Enemy ~{m.enemyCount} (peak {m.enemyPeak})
           </div>
         </div>
@@ -134,11 +134,11 @@ function FightSelector({
                 onClick={() => { onChange(opt.id); setOpen(false); }}
                 className="block w-full text-left text-xs px-2.5 py-1.5 transition-colors whitespace-nowrap"
                 style={{
-                  background: isSelected ? 'var(--accent-bg)' : 'transparent',
-                  color: isSelected ? 'var(--brand-primary)' : 'var(--text-primary)',
+                  background: isSelected ? 'var(--axi-surface-paint)' : 'transparent',
+                  color: isSelected ? 'var(--axi-accent)' : 'var(--axi-text)',
                 }}
                 onMouseEnter={(e) => {
-                  if (!isSelected) e.currentTarget.style.background = 'var(--bg-hover)';
+                  if (!isSelected) e.currentTarget.style.background = 'var(--axi-surface-raised-paint)';
                 }}
                 onMouseLeave={(e) => {
                   if (!isSelected) e.currentTarget.style.background = 'transparent';

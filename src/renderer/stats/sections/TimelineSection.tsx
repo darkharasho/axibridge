@@ -20,10 +20,10 @@ export const TimelineSection = ({
     return (
     <div>
         <div className="flex items-center gap-2 mb-3.5 flex-wrap">
-            <Users className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Squad vs Enemy Size</h3>
+            <Users className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Squad vs Enemy Size</h3>
             <div className="ml-auto flex items-center gap-2">
-                <span className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>Friendly Count</span>
+                <span className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--axi-text-dim)' }}>Friendly Count</span>
                 <PillToggleGroup
                     value={timelineFriendlyScope}
                     onChange={(value) => setTimelineFriendlyScope(value as 'squad' | 'squadAllies')}
@@ -35,7 +35,7 @@ export const TimelineSection = ({
             </div>
         </div>
         {timelineData.length === 0 ? (
-            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No timeline data available</div>
+            <div className="axi-empty">No timeline data available</div>
         ) : (
             <div className="h-[260px] w-full">
                 <ChartContainer width="100%" height="100%">

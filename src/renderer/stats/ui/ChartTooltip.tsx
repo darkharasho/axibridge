@@ -73,7 +73,7 @@ export function ChartTooltip({ active, payload, label, formatter, labelFormatter
                     <div key={`${entry.dataKey ?? entry.name}-${i}`} className="flex items-center gap-1.5">
                         {entry.color && (
                             <span
-                                className="w-2 h-2 rounded-full flex-shrink-0"
+                                className="axi-diamond"
                                 style={{ backgroundColor: entry.color }}
                             />
                         )}

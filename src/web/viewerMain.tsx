@@ -71,12 +71,11 @@ function InfoCard({
 }) {
     return (
         <div className="report-shell">
-            <div className="report-shell-card">
-                <div className={`report-shell-cap report-shell-cap--${tone}`} />
-                <div className="report-shell-body">
-                    <p className={`report-shell-eyebrow report-shell-eyebrow--${tone}`}>{eyebrow}</p>
+            <div className="report-shell-card axi-panel" data-status={tone === 'error' ? 'danger' : 'warn'}>
+                <div>
+                    <p className={`axi-eyebrow ${tone === 'error' ? 'axi-ink-danger' : 'axi-ink-warn'}`}>{eyebrow}</p>
                     <h1 className="report-shell-title">{title}</h1>
-                    <p className="report-shell-text">{message}</p>
+                    <p className="report-shell-text axi-ink-dim">{message}</p>
                 </div>
             </div>
         </div>
@@ -91,12 +90,12 @@ function InfoCard({
 function LoadingCard() {
     return (
         <div className="report-shell">
-            <div className="report-shell-card">
-                <div className="report-shell-body">
-                    <div className="report-shell-loading">
-                        <span className="report-shell-mark" aria-hidden="true" />
+            <div className="report-shell-card axi-panel">
+                <div>
+                    <div className="flex items-center gap-3.5">
+                        <span className="axi-diamond axi-diamond--accent" aria-hidden="true" />
                         <div>
-                            <p className="report-shell-eyebrow report-shell-eyebrow--info">AxiBridge</p>
+                            <p className="axi-eyebrow axi-ink-meta">AxiBridge</p>
                             <h1 className="report-shell-title" style={{ margin: 0 }}>
                                 Loading report…
                             </h1>

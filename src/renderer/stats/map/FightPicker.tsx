@@ -71,19 +71,19 @@ export const FightPicker: React.FC<FightPickerProps> = ({ fights, onSelect }) =>
                 justifyContent: 'center',
                 gap: 12,
                 padding: 32,
-                color: 'var(--text-secondary, #94a3b8)',
+                color: 'var(--axi-text-dim)',
                 textAlign: 'center',
             }}>
                 <MapIcon size={36} style={{ opacity: 0.3 }} />
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #e2e8f0)' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--axi-text)' }}>
                     No replay data available
                 </div>
                 <div style={{ fontSize: 12, maxWidth: 340, lineHeight: 1.6 }}>
                     These logs were processed without position data, either before replay was kept by
                     default or with{' '}
-                    <strong style={{ color: 'var(--text-primary, #e2e8f0)' }}>Keep Combat Replay Locally</strong> off.
+                    <strong style={{ color: 'var(--axi-text)' }}>Keep Combat Replay Locally</strong> off.
                     Re-process them to generate it; published reports only include replay when{' '}
-                    <strong style={{ color: 'var(--text-primary, #e2e8f0)' }}>Publish Combat Replay</strong> is on.
+                    <strong style={{ color: 'var(--axi-text)' }}>Publish Combat Replay</strong> is on.
                 </div>
             </div>
         );

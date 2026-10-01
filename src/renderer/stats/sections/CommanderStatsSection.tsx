@@ -188,15 +188,15 @@ export const CommanderTargetConversionSection = ({
     return (
         <div>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
-                <Target className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Target Conversion</h3>
-                <span className="ml-auto text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
+                <Target className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Target Conversion</h3>
+                <span className="ml-auto text-[10px] uppercase tracking-widest" style={{ color: 'var(--axi-text-dim)' }}>
                     {rows.length} Commanders
                 </span>
             </div>
 
             {rows.length === 0 ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No target conversion data available.</div>
+                <div className="axi-empty">No target conversion data available.</div>
             ) : (
                 <div className="space-y-4 min-w-0">
                     <div className="w-full max-w-full overflow-x-auto pb-1">
@@ -309,19 +309,19 @@ export const CommanderTagMovementSection = ({
     return (
         <div>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
-                <Route className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Tag Movement</h3>
-                <span className="ml-auto text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
+                <Route className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Tag Movement</h3>
+                <span className="ml-auto text-[10px] uppercase tracking-widest" style={{ color: 'var(--axi-text-dim)' }}>
                     {rows.length} Commanders
                 </span>
             </div>
 
             {rows.length === 0 ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No tag movement data available.</div>
+                <div className="axi-empty">No tag movement data available.</div>
             ) : (
                 <div className="space-y-4 min-w-0">
                     {!hasAnyMovementData ? (
-                        <div className="rounded-[var(--radius-md)] border axi-edge-ok px-3 py-2 text-xs axi-ink-ok">
+                        <div className="axi-well axi-well--sm axi-edge-ok text-xs axi-ink-ok">
                             Tag movement is unavailable for these logs because commander replay positions were not present.
                         </div>
                     ) : null}
@@ -428,19 +428,19 @@ export const CommanderTagDeathResponseSection = ({
     return (
         <div>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
-                <Skull className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Squad Response To Tag Death</h3>
-                <span className="ml-auto text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
+                <Skull className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Squad Response To Tag Death</h3>
+                <span className="ml-auto text-[10px] uppercase tracking-widest" style={{ color: 'var(--axi-text-dim)' }}>
                     {rows.length} Commanders
                 </span>
             </div>
 
             {rows.length === 0 ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No commander death response data available.</div>
+                <div className="axi-empty">No commander death response data available.</div>
             ) : (
                 <div className="space-y-4 min-w-0">
                     {!hasPostDeathEnemyData ? (
-                        <div className="rounded-[var(--radius-md)] border axi-edge-danger px-3 py-2 text-xs axi-ink-danger">
+                        <div className="axi-well axi-well--sm axi-edge-danger text-xs axi-ink-danger">
                             Post-death enemy kill counts are unavailable for these logs because enemy replay death timestamps were not present.
                         </div>
                     ) : null}
@@ -478,7 +478,7 @@ export const CommanderTagDeathResponseSection = ({
 
                     {selectedCommander && (
                         deathFights.length === 0 ? (
-                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">This commander has no fights with a recorded tag death.</div>
+                            <div className="axi-empty">This commander has no fights with a recorded tag death.</div>
                         ) : (
                             <div className="overflow-x-auto min-w-0">
                                 <table className="axi-table min-w-[700px]">
@@ -502,7 +502,7 @@ export const CommanderTagDeathResponseSection = ({
                                                 <td
                                                     className={`py-2 px-3 text-right font-semibold ${
                                                         fight.collapsedAfterTagDeath === null
-                                                            ? 'text-[color:var(--text-secondary)]'
+                                                            ? 'text-[color:var(--axi-text-dim)]'
                                                             : (fight.collapsedAfterTagDeath ? 'axi-ink-danger' : 'axi-ink-ok')
                                                     }`}
                                                 >
@@ -511,7 +511,7 @@ export const CommanderTagDeathResponseSection = ({
                                                 <td
                                                     className={`py-2 px-3 text-right font-semibold ${
                                                         fight.recoveredAfterTagDeath === null
-                                                            ? 'text-[color:var(--text-secondary)]'
+                                                            ? 'text-[color:var(--axi-text-dim)]'
                                                             : (fight.recoveredAfterTagDeath ? 'axi-ink-ok' : 'axi-ink-danger')
                                                     }`}
                                                 >
@@ -567,19 +567,19 @@ export const CommanderPushTimingSection = ({
     return (
         <div>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
-                <Clock3 className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Push Timing</h3>
-                <span className="ml-auto text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
+                <Clock3 className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Push Timing</h3>
+                <span className="ml-auto text-[10px] uppercase tracking-widest" style={{ color: 'var(--axi-text-dim)' }}>
                     {rows.length} Commanders
                 </span>
             </div>
 
             {rows.length === 0 ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No push timing data available.</div>
+                <div className="axi-empty">No push timing data available.</div>
             ) : (
                 <div className="space-y-4 min-w-0">
                     {!hasAnyTimingData ? (
-                        <div className="rounded-[var(--radius-md)] border axi-edge-warn px-3 py-2 text-xs axi-ink-warn">
+                        <div className="axi-well axi-well--sm axi-edge-warn text-xs axi-ink-warn">
                             Exact push timing is unavailable for these logs because enemy replay down/death timestamps were not present.
                         </div>
                     ) : null}
@@ -760,13 +760,13 @@ export const CommanderStatsSection = ({
     return (
         <div>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
-                <span className="flex shrink-0" style={{ color: 'var(--brand-primary)' }}><CommanderTagIcon className="w-4 h-4" /></span>
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Commander Stats</h3>
-                <span className="ml-auto text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{rows.length} Commanders</span>
+                <span className="flex shrink-0" style={{ color: 'var(--axi-accent)' }}><CommanderTagIcon className="w-4 h-4" /></span>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Commander Stats</h3>
+                <span className="ml-auto text-[10px] uppercase tracking-widest" style={{ color: 'var(--axi-text-dim)' }}>{rows.length} Commanders</span>
             </div>
 
             {rows.length === 0 ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No commander-tag data available.</div>
+                <div className="axi-empty">No commander-tag data available.</div>
             ) : (
                 <div className="space-y-5 min-w-0">
                     <div className="w-full max-w-full overflow-x-auto pb-1">
@@ -807,7 +807,7 @@ export const CommanderStatsSection = ({
                                                 ) : null}
                                                 <div className="min-w-0">
                                                     <div className="axi-ink-plain font-semibold truncate">{row.account}</div>
-                                                    <div className="text-[10px] text-[color:var(--text-secondary)] truncate">
+                                                    <div className="text-[10px] text-[color:var(--axi-text-dim)] truncate">
                                                         {(row.characterNames || []).join(', ') || 'Unknown'}
                                                     </div>
                                                 </div>
@@ -832,34 +832,34 @@ export const CommanderStatsSection = ({
                         <div className="space-y-4 min-w-0">
                             <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2">
                                 <div className="axi-well axi-well--sm" style={{ '--axi-well-pad': '8px 12px' } as React.CSSProperties}>
-                                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Time Tagged</div>
+                                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--axi-text-dim)]">Time Tagged</div>
                                     <div className="text-sm font-semibold axi-ink-plain">{formatDuration(selectedCommander.totalDurationMs)}</div>
                                 </div>
                                 <div className="axi-well axi-well--sm" style={{ '--axi-well-pad': '8px 12px' } as React.CSSProperties}>
-                                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Inc. Strips</div>
+                                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--axi-text-dim)]">Inc. Strips</div>
                                     <div className="text-sm font-semibold axi-ink-plain">{formatInt(selectedCommander.incomingStrips)}</div>
                                 </div>
                                 <div className="axi-well axi-well--sm" style={{ '--axi-well-pad': '8px 12px' } as React.CSSProperties}>
-                                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Inc. CC</div>
+                                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--axi-text-dim)]">Inc. CC</div>
                                     <div className="text-sm font-semibold axi-ink-plain">{formatInt(selectedCommander.incomingCC)}</div>
                                 </div>
                                 <div className="axi-well axi-well--sm" style={{ '--axi-well-pad': '8px 12px' } as React.CSSProperties}>
-                                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Damage Taken</div>
+                                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--axi-text-dim)]">Damage Taken</div>
                                     <div className="text-sm font-semibold axi-ink-plain">{formatInt(selectedCommander.damageTaken)}</div>
                                 </div>
                                 <div className="axi-well axi-well--sm" style={{ '--axi-well-pad': '8px 12px' } as React.CSSProperties}>
-                                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Barrier Absorbed</div>
+                                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--axi-text-dim)]">Barrier Absorbed</div>
                                     <div className="text-sm font-semibold axi-ink-plain">{formatInt(selectedCommander.incomingBarrierAbsorbed)}</div>
                                 </div>
                                 <div className="axi-well axi-well--sm" style={{ '--axi-well-pad': '8px 12px' } as React.CSSProperties}>
-                                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)]">Boon Uptime</div>
+                                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--axi-text-dim)]">Boon Uptime</div>
                                     <div className="text-sm font-semibold axi-ink-plain">{formatRate(selectedCommander.boonUptimePct, 1)}%</div>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 min-w-0">
-                                <div className="rounded-[var(--radius-md)] p-3 min-w-0 overflow-x-auto">
-                                    <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Incoming Damage By Skill</div>
+                                <div className="rounded-[var(--axi-radius-sm)] p-3 min-w-0 overflow-x-auto">
+                                    <div className="text-xs uppercase tracking-widest text-[color:var(--axi-text-dim)] mb-2">Incoming Damage By Skill</div>
                                     <table className="axi-table min-w-[440px]">
                                         <thead>
                                             <tr>
@@ -880,8 +880,8 @@ export const CommanderStatsSection = ({
                                     </table>
                                 </div>
 
-                                <div className="rounded-[var(--radius-md)] p-3 min-w-0 overflow-x-auto">
-                                    <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Incoming Boons ({avgLabel(singleFight, 'Average Uptime', 'Uptime')})</div>
+                                <div className="rounded-[var(--axi-radius-sm)] p-3 min-w-0 overflow-x-auto">
+                                    <div className="text-xs uppercase tracking-widest text-[color:var(--axi-text-dim)] mb-2">Incoming Boons ({avgLabel(singleFight, 'Average Uptime', 'Uptime')})</div>
                                     <table className="axi-table min-w-[440px]">
                                         <thead>
                                             <tr>
@@ -904,9 +904,9 @@ export const CommanderStatsSection = ({
                             </div>
 
                             {selectedFight && (
-                                <div className="rounded-[var(--radius-md)] p-3 min-w-0 space-y-3">
+                                <div className="rounded-[var(--axi-radius-sm)] p-3 min-w-0 space-y-3">
                                     <div className="flex flex-wrap items-center justify-between gap-3">
-                                        <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)]">5s Timeline And Fight Breakdown</div>
+                                        <div className="text-xs uppercase tracking-widest text-[color:var(--axi-text-dim)]">5s Timeline And Fight Breakdown</div>
                                         <div className="flex flex-wrap items-center gap-2">
                                             <select
                                                 value={selectedFight.id}
@@ -978,7 +978,7 @@ export const CommanderStatsSection = ({
                                     </div>
 
                                     <div className="overflow-x-auto min-w-0">
-                                        <div className="text-[11px] uppercase tracking-widest text-[color:var(--text-secondary)] mb-1">
+                                        <div className="text-[11px] uppercase tracking-widest text-[color:var(--axi-text-dim)] mb-1">
                                             {timelineMode === 'incomingDamage' ? 'Fight Incoming Damage By Skill' : 'Fight Incoming Boons'}
                                             {selectedBucketIndex !== null ? ` • ${selectedBucketIndex * 5}-${selectedBucketIndex * 5 + 5}s` : ' • Full Fight'}
                                         </div>

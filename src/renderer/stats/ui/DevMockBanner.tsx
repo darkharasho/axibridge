@@ -11,7 +11,7 @@ export const DevMockBanner = ({
 }: DevMockBannerProps) => {
     if (embedded || !devMockAvailable || !devMockUploadState.message) return null;
     return (
-        <div className="mb-3 bg-white/5 border axi-edge-rule rounded-xl px-4 py-2 flex items-center justify-between gap-3">
+        <div className="mb-3 axi-well flex items-center justify-between gap-3">
             <div className="text-xs axi-ink-dim flex items-center gap-2">
                 <span className="uppercase tracking-widest text-[10px] axi-ink-warn">Dev Mock</span>
                 {devMockUploadState.url ? (

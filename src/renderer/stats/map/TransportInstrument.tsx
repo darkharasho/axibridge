@@ -10,8 +10,8 @@ import type { ReplayTickRate } from './replayTypes';
 export const SPEEDS = [0.25, 0.5, 1, 1.5, 2, 4] as const;
 
 const TONE_COLOR: Record<string, string> = {
-    normal: 'var(--text-secondary)',
-    warn: 'var(--status-warning)',
+    normal: 'var(--axi-text-dim)',
+    warn: 'var(--axi-warn)',
     bad: '#f87171',
 };
 
@@ -71,13 +71,13 @@ const TickReadout: React.FC<TickReadoutProps> = ({ tick, timeMs }) => {
                 </svg>
             )}
             {value.toFixed(1)}
-            <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>tick</span>
+            <span style={{ fontSize: 9, color: 'var(--axi-text-faint)' }}>tick</span>
         </span>
     );
 };
 
 const Divider: React.FC = () => (
-    <span aria-hidden="true" style={{ width: 1, height: 11, background: 'var(--border-default)', flexShrink: 0 }} />
+    <span aria-hidden="true" style={{ width: 1, height: 11, background: 'var(--axi-ink-line)', flexShrink: 0 }} />
 );
 
 export interface TransportInstrumentProps {
@@ -109,8 +109,8 @@ export const TransportInstrument: React.FC<TransportInstrumentProps> = ({ durati
             // box around three quarters of the controls for no reason.
             style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0, height: 22 }}
         >
-            <span data-testid="transport-clock" style={{ fontSize: 11, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                <span style={{ color: 'var(--text-primary)' }}>{formatDuration(timeMs)}</span>
+            <span data-testid="transport-clock" style={{ fontSize: 11, color: 'var(--axi-text-dim)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                <span style={{ color: 'var(--axi-text)' }}>{formatDuration(timeMs)}</span>
                 {' / '}
                 {formatDuration(durationMs)}
             </span>

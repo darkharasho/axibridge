@@ -52,13 +52,12 @@ describe('share-link theming', () => {
 
     it('accents a borderlands report with that borderlands colour', () => {
         renderShare({ mapData: [{ name: 'Green Borderlands', value: 6, color: '#22c55e' }] });
-        expect(document.body.style.getPropertyValue('--brand-primary')).toBe('#22c55e');
-        expect(document.body.style.getPropertyValue('--accent-border')).toBe('rgba(34, 197, 94, 0.35)');
+        expect(document.body.style.getPropertyValue('--axi-accent')).toBe('#22c55e');
     });
 
-    // Review Focus 3: --brand-primary now DERIVES from --axi-accent, so setting it
-    // alone leaves every upstream component and every axi remap on the palette
-    // accent and the map colour never arrives.
+    // --axi-accent is the only variable the map accent sets: every upstream
+    // component and every app rule reads it directly, so one property on <body>
+    // carries the map colour through the whole language.
     it('drives the design language from the map accent too', () => {
         renderShare({ mapData: [{ name: 'Red Borderlands', value: 4, color: '#ef4444' }] });
         expect(document.body.style.getPropertyValue('--axi-accent')).toBe('#ef4444');

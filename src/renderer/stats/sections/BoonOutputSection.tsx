@@ -82,7 +82,7 @@ export const BoonOutputSection = ({
     <div {...expandedPaneProps(expandedSection === 'boon-output', expandedSectionClosing)}>
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
             <span className="flex shrink-0" style={{ color: 'var(--section-boon)' }}><Gw2BoonIcon className="w-4 h-4" /></span>
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>
                 Boon Output
             </h3>
             <div className="ml-auto flex flex-wrap items-center gap-2 min-w-0">
@@ -117,11 +117,11 @@ export const BoonOutputSection = ({
             </div>
         </div>
         {stats.boonTables.length === 0 ? (
-            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No boon data available</div>
+            <div className="axi-empty">No boon data available</div>
         ) : isExpanded ? (
             <div className="flex flex-col gap-4">
                 <div>
-                    <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--axi-rule)' }}>
                         <SearchSelectDropdown
                             options={[
                                 ...allBoonColumns.map((boon: any) => ({ id: boon.id, label: boon.name, type: 'column' as const })),
@@ -169,7 +169,7 @@ export const BoonOutputSection = ({
                             buttonLabel="Players"
                             buttonIcon={<Users className="h-3.5 w-3.5" />}
                         />
-                        <div className="h-5 w-px" style={{ background: 'var(--border-subtle)' }} />
+                        <div className="h-5 w-px" style={{ background: 'var(--axi-rule)' }} />
                         <PillToggleGroup
                             value={activeBoonCategory}
                             onChange={setActiveBoonCategory}
@@ -232,7 +232,7 @@ export const BoonOutputSection = ({
                 </div>
                 <div className="overflow-hidden">
                     {allBoonColumns.length === 0 ? (
-                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No boons match this filter</div>
+                        <div className="axi-empty">No boons match this filter</div>
                     ) : (
                         (() => {
                             const columnTables = visibleBoonColumns;
@@ -297,7 +297,7 @@ export const BoonOutputSection = ({
                                         id: `${entry.key}-${idx}`,
                                         label: (
                                             <>
-                                                <span className="font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</span>
+                                                <span className="font-mono" style={{ color: 'var(--axi-text-faint)' }}>{idx + 1}</span>
                                                 {renderProfessionIcon(entry.row.profession, entry.row.professionList, 'w-4 h-4')}
                                                 <span className="truncate">{entry.row.account || entry.row.name || entry.key}</span>
                                             </>
@@ -320,7 +320,7 @@ export const BoonOutputSection = ({
                 contentStyle={undefined}
                 sidebar={
                     <>
-                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Boons</div>
+                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--axi-text-dim)' }}>Boons</div>
                         <input
                             value={boonSearch}
                             onChange={(e) => setBoonSearch(e.target.value)}
@@ -330,7 +330,7 @@ export const BoonOutputSection = ({
                         />
                         <div className={`${sidebarListClass} ${expandedSection === 'boon-output' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                             {filteredBoonTables.length === 0 ? (
-                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No boons match this filter</div>
+                                <div className="axi-empty">No boons match this filter</div>
                             ) : (
                                 filteredBoonTables.map((boon: any) => (
                                     <button
@@ -348,7 +348,7 @@ export const BoonOutputSection = ({
                 }
                 content={
                     !activeBoonTable ? (
-                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">Select a boon to view details</div>
+                        <div className="axi-empty">Select a boon to view details</div>
                     ) : (
                         <StatsTableShell
                             expanded={expandedSection === 'boon-output'}

@@ -120,13 +120,13 @@ export const AttendanceSection = ({
     return (
         <div>
             <div className="flex items-center gap-2 mb-3.5">
-                <FileText className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Attendance Ledger</h3>
+                <FileText className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Attendance Ledger</h3>
             </div>
             <div>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                     <div className="flex items-center gap-3">
-                        <span className="inline-flex items-center rounded-full px-2 py-1 text-[10px] uppercase tracking-widest" style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card-inner)', color: 'var(--text-secondary)' }}>
+                        <span className="axi-chip">
                             {attendanceRows.length} Joined
                         </span>
                     </div>
@@ -142,7 +142,7 @@ export const AttendanceSection = ({
                             type="button"
                             onClick={exportVisibleRowsAsCsv}
                             className="axi-btn axi-btn--sm"
-                            style={{ border: '1px solid var(--border-default)', background: 'var(--bg-hover)', color: 'var(--text-primary)' }}
+                            style={{ border: 'var(--axi-border-control) solid var(--axi-ink-line)', background: 'var(--axi-surface-raised-paint)', color: 'var(--axi-text)' }}
                         >
                             <Download className="w-3.5 h-3.5" />
                             Export CSV
@@ -150,31 +150,31 @@ export const AttendanceSection = ({
                     </div>
                 </div>
                 {attendanceRows.length === 0 ? (
-                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No attendance data available.</div>
+                    <div className="axi-empty">No attendance data available.</div>
                 ) : (
-                    <div className={`rounded-[var(--radius-md)] overflow-hidden ${shouldScrollLedger ? 'max-h-[30rem] overflow-y-auto' : ''}`}>
+                    <div className={`rounded-[var(--axi-radius-sm)] overflow-hidden ${shouldScrollLedger ? 'max-h-[30rem] overflow-y-auto' : ''}`}>
                         <table className="axi-table axi-table--sticky">
                             <thead>
                                 <tr>
-                                    <th className="sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Account</th>
-                                    <th className="text-left sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Character(s)</th>
-                                    <th className="text-left sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Classes Played</th>
-                                    <th className="sticky top-0 z-20 bg-[color:var(--bg-elevated)]">
+                                    <th className="sticky top-0 z-20 bg-[color:var(--axi-surface-paint)]">Account</th>
+                                    <th className="text-left sticky top-0 z-20 bg-[color:var(--axi-surface-paint)]">Character(s)</th>
+                                    <th className="text-left sticky top-0 z-20 bg-[color:var(--axi-surface-paint)]">Classes Played</th>
+                                    <th className="sticky top-0 z-20 bg-[color:var(--axi-surface-paint)]">
                                         <button
                                             type="button"
                                             onClick={() => updateSort('fight')}
                                             className="axi-action whitespace-nowrap"
-                                            style={{ color: sortKey === 'fight' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
+                                            style={{ color: sortKey === 'fight' ? 'var(--axi-accent)' : 'var(--axi-text-dim)' }}
                                         >
                                             Total Fight Time{sortKey === 'fight' ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
                                         </button>
                                     </th>
-                                    <th className="sticky top-0 z-20 bg-[color:var(--bg-elevated)]">
+                                    <th className="sticky top-0 z-20 bg-[color:var(--axi-surface-paint)]">
                                         <button
                                             type="button"
                                             onClick={() => updateSort('squad')}
                                             className="axi-action whitespace-nowrap"
-                                            style={{ color: sortKey === 'squad' ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
+                                            style={{ color: sortKey === 'squad' ? 'var(--axi-accent)' : 'var(--axi-text-dim)' }}
                                         >
                                             Total Squad Time{sortKey === 'squad' ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
                                         </button>
@@ -184,8 +184,8 @@ export const AttendanceSection = ({
                             <tbody>
                                 {visibleRows.map((row) => (
                                     <tr key={row.account} className="align-top">
-                                        <td style={{ color: 'var(--text-primary)' }}>{row.account}</td>
-                                        <td style={{ color: 'var(--text-secondary)' }}>
+                                        <td style={{ color: 'var(--axi-text)' }}>{row.account}</td>
+                                        <td style={{ color: 'var(--axi-text-dim)' }}>
                                             {row.characterNames.length > 0 ? row.characterNames.join(', ') : '-'}
                                         </td>
                                         <td>
@@ -193,8 +193,7 @@ export const AttendanceSection = ({
                                                 {row.classTimes.length > 0 ? row.classTimes.map((entry) => (
                                                     <span
                                                         key={`${row.account}-${entry.profession}`}
-                                                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px]"
-                                                        style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-card-inner)', color: 'var(--text-primary)' }}
+                                                        className="axi-chip axi-ink-plain"
                                                     >
                                                         {getProfessionIconPath(entry.profession) ? (
                                                             <img
@@ -204,22 +203,22 @@ export const AttendanceSection = ({
                                                             />
                                                         ) : null}
                                                         <span>{entry.profession}</span>
-                                                        <span style={{ color: 'var(--text-secondary)' }}>{formatDuration(entry.timeMs)}</span>
+                                                        <span style={{ color: 'var(--axi-text-dim)' }}>{formatDuration(entry.timeMs)}</span>
                                                     </span>
-                                                )) : <span style={{ color: 'var(--text-muted)' }}>-</span>}
+                                                )) : <span style={{ color: 'var(--axi-text-faint)' }}>-</span>}
                                             </div>
                                         </td>
-                                        <td style={{ color: 'var(--text-primary)' }}>
+                                        <td style={{ color: 'var(--axi-text)' }}>
                                             {formatDuration(Number(row.combatTimeMs ?? row.squadTimeMs ?? 0))}
                                         </td>
-                                        <td style={{ color: 'var(--text-primary)' }}>
+                                        <td style={{ color: 'var(--axi-text)' }}>
                                             {formatDuration(row.squadTimeMs)}
                                         </td>
                                     </tr>
                                 ))}
                                 {visibleRows.length === 0 && (
                                     <tr>
-                                        <td colSpan={5} className="text-center italic" style={{ color: 'var(--text-muted)' }}>No attendance rows match your search.</td>
+                                        <td colSpan={5} className="text-center italic" style={{ color: 'var(--axi-text-faint)' }}>No attendance rows match your search.</td>
                                     </tr>
                                 )}
                             </tbody>

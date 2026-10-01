@@ -291,7 +291,7 @@ export const BoonTimelineSection = ({
                         <ChevronDown className={`w-3 h-3 transition-transform ${boonDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                     {boonDropdownOpen && (
-                        <div className="absolute top-full left-0 mt-2 z-50 w-96 rounded-lg border axi-edge-rule bg-[var(--bg-elevated)] shadow-xl p-3 space-y-2">
+                        <div className="absolute top-full left-0 mt-2 z-50 w-96 axi-panel axi-panel--float p-3 space-y-2">
                             <div className="flex items-center gap-2">
                                 <input
                                     type="text"
@@ -356,7 +356,7 @@ export const BoonTimelineSection = ({
                             No detailed data available for this fight.
                         </div>
                     ) : (stripsDataAbsent || ccDataAbsent) ? (
-                        <div className="h-full flex items-center justify-center text-center text-xs text-[color:var(--text-secondary)] px-6">
+                        <div className="h-full flex items-center justify-center text-center text-xs text-[color:var(--axi-text-dim)] px-6">
                             {ccDataAbsent ? TIMELINE_CC_TAKEN_NOT_RECORDED_MESSAGE : TIMELINE_NOT_RECORDED_MESSAGE}
                         </div>
                     ) : (

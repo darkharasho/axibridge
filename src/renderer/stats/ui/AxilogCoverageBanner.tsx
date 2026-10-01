@@ -47,10 +47,9 @@ export const AxilogCoverageBanner = ({
     if (missing.length === 0) {
         return (
             <div
-                className="mb-3 rounded-xl px-3 py-2.5 flex items-center gap-3"
-                style={{ background: 'var(--status-success-bg)', border: 'var(--panel-border-w, 1px) solid var(--status-success-border)' }}
+                className="mb-3 axi-well axi-edge-ok flex items-center gap-3"
             >
-                <span className="text-[11px]" style={{ color: 'var(--status-success)' }}>
+                <span className="text-[11px]" style={{ color: 'var(--axi-ok)' }}>
                     Re-parsed {healState.healed} {healState.healed === 1 ? 'log' : 'logs'}. Axilog data restored.
                 </span>
             </div>
@@ -65,23 +64,21 @@ export const AxilogCoverageBanner = ({
 
     return (
         <div
-            className="mb-3 rounded-xl px-3 py-2.5"
-            style={{ background: 'var(--status-warning-bg)', border: 'var(--panel-border-w, 1px) solid var(--status-warning-border)' }}
+            className="mb-3 axi-well axi-edge-warn"
         >
             <div className="flex items-center gap-3">
                 <div
-                    className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center"
-                    style={{ background: 'var(--status-warning-bg)', border: 'var(--panel-border-w, 1px) solid var(--status-warning-border)' }}
+                    className="w-8 h-8 axi-well axi-well--sm [--axi-well-pad:0] axi-edge-warn flex-shrink-0 flex items-center justify-center"
                     aria-hidden="true"
                 >
-                    <AlertTriangle className="w-4 h-4" style={{ color: 'var(--status-warning)' }} />
+                    <AlertTriangle className="w-4 h-4" style={{ color: 'var(--axi-warn)' }} />
                 </div>
 
                 <div className="flex-1 min-w-0">
-                    <div className="text-[9px] font-bold tracking-[.1em] uppercase mb-0.5" style={{ color: 'var(--status-warning)' }}>
+                    <div className="text-[9px] font-bold tracking-[.1em] uppercase mb-0.5" style={{ color: 'var(--axi-warn)' }}>
                         Incomplete data
                     </div>
-                    <div className="text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="text-[11px] leading-snug" style={{ color: 'var(--axi-text-dim)' }}>
                         {axilogGap.length > 0 && (
                             <>
                                 {describeAxilogGap(coverage)}{' '}
@@ -93,12 +90,12 @@ export const AxilogCoverageBanner = ({
                         {remedy ? ` ${remedy}` : ''}
                     </div>
                     {healState.running && (
-                        <div className="text-[10px] mt-1" style={{ color: 'var(--text-secondary)' }}>
+                        <div className="text-[10px] mt-1" style={{ color: 'var(--axi-text-dim)' }}>
                             Re-parsing {healState.done + 1} of {healState.total}…
                         </div>
                     )}
                     {!healState.running && healState.failures.length > 0 && (
-                        <div className="text-[10px] mt-1" style={{ color: 'var(--status-error)' }}>
+                        <div className="text-[10px] mt-1" style={{ color: 'var(--axi-danger)' }}>
                             {healState.failures.length} could not be re-parsed.
                         </div>
                     )}
@@ -131,9 +128,9 @@ export const AxilogCoverageBanner = ({
                 <ul className="mt-2 pt-2 border-t axi-edge-rule space-y-0.5 max-h-40 overflow-y-auto">
                     {missing.map((log) => (
                         <li key={`${log.id || log.filePath}:${log.label}`} className="flex items-baseline gap-2 text-[10px]">
-                            <span className="truncate" style={{ color: 'var(--text-secondary)' }}>{log.label}</span>
+                            <span className="truncate" style={{ color: 'var(--axi-text-dim)' }}>{log.label}</span>
                             {!isHealable(log) && (
-                                <span className="flex-shrink-0" style={{ color: 'var(--status-error)' }}>source file missing</span>
+                                <span className="flex-shrink-0" style={{ color: 'var(--axi-danger)' }}>source file missing</span>
                             )}
                         </li>
                     ))}

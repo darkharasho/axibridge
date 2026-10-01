@@ -148,8 +148,8 @@ export const FightDiffModeSection = () => {
     return (
         <div {...expandedPaneProps(expandedSection === 'fight-diff-mode', expandedSectionClosing)}>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
-                <GitCompareArrows className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Fight Comparison</h3>
+                <GitCompareArrows className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Fight Comparison</h3>
                 <SectionExpandButton
                     expanded={expandedSection === 'fight-diff-mode'}
                     onToggle={() => (expandedSection === 'fight-diff-mode' ? closeExpandedSection() : openExpandedSection('fight-diff-mode'))}
@@ -158,20 +158,20 @@ export const FightDiffModeSection = () => {
             </div>
 
             {fightDiffMissingFromDataset ? (
-                <div className="text-center text-[color:var(--text-secondary)] py-8 space-y-1">
-                    <div className="font-semibold text-[color:var(--text-primary)]">Fight Comparison data is missing in this dataset.</div>
-                    <div className="text-sm text-[color:var(--text-secondary)]">
+                <div className="text-center text-[color:var(--axi-text-dim)] py-8 space-y-1">
+                    <div className="font-semibold text-[color:var(--axi-text)]">Fight Comparison data is missing in this dataset.</div>
+                    <div className="text-sm text-[color:var(--axi-text-dim)]">
                         Regenerate the stats/report with a build that includes Fight Comparison.
                     </div>
                 </div>
             ) : fights.length < 2 ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
+                <div className="axi-empty">
                     Need at least two fights to compare.
                 </div>
             ) : (
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <label className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)]">
+                        <label className="text-xs uppercase tracking-widest text-[color:var(--axi-text-dim)]">
                             Fight A
                             <select
                                 className="axi-select mt-2 w-full"
@@ -186,7 +186,7 @@ export const FightDiffModeSection = () => {
                                 ))}
                             </select>
                         </label>
-                        <label className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)]">
+                        <label className="text-xs uppercase tracking-widest text-[color:var(--axi-text-dim)]">
                             Fight B
                             <select
                                 className="axi-select mt-2 w-full"
@@ -203,7 +203,7 @@ export const FightDiffModeSection = () => {
                         </label>
                     </div>
 
-                    <div className="bg-indigo-500/10 border axi-edge-meta rounded-[var(--radius-md)] px-4 py-3 text-xs axi-ink-meta space-y-1">
+                    <div className="axi-well axi-well--sm axi-edge-meta text-xs axi-ink-meta space-y-1">
                         <div className="uppercase tracking-widest text-[10px] axi-ink-meta">How Target Focus Works</div>
                         <div>
                             Target focus compares how your squad distributed damage <span className="font-semibold">to</span> enemy professions between two fights
@@ -215,12 +215,12 @@ export const FightDiffModeSection = () => {
                         </div>
                     </div>
 
-                    <div className="stats-table-layout__content rounded-[var(--radius-md)] overflow-hidden">
+                    <div className="stats-table-layout__content rounded-[var(--axi-radius-sm)] overflow-hidden">
                         <StatsTableShell
                             expanded={expandedSection === 'fight-diff-mode'}
                             maxHeightClass="max-h-96"
                             header={(
-                                <div className="px-4 py-3 text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
+                                <div className="px-4 py-3 text-[10px] uppercase tracking-widest text-[color:var(--axi-text-dim)] border-b border-[color:var(--axi-ink-line)]">
                                     Target Focus Comparison
                                 </div>
                             )}
@@ -280,12 +280,12 @@ export const FightDiffModeSection = () => {
                         />
                     </div>
 
-                    <div className="stats-table-layout__content rounded-[var(--radius-md)] overflow-hidden">
+                    <div className="stats-table-layout__content rounded-[var(--axi-radius-sm)] overflow-hidden">
                         <StatsTableShell
                             expanded={expandedSection === 'fight-diff-mode'}
                             maxHeightClass="max-h-none"
                             header={(
-                                <div className="px-4 py-3 text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
+                                <div className="px-4 py-3 text-[10px] uppercase tracking-widest text-[color:var(--axi-text-dim)] border-b border-[color:var(--axi-ink-line)]">
                                     Squad Metric Comparison
                                 </div>
                             )}

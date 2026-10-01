@@ -175,7 +175,7 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                 >
                     <div className="axi-modal__head justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="rounded-[4px] border axi-edge-meta bg-blue-500/20 p-2">
+                            <div className="axi-well axi-well--sm axi-edge-meta [--axi-well-pad:8px]">
                                 <ListTree className="h-5 w-5 axi-ink-meta" />
                             </div>
                             <div>
@@ -192,7 +192,7 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] flex-1 min-h-0">
-                        <aside className="min-h-0 p-3 overflow-y-auto overscroll-contain" style={{ borderRight: '1px solid var(--border-default)', background: 'var(--bg-elevated)' }}>
+                        <aside className="min-h-0 p-3 overflow-y-auto overscroll-contain" style={{ borderRight: 'var(--axi-border-control) solid var(--axi-ink-line)', background: 'var(--axi-surface-paint)' }}>
                             <div className="mb-3 px-1 py-1">
                                 <div className="text-[11px] uppercase tracking-[0.24em] axi-ink-faint">Guide Map</div>
                                 <div className="mt-1 text-xs axi-ink-dim">Browse by feature area</div>
@@ -263,7 +263,7 @@ export function HowToModal({ isOpen, onClose, isBulkUploadActive }: HowToModalPr
                                                     const iconKey = src.replace('icon:', '');
                                                     return <span title={alt}>{ICON_MAP[iconKey] || null}</span>;
                                                 }
-                                                return <img src={src} alt={alt} className="rounded-lg" />;
+                                                return <img src={src} alt={alt} />;
                                             },
                                             h1: ({ children }) => <h1 className="flex items-center">{children}</h1>,
                                             h2: ({ children }) => <h2 className="flex items-center">{children}</h2>,

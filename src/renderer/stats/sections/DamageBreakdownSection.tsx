@@ -80,7 +80,7 @@ export const DamageBreakdownSection = ({
         <div {...expandedPaneProps(isExpanded, expandedSectionClosing)}>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <BarChart3 className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Damage Breakdown</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Damage Breakdown</h3>
                 <div className="ml-auto flex items-center gap-2">
                     <PillToggleGroup
                         value={metricMode}
@@ -99,7 +99,7 @@ export const DamageBreakdownSection = ({
             </div>
 
             {playerSkillBreakdowns.length === 0 ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
+                <div className="axi-empty">
                     No player skill damage data available for the current selection.
                 </div>
             ) : (
@@ -109,7 +109,7 @@ export const DamageBreakdownSection = ({
                    search control, the picked row - reaches it too. */
                 <div className="stats-table-layout axi-split h-[480px]">
                     <div className="axi-well axi-split__nav stats-table-layout__sidebar flex flex-col overflow-y-auto">
-                        <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-3">
+                        <div className="text-xs uppercase tracking-widest text-[color:var(--axi-text-dim)] mb-3">
                             Squad Players
                         </div>
                         <div className="mb-2">
@@ -123,7 +123,7 @@ export const DamageBreakdownSection = ({
                         </div>
                         <div className="axi-scroll-quiet space-y-1 pr-1 flex-1 min-h-0 overflow-y-auto">
                                 {filteredPlayers.length === 0 ? (
-                                    <div className="px-3 py-4 text-xs text-[color:var(--text-muted)] italic">
+                                    <div className="px-3 py-4 text-xs text-[color:var(--axi-text-faint)] italic">
                                         No players match the filter.
                                     </div>
                                 ) : (
@@ -143,11 +143,11 @@ export const DamageBreakdownSection = ({
                                                             {renderProfessionIcon(player.profession, player.professionList, 'w-3.5 h-3.5')}
                                                             <div className="truncate min-w-0">{player.displayName}</div>
                                                         </div>
-                                                        <div className="text-[10px] text-[color:var(--text-secondary)] truncate">
+                                                        <div className="text-[10px] text-[color:var(--axi-text-dim)] truncate">
                                                             {(player.skills || []).length} {(player.skills || []).length === 1 ? 'skill' : 'skills'}
                                                         </div>
                                                     </div>
-                                                    <div className="text-xs font-mono shrink-0" style={{ color: 'var(--text-secondary)' }}>
+                                                    <div className="text-xs font-mono shrink-0" style={{ color: 'var(--axi-text-dim)' }}>
                                                         {formatWithCommas(getPlayerMetricTotal(player), 0)}
                                                     </div>
                                                 </div>
@@ -161,21 +161,21 @@ export const DamageBreakdownSection = ({
                     <div className="axi-split__body stats-table-layout__content flex flex-col min-h-0 overflow-y-auto">
                         <div className="overflow-hidden flex-1 min-h-0 flex flex-col">
                             {!selectedPlayer ? (
-                                <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">
+                                <div className="h-full flex items-center justify-center text-xs text-[color:var(--axi-text-faint)]">
                                     Select one player to view skill totals.
                                 </div>
                             ) : (
                                 <div className="h-full flex flex-col">
                                     <div className="stats-table-shell__header">
                                         <div className="flex items-center justify-between px-4 py-3">
-                                            <div className="min-w-0 text-sm text-[color:var(--text-primary)]">
+                                            <div className="min-w-0 text-sm text-[color:var(--axi-text)]">
                                                 <div className="flex items-center gap-2 min-w-0">
-                                                    <span className="text-[10px] uppercase tracking-[0.25em] text-[color:var(--text-secondary)] shrink-0">Skill Totals /</span>
+                                                    <span className="text-[10px] uppercase tracking-[0.25em] text-[color:var(--axi-text-dim)] shrink-0">Skill Totals /</span>
                                                     {renderProfessionIcon(selectedPlayer.profession, selectedPlayer.professionList, 'w-4 h-4')}
                                                     <span className="truncate font-semibold">{selectedPlayer.displayName}</span>
                                                 </div>
                                             </div>
-                                            <div className="text-xs text-[color:var(--text-secondary)] uppercase tracking-[0.18em]">
+                                            <div className="text-xs text-[color:var(--axi-text-dim)] uppercase tracking-[0.18em]">
                                                 {(metricMode === 'damage' ? 'Damage' : 'Down Contrib')} / {skillRows.length} {skillRows.length === 1 ? 'skill' : 'skills'}
                                             </div>
                                         </div>

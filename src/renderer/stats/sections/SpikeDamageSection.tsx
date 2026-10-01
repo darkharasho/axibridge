@@ -327,7 +327,7 @@ export const SpikeDamageSection = ({
                             <span className="text-[10px] uppercase tracking-wider axi-ink-faint">{spikeFightSkillTitle}</span>
                             <span className="text-[10px] axi-ink-faint">{displayRows.length} {displayRows.length === 1 ? 'skill' : 'skills'}</span>
                         </div>
-                        <div className="rounded-lg overflow-hidden border axi-edge-rule">
+                        <div className="axi-well [--axi-well-pad:0] overflow-hidden">
                             <div className="grid grid-cols-[2fr_0.8fr_0.8fr] gap-2 px-3 py-2 text-[10px] uppercase tracking-wider axi-ink-faint border-b axi-edge-rule">
                                 <div>Skill</div>
                                 <div className="text-right">{isDownContributionMode ? 'Down Contrib' : 'Damage'}</div>
@@ -336,13 +336,13 @@ export const SpikeDamageSection = ({
                             <div className="max-h-[260px] overflow-y-auto">
                                 {displayRows.map((row, idx) => (
                                     <div key={`${row.skillName}-${idx}`}
-                                        className="grid grid-cols-[2fr_0.8fr_0.8fr] gap-2 px-3 py-2.5 text-sm axi-ink-dim border-b axi-edge-rule hover:bg-white/[0.03] last:border-b-0">
+                                        className="grid grid-cols-[2fr_0.8fr_0.8fr] gap-2 px-3 py-2.5 text-sm axi-ink-dim border-b axi-edge-rule hover:bg-[color:var(--axi-surface-raised-paint)] last:border-b-0">
                                         <div className="min-w-0 flex items-center gap-2">
                                             {row.icon ? (
                                                 <img src={row.icon} alt="" loading="lazy"
-                                                    className="w-4 h-4 rounded-sm border axi-edge-rule bg-white/5 flex-shrink-0" />
+                                                    className="w-4 h-4 axi-well axi-well--sm [--axi-well-pad:0] flex-shrink-0" />
                                             ) : (
-                                                <div className="w-4 h-4 rounded-sm border axi-edge-rule bg-white/5 flex-shrink-0" />
+                                                <div className="w-4 h-4 axi-well axi-well--sm [--axi-well-pad:0] flex-shrink-0" />
                                             )}
                                             <div className="truncate" title={row.skillName}>{row.skillName}</div>
                                         </div>

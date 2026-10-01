@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 interface DivergingBarProps {
   positive: number;
   negative: number;
@@ -13,19 +15,19 @@ export function DivergingBar({ positive, negative, width = '100%' }: DivergingBa
 
   return (
     <div
-      className="relative flex h-1.5 overflow-hidden rounded-sm"
-      style={{ width, background: 'var(--bg-card-inner)' }}
+      className="axi-meter"
+      style={{ width, '--axi-meter-h': '6px' } as CSSProperties}
       data-role="diverging-bar"
     >
       <div
         data-role="positive"
-        className="h-full bg-emerald-500"
-        style={{ width: `${posPct}%` }}
+        className="axi-meter__fill"
+        style={{ '--axi-meter-v': `${posPct}%`, '--axi-series': 'var(--axi-ok)' } as CSSProperties}
       />
       <div
         data-role="negative"
-        className="h-full bg-rose-500"
-        style={{ width: `${negPct}%` }}
+        className="axi-meter__fill"
+        style={{ '--axi-meter-v': `${negPct}%`, '--axi-series': 'var(--axi-danger)' } as CSSProperties}
       />
     </div>
   );

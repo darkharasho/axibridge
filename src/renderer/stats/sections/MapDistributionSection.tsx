@@ -15,8 +15,8 @@ export const MapDistributionSection = ({
     return (
     <div>
         <div className="flex items-center gap-2 mb-3.5">
-            <MapIcon className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Map Distribution</h3>
+            <MapIcon className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Map Distribution</h3>
         </div>
         <div className="h-[260px] sm:h-[300px] w-full">
             <ChartContainer width="100%" height="100%">
@@ -49,8 +49,8 @@ export const MapDistributionSection = ({
                             payload: item
                         }))}
                         formatter={(value: any, entry: any) => (
-                            <span className="text-[color:var(--text-secondary)] font-medium ml-1">
-                                {value} <span className="text-[color:var(--text-secondary)]">({entry.payload.value})</span>
+                            <span className="text-[color:var(--axi-text-dim)] font-medium ml-1">
+                                {value} <span className="text-[color:var(--axi-text-dim)]">({entry.payload.value})</span>
                             </span>
                         )}
                     />

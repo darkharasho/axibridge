@@ -215,7 +215,7 @@ export const AllBoonsSection = ({
     const renderContent = (expanded: boolean) => (
         <div
             id={expanded ? undefined : sectionId}
-            className={`rounded-xl overflow-hidden ${expanded ? 'h-full flex flex-col' : ''}`}
+            className={`overflow-hidden ${expanded ? 'h-full flex flex-col' : ''}`}
             style={{ scrollMarginTop: '80px' }}
         >
             {/* ── Header ── */}
@@ -231,13 +231,13 @@ export const AllBoonsSection = ({
                             className="axi-btn axi-btn--sm"
                         >
                             {activeBoon?.icon && (
-                                <img src={activeBoon.icon} alt="" className="w-4 h-4 rounded" loading="lazy" />
+                                <img src={activeBoon.icon} alt="" className="w-4 h-4" loading="lazy" />
                             )}
                             <span className="axi-ink-dim">{activeBoon?.name || 'Select boon'}</span>
                             <ChevronDown className="w-3 h-3 axi-ink-faint" />
                         </button>
                         {boonDropdownOpen && (
-                            <div className="absolute top-full left-0 mt-2 z-50 w-80 rounded-lg border axi-edge-rule bg-[var(--bg-elevated)] shadow-xl">
+                            <div className="absolute top-full left-0 mt-2 z-50 w-80 axi-panel axi-panel--float">
                                 <div className="p-2 border-b axi-edge-rule">
                                     <input
                                         type="text"
@@ -260,13 +260,13 @@ export const AllBoonsSection = ({
                                                     setSelectedFightIndex(null);
                                                     setSelectedPlayerKey(null);
                                                 }}
-                                                className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-xs transition-colors ${
+                                                className={`flex items-center gap-1.5 px-2 py-1.5 text-xs transition-colors ${
                                                     activeBoonId === boon.id
-                                                        ? 'bg-indigo-500/15 ring-1 ring-indigo-500/30 axi-ink-plain'
-                                                        : 'hover:bg-white/5 axi-ink-dim'
+                                                        ? 'bg-[color:var(--axi-surface-raised-paint)] ring-1 ring-[color:var(--axi-meta)] axi-ink-plain'
+                                                        : 'hover:bg-[color:var(--axi-surface-raised-paint)] axi-ink-dim'
                                                 }`}
                                             >
-                                                {boon.icon && <img src={boon.icon} alt="" className="w-4 h-4 rounded" loading="lazy" />}
+                                                {boon.icon && <img src={boon.icon} alt="" className="w-4 h-4" loading="lazy" />}
                                                 <span className="truncate">{boon.name}</span>
                                             </button>
                                         ))}
@@ -453,7 +453,7 @@ export const AllBoonsSection = ({
                                                     <div className="axi-ink-plain font-medium mb-1">{(payload[0]?.payload as any)?.label}</div>
                                                     {sorted.slice(0, 10).map((entry) => (
                                                         <div key={entry.dataKey as string} className="flex items-center gap-1.5">
-                                                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
+                                                            <span className="axi-diamond" style={{ backgroundColor: entry.color }} />
                                                             <span className="axi-ink-dim truncate max-w-[120px]">
                                                                 {drilldownPlayersAll.find((p) => p.key === entry.dataKey)?.displayName || entry.dataKey}
                                                             </span>

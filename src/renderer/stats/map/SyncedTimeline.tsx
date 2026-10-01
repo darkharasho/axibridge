@@ -117,8 +117,8 @@ export const SyncedTimeline: React.FC<SyncedTimelineProps> = ({ fight, lanesOver
                     data-testid="dps-series"
                     d={pathData}
                     style={{
-                        fill: lanesOverlaid ? 'transparent' : 'var(--accent-bg-strong)',
-                        stroke: 'var(--brand-primary)',
+                        fill: lanesOverlaid ? 'transparent' : 'var(--axi-surface-raised-paint)',
+                        stroke: 'var(--axi-accent)',
                         vectorEffect: 'non-scaling-stroke',
                     }}
                     strokeWidth={lanesOverlaid ? 1.5 : 1}

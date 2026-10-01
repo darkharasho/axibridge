@@ -74,7 +74,7 @@ export const StripTimelineSection: React.FC<StripTimelineSectionProps> = ({
                 table dropped into the page. */}
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
                 <Eraser className="w-4 h-4 shrink-0" style={{ color: STRIP_ACCENT[direction] }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Strip Timeline</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Strip Timeline</h3>
                 <span className="ml-auto">
                     <FightPicker fights={fights} selectedId={fight?.id} onChange={setInternalFightId} />
                 </span>
@@ -84,7 +84,7 @@ export const StripTimelineSection: React.FC<StripTimelineSectionProps> = ({
                     section="Strip Timeline"
                 />
             </div>
-            <div className="text-[10px] mb-3 ml-6" style={{ color: 'var(--text-secondary)' }}>
+            <div className="text-[10px] mb-3 ml-6" style={{ color: 'var(--axi-text-dim)' }}>
                 Boon strips per player, in {CONTROL_BUCKET_MS / 1000}s buckets
                 <span className="mx-1.5 opacity-50">|</span>cell shade is intensity against this fight&apos;s peak
                 <span className="mx-1.5 opacity-50">|</span>per-fight totals live in Strip Spikes

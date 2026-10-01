@@ -288,7 +288,7 @@ export const StabPerformanceSection = ({
                                 No detailed data available for this fight.
                             </div>
                         ) : stripsTakenDataAbsent ? (
-                            <div className="h-full flex items-center justify-center text-center text-xs text-[color:var(--text-secondary)] px-6">
+                            <div className="h-full flex items-center justify-center text-center text-xs text-[color:var(--axi-text-dim)] px-6">
                                 {TIMELINE_NOT_RECORDED_MESSAGE}
                             </div>
                         ) : (

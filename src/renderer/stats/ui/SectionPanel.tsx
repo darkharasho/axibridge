@@ -41,7 +41,7 @@ export function SectionPanel({
                 <div
                     id={sectionId}
                     className="scroll-mt-24 page-break-avoid"
-                    style={{ padding: '18px', borderBottom: isLast ? 'none' : '1px solid var(--border-subtle)' }}
+                    style={{ padding: '18px', borderBottom: isLast ? 'none' : '1px solid var(--axi-rule)' }}
                 />
                 {createPortal(children, expandedPortalRef.current)}
             </>
@@ -54,7 +54,7 @@ export function SectionPanel({
             className="scroll-mt-24 page-break-avoid"
             style={{
                 padding: '18px',
-                borderBottom: isLast ? 'none' : '1px solid var(--border-subtle)',
+                borderBottom: isLast ? 'none' : '1px solid var(--axi-rule)',
                 position: 'relative',
             }}
             custom={index}

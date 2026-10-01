@@ -34,8 +34,8 @@ export const CcTakenNotice: React.FC<CcTakenNoticeProps> = ({ ccTakenEvents }) =
             style={{
                 pointerEvents: 'auto',
                 fontSize: 11, padding: '3px 8px', borderRadius: 4,
-                border: '1px solid var(--status-warning)', color: 'var(--status-warning)',
-                background: 'var(--bg-elevated)', whiteSpace: 'nowrap',
+                border: '1px solid var(--axi-warn)', color: 'var(--axi-warn)',
+                background: 'var(--axi-surface-paint)', whiteSpace: 'nowrap',
             }}
         >
             CC taken: not recorded for this fight

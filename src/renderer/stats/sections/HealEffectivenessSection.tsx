@@ -24,16 +24,16 @@ const SkillTable = ({
     rows: HealEffectivenessSkillRow[];
     colorClass: string;
 }) => (
-    <div className="rounded-[var(--radius-md)] overflow-hidden border border-[color:var(--border-default)] flex flex-col">
-        <div className="px-4 py-3 border-b border-[color:var(--border-default)] flex items-center justify-between flex-shrink-0">
-            <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">{title}</div>
-            <div className="text-[10px] text-[color:var(--text-muted)]">{rows.length} {rows.length === 1 ? 'skill' : 'skills'}</div>
+    <div className="axi-well axi-well--sm [--axi-well-pad:0] overflow-hidden flex flex-col">
+        <div className="px-4 py-3 border-b border-[color:var(--axi-ink-line)] flex items-center justify-between flex-shrink-0">
+            <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--axi-text-dim)]">{title}</div>
+            <div className="text-[10px] text-[color:var(--axi-text-faint)]">{rows.length} {rows.length === 1 ? 'skill' : 'skills'}</div>
         </div>
         {rows.length === 0 ? (
-            <div className="px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No skill data available for this fight.</div>
+            <div className="px-4 py-6 text-center text-xs text-[color:var(--axi-text-dim)]">No skill data available for this fight.</div>
         ) : (
             <>
-                <div className="grid grid-cols-[2fr_0.9fr_0.7fr] gap-2 px-4 py-2 text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
+                <div className="grid grid-cols-[2fr_0.9fr_0.7fr] gap-2 px-4 py-2 text-[10px] uppercase tracking-widest text-[color:var(--axi-text-dim)] border-b border-[color:var(--axi-ink-line)]">
                     <div>Skill</div>
                     <div className="text-right">{metricLabel}</div>
                     <div className="text-right">Hits</div>
@@ -42,7 +42,7 @@ const SkillTable = ({
                     {rows.map((row, index) => (
                         <div
                             key={`${row.skillName}-${index}`}
-                            className="grid grid-cols-[2fr_0.9fr_0.7fr] gap-2 px-4 py-2.5 text-sm text-[color:var(--text-primary)] border-b border-[color:var(--border-subtle)] hover:bg-[var(--bg-hover)] last:border-b-0"
+                            className="grid grid-cols-[2fr_0.9fr_0.7fr] gap-2 px-4 py-2.5 text-sm text-[color:var(--axi-text)] border-b border-[color:var(--axi-rule)] hover:bg-[var(--axi-surface-raised-paint)] last:border-b-0"
                         >
                             <div className="min-w-0">
                                 <InlineIconLabel
@@ -54,7 +54,7 @@ const SkillTable = ({
                                 />
                             </div>
                             <div className={`text-right font-mono ${colorClass}`}>{Math.round(row.amount).toLocaleString()}</div>
-                            <div className="text-right font-mono text-[color:var(--text-secondary)]">{Math.round(row.hits || 0).toLocaleString()}</div>
+                            <div className="text-right font-mono text-[color:var(--axi-text-dim)]">{Math.round(row.hits || 0).toLocaleString()}</div>
                         </div>
                     ))}
                 </div>
@@ -103,7 +103,7 @@ export const HealEffectivenessSection = ({ fights }: HealEffectivenessSectionPro
         <div {...expandedPaneProps(isExpanded, expandedSectionClosing)}>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <Waves className="w-4 h-4 shrink-0" style={{ color: 'var(--section-healing)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Heal Effectiveness</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Heal Effectiveness</h3>
                 <SectionExpandButton
                     expanded={isExpanded}
                     onToggle={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
@@ -111,18 +111,18 @@ export const HealEffectivenessSection = ({ fights }: HealEffectivenessSectionPro
                 />
             </div>
             {fights.length === 0 ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No heal effectiveness data available</div>
+                <div className="axi-empty">No heal effectiveness data available</div>
             ) : (
                 <>
-                    <div className="rounded-[var(--radius-md)] p-4">
+                    <div className="rounded-[var(--axi-radius-sm)] p-4">
                         <div className="flex items-center justify-between gap-3 mb-3">
                             <div>
-                                <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--text-secondary)]">Per Fight Totals</div>
-                                <div className="text-[11px] text-[color:var(--text-secondary)] mt-1">
+                                <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--axi-text-dim)]">Per Fight Totals</div>
+                                <div className="text-[11px] text-[color:var(--axi-text-dim)] mt-1">
                                     Click a point to view skill breakdown
                                 </div>
                             </div>
-                            <div className="text-[11px] text-[color:var(--text-secondary)] shrink-0">
+                            <div className="text-[11px] text-[color:var(--axi-text-dim)] shrink-0">
                                 {fights.length} {fights.length === 1 ? 'fight' : 'fights'}
                             </div>
                         </div>
@@ -210,29 +210,29 @@ export const HealEffectivenessSection = ({ fights }: HealEffectivenessSectionPro
                     >
                         <div className="grid gap-3 md:grid-cols-4 mb-3">
                             <div>
-                                <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">Incoming</div>
+                                <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--axi-text-dim)]">Incoming</div>
                                 <div className="mt-1 text-lg font-black font-mono axi-ink-danger">
                                     {selectedFight ? formatWithCommas(selectedFight.incomingDamage, 0) : '—'}
                                 </div>
                             </div>
                             <div>
-                                <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">Healing</div>
-                                <div className="mt-1 text-lg font-black font-mono" style={{ color: 'var(--status-success-muted)' }}>
+                                <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--axi-text-dim)]">Healing</div>
+                                <div className="mt-1 text-lg font-black font-mono" style={{ color: 'var(--axi-ok)' }}>
                                     {selectedFight ? formatWithCommas(selectedFight.healing, 0) : '—'}
                                 </div>
                             </div>
                             <div>
-                                <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">Barrier</div>
-                                <div className="mt-1 text-lg font-black font-mono text-[color:var(--text-primary)]">
+                                <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--axi-text-dim)]">Barrier</div>
+                                <div className="mt-1 text-lg font-black font-mono text-[color:var(--axi-text)]">
                                     {selectedFight ? formatWithCommas(selectedFight.barrier, 0) : '—'}
                                 </div>
                             </div>
                             <div className="flex items-start justify-between gap-2">
                                 <div>
-                                    <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">
+                                    <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--axi-text-dim)]">
                                         {selectedFight ? 'Selected Fight' : 'Fight Details'}
                                     </div>
-                                    <div className="mt-1 text-sm text-[color:var(--text-primary)] truncate">
+                                    <div className="mt-1 text-sm text-[color:var(--axi-text)] truncate">
                                         {selectedFight ? selectedFight.fullLabel : 'Select a fight to view details'}
                                     </div>
                                 </div>
@@ -254,7 +254,7 @@ export const HealEffectivenessSection = ({ fights }: HealEffectivenessSectionPro
                                     title="Outgoing Healing Skills"
                                     metricLabel="Healing"
                                     rows={selectedFight.healingSkills}
-                                    colorClass="text-[color:var(--text-primary)]"
+                                    colorClass="text-[color:var(--axi-text)]"
                                 />
                                 <SkillTable
                                     title="Incoming Damage Skills"

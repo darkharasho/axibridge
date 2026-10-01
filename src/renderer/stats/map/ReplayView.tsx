@@ -330,7 +330,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: 13,
-                    color: 'var(--text-secondary, #94a3b8)',
+                    color: 'var(--axi-text-dim)',
                 }}>
                     Pick a fight above to start replay.
                 </div>
@@ -385,14 +385,14 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                 backdropFilter: 'blur(3px)',
                                 display: 'flex', flexDirection: 'column',
                             }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-                                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '.05em', textTransform: 'uppercase' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderBottom: '1px solid var(--axi-rule)', flexShrink: 0 }}>
+                                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--axi-text-dim)', letterSpacing: '.05em', textTransform: 'uppercase' }}>
                                         {fights.length} fight{fights.length !== 1 ? 's' : ''}
                                     </span>
                                     <button
                                         type="button"
                                         onClick={() => setPickerCollapsed(true)}
-                                        style={{ fontSize: 11, color: 'var(--text-secondary)', padding: '3px 8px', borderRadius: 4, border: 'var(--panel-border-w, 1px) solid var(--border-subtle)', background: 'var(--bg-input)', cursor: 'pointer' }}
+                                        style={{ fontSize: 11, color: 'var(--axi-text-dim)', padding: '3px 8px', borderRadius: 4, border: 'var(--axi-border-control) solid var(--axi-rule)', background: 'var(--axi-ground)', cursor: 'pointer' }}
                                     >
                                         ✕ Close
                                     </button>
@@ -412,7 +412,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                 zIndex: 40,
                             }}>
                                 <div style={{ fontWeight: 600 }}>{tooltip.name}</div>
-                                {tooltip.account && <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 1 }}>{tooltip.account}</div>}
+                                {tooltip.account && <div style={{ color: 'var(--axi-text-faint)', fontSize: 11, marginTop: 1 }}>{tooltip.account}</div>}
                                 {tooltip.status && (
                                     <div style={{
                                         marginTop: 4,

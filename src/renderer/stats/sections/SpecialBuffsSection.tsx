@@ -114,8 +114,8 @@ export const SpecialBuffsSection = ({
     return (
         <div {...expandedPaneProps(expandedSection === 'special-buffs', expandedSectionClosing)}>
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
-            <Star className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+            <Star className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>
                 Special Buffs
             </h3>
             <div className="ml-auto flex items-center gap-2">
@@ -136,10 +136,10 @@ export const SpecialBuffsSection = ({
             </div>
         </div>
         {stats.specialTables.length === 0 ? (
-            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No special buff data available</div>
+            <div className="axi-empty">No special buff data available</div>
         ) : isExpanded ? (
             <div className="flex flex-col gap-4">
-                <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--axi-rule)' }}>
                         <SearchSelectDropdown
                             options={[
                                 ...allSpecialColumns.map((buff: any) => ({ id: buff.id, label: buff.name, type: 'column' as const })),
@@ -187,7 +187,7 @@ export const SpecialBuffsSection = ({
                             buttonLabel="Players"
                             buttonIcon={<Users className="h-3.5 w-3.5" />}
                         />
-                        <div className="h-5 w-px" style={{ background: 'var(--border-subtle)' }} />
+                        <div className="h-5 w-px" style={{ background: 'var(--axi-rule)' }} />
                         <PillToggleGroup
                             value={sortKey}
                             onChange={(value) => setSortKey(value as SpecialSortKey)}
@@ -239,7 +239,7 @@ export const SpecialBuffsSection = ({
                     )}
                 <div className="overflow-hidden">
                     {visibleSpecialTables.length === 0 ? (
-                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No special buffs match this filter</div>
+                        <div className="axi-empty">No special buffs match this filter</div>
                     ) : (
                         (() => {
                             const columnTables = visibleSpecialTables;
@@ -314,7 +314,7 @@ export const SpecialBuffsSection = ({
                                         id: `${entry.key}-${idx}`,
                                         label: (
                                             <>
-                                                <span className="font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</span>
+                                                <span className="font-mono" style={{ color: 'var(--axi-text-faint)' }}>{idx + 1}</span>
                                                 {renderProfessionIcon(entry.row.profession, entry.row.professionList, 'w-4 h-4')}
                                                 <span className="truncate">{entry.row.account || entry.row.name || entry.key}</span>
                                             </>
@@ -336,7 +336,7 @@ export const SpecialBuffsSection = ({
                 contentStyle={undefined}
                 sidebar={
                     <>
-                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Special Buffs</div>
+                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--axi-text-dim)' }}>Special Buffs</div>
                         <input
                             value={specialSearch}
                             onChange={(e) => setSpecialSearch(e.target.value)}
@@ -346,7 +346,7 @@ export const SpecialBuffsSection = ({
                         />
                         <div className={`${sidebarListClass} ${expandedSection === 'special-buffs' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                             {filteredSpecialTables.length === 0 ? (
-                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No special buffs match this filter</div>
+                                <div className="axi-empty">No special buffs match this filter</div>
                             ) : (
                                 filteredSpecialTables.map((buff: any) => (
                                     <button
@@ -372,9 +372,9 @@ export const SpecialBuffsSection = ({
                 content={
                     <>
                         {!activeSpecialTable ? (
-                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">Select a special buff to view details</div>
+                            <div className="axi-empty">Select a special buff to view details</div>
                         ) : activeRowsForMode.length === 0 ? (
-                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
+                            <div className="axi-empty">
                                 No {viewMode} data available for this buff
                             </div>
                         ) : (

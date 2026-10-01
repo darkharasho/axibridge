@@ -71,8 +71,8 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
     return (
         <div {...expandedPaneProps(isExpanded, expandedSectionClosing)}>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
-                <Crosshair className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Tag Distance Deaths</h3>
+                <Crosshair className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Tag Distance Deaths</h3>
                 <SectionExpandButton
                     expanded={isExpanded}
                     onToggle={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
@@ -81,27 +81,27 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
             </div>
 
             {!hasAnyData ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No replay data available — commander tag positions are required for this chart.</div>
+                <div className="axi-empty">No replay data available — commander tag positions are required for this chart.</div>
             ) : (
                 <>
                     {/* Summary stats */}
                     <div className="flex gap-4 mb-4">
                         <div className="axi-well axi-well--sm" style={{ '--axi-well-pad': '8px 12px' } as React.CSSProperties}>
-                            <div className="text-[10px] uppercase tracking-[0.25em] text-[color:var(--text-secondary)]">Avg Distance</div>
-                            <div className="text-sm font-mono text-[color:var(--text-primary)] mt-0.5">{formatWithCommas(overallAvg, 0)}</div>
+                            <div className="text-[10px] uppercase tracking-[0.25em] text-[color:var(--axi-text-dim)]">Avg Distance</div>
+                            <div className="text-sm font-mono text-[color:var(--axi-text)] mt-0.5">{formatWithCommas(overallAvg, 0)}</div>
                         </div>
                         <div className="axi-well axi-well--sm" style={{ '--axi-well-pad': '8px 12px' } as React.CSSProperties}>
-                            <div className="text-[10px] uppercase tracking-[0.25em] text-[color:var(--text-secondary)]">Total Deaths</div>
-                            <div className="text-sm font-mono text-[color:var(--text-primary)] mt-0.5">{totalDeaths}</div>
+                            <div className="text-[10px] uppercase tracking-[0.25em] text-[color:var(--axi-text-dim)]">Total Deaths</div>
+                            <div className="text-sm font-mono text-[color:var(--axi-text)] mt-0.5">{totalDeaths}</div>
                         </div>
                     </div>
 
                     {/* Summary bar chart */}
-                    <div className="rounded-[var(--radius-md)] p-4">
+                    <div className="rounded-[var(--axi-radius-sm)] p-4">
                         <div className="flex items-center justify-between gap-3 mb-3">
                             <div>
-                                <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--text-secondary)]">Avg Death Distance from Tag</div>
-                                <div className="text-[11px] text-[color:var(--text-secondary)] mt-1">
+                                <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--axi-text-dim)]">Avg Death Distance from Tag</div>
+                                <div className="text-[11px] text-[color:var(--axi-text-dim)] mt-1">
                                     Average squad death distance from commander tag. Click a bar to see individual deaths.
                                 </div>
                             </div>
@@ -137,12 +137,12 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                             const extra = !point.hasReplayData ? ' (no data)' : point.eventCount === 0 ? ' (0 deaths)' : ` (${point.eventCount} deaths)`;
                                             return (
                                                 <div className="axi-panel axi-panel--float" style={{ '--axi-panel-pad': '10px 12px', fontSize: '12px' } as React.CSSProperties}>
-                                                    <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                                                    <p style={{ margin: 0, color: 'var(--axi-text-dim)' }}>
                                                         {point.fullLabel}{' '}
-                                                        {point.isWin === true && <span style={{ color: 'var(--status-success)', fontWeight: 700 }}>W</span>}
-                                                        {point.isWin === false && <span style={{ color: 'var(--status-error)', fontWeight: 700 }}>L</span>}
+                                                        {point.isWin === true && <span style={{ color: 'var(--axi-ok)', fontWeight: 700 }}>W</span>}
+                                                        {point.isWin === false && <span style={{ color: 'var(--axi-danger)', fontWeight: 700 }}>L</span>}
                                                     </p>
-                                                    <p style={{ margin: '4px 0 0', color: 'var(--text-primary)' }}>
+                                                    <p style={{ margin: '4px 0 0', color: 'var(--axi-text)' }}>
                                                         Avg Distance : {formatWithCommas(point.avgDistance, 0)}{extra}
                                                     </p>
                                                 </div>
@@ -164,20 +164,20 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                         </div>
                         <div className="flex justify-center gap-4 mt-2">
                             <div className="flex items-center gap-1.5">
-                                <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
-                                <span className="text-[9px] text-[color:var(--text-secondary)]">Win</span>
+                                <span className="axi-diamond axi-diamond--ok" />
+                                <span className="text-[9px] text-[color:var(--axi-text-dim)]">Win</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <div className="w-2.5 h-2.5 rounded-sm bg-red-400" />
-                                <span className="text-[9px] text-[color:var(--text-secondary)]">Loss</span>
+                                <span className="axi-diamond axi-diamond--danger" />
+                                <span className="text-[9px] text-[color:var(--axi-text-dim)]">Loss</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#4b5563' }} />
-                                <span className="text-[9px] text-[color:var(--text-secondary)]">0 deaths</span>
+                                <div className="axi-diamond" style={{ background: 'var(--axi-rule)' }} />
+                                <span className="text-[9px] text-[color:var(--axi-text-dim)]">0 deaths</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <div className="w-2.5 h-2.5 rounded-sm bg-gray-600" />
-                                <span className="text-[9px] text-[color:var(--text-secondary)]">No data</span>
+                                <span className="axi-diamond" style={{ background: 'var(--axi-rule)' }} />
+                                <span className="text-[9px] text-[color:var(--axi-text-dim)]">No data</span>
                             </div>
                         </div>
                     </div>
@@ -188,16 +188,16 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                     }`}>
                         <div className="flex items-center justify-between gap-3 mb-3">
                             <div>
-                                <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-secondary)]">
+                                <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--axi-text-dim)]">
                                     {selectedFight ? `${selectedFight.fullLabel} — Death Positions` : 'Fight Details'}
                                 </div>
                                 {selectedFight ? (
-                                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[color:var(--text-secondary)]">
+                                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[color:var(--axi-text-dim)]">
                                         <span>{selectedFight.eventCount} death{selectedFight.eventCount !== 1 ? 's' : ''}</span>
                                         <span>Avg: {formatWithCommas(selectedFight.avgDistance, 0)} from tag</span>
                                     </div>
                                 ) : (
-                                    <div className="text-xs text-[color:var(--text-secondary)] mt-1">Click a bar above to see individual death events for that fight.</div>
+                                    <div className="text-xs text-[color:var(--axi-text-dim)] mt-1">Click a bar above to see individual death events for that fight.</div>
                                 )}
                             </div>
                             {selectedFight && (
@@ -212,7 +212,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                         </div>
 
                         {selectedFight && selectedFight.eventCount === 0 ? (
-                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No squad deaths in this fight.</div>
+                            <div className="axi-empty">No squad deaths in this fight.</div>
                         ) : selectedFight && scatterData.length > 0 ? (
                             <div className={isExpanded ? 'h-[300px]' : 'h-[220px]'}>
                                 <ChartContainer width="100%" height="100%">
@@ -253,8 +253,8 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                                 if (!point) return null;
                                                 return (
                                                     <div className="axi-panel axi-panel--float" style={{ '--axi-panel-pad': '10px 12px', fontSize: '12px' } as React.CSSProperties}>
-                                                        <p style={{ margin: 0, color: point.isCommander ? 'var(--status-warning)' : 'var(--text-secondary)' }}>{point.playerAccount}{point.isCommander ? ' ★' : ''}</p>
-                                                        <p style={{ margin: '4px 0 0', color: 'var(--text-primary)' }}>{point.x}s — {formatWithCommas(point.rawDistance, 0)} from tag</p>
+                                                        <p style={{ margin: 0, color: point.isCommander ? 'var(--axi-warn)' : 'var(--axi-text-dim)' }}>{point.playerAccount}{point.isCommander ? ' ★' : ''}</p>
+                                                        <p style={{ margin: '4px 0 0', color: 'var(--axi-text)' }}>{point.x}s — {formatWithCommas(point.rawDistance, 0)} from tag</p>
                                                     </div>
                                                 );
                                             }}
@@ -282,7 +282,7 @@ export const SquadTagDistanceDeathsSection = ({ fights }: SquadTagDistanceDeaths
                                 </ChartContainer>
                             </div>
                         ) : selectedFight && scatterData.length === 0 ? (
-                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No death events in this fight.</div>
+                            <div className="axi-empty">No death events in this fight.</div>
                         ) : null}
                     </div>
                 </>

@@ -116,7 +116,7 @@ export function WebUploadOverlay({
                 {/* ── Topbar ── */}
                 <div className="axi-modal__head justify-between items-start">
                     <div>
-                        <div className="text-[9px] font-bold tracking-[.15em] uppercase" style={{ color: 'var(--brand-primary)' }}>
+                        <div className="text-[9px] font-bold tracking-[.15em] uppercase" style={{ color: 'var(--axi-accent)' }}>
                             Web Upload
                         </div>
                         <div className={`text-base font-bold mt-0.5 ${hasFailure ? 'axi-ink-danger' : 'axi-ink-plain'}`}>
@@ -125,8 +125,8 @@ export function WebUploadOverlay({
                     </div>
                     {!hasFailure && stepIndex >= 0 && (
                         <div className="text-right">
-                            <div className="text-[11px] font-bold" style={{ color: 'var(--brand-primary)' }}>{stepIndex + 1} / {UPLOAD_STEPS.length}</div>
-                            <div className="text-[9px] mt-0.5" style={{ color: 'var(--text-muted)' }}>steps</div>
+                            <div className="text-[11px] font-bold" style={{ color: 'var(--axi-accent)' }}>{stepIndex + 1} / {UPLOAD_STEPS.length}</div>
+                            <div className="text-[9px] mt-0.5" style={{ color: 'var(--axi-text-faint)' }}>steps</div>
                         </div>
                     )}
                 </div>
@@ -154,12 +154,12 @@ export function WebUploadOverlay({
                                     className="text-[9px] font-semibold"
                                     style={{
                                         color: isActive && hasFailure
-                                            ? 'var(--status-error-muted)'
+                                            ? 'var(--axi-danger)'
                                             : isDone
-                                            ? 'var(--brand-primary)'
+                                            ? 'var(--axi-accent)'
                                             : isActive
-                                            ? 'var(--text-primary)'
-                                            : 'var(--text-muted)',
+                                            ? 'var(--axi-text)'
+                                            : 'var(--axi-text-faint)',
                                     }}
                                 >
                                     {step.label}
@@ -180,7 +180,7 @@ export function WebUploadOverlay({
                             } as CSSProperties}
                         />
                     </div>
-                    <div className="text-[11px] font-medium mt-2 leading-snug" style={{ color: hasFailure ? 'var(--status-error-muted)' : 'var(--text-secondary)' }}>
+                    <div className="text-[11px] font-medium mt-2 leading-snug" style={{ color: hasFailure ? 'var(--axi-danger)' : 'var(--axi-text-dim)' }}>
                         {webUploadState.detail || webUploadState.message || 'Working...'}
                     </div>
                 </div>
@@ -189,21 +189,21 @@ export function WebUploadOverlay({
                 {webUploadState.postStatus !== 'idle' && (
                     <div className="flex items-center gap-2 px-5 pb-2">
                         <div
-                            className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0 border"
+                            className="w-4 h-4 flex items-center justify-center text-[8px] font-bold shrink-0 border"
                             style={
                                 webUploadState.postStatus === 'done'
-                                    ? { background: 'var(--accent-bg)', borderColor: 'var(--accent-border)', color: 'var(--brand-primary)' }
+                                    ? { background: 'var(--axi-surface-paint)', borderColor: 'var(--axi-ink-line)', color: 'var(--axi-accent)' }
                                     : webUploadState.postStatus === 'warn'
-                                    ? { background: 'var(--status-warning-bg)', borderColor: 'var(--status-warning)', color: 'var(--status-warning)' }
-                                    : { background: 'var(--accent-bg-strong)', borderColor: 'var(--brand-primary)', color: 'var(--brand-primary)' }
+                                    ? { background: 'var(--axi-surface-raised-paint)', borderColor: 'var(--axi-warn)', color: 'var(--axi-warn)' }
+                                    : { background: 'var(--axi-surface-raised-paint)', borderColor: 'var(--axi-accent)', color: 'var(--axi-accent)' }
                             }
                         >
                             {webUploadState.postStatus === 'done' ? '✓' : webUploadState.postStatus === 'warn' ? '!' : '·'}
                         </div>
-                        <span className="text-[10px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="text-[10px] font-semibold" style={{ color: 'var(--axi-text-dim)' }}>
                             Discord
                         </span>
-                        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                        <span className="text-[10px]" style={{ color: 'var(--axi-text-faint)' }}>
                             {webUploadState.postStatus === 'done'
                                 ? 'posted'
                                 : webUploadState.postStatus === 'warn'
@@ -217,25 +217,25 @@ export function WebUploadOverlay({
                 {logEntries.length > 0 && (
                     <div
                         className="border-t overflow-y-auto overscroll-contain px-4 py-2"
-                        style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-base)', maxHeight: '96px' }}
+                        style={{ borderColor: 'var(--axi-rule)', background: 'var(--axi-ground)', maxHeight: '96px' }}
                         onWheel={(e) => e.stopPropagation()}
                         onTouchMove={(e) => e.stopPropagation()}
                     >
                         {logEntries.map((entry, i) => (
                             <div key={i} className="flex gap-2 items-baseline py-[1.5px]">
-                                <span className="text-[8.5px] font-mono shrink-0" style={{ color: 'var(--text-muted)' }}>
+                                <span className="text-[8.5px] font-mono shrink-0" style={{ color: 'var(--axi-text-faint)' }}>
                                     {entry.elapsed}
                                 </span>
                                 <span
                                     className="text-[10px] leading-snug"
                                     style={{
                                         color: entry.isError
-                                            ? 'var(--status-error-muted)'
+                                            ? 'var(--axi-danger)'
                                             : entry.isWarn
-                                            ? 'var(--status-warning)'
+                                            ? 'var(--axi-warn)'
                                             : i === logEntries.length - 1
-                                            ? 'var(--text-primary)'
-                                            : 'var(--text-secondary)',
+                                            ? 'var(--axi-text)'
+                                            : 'var(--axi-text-dim)',
                                     }}
                                 >
                                     {entry.text}
@@ -249,7 +249,7 @@ export function WebUploadOverlay({
                 {/* ── Error detail pre-block (dev or when detail is present) ── */}
                 {hasFailure && hasErrorDetail && webUploadState.detail && (
                     <pre
-                        className="mx-4 mb-3 mt-1 h-64 overflow-y-auto overflow-x-auto overscroll-contain rounded-xl border axi-edge-warn bg-black/60 p-3 text-[11px] axi-ink-warn whitespace-pre-wrap pointer-events-auto"
+                        className="mx-4 mb-3 mt-1 h-64 overflow-y-auto overflow-x-auto overscroll-contain axi-well axi-edge-warn text-[11px] axi-ink-warn whitespace-pre-wrap pointer-events-auto"
                         onWheel={(e) => e.stopPropagation()}
                         onTouchMove={(e) => e.stopPropagation()}
                     >
@@ -261,7 +261,7 @@ export function WebUploadOverlay({
                 <div className="flex items-center justify-between px-5 py-3">
                     <span
                         className="text-[9px]"
-                        style={{ color: hasFailure ? 'var(--status-error)' : 'var(--text-muted)' }}
+                        style={{ color: hasFailure ? 'var(--axi-danger)' : 'var(--axi-text-faint)' }}
                     >
                         {hasFailure
                             ? failedIndex >= 0
@@ -305,19 +305,19 @@ function StepFragment({
 
     let bg: string, borderColor: string, color: string, boxShadow: string | undefined;
     if (isFailed) {
-        bg = 'var(--status-error-bg)';   borderColor = 'var(--status-error-border)'; color = 'var(--status-error-muted)'; boxShadow = undefined;
+        bg = 'var(--axi-surface-raised-paint)';   borderColor = 'var(--axi-danger)'; color = 'var(--axi-danger)'; boxShadow = undefined;
     } else if (isDone) {
-        bg = 'var(--accent-bg)';         borderColor = 'var(--accent-border)';       color = 'var(--brand-primary)';      boxShadow = undefined;
+        bg = 'var(--axi-surface-paint)';         borderColor = 'var(--axi-ink-line)';       color = 'var(--axi-accent)';      boxShadow = undefined;
     } else if (isActive) {
-        bg = 'var(--accent-bg-strong)';  borderColor = 'var(--brand-primary)';       color = 'var(--brand-primary)';      boxShadow = '0 0 8px var(--glow-primary)';
+        bg = 'var(--axi-surface-raised-paint)';  borderColor = 'var(--axi-accent)';       color = 'var(--axi-accent)';      boxShadow = undefined;
     } else {
-        bg = 'var(--bg-input)';          borderColor = 'var(--border-default)';      color = 'var(--text-muted)';         boxShadow = undefined;
+        bg = 'var(--axi-ground)';          borderColor = 'var(--axi-ink-line)';      color = 'var(--axi-text-faint)';         boxShadow = undefined;
     }
 
     return (
         <>
             <div
-                className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0 border"
+                className="w-5 h-5 flex items-center justify-center text-[8px] font-bold shrink-0 border"
                 style={{ background: bg, borderColor, color, boxShadow }}
             >
                 {isFailed ? '✕' : isDone ? '✓' : String(index + 1)}
@@ -325,7 +325,7 @@ function StepFragment({
             {!last && (
                 <div
                     className="flex-1 h-px mx-1"
-                    style={{ background: isDone ? 'var(--accent-border)' : 'var(--border-default)' }}
+                    style={{ background: isDone ? 'var(--axi-ink-line)' : 'var(--axi-ink-line)' }}
                 />
             )}
         </>

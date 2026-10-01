@@ -121,7 +121,7 @@ export const DefenseSection = ({
     <div {...expandedPaneProps(expandedSection === 'defense-detailed', expandedSectionClosing)}>
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
             <Shield className="w-4 h-4 shrink-0" style={{ color: 'var(--section-defense)' }} />
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>
                 Defense Detailed
             </h3>
             <div className="ml-auto flex items-center gap-2">
@@ -154,11 +154,11 @@ export const DefenseSection = ({
             </div>
         </div>
         {stats.defensePlayers.length === 0 ? (
-            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No defensive stats available</div>
+            <div className="axi-empty">No defensive stats available</div>
         ) : isExpanded ? (
             <div className="flex flex-col gap-4">
                 <div>
-                    <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--axi-rule)' }}>
                         <SearchSelectDropdown
                             options={[
                                 ...defenseColumnOptions.map((option) => ({ ...option, type: 'column' as const })),
@@ -201,7 +201,7 @@ export const DefenseSection = ({
                             buttonLabel="Players"
                             buttonIcon={<Users className="h-3.5 w-3.5" />}
                         />
-                        <div className="h-5 w-px" style={{ background: 'var(--border-subtle)' }} />
+                        <div className="h-5 w-px" style={{ background: 'var(--axi-rule)' }} />
                         <PillToggleGroup
                             value={defenseViewMode}
                             onChange={setDefenseViewMode}
@@ -264,7 +264,7 @@ export const DefenseSection = ({
                 </div>
                 <div className="overflow-hidden">
                     {filteredDefenseMetrics.length === 0 ? (
-                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No defensive stats match this filter</div>
+                        <div className="axi-empty">No defensive stats match this filter</div>
                     ) : (
                         (() => {
                             const totalSeconds = (row: any) => Math.max(1, (row.activeMs || 0) / 1000);
@@ -330,17 +330,17 @@ export const DefenseSection = ({
                                         id: `${entry.row.account}-${idx}`,
                                         label: (
                                             <>
-                                                <span className="font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</span>
+                                                <span className="font-mono" style={{ color: 'var(--axi-text-faint)' }}>{idx + 1}</span>
                                                 {renderProfessionIcon(entry.row.profession, entry.row.professionList, 'w-4 h-4')}
                                                 <span className="min-w-0 flex flex-col">
                                                     <span className="truncate">{entry.row.account}</span>
                                                     {minionDamageMode === 'combined' && Array.isArray(entry.row.minionList) && entry.row.minionList.length > 0 && (
-                                                        <span className="truncate text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                                                        <span className="truncate text-[10px]" style={{ color: 'var(--axi-text-dim)' }}>
                                                             {entry.row.minionList.join(', ')}
                                                         </span>
                                                     )}
                                                     {minionDamageMode === 'separate' && entry.row.minionName && (
-                                                        <span className="truncate text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                                                        <span className="truncate text-[10px]" style={{ color: 'var(--axi-text-dim)' }}>
                                                             {entry.row.minionName}
                                                         </span>
                                                     )}
@@ -365,7 +365,7 @@ export const DefenseSection = ({
                 contentStyle={undefined}
                 sidebar={
                     <>
-                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Defensive Tabs</div>
+                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--axi-text-dim)' }}>Defensive Tabs</div>
                         <input
                             value={defenseSearch}
                             onChange={(e) => setDefenseSearch(e.target.value)}
@@ -376,7 +376,7 @@ export const DefenseSection = ({
                         <div className={`${sidebarListClass} ${expandedSection === 'defense-detailed' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                             {(() => {
                                 if (filteredDefenseMetrics.length === 0) {
-                                    return <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No defensive stats match this filter</div>;
+                                    return <div className="axi-empty">No defensive stats match this filter</div>;
                                 }
                                 return filteredDefenseMetrics.map((metric) => (
                                     <button
@@ -453,10 +453,10 @@ rows={
                                                         <span className="min-w-0 flex flex-col">
                                                             <span className="truncate">{row.account}</span>
                                                             {isMinionDamageMetric(metric.id) && minionDamageMode === 'combined' && Array.isArray(row.minionList) && row.minionList.length > 0 && (
-                                                                <span className="truncate text-[10px]" style={{ color: 'var(--text-secondary)' }}>{row.minionList.join(', ')}</span>
+                                                                <span className="truncate text-[10px]" style={{ color: 'var(--axi-text-dim)' }}>{row.minionList.join(', ')}</span>
                                                             )}
                                                             {isMinionDamageMetric(metric.id) && minionDamageMode === 'separate' && row.minionName && (
-                                                                <span className="truncate text-[10px]" style={{ color: 'var(--text-secondary)' }}>{row.minionName}</span>
+                                                                <span className="truncate text-[10px]" style={{ color: 'var(--axi-text-dim)' }}>{row.minionName}</span>
                                                             )}
                                                         </span></span></th>
 <td>{(() => {

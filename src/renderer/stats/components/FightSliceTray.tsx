@@ -54,7 +54,7 @@ export const FightSliceBanner = ({ onCopyLink, unavailable = false }: { onCopyLi
     if (excluded.size === 0) return null;
     const included = roster.length - roster.filter((f) => excluded.has(f.id)).length;
     return (
-        <div className="flex items-center gap-2 border-b border-[color:var(--accent-border)] bg-[var(--accent-bg)] px-4 py-1.5 text-[11px] font-semibold text-[color:var(--text-primary)]">
+        <div className="flex items-center gap-2 border-b border-[color:var(--axi-ink-line)] bg-[var(--axi-surface-paint)] px-4 py-1.5 text-[11px] font-semibold text-[color:var(--axi-text)]">
             {/* `unavailable` means the published viewer's slice recompute failed
                 or refused, so the tables below are the FULL report. Saying
                 "Sliced view — N of M fights" over them is the one thing this
@@ -168,8 +168,8 @@ export const FightSliceTray = ({ onClose }: { onClose: () => void }) => {
             style={{ '--axi-dock-pad': '0' } as CSSProperties}
             onKeyDown={handleKeyDown}
         >
-            <div className="flex items-center gap-2 border-b border-[color:var(--border-subtle)] px-3 py-2">
-                <span className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">Fights</span>
+            <div className="flex items-center gap-2 border-b border-[color:var(--axi-rule)] px-3 py-2">
+                <span className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--axi-text-dim)]">Fights</span>
                 <button type="button" onClick={() => setFightsExcluded(visibleIds, false)} className="slice-mini">All</button>
                 <button type="button" onClick={() => setFightsExcluded(visibleIds, true)} className="slice-mini">None</button>
                 <button
@@ -248,9 +248,7 @@ export const FightSliceTray = ({ onClose }: { onClose: () => void }) => {
                     return (
                         <label
                             key={fight.id}
-                            className={`slice-card relative block cursor-pointer rounded-[var(--radius-md)] border py-2 pl-2 pr-6 ${isExcluded
-                                ? 'border-[color:var(--border-default)] bg-[var(--bg-card-inner)] opacity-40'
-                                : 'border-[color:var(--accent-border)] bg-[var(--accent-bg)]'}`}
+                            className={`slice-card relative block cursor-pointer axi-panel axi-panel--tile [--axi-panel-pad:8px_24px_8px_8px] ${isExcluded ? 'opacity-40' : ''}`}
                         >
                             {/* The input covers the whole card so the card itself is the hit
                                 target, but it stays a real checkbox for keyboard and screen
@@ -263,12 +261,12 @@ export const FightSliceTray = ({ onClose }: { onClose: () => void }) => {
                             />
                             <span className="slice-card-badge" aria-hidden="true" />
                             <span className="block text-[11.5px] font-semibold truncate" title={fight.label}>{fight.label}</span>
-                            <span className="block text-[10px] text-[color:var(--text-secondary)]">
+                            <span className="block text-[10px] text-[color:var(--axi-text-dim)]">
                                 {ordinal ? `F${ordinal} · ` : ''}{formatClock(fight.timestamp)} · {fight.duration}
                                 {fight.isWin === true ? ' · Win' : fight.isWin === false ? ' · Loss' : ''}
                             </span>
                             {fight.commander && (
-                                <span className="block text-[10px] truncate text-[color:var(--text-secondary)]" title={`Commander: ${fight.commander}`}>
+                                <span className="block text-[10px] truncate text-[color:var(--axi-text-dim)]" title={`Commander: ${fight.commander}`}>
                                     &#9733; {fight.commander}
                                 </span>
                             )}
@@ -280,7 +278,7 @@ export const FightSliceTray = ({ onClose }: { onClose: () => void }) => {
                                         <span
                                             key={profession}
                                             title={`${profession}: ${count}`}
-                                            className="inline-flex items-center gap-0.5 text-[9.5px] text-[color:var(--text-secondary)]"
+                                            className="inline-flex items-center gap-0.5 text-[9.5px] text-[color:var(--axi-text-dim)]"
                                         >
                                             {renderProfessionIcon(profession, undefined, 'w-3.5 h-3.5 object-contain')}
                                             <span aria-label={`${count} ${profession}`}>&times;{count}</span>

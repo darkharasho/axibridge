@@ -16,14 +16,13 @@ export function DataMapSection({ onNavigate, isSectionAllowed }: DataMapSectionP
                 return (
                     <div
                         key={category.id}
-                        className="rounded-[4px] border p-3 flex flex-col gap-2"
-                        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
+                        className="axi-panel [--axi-panel-pad:12px] flex flex-col gap-2"
                     >
                         <div className="flex items-center gap-2">
-                            <CategoryIcon className="w-4 h-4 text-[color:var(--brand-primary)]" />
+                            <CategoryIcon className="w-4 h-4 text-[color:var(--axi-accent)]" />
                             <span className="text-xs font-semibold uppercase tracking-[0.18em]">{category.label}</span>
                         </div>
-                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{category.description}</p>
+                        <p className="text-xs" style={{ color: 'var(--axi-text-dim)' }}>{category.description}</p>
                         <div className="flex flex-wrap gap-1.5">
                             {sections.map((section) => (
                                 <button
@@ -32,7 +31,7 @@ export function DataMapSection({ onNavigate, isSectionAllowed }: DataMapSectionP
                                     title={section.description}
                                     onClick={() => onNavigate(category.id, section.id)}
                                     className="axi-btn axi-btn--xs"
-                                    style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+                                    style={{ borderColor: 'var(--axi-rule)', color: 'var(--axi-text)' }}
                                 >
                                     {section.label}
                                 </button>

@@ -33,7 +33,7 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                 >
                     <div className="axi-modal__head justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-[4px] bg-blue-500/20 border axi-edge-meta">
+                            <div className="axi-well axi-well--sm axi-edge-meta [--axi-well-pad:8px]">
                                 <Sparkles className="w-5 h-5 axi-ink-meta" />
                             </div>
                             <div>
@@ -83,7 +83,7 @@ export function WhatsNewModal({ isOpen, onClose, version, releaseNotes }: WhatsN
                             </div>
                         </div>
                     </div>
-                    <div className="flex justify-end px-6 py-4" style={{ borderTop: '1px solid var(--border-default)' }}>
+                    <div className="flex justify-end px-6 py-4" style={{ borderTop: 'var(--axi-border-control) solid var(--axi-ink-line)' }}>
                         <button
                             onClick={onClose}
                             className="axi-btn axi-ink-meta axi-edge-meta"

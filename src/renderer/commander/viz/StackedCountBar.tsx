@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 interface StackedCountBarProps {
   alive: number;
   downed?: number;
@@ -20,26 +22,26 @@ export function StackedCountBar({
 
   return (
     <div
-      className="relative flex h-1.5 overflow-hidden rounded-sm"
-      style={{ width, background: 'var(--bg-card-inner)' }}
+      className="axi-meter"
+      style={{ width, '--axi-meter-h': '6px' } as CSSProperties}
       data-role="stacked-bar"
     >
       <div
         data-role="alive"
-        className="h-full bg-emerald-500"
-        style={{ width: `${alivePct}%`, backgroundColor: aliveColor }}
+        className="axi-meter__fill"
+        style={{ '--axi-meter-v': `${alivePct}%`, '--axi-series': aliveColor ?? 'var(--axi-ok)' } as CSSProperties}
       />
       {downed > 0 && (
         <div
           data-role="downed"
-          className="h-full bg-amber-500"
-          style={{ width: `${downedPct}%` }}
+          className="axi-meter__fill"
+          style={{ '--axi-meter-v': `${downedPct}%`, '--axi-series': 'var(--axi-warn)' } as CSSProperties}
         />
       )}
       <div
         data-role="dead"
-        className="h-full bg-rose-500"
-        style={{ width: `${deadPct}%` }}
+        className="axi-meter__fill"
+        style={{ '--axi-meter-v': `${deadPct}%`, '--axi-series': 'var(--axi-danger)' } as CSSProperties}
       />
     </div>
   );

@@ -41,16 +41,16 @@ const LeaderCard = ({ icon: Icon, title, data, isBoon = false, accentColor, unit
             style={{ '--axi-panel-pad': '16px' } as React.CSSProperties}
         >
             <div className="flex items-center gap-4">
-                <div className="p-3 rounded-[var(--radius-md)] shrink-0" style={iconWrapStyle}>
+                <div className="p-3 rounded-[var(--axi-radius-sm)] shrink-0" style={iconWrapStyle}>
                     {isBoon
                         ? <BoonGlyph className="w-6 h-6" />
                         : <Icon className="w-6 h-6" />
                     }
                 </div>
                 <div className="min-w-0 flex-1">
-                    <div data-testid="leader-card-title" className="text-[color:var(--text-secondary)] text-xs font-bold uppercase tracking-wider truncate">{title}</div>
+                    <div data-testid="leader-card-title" className="text-[color:var(--axi-text-dim)] text-xs font-bold uppercase tracking-wider truncate">{title}</div>
                     <div className="text-2xl font-bold axi-ink-plain mt-0.5 break-words">
-                        {displayValue} <span className="text-sm font-normal text-[color:var(--text-secondary)]">{unit}</span>
+                        {displayValue} <span className="text-sm font-normal text-[color:var(--axi-text-dim)]">{unit}</span>
                     </div>
                 </div>
             </div>
@@ -59,38 +59,38 @@ const LeaderCard = ({ icon: Icon, title, data, isBoon = false, accentColor, unit
                 below the rule would restate the name directly above the table
                 that already holds it. */}
             {!(singleFight && active) && (
-                <div className="flex flex-col border-t border-[color:var(--border-subtle)] pt-2">
+                <div className="flex flex-col border-t border-[color:var(--axi-rule)] pt-2">
                     <div className="flex items-center gap-2 min-w-0">
                         {renderProfessionIcon(data?.profession || 'Unknown', data?.professionList, 'w-4 h-4')}
-                        <div className="text-sm font-medium text-[color:var(--brand-primary)] truncate">{data?.player || '-'}</div>
+                        <div className="text-sm font-medium text-[color:var(--axi-accent)] truncate">{data?.player || '-'}</div>
                     </div>
                     {/* The log count is what distinguishes a leader who topped one
                         fight from one who topped twenty. In a single-fight report it
                         is always "1 logs" — noise, and ungrammatical noise. */}
-                    <div className="text-xs text-[color:var(--text-secondary)] truncate">{singleFight ? '' : (data?.count ? `${data.count} logs` : '-')}</div>
+                    <div className="text-xs text-[color:var(--axi-text-dim)] truncate">{singleFight ? '' : (data?.count ? `${data.count} logs` : '-')}</div>
                 </div>
             )}
             {active && (
-                <div className={singleFight ? 'border-t border-[color:var(--border-subtle)] pt-2' : 'mt-3'}>
+                <div className={singleFight ? 'border-t border-[color:var(--axi-rule)] pt-2' : 'mt-3'}>
                     {/* Restating the card title inside the card is only worth it
                         when the panel was opened by a click and could be scrolled
                         away from its heading. */}
-                    {!singleFight && <div className="text-xs font-semibold text-[color:var(--text-primary)] mb-2">{title}</div>}
+                    {!singleFight && <div className="text-xs font-semibold text-[color:var(--axi-text)] mb-2">{title}</div>}
                     {rows?.length ? (
                         <div className="max-h-56 overflow-y-auto pr-1 space-y-1">
                             {rows.map((row: any) => (
-                                <div key={`${title}-${row.rank}-${row.account}`} className="flex items-center gap-2 min-w-0 text-xs text-[color:var(--text-secondary)]">
-                                    <div className="w-6 shrink-0 text-right text-[color:var(--text-muted)]">{row.rank}</div>
+                                <div key={`${title}-${row.rank}-${row.account}`} className="flex items-center gap-2 min-w-0 text-xs text-[color:var(--axi-text-dim)]">
+                                    <div className="w-6 shrink-0 text-right text-[color:var(--axi-text-faint)]">{row.rank}</div>
                                     <div className="shrink-0">
                                         {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
                                     </div>
                                     <div className="flex-1 min-w-0 truncate">{row.account}</div>
-                                    <div className="shrink-0 text-[color:var(--text-secondary)] font-mono">{formatValue ? formatValue(row.value) : row.value}</div>
+                                    <div className="shrink-0 text-[color:var(--axi-text-dim)] font-mono">{formatValue ? formatValue(row.value) : row.value}</div>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No data available</div>
+                        <div className="axi-empty">No data available</div>
                     )}
                 </div>
             )}
@@ -236,8 +236,8 @@ export const TopPlayersSection = ({
         return (
             <div data-testid="squad-summary">
                 <div className="flex items-center gap-2 mb-3.5">
-                    <Trophy className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+                    <Trophy className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>
                         Squad Summary
                     </h3>
                 </div>
@@ -276,8 +276,8 @@ export const TopPlayersSection = ({
     return (
         <div>
             <div className="flex items-center gap-2 mb-3.5">
-                <Trophy className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Top Players</h3>
+                <Trophy className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Top Players</h3>
             </div>
             {showMvp && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
@@ -322,7 +322,7 @@ export const TopPlayersSection = ({
                         >
                             <div className={`mvp-group-label absolute left-3 inline-flex items-center gap-2 border ${group.accentLabelBorder}`}>
                                 <Sparkles className={`mvp-group-label-icon w-4 h-4 ${group.accent}`} />
-                                <span className="mvp-group-label-title font-bold uppercase tracking-widest text-xs text-[color:var(--text-primary)]">{group.title}</span>
+                                <span className="mvp-group-label-title font-bold uppercase tracking-widest text-xs text-[color:var(--axi-text)]">{group.title}</span>
                             </div>
                             <div
                                 className="mvp-card mvp-card--gold axi-panel min-h-[182px] flex items-center"
@@ -398,7 +398,7 @@ export const TopPlayersSection = ({
                                             <div className={`text-xs uppercase tracking-widest font-semibold ${entry.label === 'Silver' ? 'axi-ink-plain' : 'axi-ink-warn'}`}>
                                                 {entry.label}
                                             </div>
-                                            <div className="text-xs text-[color:var(--text-secondary)] font-mono">
+                                            <div className="text-xs text-[color:var(--axi-text-dim)] font-mono">
                                                 {entry.data?.score ? entry.data.score.toFixed(1) : '-'}
                                             </div>
                                         </div>
@@ -437,7 +437,7 @@ export const TopPlayersSection = ({
             )}
 
             {enabledDefs.length === 0 ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-8 text-center text-sm text-[color:var(--text-secondary)]">
+                <div className="axi-empty">
                     No top stats selected — enable some in Settings → Dashboard - Top Stats &amp; MVP.
                 </div>
             ) : (

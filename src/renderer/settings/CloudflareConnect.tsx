@@ -169,7 +169,7 @@ export function CloudflareConnect({ onChanged }: Props) {
                             type="button"
                             disabled={busy}
                             onClick={() => chooseAccount(account)}
-                            className="w-full rounded-[4px] border axi-edge-rule px-3 py-1.5 text-left text-xs axi-ink-plain hover:border-cyan-500/40 hover:text-white disabled:opacity-50"
+                            className="axi-btn axi-btn--xs w-full justify-start"
                         >
                             {account.name}
                         </button>

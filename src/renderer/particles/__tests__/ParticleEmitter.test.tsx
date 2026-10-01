@@ -169,7 +169,7 @@ describe('ParticleEmitter', () => {
 
         dots.forEach((dot) => {
             expect(dot.style.boxShadow).toMatch(/color-mix/);
-            expect(dot.style.boxShadow).toMatch(/var\(--brand-primary\)/);
+            expect(dot.style.boxShadow).toMatch(/var\(--axi-accent\)/);
         });
     });
 });

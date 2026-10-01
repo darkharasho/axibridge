@@ -243,10 +243,10 @@ const ProfessionIcon = ({
                 <>
                     <span
                         aria-hidden="true"
-                        className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-1 ring-[var(--bg-base)]"
-                        style={{ background: multiBadgeBackground, boxShadow: '0 0 0 1px var(--border-default)' }}
+                        className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-1 ring-[var(--axi-ground)]"
+                        style={{ background: multiBadgeBackground, boxShadow: '0 0 0 1px var(--axi-ink-line)' }}
                     >
-                        <span className="absolute inset-[0.7px] rounded-full bg-[var(--bg-elevated)]/55" />
+                        <span className="absolute inset-[0.7px] rounded-full bg-[var(--axi-surface-paint)]/55" />
                     </span>
                     <div
                         ref={tooltipRef}
@@ -262,7 +262,7 @@ const ProfessionIcon = ({
                                         {itemIcon ? (
                                             <img src={itemIcon} alt={prof || 'Unknown'} className="h-3.5 w-3.5 object-contain" />
                                         ) : null}
-                                        <span style={{ color: 'var(--text-primary)' }}>{prof || 'Unknown'}</span>
+                                        <span style={{ color: 'var(--axi-text)' }}>{prof || 'Unknown'}</span>
                                     </div>
                                 );
                             })}
@@ -333,9 +333,9 @@ export const CountClassTooltip = ({
                                                 {iconPath ? (
                                                     <img src={iconPath} alt={profession || 'Unknown'} className="h-3.5 w-3.5 object-contain" />
                                                 ) : null}
-                                                <span style={{ color: 'var(--text-primary)' }}>{profession || 'Unknown'}</span>
-                                                <span style={{ color: 'var(--text-secondary)' }}>·</span>
-                                                <span style={{ color: 'var(--text-primary)' }}>{profCount}</span>
+                                                <span style={{ color: 'var(--axi-text)' }}>{profession || 'Unknown'}</span>
+                                                <span style={{ color: 'var(--axi-text-dim)' }}>·</span>
+                                                <span style={{ color: 'var(--axi-text)' }}>{profCount}</span>
                                             </div>
                                         );
                                     })}
@@ -343,7 +343,7 @@ export const CountClassTooltip = ({
                             ))}
                         </div>
                     ) : (
-                        <div className="text-[10px] italic" style={{ color: 'var(--text-secondary)' }}>No class data available</div>
+                        <div className="text-[10px] italic" style={{ color: 'var(--axi-text-dim)' }}>No class data available</div>
                     )}
                 </div>,
                 document.body
@@ -455,10 +455,10 @@ export const SkillBreakdownTooltip = ({
                     >
                         {items.map((item) => (
                             <div key={item.name} className="flex items-center justify-between gap-2">
-                                <span className="truncate" style={{ color: 'var(--text-primary)' }}>
+                                <span className="truncate" style={{ color: 'var(--axi-text)' }}>
                                     <InlineIconLabel name={item.name} iconUrl={item.iconUrl} iconClassName="h-6 w-6" />
                                 </span>
-                                <span className="font-mono" style={{ color: 'var(--text-primary)' }}>{item.value}</span>
+                                <span className="font-mono" style={{ color: 'var(--axi-text)' }}>{item.value}</span>
                             </div>
                         ))}
                     </div>

@@ -112,7 +112,7 @@ export const NoEgoMetricSection: React.FC<NoEgoMetricSectionProps> = ({
                     <span data-testid="noego-secret-icon" onClick={handleSecretIconClick}>
                         {icon}
                     </span>
-                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>
                         {title}
                     </h3>
                 </div>
@@ -134,7 +134,7 @@ export const NoEgoMetricSection: React.FC<NoEgoMetricSectionProps> = ({
                 contentStyle={undefined}
                 sidebar={
                     <>
-                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>{sidebarLabel}</div>
+                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--axi-text-dim)' }}>{sidebarLabel}</div>
                         <input
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}

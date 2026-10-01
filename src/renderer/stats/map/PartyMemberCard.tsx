@@ -102,7 +102,7 @@ export const PartyMemberCard: React.FC<PartyMemberCardProps> = ({
         ? skillIcons[skillIds[0]]?.name || null
         : null;
     const statusSuffix = status === 'down' ? ' · DOWN' : status === 'dead' ? ' · DEAD' : '';
-    const statusColor = status === 'down' ? 'var(--status-warning)' : status === 'dead' ? 'var(--status-error)' : 'var(--text-secondary)';
+    const statusColor = status === 'down' ? 'var(--axi-warn)' : status === 'dead' ? 'var(--axi-danger)' : 'var(--axi-text-dim)';
 
     return (
         <button
@@ -154,7 +154,7 @@ export const PartyMemberCard: React.FC<PartyMemberCardProps> = ({
                     )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--axi-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {member.name}
                     </div>
                     {/* The cast name rides the sub-label rather than getting a
@@ -165,7 +165,7 @@ export const PartyMemberCard: React.FC<PartyMemberCardProps> = ({
                     <div data-cast-name={castName ? '' : undefined}
                          style={{
                              fontSize: 9,
-                             color: castName ? 'var(--status-info)' : statusColor,
+                             color: castName ? 'var(--axi-meta)' : statusColor,
                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                          }}>
                         {castName ?? `${spec}${statusSuffix}`}
@@ -182,14 +182,14 @@ export const PartyMemberCard: React.FC<PartyMemberCardProps> = ({
                         return (
                             <img src={icon.icon} alt={icon.name} title={icon.name}
                                  width={20} height={20}
-                                 style={{ width: 20, height: 20, objectFit: 'contain', borderRadius: 3, border: '1px solid var(--status-info-border)', background: 'var(--status-info-bg)' }} />
+                                 style={{ width: 20, height: 20, objectFit: 'contain', borderRadius: 3, border: '1px solid var(--axi-meta)', background: 'var(--axi-surface-raised-paint)' }} />
                         );
                     })()}
                 </div>
             </div>
 
             {/* HP bar */}
-            <div style={{ height: 3, background: 'var(--border-subtle)', borderRadius: 2, marginBottom: 3, overflow: 'hidden' }}>
+            <div style={{ height: 3, background: 'var(--axi-rule)', borderRadius: 2, marginBottom: 3, overflow: 'hidden' }}>
                 <div style={{ width: `${status === 'dead' ? 0 : hp}%`, height: '100%', background: barColor(status), borderRadius: 2 }} />
             </div>
 
@@ -197,12 +197,12 @@ export const PartyMemberCard: React.FC<PartyMemberCardProps> = ({
             <div data-buff-row style={{ display: 'flex', alignItems: 'center', gap: 3, minHeight: 18, flexWrap: 'wrap' }}>
                 <BuffCluster cluster="boons" buffs={status === 'dead' ? [] : boons}
                              capacity={capacity.boons} icons={boonIcons}
-                             borderColor="var(--border-hover)" />
+                             borderColor="var(--axi-rule)" />
                 {/* Always rendered, only hidden: taking the divider out of the
                     row changes its item count, which is enough on its own to
                     tip a wrap and undo the reserved slots. */}
                 <span data-buff-divider style={{
-                    width: 1, height: 14, background: 'var(--border-default)',
+                    width: 1, height: 14, background: 'var(--axi-ink-line)',
                     flexShrink: 0, margin: '0 1px',
                     visibility: capacity.boons > 0 && capacity.condis > 0 ? 'visible' : 'hidden',
                 }} />

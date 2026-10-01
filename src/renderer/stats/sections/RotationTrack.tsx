@@ -122,11 +122,11 @@ const buildRows = (
  * legend cannot drift apart.
  */
 const boxBorder = (box: { interrupted: boolean; prelog: boolean }): string => {
-    if (box.interrupted) return '1px solid var(--status-error)';
+    if (box.interrupted) return '1px solid var(--axi-danger)';
     // Dashed, not solid: a solid brand-primary border reads as "selected" —
     // see spec `docs/superpowers/specs/2026-09-27-rotation-timeline-design.md:226-228`.
-    if (box.prelog) return '1px dashed var(--brand-primary)';
-    return '1px solid var(--border-default)';
+    if (box.prelog) return '1px dashed var(--axi-accent)';
+    return 'var(--axi-border-control) solid var(--axi-ink-line)';
 };
 
 /** The legend's rows, as the state flags `boxBorder` switches on. Adding a
@@ -144,12 +144,12 @@ const LEGEND_STATES: { label: string; state: { interrupted: boolean; prelog: boo
  * captions) rather than introducing a new legend widget for one section.
  */
 const RotationLegend: React.FC = () => (
-    <div className="flex flex-wrap items-center gap-3.5 text-[11px] mb-2" style={{ color: 'var(--text-secondary)' }}>
+    <div className="flex flex-wrap items-center gap-3.5 text-[11px] mb-2" style={{ color: 'var(--axi-text-dim)' }}>
         {LEGEND_STATES.map(({ label, state }) => (
             <span key={label} className="flex items-center gap-1">
                 <span
-                    className="inline-block w-3.5 h-3 rounded-sm"
-                    style={{ border: boxBorder(state), background: 'var(--bg-hover)' }}
+                    className="inline-block w-3.5 h-3"
+                    style={{ border: boxBorder(state), background: 'var(--axi-surface-raised-paint)' }}
                 />
                 {label}
             </span>
@@ -188,7 +188,7 @@ export const RotationTrack: React.FC<RotationTrackProps> = ({
                     <span
                         data-row-label=""
                         className="shrink-0 text-right w-[30px] sm:w-[38px] text-[10px] sm:text-[11px] pt-2.5 tabular-nums"
-                        style={{ color: 'var(--text-muted)' }}
+                        style={{ color: 'var(--axi-text-faint)' }}
                     >
                         {mmssLabel(rowIndex * wrapMs)}
                     </span>
@@ -196,7 +196,7 @@ export const RotationTrack: React.FC<RotationTrackProps> = ({
                         ref={rowIndex === 0 ? rowRef : undefined}
                         data-track-row=""
                         className="relative h-9 flex-1 min-w-0 overflow-hidden"
-                        style={{ background: 'var(--bg-card-inner)', borderRadius: 'var(--radius-md)' }}
+                        style={{ background: 'var(--axi-ground)', borderRadius: 'var(--axi-radius-sm)' }}
                     >
                     {row.map((box) => {
                         // A published report hands `icon` over already expanded to a
@@ -226,12 +226,12 @@ export const RotationTrack: React.FC<RotationTrackProps> = ({
                                     left: `${box.leftPct}%`,
                                     width: `${box.widthPct}%`,
                                     minWidth: `${MIN_BOX_PX}px`,
-                                    background: selected ? 'var(--bg-card-inner)' : 'var(--bg-hover)',
+                                    background: selected ? 'var(--axi-ground)' : 'var(--axi-surface-raised-paint)',
                                     border: boxBorder(box),
-                                    outline: selected ? '2px solid var(--brand-primary)' : undefined,
+                                    outline: selected ? '2px solid var(--axi-accent)' : undefined,
                                     outlineOffset: selected ? '-1px' : undefined,
-                                    borderRadius: 'var(--radius-md)',
-                                    color: 'var(--text-primary)',
+                                    borderRadius: 'var(--axi-radius-sm)',
+                                    color: 'var(--axi-text)',
                                 }}
                             >
                                 {/* The icon is the thing that must survive a narrow box —

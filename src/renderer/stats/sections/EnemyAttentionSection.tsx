@@ -66,10 +66,10 @@ export const EnemyAttentionSection = ({ result }: Props) => {
     return (
         <div {...expandedPaneProps(isExpanded, expandedSectionClosing)}>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
-                <Crosshair className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Enemy Attention</h3>
+                <Crosshair className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Enemy Attention</h3>
                 {measured > 0 && (
-                    <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="text-[10px]" style={{ color: 'var(--axi-text-dim)' }}>
                         {formatWithCommas(result.totalCasts, 0)} aimed casts across {measured} {measured === 1 ? 'fight' : 'fights'}
                     </span>
                 )}
@@ -87,14 +87,14 @@ export const EnemyAttentionSection = ({ result }: Props) => {
               the log cannot support. Saying which one it is, is the point.
             */}
             {rows.length === 0 ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
+                <div className="axi-empty">
                     {measured === 0 && unmeasured > 0
                         ? <>None of the {unmeasured} loaded {unmeasured === 1 ? 'fight was' : 'fights were'} recorded with an arcdps build that logs enemy casts (May 2026 or later), so who the enemy aimed at cannot be measured for {unmeasured === 1 ? 'it' : 'them'}.</>
                         : <>No enemy attention data for the loaded fights.</>}
                 </div>
             ) : (
                 <>
-                    <div className={`axi-table__scroll rounded-[var(--radius-md)] ${sortedRows.length > 12 ? 'max-h-[30rem]' : ''}`}>
+                    <div className={`axi-table__scroll rounded-[var(--axi-radius-sm)] ${sortedRows.length > 12 ? 'max-h-[30rem]' : ''}`}>
                         <table className="axi-table axi-table--sticky">
                             <thead>
                                 <tr>
@@ -116,15 +116,15 @@ export const EnemyAttentionSection = ({ result }: Props) => {
                                             <span className="axi-table__who">
                                                 {renderProfessionIcon(r.profession, r.professionList, 'w-4 h-4 flex-shrink-0')}
                                                 <span>{r.account}</span>
-                                                {r.isCommander && <span title="Commander" style={{ color: 'var(--status-warning)' }}>★</span>}
+                                                {r.isCommander && <span title="Commander" style={{ color: 'var(--axi-warn)' }}>★</span>}
                                             </span>
                                         </td>
                                         <td className="axi-table__num">{r.fightCount}</td>
-                                        <td className="axi-table__num" style={{ color: r.focusIndex >= 1.5 ? 'var(--status-warning)' : undefined }}>
+                                        <td className="axi-table__num" style={{ color: r.focusIndex >= 1.5 ? 'var(--axi-warn)' : undefined }}>
                                             {r.focusIndex.toFixed(2)}×
                                         </td>
                                         <td className="axi-table__num">{formatWithCommas(r.castsDrawn, 0)}</td>
-                                        <td style={{ color: 'var(--text-secondary)' }}>
+                                        <td style={{ color: 'var(--axi-text-dim)' }}>
                                             {r.castsDrawnMinions > 0 ? formatWithCommas(r.castsDrawnMinions, 0) : '—'}
                                         </td>
                                         <td className="axi-table__num">{r.downs}</td>
@@ -135,7 +135,7 @@ export const EnemyAttentionSection = ({ result }: Props) => {
                         </table>
                     </div>
 
-                    <p className="mt-2.5 text-[10px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="mt-2.5 text-[10px] leading-relaxed" style={{ color: 'var(--axi-text-dim)' }}>
                         Enemy cast-starts survive into a log only when they are aimed at someone squad-side, which makes
                         this a census of what the other side pointed at you rather than a sample of it. Untargeted ground
                         AoE leaves no row here, so this measures <em>aimed</em> attention, not incoming pressure in general.

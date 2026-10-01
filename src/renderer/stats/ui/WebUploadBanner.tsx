@@ -53,10 +53,10 @@ export const WebUploadBanner = ({
         : webUploadBuildStatus === 'errored' ? '✕'
         : '🌐';
     const iconStyle: CSSProperties = webUploadBuildStatus === 'built'
-        ? { background: 'var(--status-success-bg)',  border: '1px solid var(--status-success-border)'  }
+        ? { background: 'var(--axi-surface-raised-paint)',  border: '1px solid var(--axi-ok)'  }
         : webUploadBuildStatus === 'errored'
-        ? { background: 'var(--status-error-bg)',    border: '1px solid var(--status-error-border)'    }
-        : { background: 'var(--accent-bg)',          border: '1px solid var(--accent-border)'          };
+        ? { background: 'var(--axi-surface-raised-paint)',    border: '1px solid var(--axi-danger)'    }
+        : { background: 'var(--axi-surface-paint)',          border: 'var(--axi-border-control) solid var(--axi-ink-line)'          };
 
     // Build status pill
     const isBuilding  = webUploadBuildStatus === 'checking' || webUploadBuildStatus === 'building';
@@ -65,10 +65,10 @@ export const WebUploadBanner = ({
         : webUploadBuildStatus === 'errored' ? 'Build failed'
         : 'Building…';
     const pillStyle: CSSProperties = webUploadBuildStatus === 'built'
-        ? { background: 'var(--status-success-bg)',  border: '1px solid var(--status-success-border)',  color: 'var(--status-success)' }
+        ? { background: 'var(--axi-surface-raised-paint)',  border: '1px solid var(--axi-ok)',  color: 'var(--axi-ok)' }
         : webUploadBuildStatus === 'errored'
-        ? { background: 'var(--status-error-bg)',    border: '1px solid var(--status-error-border)',    color: 'var(--status-error)'   }
-        : { background: 'var(--accent-bg)',          border: '1px solid var(--accent-border)',          color: 'var(--button-label, var(--brand-primary))'  };
+        ? { background: 'var(--axi-surface-raised-paint)',    border: '1px solid var(--axi-danger)',    color: 'var(--axi-danger)'   }
+        : { background: 'var(--axi-surface-paint)',          border: 'var(--axi-border-control) solid var(--axi-ink-line)',          color: 'var(--axi-text-dim)'  };
 
     const openUrl = () => {
         if (displayUrl && window.electronAPI?.openExternal) {
@@ -78,10 +78,10 @@ export const WebUploadBanner = ({
 
     return (
         <>
-        <div className="mb-3 bg-white/[0.04] border axi-edge-rule rounded-xl px-3 py-2.5 flex items-center gap-3">
+        <div className="mb-3 axi-well flex items-center gap-3">
             {/* Icon */}
             <div
-                className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-sm"
+                className="w-8 h-8 axi-well axi-well--sm [--axi-well-pad:0] flex-shrink-0 flex items-center justify-center text-sm"
                 style={iconStyle}
                 aria-hidden="true"
             >
@@ -91,12 +91,12 @@ export const WebUploadBanner = ({
             {/* Body */}
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[9px] font-bold tracking-[.1em] uppercase" style={{ color: 'var(--brand-primary)' }}>
+                    <span className="text-[9px] font-bold tracking-[.1em] uppercase" style={{ color: 'var(--axi-accent)' }}>
                         Published
                     </span>
                     {showPill && (
                         <span
-                            className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full inline-flex items-center gap-1"
+                            className="axi-chip"
                             style={pillStyle}
                         >
                             {isBuilding && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
@@ -108,7 +108,7 @@ export const WebUploadBanner = ({
                     type="button"
                     onClick={openUrl}
                     className="axi-link text-[11px] truncate block max-w-full text-left"
-                    style={{ color: 'var(--brand-primary)' }}
+                    style={{ color: 'var(--axi-accent)' }}
                 >
                     {displayUrl}
                 </button>
@@ -161,7 +161,7 @@ export const WebUploadBanner = ({
                     {/* Header */}
                     <div className="axi-modal__head justify-between">
                         <div>
-                            <div className="text-[9px] font-bold tracking-[.15em] uppercase" style={{ color: 'var(--brand-primary)' }}>
+                            <div className="text-[9px] font-bold tracking-[.15em] uppercase" style={{ color: 'var(--axi-accent)' }}>
                                 Web Upload
                             </div>
                             <div className="text-base font-bold mt-0.5 axi-ink-plain">Upload Log</div>
@@ -177,23 +177,23 @@ export const WebUploadBanner = ({
                     {/* Log feed */}
                     <div
                         className="overflow-y-auto overscroll-contain px-4 py-3"
-                        style={{ background: 'var(--bg-base)', maxHeight: '360px' }}
+                        style={{ background: 'var(--axi-ground)', maxHeight: '360px' }}
                     >
                         {logEntries.map((entry, i) => (
                             <div key={i} className="flex gap-2 items-baseline py-[2px]">
-                                <span className="text-[8.5px] font-mono shrink-0" style={{ color: 'var(--text-muted)' }}>
+                                <span className="text-[8.5px] font-mono shrink-0" style={{ color: 'var(--axi-text-faint)' }}>
                                     {entry.elapsed}
                                 </span>
                                 <span
                                     className="text-[10px] leading-snug"
                                     style={{
                                         color: entry.isError
-                                            ? 'var(--status-error-muted)'
+                                            ? 'var(--axi-danger)'
                                             : entry.isWarn
-                                            ? 'var(--status-warning)'
+                                            ? 'var(--axi-warn)'
                                             : i === logEntries.length - 1
-                                            ? 'var(--text-primary)'
-                                            : 'var(--text-secondary)',
+                                            ? 'var(--axi-text)'
+                                            : 'var(--axi-text-dim)',
                                     }}
                                 >
                                     {entry.text}
@@ -202,7 +202,7 @@ export const WebUploadBanner = ({
                         ))}
                     </div>
                     {/* Footer */}
-                    <div className="flex justify-end px-5 py-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <div className="flex justify-end px-5 py-3 border-t" style={{ borderColor: 'var(--axi-rule)' }}>
                         <button
                             type="button"
                             onClick={() => setLogsOpen(false)}

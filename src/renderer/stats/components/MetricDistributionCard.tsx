@@ -43,24 +43,24 @@ export const MetricDistributionCard: React.FC<MetricDistributionCardProps> = ({
 
   return (
     <div
-      className="border rounded-[var(--radius-md)] p-4 flex flex-col gap-3"
-      style={{ borderColor: 'var(--border-default)' }}
+      className="axi-panel [--axi-panel-pad:16px] flex flex-col gap-3"
+      style={{ borderColor: 'var(--axi-ink-line)' }}
     >
       <div className="flex items-baseline justify-between gap-2">
         <div
           className="text-xs font-bold uppercase tracking-wider truncate"
-          style={{ color: 'var(--text-secondary)' }}
+          style={{ color: 'var(--axi-text-dim)' }}
         >
           {title}
         </div>
-        <div className="text-xs text-[color:var(--text-muted)]">{s.count} players</div>
+        <div className="text-xs text-[color:var(--axi-text-faint)]">{s.count} players</div>
       </div>
 
       {/* Hard numbers */}
       <div className="flex items-end gap-4">
         {cohort && cohort.support && cohort.damage ? (
           <div>
-            <div className="text-[10px] uppercase tracking-wide text-[color:var(--text-muted)]">Avg by role</div>
+            <div className="text-[10px] uppercase tracking-wide text-[color:var(--axi-text-faint)]">Avg by role</div>
             <div data-testid="metric-card-mean" className="text-lg font-bold axi-ink-plain">
               <span style={{ color: '#fb923c' }}>DPS {formatValue(cohort.damage.mean)}</span>
               {' · '}
@@ -69,21 +69,21 @@ export const MetricDistributionCard: React.FC<MetricDistributionCardProps> = ({
           </div>
         ) : (
           <div>
-            <div className="text-[10px] uppercase tracking-wide text-[color:var(--text-muted)]">Avg</div>
+            <div className="text-[10px] uppercase tracking-wide text-[color:var(--axi-text-faint)]">Avg</div>
             <div data-testid="metric-card-mean" className={`font-bold axi-ink-plain ${large ? 'text-3xl' : 'text-2xl'}`}>
-              {formatValue(s.mean)} <span className="text-sm font-normal text-[color:var(--text-secondary)]">{unit}</span>
+              {formatValue(s.mean)} <span className="text-sm font-normal text-[color:var(--axi-text-dim)]">{unit}</span>
             </div>
           </div>
         )}
         <div>
-          <div className="text-[10px] uppercase tracking-wide text-[color:var(--text-muted)]">σ Deviation</div>
-          <div data-testid="metric-card-stddev" className="text-lg font-semibold text-[color:var(--text-secondary)]">
+          <div className="text-[10px] uppercase tracking-wide text-[color:var(--axi-text-faint)]">σ Deviation</div>
+          <div data-testid="metric-card-stddev" className="text-lg font-semibold text-[color:var(--axi-text-dim)]">
             {formatValue(s.stdDev)}
           </div>
         </div>
         <div>
-          <div className="text-[10px] uppercase tracking-wide text-[color:var(--text-muted)]">Range</div>
-          <div className="text-sm text-[color:var(--text-secondary)]">
+          <div className="text-[10px] uppercase tracking-wide text-[color:var(--axi-text-faint)]">Range</div>
+          <div className="text-sm text-[color:var(--axi-text-dim)]">
             {formatValue(s.min)}–{formatValue(s.max)}
           </div>
         </div>
@@ -97,14 +97,14 @@ export const MetricDistributionCard: React.FC<MetricDistributionCardProps> = ({
         />
         <div
           className="absolute top-0 bottom-0 w-px"
-          style={{ left: `${pos(s.mean)}%`, background: 'var(--border-hover)' }}
+          style={{ left: `${pos(s.mean)}%`, background: 'var(--axi-rule)' }}
         />
         {s.players.map((p) => {
           const isOutlier = outlierKeys.has(p.account);
           const roleColor = roleOf.get(p.account) === 'support' ? '#22d3ee'
             : roleOf.get(p.account) === 'damage' ? '#fb923c'
-            : 'var(--text-muted)';
-          const fill = roleAware ? roleColor : (isOutlier ? accentColor : 'var(--text-muted)');
+            : 'var(--axi-text-faint)';
+          const fill = roleAware ? roleColor : (isOutlier ? accentColor : 'var(--axi-text-faint)');
           return (
             <div
               key={p.account}
@@ -123,18 +123,18 @@ export const MetricDistributionCard: React.FC<MetricDistributionCardProps> = ({
       {/* Needs-improvement callouts (neutral language, low/bad end only) */}
       <div
         data-testid="metric-card-outliers"
-        className="border-t border-[color:var(--border-subtle)] pt-2 text-xs text-[color:var(--text-secondary)]"
+        className="border-t border-[color:var(--axi-rule)] pt-2 text-xs text-[color:var(--axi-text-dim)]"
       >
         {outliers.length ? (
           <div className="flex flex-col gap-1">
-            <div className="text-[10px] uppercase tracking-wide text-[color:var(--text-muted)]">
+            <div className="text-[10px] uppercase tracking-wide text-[color:var(--axi-text-faint)]">
               Most room to improve
             </div>
             {outliers.map((p) => (
               <div key={p.account} className="flex items-center gap-2 min-w-0">
                 {renderProfessionIcon?.(p.profession || 'Unknown', p.professionList, 'w-4 h-4')}
                 <span className="truncate flex-1">{p.account}</span>
-                <span className="font-mono text-[color:var(--text-secondary)]">
+                <span className="font-mono text-[color:var(--axi-text-dim)]">
                   {formatValue(p.value)}
                   {'sigmaGap' in p && typeof (p as { sigmaGap?: number }).sigmaGap === 'number'
                     ? ` · −${(p as { sigmaGap: number }).sigmaGap.toFixed(1)}σ`
@@ -144,7 +144,7 @@ export const MetricDistributionCard: React.FC<MetricDistributionCardProps> = ({
             ))}
           </div>
         ) : (
-          <span className="text-[color:var(--text-muted)]">Squad is consistent here.</span>
+          <span className="text-[color:var(--axi-text-faint)]">Squad is consistent here.</span>
         )}
       </div>
     </div>

@@ -157,7 +157,7 @@ export const FightMetricSection = ({
     const renderContent = (expanded: boolean) => (
         <div
             id={expanded ? undefined : sectionId}
-            className={`rounded-xl overflow-hidden ${containerClassName} ${expanded ? 'h-full flex flex-col' : ''}`}
+            className={`overflow-hidden ${containerClassName} ${expanded ? 'h-full flex flex-col' : ''}`}
             style={{ scrollMarginTop: '80px' }}
         >
             {/* ── Header ─────────────────────────────────────── */}
@@ -237,10 +237,10 @@ export const FightMetricSection = ({
                                         <button
                                             key={player.key}
                                             onClick={() => setSelectedPlayerKey(isSelected ? null : player.key)}
-                                            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors ${
+                                            className={`w-full flex items-center gap-2 px-2 py-1.5 text-left transition-colors ${
                                                 isSelected
-                                                    ? 'bg-indigo-500/15 ring-1 ring-indigo-500/30'
-                                                    : 'hover:bg-white/5'
+                                                    ? 'bg-[color:var(--axi-surface-raised-paint)] ring-1 ring-[color:var(--axi-meta)]'
+                                                    : 'hover:bg-[color:var(--axi-surface-raised-paint)]'
                                             }`}
                                         >
                                             {renderPlayerItem ? renderPlayerItem(player, isSelected) : (

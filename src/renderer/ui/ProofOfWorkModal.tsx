@@ -60,10 +60,6 @@ export function ProofOfWorkModal<TToc extends ProofOfWorkTocItem, TResult extend
             onClick={(event) => event.target === event.currentTarget && onClose()}
         >
             <div className="app-modal-card proof-of-work-modal axi-panel axi-panel--float relative isolate w-full max-w-4xl overflow-hidden [--axi-panel-pad:24px]">
-                <div className="pointer-events-none absolute inset-0 z-0 opacity-60" aria-hidden="true">
-                    <div className="absolute -top-24 -right-24 h-56 w-56 rounded-full bg-cyan-500/8 blur-3xl" />
-                    <div className="absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-slate-500/10 blur-3xl" />
-                </div>
                 <div className="relative z-10">
                     <div className="flex items-center justify-between mb-4">
                         <div>
@@ -87,12 +83,12 @@ export function ProofOfWorkModal<TToc extends ProofOfWorkTocItem, TResult extend
                                     className="proof-of-work-search axi-input" style={{ width: '14rem' }}
                                 />
                                 {searchFocused && searchResults.length > 0 && searchValue.trim().length >= 2 && (
-                                    <div className="proof-of-work-search-results absolute right-0 mt-2 w-80 max-h-64 overflow-y-auto rounded-lg border axi-edge-rule bg-[var(--bg-base)]/95 shadow-2xl z-10">
+                                    <div className="proof-of-work-search-results absolute right-0 mt-2 w-80 max-h-64 overflow-y-auto axi-panel axi-panel--float z-10">
                                         {searchResults.map((result, idx) => (
                                             <button
                                                 key={`${result.hitId}-${idx}-${result.text}`}
                                                 type="button"
-                                                className="w-full text-left px-3 py-2 text-xs axi-ink-plain hover:bg-white/10 border-b axi-edge-rule last:border-b-0"
+                                                className="w-full text-left px-3 py-2 text-xs axi-ink-plain hover:bg-[color:var(--axi-surface-raised-paint)] border-b axi-edge-rule last:border-b-0"
                                                 onMouseDown={(event) => {
                                                     event.preventDefault();
                                                     onSearchResultMouseDown(result);
@@ -119,7 +115,7 @@ export function ProofOfWorkModal<TToc extends ProofOfWorkTocItem, TResult extend
                     </div>
                     <div className="h-[65vh]">
                         <div className="grid grid-cols-[230px_1fr] gap-4 h-full min-h-0">
-                            <div className="proof-of-work-sidebar h-full overflow-y-auto pr-2 rounded-xl border axi-edge-rule bg-white/5 p-3">
+                            <div className="proof-of-work-sidebar h-full overflow-y-auto axi-well">
                                 <div className="proof-of-work-toc-header text-[10px] uppercase tracking-[0.3em] axi-ink-dim mb-2">On This Page</div>
                                 <div className="space-y-1">
                                     {tocItems.length === 0 && (
@@ -135,7 +131,7 @@ export function ProofOfWorkModal<TToc extends ProofOfWorkTocItem, TResult extend
                                                 className={`axi-action proof-of-work-toc-item ${item.level === 1 ? 'proof-of-work-toc-item--l1' : item.level === 2 ? 'proof-of-work-toc-item--l2' : 'proof-of-work-toc-item--l3'} w-full text-left flex items-center gap-2 min-w-0 ${isActive ? 'proof-of-work-toc-item--active !axi-ink-meta hover:!axi-ink-meta' : (item.level === 1 ? 'axi-ink-plain' : 'axi-ink-dim')}`}
                                                 onClick={() => onTocClick(item)}
                                             >
-                                                <span className={`proof-of-work-toc-dot ${isActive ? '!bg-cyan-300' : ''}`} aria-hidden="true" />
+                                                <span className={`proof-of-work-toc-dot ${isActive ? '!bg-[color:var(--axi-meta)]' : ''}`} aria-hidden="true" />
                                                 <span className="proof-of-work-toc-label text-[13px] font-medium truncate min-w-0">{item.text}</span>
                                             </button>
                                         );

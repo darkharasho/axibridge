@@ -19,7 +19,7 @@ let nextId = 0;
  * Particles spawn continuously at a low rate and drift outward, fading.
  */
 export function ParticleHover({ children, className, style, disabled, color, ...rest }: React.HTMLAttributes<HTMLDivElement> & { disabled?: boolean; color?: string }) {
-    const particleColor = color || 'var(--brand-primary)';
+    const particleColor = color || 'var(--axi-accent)';
     const [hovering, setHovering] = useState(false);
     const [dots, setDots] = useState<Dot[]>([]);
     const intervalRef = useRef<number | null>(null);

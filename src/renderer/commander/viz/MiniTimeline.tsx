@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 type MarkerColor = 'green' | 'yellow' | 'red';
 
 interface MiniTimelineProps {
@@ -5,26 +7,28 @@ interface MiniTimelineProps {
   markers: Array<{ tSec: number; color: MarkerColor; label?: string }>;
 }
 
+/* A marker on a timeline is a status mark, which the language draws as a
+   diamond in the status ink (rule 5). */
 const MARKER_CLASS: Record<MarkerColor, string> = {
-  green: 'bg-emerald-500',
-  yellow: 'bg-amber-500',
-  red: 'bg-rose-500',
+  green: 'axi-diamond--ok',
+  yellow: 'axi-diamond--warn',
+  red: 'axi-diamond--danger',
 };
 
 export function MiniTimeline({ duration, markers }: MiniTimelineProps) {
   const safeDuration = Math.max(1e-9, duration);
 
   return (
-    <div className="relative h-3 w-full rounded-sm" style={{ background: 'var(--bg-card-inner)' }} data-role="timeline">
+    <div className="axi-meter relative w-full overflow-visible" style={{ '--axi-meter-h': '12px' } as CSSProperties} data-role="timeline">
       {markers.map((m, i) => {
         const pct = Math.max(0, Math.min(100, (m.tSec / safeDuration) * 100));
         return (
-          <div
+          <span
             key={i}
             data-role="marker"
             data-color={m.color}
             title={m.label}
-            className={`absolute top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 ${MARKER_CLASS[m.color]}`}
+            className={`axi-diamond absolute top-1/2 -translate-x-1/2 -translate-y-1/2 ${MARKER_CLASS[m.color]}`}
             style={{ left: `${pct}%` }}
           />
         );

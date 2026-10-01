@@ -144,7 +144,7 @@ const SubgroupMembersTooltip = ({
             {' · '}
             <span
                 ref={wrapperRef}
-                className="cursor-help border-b border-dotted axi-edge-meta hover:border-cyan-200/70 transition-colors"
+                className="cursor-help border-b axi-edge-meta"
                 onMouseEnter={() => { cancelClose(); setOpen(true); }}
                 onMouseLeave={scheduleClose}
             >
@@ -154,7 +154,7 @@ const SubgroupMembersTooltip = ({
                 <div
                     ref={tooltipRef}
                     style={tooltipStyle}
-                    className={`z-[9999] w-max max-w-xs rounded-md border border-[color:var(--border-default)] bg-[var(--bg-elevated)] px-3 py-2 text-[11px] text-[color:var(--text-primary)] ${open ? 'block' : 'hidden'}`}
+                    className={`z-[9999] w-max max-w-xs axi-panel axi-panel--float [--axi-panel-pad:8px_12px] text-[11px] ${open ? 'block' : 'hidden'}`}
                     onMouseEnter={() => { cancelClose(); setOpen(true); }}
                     onMouseLeave={scheduleClose}
                 >
@@ -166,7 +166,7 @@ const SubgroupMembersTooltip = ({
                             <div key={member.account} className="flex items-center gap-2">
                                 {renderProfessionIcon(member.profession, member.professionList, 'w-3.5 h-3.5')}
                                 <span className="axi-ink-plain truncate">{member.account}</span>
-                                <span className="ml-auto shrink-0 text-[10px] text-[color:var(--text-secondary)]">
+                                <span className="ml-auto shrink-0 text-[10px] text-[color:var(--axi-text-dim)]">
                                     {member.fightCount} {member.fightCount === 1 ? 'fight' : 'fights'}
                                 </span>
                             </div>
@@ -385,7 +385,7 @@ export const BoonUptimeSection = ({
                         <ChevronDown className={`w-3 h-3 transition-transform ${boonDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                     {boonDropdownOpen && (
-                        <div className="absolute top-full left-0 mt-2 z-50 w-96 rounded-lg border axi-edge-rule bg-[var(--bg-elevated)] shadow-xl p-3 space-y-2">
+                        <div className="absolute top-full left-0 mt-2 z-50 w-96 axi-panel axi-panel--float p-3 space-y-2">
                             <div className="flex items-center gap-2">
                                 <input
                                     type="text"
@@ -437,13 +437,13 @@ export const BoonUptimeSection = ({
                     return (
                         <div className="flex flex-col gap-0.5 w-full min-w-0">
                             <div className="flex items-center gap-2 min-w-0">
-                                <span className="w-4 h-4 inline-flex shrink-0 items-center justify-center rounded-full border axi-edge-meta bg-cyan-400/15 font-bold tracking-[0.08em] axi-ink-meta shadow-[0_0_12px_rgba(34,211,238,0.16)] text-[8px]">
+                                <span className="axi-chip axi-chip--meta shrink-0 font-bold">
                                     SG
                                 </span>
                                 <span className={`text-xs truncate flex-1 ${isSelected ? 'axi-ink-plain' : 'axi-ink-dim'}`}>
                                     {player.displayName}
                                 </span>
-                                <span className="rounded-full border axi-edge-meta bg-cyan-400/10 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.18em] axi-ink-meta shrink-0">
+                                <span className="axi-chip axi-chip--meta shrink-0">
                                     Aggregate
                                 </span>
                                 <span className={`text-xs tabular-nums shrink-0 ${isSelected ? 'axi-ink-meta font-semibold' : 'axi-ink-meta'}`}>
@@ -483,7 +483,7 @@ export const BoonUptimeSection = ({
                             No detailed data available for this fight.
                         </div>
                     ) : (stripsDataAbsent || ccDataAbsent) ? (
-                        <div className="h-full flex items-center justify-center text-center text-xs text-[color:var(--text-secondary)] px-6">
+                        <div className="h-full flex items-center justify-center text-center text-xs text-[color:var(--axi-text-dim)] px-6">
                             {ccDataAbsent ? TIMELINE_CC_TAKEN_NOT_RECORDED_MESSAGE : TIMELINE_NOT_RECORDED_MESSAGE}
                         </div>
                     ) : (

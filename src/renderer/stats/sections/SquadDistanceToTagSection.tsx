@@ -98,10 +98,10 @@ export const SquadDistanceToTagSection = (props: Props) => {
     return (
         <div {...expandedPaneProps(isExpanded, expandedSectionClosing)}>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
-                <Crosshair className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Distance to Tag</h3>
+                <Crosshair className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Distance to Tag</h3>
                 {rows.length > 0 && (
-                    <div className="ml-auto flex flex-nowrap items-center gap-2 text-[11px] whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="ml-auto flex flex-nowrap items-center gap-2 text-[11px] whitespace-nowrap" style={{ color: 'var(--axi-text-dim)' }}>
                         <button
                             type="button"
                             role="switch"
@@ -155,12 +155,12 @@ export const SquadDistanceToTagSection = (props: Props) => {
             </div>
 
             {rows.length === 0 ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
+                <div className="axi-empty">
                     No distance data for the loaded fights.
                 </div>
             ) : (
                 <>
-                    <div className={`axi-table__scroll rounded-[var(--radius-md)] ${visibleRows.length > 12 ? 'max-h-[30rem]' : ''}`}>
+                    <div className={`axi-table__scroll rounded-[var(--axi-radius-sm)] ${visibleRows.length > 12 ? 'max-h-[30rem]' : ''}`}>
                         <table className="axi-table axi-table--sticky">
                             <thead>
                                 <tr>
@@ -192,7 +192,7 @@ export const SquadDistanceToTagSection = (props: Props) => {
                                             <span className="axi-table__who">
                                                 {renderProfessionIcon(r.profession, r.professionList, 'w-4 h-4 flex-shrink-0')}
                                                 <span>{r.account}</span>
-                                                {r.isCommander && <span title="Commander" style={{ color: 'var(--status-warning)' }}>★</span>}
+                                                {r.isCommander && <span title="Commander" style={{ color: 'var(--axi-warn)' }}>★</span>}
                                             </span>
                                         </td>
                                         <td className="axi-table__num">{r.fightCount}</td>

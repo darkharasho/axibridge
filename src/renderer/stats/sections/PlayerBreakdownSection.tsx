@@ -123,7 +123,7 @@ export const PlayerBreakdownSection = ({
         <div {...expandedPaneProps(expandedSection === 'player-breakdown', expandedSectionClosing)}>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <ListTree className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Player Breakdown</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Player Breakdown</h3>
                 <SectionExpandButton
                     expanded={expandedSection === 'player-breakdown'}
                     onToggle={() => (expandedSection === 'player-breakdown' ? closeExpandedSection() : openExpandedSection('player-breakdown'))}
@@ -132,14 +132,14 @@ export const PlayerBreakdownSection = ({
             </div>
             <div className={expandedSection === 'player-breakdown' ? 'flex-1 min-h-0 flex flex-col' : ''}>
                 {playerSkillBreakdowns.length === 0 ? (
-                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
+                    <div className="axi-empty">
                         No player skill damage data available for the current selection.
                     </div>
                 ) : (
                     <div className={`grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-0 ${expandedSection === 'player-breakdown' ? 'flex-1 min-h-0 h-full' : ''}`}>
-                        <div className={`pr-3 flex flex-col overflow-y-auto ${expandedSection === 'player-breakdown' ? 'h-full min-h-0' : ''}`} style={{ borderRight: '1px solid var(--border-subtle)' }}>
+                        <div className={`pr-3 flex flex-col overflow-y-auto ${expandedSection === 'player-breakdown' ? 'h-full min-h-0' : ''}`} style={{ borderRight: '1px solid var(--axi-rule)' }}>
                             <div className="flex items-center justify-between gap-2 mb-3">
-                                <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)]">
+                                <div className="text-xs uppercase tracking-widest text-[color:var(--axi-text-dim)]">
                                     {(isExpanded ? 'Squad Classes' : viewMode === 'player' ? 'Squad Players' : 'Squad Classes')}
                                 </div>
                                 {!isExpanded && (
@@ -192,7 +192,7 @@ export const PlayerBreakdownSection = ({
                                                     {renderProfessionIcon(player.profession, player.professionList, 'w-4 h-4')}
                                                     <span className="truncate min-w-0">{player.displayName}</span>
                                                 </div>
-                                                <div className="flex items-center gap-2 text-[color:var(--text-secondary)] shrink-0">
+                                                <div className="flex items-center gap-2 text-[color:var(--axi-text-dim)] shrink-0">
                                                     <span className="text-[10px] whitespace-nowrap">{player.skills.length} skills</span>
                                                 </div>
                                             </div>
@@ -241,7 +241,7 @@ export const PlayerBreakdownSection = ({
                                                         if (!query) return true;
                                                         return String(skill.name || '').toLowerCase().includes(query);
                                                     }).length === 0 && (
-                                                        <div className="px-2 py-1 text-[10px] text-[color:var(--text-muted)]">No matching skills</div>
+                                                        <div className="px-2 py-1 text-[10px] text-[color:var(--axi-text-faint)]">No matching skills</div>
                                                     )}
                                                 </div>
                                             )}
@@ -272,7 +272,7 @@ export const PlayerBreakdownSection = ({
                                                         {renderProfessionIcon(bucket.profession, undefined, 'w-4 h-4')}
                                                         <span className="truncate">{bucket.profession}</span>
                                                     </div>
-                                                    <div className="flex items-center gap-2 text-[color:var(--text-secondary)]">
+                                                    <div className="flex items-center gap-2 text-[color:var(--axi-text-dim)]">
                                                         <span className="text-[10px]">{bucket.players.length}p</span>
                                                     </div>
                                                 </div>
@@ -321,7 +321,7 @@ export const PlayerBreakdownSection = ({
                                                         if (!query) return true;
                                                         return String(skill.name || '').toLowerCase().includes(query);
                                                     }).length === 0 && (
-                                                        <div className="px-2 py-1 text-[10px] text-[color:var(--text-muted)]">No matching skills</div>
+                                                        <div className="px-2 py-1 text-[10px] text-[color:var(--axi-text-faint)]">No matching skills</div>
                                                     )}
                                                 </div>
                                             )}
@@ -332,7 +332,7 @@ export const PlayerBreakdownSection = ({
                         <div className={`pl-3 overflow-hidden ${expandedSection === 'player-breakdown' ? 'flex flex-col min-h-0' : ''}`}>
                             {(isExpanded ? 'class' : viewMode) === 'player' ? (
                                 !activePlayerBreakdown || (!isExpanded && !activePlayerSkill) ? (
-                                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
+                                    <div className="axi-empty">
                                         Select a player and skill to view breakdown details
                                     </div>
                                 ) : (
@@ -368,7 +368,7 @@ export const PlayerBreakdownSection = ({
                                                 ...selectedPlayers.map((id) => `player:${id}`)
                                             ]);
                                             return (
-                                                <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                                                <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--axi-rule)' }}>
                                                     <SearchSelectDropdown
                                                         options={searchOptions}
                                                         selectedIds={selectedIds}
@@ -506,7 +506,7 @@ export const PlayerBreakdownSection = ({
                                                         playerAccount: entry.player.account,
                                                         label: (
                                                             <>
-                                                                <span className="text-[color:var(--text-muted)] font-mono">{idx + 1}</span>
+                                                                <span className="text-[color:var(--axi-text-faint)] font-mono">{idx + 1}</span>
                                                                 {renderProfessionIcon(entry.player.profession, entry.player.professionList, 'w-4 h-4')}
                                                                 <span className="truncate">{entry.player.displayName}</span>
                                                             </>
@@ -522,9 +522,9 @@ export const PlayerBreakdownSection = ({
                                                         <div className="flex flex-col gap-2 min-w-0">
                                                             <div className="flex items-center gap-2 min-w-0 flex-wrap">
                                                                 {renderProfessionIcon(activePlayerBreakdown.profession, activePlayerBreakdown.professionList, 'w-4 h-4')}
-                                                                <div className="text-sm font-semibold text-[color:var(--text-primary)]">{activePlayerBreakdown.displayName}</div>
-                                                                <span className="text-[11px] uppercase tracking-widest text-[color:var(--text-muted)]">/</span>
-                                                                <div className="text-sm font-semibold text-[color:var(--text-primary)] min-w-0">
+                                                                <div className="text-sm font-semibold text-[color:var(--axi-text)]">{activePlayerBreakdown.displayName}</div>
+                                                                <span className="text-[11px] uppercase tracking-widest text-[color:var(--axi-text-faint)]">/</span>
+                                                                <div className="text-sm font-semibold text-[color:var(--axi-text)] min-w-0">
                                                                     <InlineIconLabel
                                                                         name={activePlayerSkill?.name || ''}
                                                                         iconUrl={activePlayerSkill?.icon}
@@ -534,7 +534,7 @@ export const PlayerBreakdownSection = ({
                                                                     />
                                                                 </div>
                                                             </div>
-                                                            <div className="text-[11px] text-[color:var(--text-secondary)]">
+                                                            <div className="text-[11px] text-[color:var(--axi-text-dim)]">
                                                                 {activePlayerBreakdown.skills.length} skills | {formatTopStatValue(totalPlayerDamage)} total damage
                                                             </div>
                                                         </div>
@@ -595,7 +595,7 @@ export const PlayerBreakdownSection = ({
                                 )
                             ) : (
                                 !activeClassBreakdown || (!isExpanded && !activeClassSkill) ? (
-                                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
+                                    <div className="axi-empty">
                                         Select a class and skill to view breakdown details
                                     </div>
                                 ) : (
@@ -631,7 +631,7 @@ export const PlayerBreakdownSection = ({
                                                 ...selectedPlayers.map((id) => `player:${id}`)
                                             ]);
                                             return (
-                                                <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                                                <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--axi-rule)' }}>
                                                     <SearchSelectDropdown
                                                         options={searchOptions}
                                                         selectedIds={selectedIds}
@@ -769,7 +769,7 @@ export const PlayerBreakdownSection = ({
                                                         playerAccount: entry.player.account,
                                                         label: (
                                                             <>
-                                                                <span className="text-[color:var(--text-muted)] font-mono">{idx + 1}</span>
+                                                                <span className="text-[color:var(--axi-text-faint)] font-mono">{idx + 1}</span>
                                                                 {renderProfessionIcon(entry.player.profession, entry.player.professionList, 'w-4 h-4')}
                                                                 <span className="truncate">{entry.player.displayName}</span>
                                                             </>
@@ -785,9 +785,9 @@ export const PlayerBreakdownSection = ({
                                                         <div className="flex flex-col gap-2 min-w-0">
                                                             <div className="flex items-center gap-2 min-w-0 flex-wrap">
                                                                 {renderProfessionIcon(activeClassBreakdown.profession, undefined, 'w-4 h-4')}
-                                                                <div className="text-sm font-semibold text-[color:var(--text-primary)]">{activeClassBreakdown.profession}</div>
-                                                                <span className="text-[11px] uppercase tracking-widest text-[color:var(--text-muted)]">/</span>
-                                                                <div className="text-sm font-semibold text-[color:var(--text-primary)] min-w-0">
+                                                                <div className="text-sm font-semibold text-[color:var(--axi-text)]">{activeClassBreakdown.profession}</div>
+                                                                <span className="text-[11px] uppercase tracking-widest text-[color:var(--axi-text-faint)]">/</span>
+                                                                <div className="text-sm font-semibold text-[color:var(--axi-text)] min-w-0">
                                                                     <InlineIconLabel
                                                                         name={activeClassSkill?.name || ''}
                                                                         iconUrl={activeClassSkill?.icon}
@@ -797,7 +797,7 @@ export const PlayerBreakdownSection = ({
                                                                     />
                                                                 </div>
                                                             </div>
-                                                            <div className="text-[11px] text-[color:var(--text-secondary)]">
+                                                            <div className="text-[11px] text-[color:var(--axi-text-dim)]">
                                                                 {activeClassRows.length} players | {activeClassBreakdown.skills.length} skills
                                                             </div>
                                                         </div>

@@ -49,34 +49,34 @@ export function StatsGroupContainer({
     } : {};
 
     const baseStyle = {
-        background: 'var(--bg-card)',
-        border: 'var(--stats-group-border-w, 1px) solid var(--border-default)',
-        borderLeft: `var(--stats-group-accent-w, 2px) solid ${accentColor}`,
-        borderRadius: 'var(--radius-md)',
-        boxShadow: 'var(--shadow-card)',
+        background: 'var(--axi-surface-paint)',
+        border: 'var(--axi-border-panel) solid var(--axi-ink-line)',
+        borderLeft: `var(--axi-border-panel) solid ${accentColor}`,
+        borderRadius: 'var(--axi-radius)',
+        boxShadow: 'var(--axi-shadow-panel)',
         ...hiddenStyle,
     };
 
     const header = (
         <div
             className="flex items-center gap-2.5 px-[18px] py-[14px]"
-            style={{ borderBottom: '1px solid var(--border-subtle)' }}
+            style={{ borderBottom: '1px solid var(--axi-rule)' }}
         >
             <div
-                className="stats-group__mark flex items-center justify-center w-[18px] h-[18px] rounded-[3px]"
-                style={{ background: `var(--stats-group-mark-bg, ${accentColor}33)`, color: accentColor }}
+                className="stats-group__mark flex items-center justify-center w-[18px] h-[18px] rounded-[var(--axi-radius-sm)]"
+                style={{ background: `var(--axi-surface-raised-paint)`, color: accentColor }}
             >
                 <Icon className="w-3 h-3" />
             </div>
             <h2
                 className="text-xs font-bold uppercase tracking-[0.08em]"
-                style={{ color: 'var(--text-primary)' }}
+                style={{ color: 'var(--axi-text)' }}
             >
                 {label}
             </h2>
             <span
                 className="ml-auto text-[10px]"
-                style={{ color: 'var(--text-secondary)' }}
+                style={{ color: 'var(--axi-text-dim)' }}
             >
                 {sectionCount} {sectionCount === 1 ? 'section' : 'sections'}
             </span>

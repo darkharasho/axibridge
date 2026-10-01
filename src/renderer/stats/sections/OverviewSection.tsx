@@ -100,27 +100,27 @@ export const OverviewSection = () => {
                 still mirrored so each number sits next to the one it is read
                 against. */}
             {!singleFight && <div className="grid items-stretch mb-4 grid-cols-[1fr_2px_1fr] sm:grid-cols-[1fr_2px_auto_2px_1fr]">
-                <Side name="Squad" color="var(--status-success)" size={stats.avgSquadSize} kdr={stats.squadKDR} align="left" />
+                <Side name="Squad" color="var(--axi-ok)" size={stats.avgSquadSize} kdr={stats.squadKDR} align="left" />
                 {rule()}
                 <div className={`order-first col-span-3 mb-3.5 flex items-center justify-center gap-3.5 px-[22px] py-2.5 sm:order-none sm:col-span-1 sm:mx-[18px] sm:mb-0 sm:justify-start ${WELL}`}>
                     <div className="text-center">
-                        <div className="text-[46px] font-black leading-[0.9] tabular-nums" style={{ color: 'var(--status-success)' }}>{stats.wins}</div>
+                        <div className="text-[46px] font-black leading-[0.9] tabular-nums" style={{ color: 'var(--axi-ok)' }}>{stats.wins}</div>
                         <div className={`${LABEL} mt-[7px]`}>Won</div>
                     </div>
-                    <div className="text-[22px] font-light" style={{ color: 'var(--text-muted)' }}>&ndash;</div>
+                    <div className="text-[22px] font-light" style={{ color: 'var(--axi-text-faint)' }}>&ndash;</div>
                     <div className="text-center">
-                        <div className="text-[46px] font-black leading-[0.9] tabular-nums" style={{ color: 'var(--status-error)' }}>{stats.losses}</div>
+                        <div className="text-[46px] font-black leading-[0.9] tabular-nums" style={{ color: 'var(--axi-danger)' }}>{stats.losses}</div>
                         <div className={`${LABEL} mt-[7px]`}>Lost</div>
                     </div>
                 </div>
                 {/* Between the tally and the enemy side when they are side by
                     side; between nothing once the tally is its own row. */}
                 {rule('hidden sm:block')}
-                <Side name="Enemy" color="var(--status-error)" size={stats.avgEnemies} kdr={stats.enemyKDR} align="right" />
+                <Side name="Enemy" color="var(--axi-danger)" size={stats.avgEnemies} kdr={stats.enemyKDR} align="right" />
             </div>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                <CasualtyHalf color="var(--status-success)" side="Allied" downs={alliedDowns} deaths={alliedDeaths} />
-                <CasualtyHalf color="var(--status-error)" side="Enemy" downs={enemyDowns} deaths={enemyDeaths} />
+                <CasualtyHalf color="var(--axi-ok)" side="Allied" downs={alliedDowns} deaths={alliedDeaths} />
+                <CasualtyHalf color="var(--axi-danger)" side="Enemy" downs={enemyDowns} deaths={enemyDeaths} />
             </div>
         </div>
     );

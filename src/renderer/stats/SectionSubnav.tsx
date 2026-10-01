@@ -18,7 +18,7 @@ export interface SectionSubnavProps {
  */
 export function SectionSubnav({ category, activeSectionId, onSelect }: SectionSubnavProps) {
     return (
-        <div className="pt-1.5 pb-1.5 px-2 space-y-0.5 rounded-[4px] border border-[color:var(--border-subtle)]">
+        <div className="space-y-0.5 axi-well axi-well--sm [--axi-well-pad:6px_8px]">
             {category.sections.map((section, index) => {
                 const SectionIcon = section.icon;
                 const isActive = activeSectionId === section.id;
@@ -32,9 +32,9 @@ export function SectionSubnav({ category, activeSectionId, onSelect }: SectionSu
                         <button
                             type="button"
                             onClick={() => onSelect(section.id)}
-                            className={`w-full h-[34px] flex items-center justify-start gap-2 px-2 text-left rounded-md transition-colors duration-150 ${isActive ? 'axi-ink-plain' : 'text-[color:var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}
+                            className={`w-full h-[34px] flex items-center justify-start gap-2 px-2 text-left transition-colors duration-150 ${isActive ? 'axi-ink-plain' : 'text-[color:var(--axi-text)] hover:bg-[var(--axi-surface-raised-paint)]'}`}
                         >
-                            <SectionIcon className="w-3.5 h-3.5 text-[color:var(--brand-primary)] shrink-0" />
+                            <SectionIcon className="w-3.5 h-3.5 text-[color:var(--axi-accent)] shrink-0" />
                             <span className="text-xs leading-tight truncate overflow-hidden">
                                 {section.label}
                             </span>

@@ -22,7 +22,7 @@ export function AxiRail({ unpublishedCategoryIds }: AxiRailProps) {
     const { activeCategory, activeSectionId, handleCategoryClick, handleSectionClick } = useCategoryNavigation();
 
     return (
-        <aside className="axi-rail">
+        <aside className="axi-rail mb-[var(--axi-offset-panel)]">
             <nav className="axi-rail__nav">
                 {STATS_CATEGORIES.map((category) => {
                     const isActiveCategory = category.id === activeCategory;
