@@ -36,7 +36,6 @@ const PLAYER_COLUMNS: Array<{ id: PlayerSortKey; label: string; align: 'left' | 
     { id: 'totalRevives', label: 'Total Revives', align: 'right' },
 ];
 
-const GRID_COLS = 'grid-cols-[1.6fr_1fr_0.9fr_0.9fr_0.9fr_0.9fr_0.9fr_0.9fr_0.7fr_0.9fr]';
 
 const formatSeconds = (ms: number): string => `${(Math.max(0, ms) / 1000).toFixed(1)}s`;
 const formatPercent = (value: number, denominatorZero: boolean): string =>
@@ -52,7 +51,6 @@ const RE_DOWN_BUCKET_LABELS = REVIVE_RE_DOWN_BUCKETS_MS.map((bound, index) => {
     return `${lower}–${bound / 1000}s`;
 }).concat(`${REVIVE_RE_DOWN_BUCKETS_MS[REVIVE_RE_DOWN_BUCKETS_MS.length - 1] / 1000}s+`);
 
-const UTILITY_GRID = 'grid-cols-[2.3fr_0.7fr_0.7fr_0.9fr]';
 
 /** Player's total active seconds over the covered logs, or `null` when the row
  *  carries no active time at all (a report published before `activeMs` was
@@ -91,12 +89,9 @@ const UtilityRow = ({ utility, expanded, onToggle }: {
     const expandable = casters.length > 0;
 
     return (
-        <div className="revive-table__row border-b border-[color:var(--border-subtle)]">
-            <div
-                className={`grid ${UTILITY_GRID} gap-2 px-3 py-2 text-xs`}
-                style={{ color: 'var(--text-primary)' }}
-            >
-                <div className="min-w-0 flex items-center gap-1.5">
+        <>
+            <tr>
+                <td className="axi-table__who">
                     {expandable ? (
                         <button
                             type="button"
@@ -106,8 +101,8 @@ const UtilityRow = ({ utility, expanded, onToggle }: {
                             className="axi-action flex items-center gap-1.5 min-w-0 text-left"
                         >
                             <ChevronRight
-                                className="w-3 h-3 flex-shrink-0 transition-transform"
-                                style={{ color: 'var(--text-secondary)', transform: expanded ? 'rotate(90deg)' : undefined }}
+                                className="w-3 h-3 flex-shrink-0 transition-transform axi-ink-dim"
+                                style={{ transform: expanded ? 'rotate(90deg)' : undefined }}
                             />
                             <UtilityName utility={utility} />
                         </button>
@@ -116,38 +111,35 @@ const UtilityRow = ({ utility, expanded, onToggle }: {
                             <UtilityName utility={utility} />
                         </span>
                     )}
-                </div>
-                <div className="text-right font-mono">{utility.casts}</div>
-                <div className="text-right font-mono">{utility.revives}</div>
-                <div className="text-right font-mono">{formatRatio(utility.revivesPerCast, utility.casts === 0)}</div>
-            </div>
-
+                </td>
+                <td className="axi-table__num">{utility.casts}</td>
+                <td className="axi-table__num">{utility.revives}</td>
+                <td className="axi-table__num">{formatRatio(utility.revivesPerCast, utility.casts === 0)}</td>
+            </tr>
             {expanded && expandable && (
-                <div className="revive-casters pb-2 bg-[color:var(--bg-elevated)]">
-                    <div className={`grid ${UTILITY_GRID} gap-2 pl-8 pr-3 py-1.5 text-[10px] uppercase tracking-widest`} style={{ color: 'var(--text-muted)' }}>
-                        <div>Caster</div>
-                        <div className="text-right">Casts</div>
-                        <div className="text-right">Revives</div>
-                        <div className="text-right">Revives per Cast</div>
-                    </div>
+                <>
+                    <tr className="axi-ink-faint">
+                        <th scope="col" className="pl-8 font-normal">Caster</th>
+                        <th scope="col" className="axi-table__num font-normal">Casts</th>
+                        <th scope="col" className="axi-table__num font-normal">Revives</th>
+                        <th scope="col" className="axi-table__num font-normal">Revives per Cast</th>
+                    </tr>
                     {casters.map((caster) => (
-                        <div
-                            key={caster.key}
-                            className={`grid ${UTILITY_GRID} gap-2 pl-8 pr-3 py-1 text-xs`}
-                            style={{ color: 'var(--text-secondary)' }}
-                        >
-                            <div className="min-w-0 truncate flex items-center gap-1.5">
-                                {renderProfessionIcon(caster.profession, undefined, 'w-3.5 h-3.5 flex-shrink-0')}
-                                <span className="truncate">{caster.account}</span>
-                            </div>
-                            <div className="text-right font-mono">{caster.casts}</div>
-                            <div className="text-right font-mono">{caster.revives}</div>
-                            <div className="text-right font-mono">{formatRatio(caster.revivesPerCast, caster.casts === 0)}</div>
-                        </div>
+                        <tr key={caster.key} className="axi-ink-dim">
+                            <td className="axi-table__who">
+                                <span className="flex items-center gap-1.5 min-w-0 pl-5">
+                                    {renderProfessionIcon(caster.profession, undefined, 'w-3.5 h-3.5 flex-shrink-0')}
+                                    <span className="truncate">{caster.account}</span>
+                                </span>
+                            </td>
+                            <td className="axi-table__num">{caster.casts}</td>
+                            <td className="axi-table__num">{caster.revives}</td>
+                            <td className="axi-table__num">{formatRatio(caster.revivesPerCast, caster.casts === 0)}</td>
+                        </tr>
                     ))}
-                </div>
+                </>
             )}
-        </div>
+        </>
     );
 };
 
@@ -158,7 +150,7 @@ const UtilityName = ({ utility }: { utility: ReviveUtilityRow }) => (
                 src={utility.icon}
                 alt=""
                 aria-hidden="true"
-                className="w-5 h-5 flex-shrink-0 rounded-sm"
+                className="w-5 h-5 flex-shrink-0"
                 style={{ objectFit: 'contain' }}
             />
         )}
@@ -185,12 +177,12 @@ const IllusionOfLifeCard = ({ iol }: {
     const peak = buckets ? Math.max(...buckets) : 0;
 
     return (
-        <div className="revive-iol rounded-[var(--radius-md)] p-3 border border-[color:var(--border-default)]">
+        <div className="revive-iol axi-panel [--axi-panel-pad:12px]">
             <div className="flex items-baseline gap-2 mb-2.5">
-                <div className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
+                <div className="text-xs uppercase tracking-widest" style={{ color: 'var(--axi-text-dim)' }}>
                     Illusion of Life
                 </div>
-                <div className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>
+                <div className="text-[11px] font-mono" style={{ color: 'var(--axi-text-faint)' }}>
                     {iol.revives} {iol.revives === 1 ? 'revive' : 'revives'}
                 </div>
             </div>
@@ -198,23 +190,23 @@ const IllusionOfLifeCard = ({ iol }: {
             {total > 0 && (
                 <>
                     <div className="revive-iol__bar axi-meter">
-                        <div className="axi-meter__fill" style={{ '--axi-meter-v': `${(iol.survived / total) * 100}%`, '--axi-series': 'var(--status-success)' } as CSSProperties} />
-                        <div className="axi-meter__fill" style={{ '--axi-meter-v': `${(iol.reDowned / total) * 100}%`, '--axi-series': 'var(--status-error)' } as CSSProperties} />
+                        <div className="axi-meter__fill" style={{ '--axi-meter-v': `${(iol.survived / total) * 100}%`, '--axi-series': 'var(--axi-ok)' } as CSSProperties} />
+                        <div className="axi-meter__fill" style={{ '--axi-meter-v': `${(iol.reDowned / total) * 100}%`, '--axi-series': 'var(--axi-danger)' } as CSSProperties} />
                         <div className="axi-meter__fill" style={{ '--axi-meter-v': `${(diedUnderIol / total) * 100}%`, '--axi-series': DIED_UNDER_IOL_COLOR } as CSSProperties} />
                     </div>
-                    <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2 text-xs" style={{ color: 'var(--axi-text-dim)' }}>
                         <span className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full" style={{ background: 'var(--status-success)' }} />
+                            <span className="axi-diamond axi-diamond--ok" />
                             Survived the fight {iol.survived}{survivedPercent === null ? '' : ` (${survivedPercent}%)`}
                         </span>
                         <span className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full" style={{ background: 'var(--status-error)' }} />
+                            <span className="axi-diamond axi-diamond--danger" />
                             Re-downed {iol.reDowned}
                             {iol.medianTimeToReDownMs !== null ? ` — median ${formatSeconds(iol.medianTimeToReDownMs)}` : ''}
                         </span>
                         {hasDeathOutcome && (
                             <span className="flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full" style={{ background: DIED_UNDER_IOL_COLOR }} />
+                                <span className="axi-diamond" style={{ background: DIED_UNDER_IOL_COLOR }} />
                                 Died under IoL {diedUnderIol}
                             </span>
                         )}
@@ -226,23 +218,24 @@ const IllusionOfLifeCard = ({ iol }: {
                 <div className="mt-3.5 flex items-end gap-2">
                     {buckets.map((count, index) => (
                         <div key={RE_DOWN_BUCKET_LABELS[index]} className="flex-1 flex flex-col items-center gap-1">
-                            <div className="text-[10px] font-mono" style={{ color: 'var(--text-secondary)' }}>{count}</div>
+                            <div className="text-[10px] font-mono" style={{ color: 'var(--axi-text-dim)' }}>{count}</div>
                             {/* Heights are relative to the tallest bucket, so a
                                 histogram of small counts is still readable. */}
                             <div
-                                className="revive-iol__hist-bar w-full rounded-sm"
+                                className="revive-iol__hist-bar w-full"
                                 style={{
+                                    border: 'var(--axi-border-hairline) solid var(--axi-ink-line)',
                                     height: `${peak > 0 ? Math.max(2, (count / peak) * 56) : 2}px`,
-                                    background: count > 0 ? 'var(--status-error)' : 'var(--border-subtle)',
+                                    background: count > 0 ? 'var(--axi-danger)' : 'var(--axi-rule)',
                                 }}
                             />
-                            <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{RE_DOWN_BUCKET_LABELS[index]}</div>
+                            <div className="text-[10px]" style={{ color: 'var(--axi-text-faint)' }}>{RE_DOWN_BUCKET_LABELS[index]}</div>
                         </div>
                     ))}
                 </div>
             )}
 
-            <div className="text-[11px] mt-3" style={{ color: 'var(--text-muted)' }}>
+            <div className="text-[11px] mt-3" style={{ color: 'var(--axi-text-faint)' }}>
                 Time from standing up under Illusion of Life to going down again. Players who never went down again count as survived and are not in the histogram.
                 {hasDeathOutcome && ' Died under IoL means the player skipped the downed state and died outright before going down again. Only IoL cast by squad members is seen — IoL from mesmers outside the squad is not counted.'}
             </div>
@@ -315,7 +308,7 @@ export const ReviveDetailSection = ({ reviveDetail }: ReviveDetailSectionProps) 
         <div>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <HelpingHand className="w-4 h-4 shrink-0" style={{ color: 'var(--section-defense)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>
                     Revives
                 </h3>
                 {reviveDetail && (
@@ -334,109 +327,115 @@ export const ReviveDetailSection = ({ reviveDetail }: ReviveDetailSectionProps) 
             </div>
 
             {!reviveDetail ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
+                <div className="axi-empty">
                     No revive data available for this selection.
                 </div>
             ) : (
                 <div className="flex flex-col gap-4">
                     {coverage.logsWithoutData > 0 && (
                         <div
-                            className="revive-note rounded-[var(--radius-md)] px-3 py-2 text-xs border border-dashed border-[color:var(--border-default)] text-[color:var(--text-secondary)]"
+                            className="revive-note axi-well axi-well--sm text-xs axi-ink-dim"
                         >
                             {coverage.logsWithoutData} {coverage.logsWithoutData === 1 ? 'log' : 'logs'} predate revive tracking and are excluded from these counts.
                         </div>
                     )}
 
-                    <div className="revive-summary rounded-[var(--radius-md)] p-3 border border-[color:var(--border-subtle)]">
-                        <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                    <div className="revive-summary axi-well">
+                        <div className="text-sm" style={{ color: 'var(--axi-text)' }}>
                             {`Downs ${squad.downs} · Recovered ${squad.recovered} (${recoveredRatePercent === null ? '—' : `${recoveredRatePercent}%`}) · Died ${squad.died}`}
                         </div>
-                        <div className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                        <div className="text-sm mt-1" style={{ color: 'var(--axi-text-dim)' }}>
                             {`Hand ${squad.hand} · Utility ${squad.utility} · Self ${squad.self} · Unattributed ${squad.unattributed}`}
                         </div>
-                        <div className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>
+                        <div className="text-[11px] mt-2" style={{ color: 'var(--axi-text-faint)' }}>
                             Coverage: {coverage.logsWithData} {coverage.logsWithData === 1 ? 'log' : 'logs'} with revive data. Per-player numbers below only count the logs that carried revive data. {viewMode === 'total'
                                 ? 'Totals carry no per-player denominator, so a player present for fewer covered logs is not on equal footing with one who attended more — switch to a rate to compare them.'
                                 : 'Rates divide by each player’s own active time over those same logs, so players who attended different numbers of fights are comparable.'}
                         </div>
-                        <div className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
+                        <div className="text-[11px] mt-1.5" style={{ color: 'var(--axi-text-faint)' }}>
                             Utility credit is time-window based: a utility is credited with a stand-up that happens inside its window, with no check on how far away it was. One long-window utility can therefore be credited with several stand-ups, so Utility Revives and Revives per Cast read on the generous side.
                         </div>
                     </div>
 
-                    <div className="revive-table rounded-[var(--radius-md)] overflow-hidden border border-[color:var(--border-default)]">
-                        <div className="revive-table__title px-3 py-2 text-xs uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
-                            Players
-                        </div>
+                    <div className="revive-table axi-panel [--axi-panel-pad:0] overflow-hidden">
+                        <div className="axi-eyebrow px-3 py-2 border-b axi-edge-rule">Players</div>
                         {sortedPlayers.length === 0 ? (
-                            <div className="px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No player revive data available.</div>
+                            <div className="axi-empty m-3">No player revive data available.</div>
                         ) : (
-                            <>
-                                <div className={`revive-table__columns grid ${GRID_COLS} gap-2 px-3 py-2 text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]`}>
-                                    {PLAYER_COLUMNS.map((col) => (
-                                        <button
-                                            key={col.id}
-                                            type="button"
-                                            onClick={() => toggleSort(col.id)}
-                                            className={col.align === 'right' ? 'text-right' : 'text-left'}
-                                            style={{ color: sort.key === col.id ? 'var(--brand-primary)' : 'var(--text-secondary)' }}
-                                        >
-                                            {col.label}{sort.key === col.id ? (sort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
-                                        </button>
-                                    ))}
-                                </div>
-                                <div className="revive-table__rows max-h-96 overflow-y-auto">
-                                    {sortedPlayers.map((row) => {
-                                        const seconds = totalSecondsFor(row);
-                                        return (
-                                            <div
-                                                key={row.key}
-                                                className={`revive-table__row grid ${GRID_COLS} gap-2 px-3 py-2 text-xs border-b border-[color:var(--border-subtle)] text-[color:var(--text-primary)]`}
-                                            >
-                                                <div className="min-w-0 truncate flex items-center gap-1.5">
-                                                    {renderProfessionIcon(row.profession, undefined, 'w-4 h-4 flex-shrink-0')}
-                                                    <span className="truncate">{row.account}</span>
-                                                </div>
-                                                <div className="text-right font-mono">{formatCountValue(row.attempts, viewMode, seconds)}</div>
-                                                <div className="text-right font-mono">{formatSeconds(row.attemptTimeMs)}</div>
-                                                <div className="text-right font-mono">{formatCountValue(row.handRevives, viewMode, seconds)}</div>
-                                                <div className="text-right font-mono">{formatPercent(row.successRate, row.attempts === 0)}</div>
-                                                <div className="text-right font-mono">{formatCountValue(row.utilityCasts, viewMode, seconds)}</div>
-                                                <div className="text-right font-mono">{formatCountValue(row.utilityRevives, viewMode, seconds)}</div>
-                                                <div className="text-right font-mono">{formatRatio(row.revivesPerCast, row.utilityCasts === 0)}</div>
-                                                <div className="text-right font-mono">{formatCountValue(row.assists, viewMode, seconds)}</div>
-                                                <div className="text-right font-mono">{formatCountValue(row.totalRevives, viewMode, seconds)}</div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </>
+                            <div className="axi-table__scroll max-h-96 overflow-y-auto">
+                                <table className="axi-table axi-table--dense axi-table--sticky w-full">
+                                    <thead>
+                                        <tr>
+                                            {PLAYER_COLUMNS.map((col) => (
+                                                <th
+                                                    key={col.id}
+                                                    scope="col"
+                                                    aria-sort={sort.key === col.id ? (sort.dir === 'desc' ? 'descending' : 'ascending') : 'none'}
+                                                    className={`${col.align === 'right' ? 'axi-table__num' : ''}${sort.key === col.id ? ' axi-table__cell--sorted' : ''}`}
+                                                >
+                                                    <button type="button" onClick={() => toggleSort(col.id)} className="axi-table__sort">
+                                                        {col.label}{sort.key === col.id ? (sort.dir === 'desc' ? ' ↓' : ' ↑') : ''}
+                                                    </button>
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {sortedPlayers.map((row) => {
+                                            const seconds = totalSecondsFor(row);
+                                            return (
+                                                <tr key={row.key}>
+                                                    <td className="axi-table__who">
+                                                        <span className="flex items-center gap-1.5 min-w-0">
+                                                            {renderProfessionIcon(row.profession, undefined, 'w-4 h-4 flex-shrink-0')}
+                                                            <span className="truncate">{row.account}</span>
+                                                        </span>
+                                                    </td>
+                                                    <td className="axi-table__num">{formatCountValue(row.attempts, viewMode, seconds)}</td>
+                                                    <td className="axi-table__num">{formatSeconds(row.attemptTimeMs)}</td>
+                                                    <td className="axi-table__num">{formatCountValue(row.handRevives, viewMode, seconds)}</td>
+                                                    <td className="axi-table__num">{formatPercent(row.successRate, row.attempts === 0)}</td>
+                                                    <td className="axi-table__num">{formatCountValue(row.utilityCasts, viewMode, seconds)}</td>
+                                                    <td className="axi-table__num">{formatCountValue(row.utilityRevives, viewMode, seconds)}</td>
+                                                    <td className="axi-table__num">{formatRatio(row.revivesPerCast, row.utilityCasts === 0)}</td>
+                                                    <td className="axi-table__num">{formatCountValue(row.assists, viewMode, seconds)}</td>
+                                                    <td className="axi-table__num">{formatCountValue(row.totalRevives, viewMode, seconds)}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
                     </div>
 
-                    <div className="revive-table rounded-[var(--radius-md)] overflow-hidden border border-[color:var(--border-default)]">
-                        <div className="revive-table__title px-3 py-2 text-xs uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]">
-                            Utilities
-                        </div>
+                    <div className="revive-table axi-panel [--axi-panel-pad:0] overflow-hidden">
+                        <div className="axi-eyebrow px-3 py-2 border-b axi-edge-rule">Utilities</div>
                         {utilities.length === 0 ? (
-                            <div className="px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No utility revives recorded.</div>
+                            <div className="axi-empty m-3">No utility revives recorded.</div>
                         ) : (
-                            <>
-                                <div className={`revive-table__columns grid ${UTILITY_GRID} gap-2 px-3 py-2 text-[10px] uppercase tracking-widest text-[color:var(--text-secondary)] border-b border-[color:var(--border-default)]`}>
-                                    <div>Utility</div>
-                                    <div className="text-right">Casts</div>
-                                    <div className="text-right">Revives</div>
-                                    <div className="text-right">Revives per Cast</div>
-                                </div>
-                                {utilities.map((utility) => (
-                                    <UtilityRow
-                                        key={utility.skillId}
-                                        utility={utility}
-                                        expanded={expandedUtilities.has(utility.skillId)}
-                                        onToggle={() => toggleUtility(utility.skillId)}
-                                    />
-                                ))}
-                            </>
+                            <div className="axi-table__scroll">
+                                <table className="axi-table axi-table--dense w-full">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Utility</th>
+                                            <th scope="col" className="axi-table__num">Casts</th>
+                                            <th scope="col" className="axi-table__num">Revives</th>
+                                            <th scope="col" className="axi-table__num">Revives per Cast</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {utilities.map((utility) => (
+                                            <UtilityRow
+                                                key={utility.skillId}
+                                                utility={utility}
+                                                expanded={expandedUtilities.has(utility.skillId)}
+                                                onToggle={() => toggleUtility(utility.skillId)}
+                                            />
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
                     </div>
 

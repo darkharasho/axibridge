@@ -15,15 +15,10 @@ import { FightSlicePill } from '../components/FightSliceTray';
    treatments, with only its fill following the accent. */
 const TitleMark = () => (
     <div
-        className="report-head-mark grid place-items-center shrink-0"
-        style={{
-            width: 36,
-            height: 36,
-            borderRadius: 'var(--radius-md)',
-            background: 'var(--brand-primary)',
-        }}
+        className="report-head-mark axi-panel axi-panel--tile [--axi-panel-pad:0] grid place-items-center shrink-0"
+        style={{ width: 36, height: 36, background: 'var(--axi-accent)' }}
     >
-        <Trophy className="w-[19px] h-[19px]" strokeWidth={2.4} style={{ color: 'var(--text-inverse)' }} />
+        <Trophy className="w-[19px] h-[19px]" strokeWidth={2.4} style={{ color: 'var(--axi-accent-ink)' }} />
     </div>
 );
 
@@ -137,8 +132,7 @@ export const StatsHeader = ({
                first panel, so the page opened with two unrelated blocks and no
                seam. A rule closes it: the title block is a header, and a header
                has a bottom. */
-            className={`report-head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3 pb-3 shrink-0 px-2 ${embedded ? 'pt-3.5' : ''}`}
-            style={{ borderBottom: '2px solid var(--border-subtle)' }}>
+            className={`report-head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3 shrink-0 px-2 ${embedded ? 'pt-3.5' : 'pb-3 border-b border-b-2 axi-edge-rule'}`}>
         <div className="flex items-start gap-3 sm:items-center sm:gap-4">
             {/* The title and its line of context read as one block, so they were
                 set flush - but at 24px the heading only leaves a few pixels of
@@ -153,7 +147,7 @@ export const StatsHeader = ({
                 {dashboardTitle && (
                     <div
                         className="text-[10px] font-bold uppercase tracking-[0.3em]"
-                        style={{ color: 'var(--text-secondary)' }}
+                        style={{ color: 'var(--axi-text-dim)' }}
                     >
                         {singleFight ? 'Fight Statistics' : 'Statistics Dashboard'}
                     </div>
@@ -259,9 +253,9 @@ export const StatsHeader = ({
                                         key={target.fullName}
                                         type="button"
                                         onClick={() => startPublish(target.fullName)}
-                                        className="block w-full rounded-sm px-3 py-2 text-left text-xs transition-colors"
-                                        style={{ color: 'var(--text-primary)' }}
-                                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                                        className="block w-full px-3 py-2 text-left text-xs transition-colors"
+                                        style={{ color: 'var(--axi-text)' }}
+                                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--axi-surface-raised-paint)')}
                                         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                                     >
                                         {target.label}
@@ -278,7 +272,7 @@ export const StatsHeader = ({
                             />
                         )}
                         {!actionsDisabled && (publishBlockedReason || !canUploadWeb) && (
-                            <div className="pointer-events-none absolute right-0 top-full mt-2 w-56 rounded-md px-2 py-1 text-[11px] opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-hover)', color: 'var(--text-secondary)' }}>
+                            <div className="pointer-events-none absolute right-0 top-full mt-2 w-56 px-2 py-1 text-[11px] opacity-0 transition-opacity group-hover:opacity-100 z-50" style={{ background: 'var(--axi-surface-paint)', border: 'var(--axi-border-control) solid var(--axi-rule)', color: 'var(--axi-text-dim)' }}>
                                 {publishBlockedReason || 'Add at least one fight before uploading a web report.'}
                             </div>
                         )}

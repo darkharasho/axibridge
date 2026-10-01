@@ -169,33 +169,22 @@ describe('axi-design.css', () => {
         expect(css).not.toContain('axi-design/tokens.css');
     });
 
-    // The palette and form bridges translate Tailwind utilities the components
-    // know nothing about, so they are written blind: nothing tells you when the
-    // last site spelling `bg-orange-500/25` stops spelling it, and the rule then
-    // sits here forever looking load-bearing. Twenty-nine had rotted that way by
-    // the time anyone checked. This is the only kind of rule in this file whose
-    // liveness is decidable from the markup, so decide it.
-    it('bridges no Tailwind utility the markup has stopped using', () => {
-        const bridged = [...css.matchAll(/^\[data-axi-accent\] body \.((?:bg|rounded|shadow|backdrop-blur|blur)[^\s,{]*)/gm)]
-            // the selectors carry CSS escapes (`.bg-white\/5`); the markup does not
-            .map((m) => m[1].replace(/\\/g, ''));
-        expect(bridged.length).toBeGreaterThan(20);
-
-        const markup = jsxSources().join('\n');
-        const dead = [...new Set(bridged)].filter((cls) => {
-            const token = cls.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
-            // a class token is bounded by whitespace, a quote, or a variant colon
-            return !new RegExp(`(^|[\\s'"\`:])${token}([\\s'"\`]|$)`, 'm').test(markup);
-        });
-        expect(dead).toEqual([]);
+    // The palette and form bridges used to translate Tailwind utilities the
+    // components knew nothing about: `.bg-white\/5` onto the well fill,
+    // `.rounded-lg` onto the radius step. Both are gone - the markup names the
+    // component or reads the token - and a bridge rule is the one kind of rule
+    // that can never come back: it is written blind, so nothing tells you when
+    // the last site stops spelling the utility and the rule rots in place.
+    it('bridges no Tailwind utility', () => {
+        const bridged = [...css.matchAll(/^\[data-axi-accent\] body \.((?:bg|rounded|shadow|backdrop-blur|blur|border)[^\s,{]*)/gm)].map((m) => m[1]);
+        expect(bridged).toEqual([]);
     });
 
-    // The inversion. accents.css owns --axi-accent now, and the app's brand
-    // variables derive from it. The old direction read a --brand-primary that
-    // lived in the deleted palette blocks.
-    it('derives brand-primary from the accent rather than the reverse', () => {
-        expect(css).toContain('--brand-primary: var(--axi-accent)');
-        expect(css).not.toContain('--axi-accent: var(--brand-primary');
+    // accents.css owns --axi-accent and the app reads it directly. The brand
+    // variables that used to derive from it are gone, so nothing may define or
+    // read one.
+    it('has no brand variable between the accent and its readers', () => {
+        expect(css).not.toMatch(/--brand-(primary|secondary|gradient)/);
     });
 
     // The body rule paints the ground with the background-color LONGHAND, not the
@@ -244,7 +233,7 @@ describe('axi-design.css', () => {
  * upstream, and BOTH shipped themes take it. So any app token remapped onto
  * --axi-surface or --axi-surface-raised is gradient-valued under a theme, and
  * about thirty of the consuming sites are Tailwind arbitrary utilities
- * (`bg-[var(--bg-hover)]`) which compile to `background-color` by construction
+ * (`bg-[var(--axi-surface-raised-paint)]`) which compile to `background-color` by construction
  * and have no shorthand spelling. The fix can only live in the token.
  *
  * This used to be seventeen hand-picked flat values in index.css, scoped to
@@ -269,35 +258,25 @@ describe('the surface-paint contract', () => {
     const axiDesign = read('axi-design.css');
     const indexCss = read('index.css');
 
-    // Every app token in axi-design.css whose value is a surface token, wherever
-    // it is declared: the body-level layer and the component-scoped blocks alike,
-    // because a token declared in one is consumed by the same utilities as one
-    // declared in the other. What matters is the VALUE, not the selector.
-    const remapped = new Map<string, string>();
-    for (const decl of axiDesign.matchAll(
-        /(--(?!axi-)[\w-]+):\s*var\((--axi-surface(?:-raised|-float)?)(-paint)?\)\s*;/g
-    )) {
-        remapped.set(decl[1], decl[3] ? `${decl[2]}-paint` : decl[2]);
-    }
-
-    it('finds the remapped tokens it is meant to guard', () => {
-        // Guards the enumeration itself: if the spelling in axi-design.css
-        // changes, this must fail loudly rather than pass over an empty set.
-        expect(remapped.size).toBeGreaterThanOrEqual(16);
-        for (const token of ['--bg-card', '--bg-elevated', '--bg-hover', '--accent-bg', '--accent-bg-strong']) {
-            expect(remapped.has(token), `${token} should be remapped onto a surface`).toBe(true);
-        }
+    // The remap layer is gone. axi-design.css used to alias sixty app tokens
+    // (--bg-card, --text-primary, --status-error ...) onto axi tokens, and this
+    // block guarded that every surface alias named a -paint companion. There is
+    // nothing to alias now: the markup reads the axi tokens directly, so the
+    // contract is that neither side brings an app token back.
+    it('declares no app token: every custom property in axi-design.css is an axi token', () => {
+        const appTokens = [...axiDesign.matchAll(/^\s*(--(?!axi-)[\w-]+)\s*:/gm)].map(m => m[1]);
+        expect(appTokens).toEqual([]);
     });
 
-    // The whole contract in one assertion. An app token naming a bare surface is
-    // gradient-valued under every theme that grades that surface, and there is no
-    // longer anywhere to paper over it.
-    it('remaps every app token onto a paint companion, never a bare surface', () => {
-        const bare = [...remapped].filter(([, source]) => !source.endsWith('-paint'));
-        expect(
-            bare.map(([token, source]) => `${token} -> ${source}`),
-            'these name a surface a theme may paint with a gradient; name its -paint companion instead'
-        ).toEqual([]);
+    it('reads no legacy token from the markup', () => {
+        const LEGACY = /var\(--(?:bg|text|border|accent|brand|glow|shadow|radius|status|button|panel|window|on-brand|row-bar|history|stats-group|section-[a-z]+-bg)-?[\w-]*\)/g;
+        const offenders: string[] = [];
+        for (const text of jsxSources()) {
+            for (const m of text.matchAll(LEGACY)) {
+                if (!/^var\(--(?:border-(?:control|panel)|text-(?:dim|faint))\)$/.test(m[0])) offenders.push(m[0]);
+            }
+        }
+        expect(offenders).toEqual([]);
     });
 
     it.each(['index.css', 'axi-design.css'])('%s never reads a bare surface where only a colour is legal', (file) => {
@@ -356,7 +335,7 @@ describe('the surface-paint contract', () => {
  * fails is `npm run build:viewer`, never an edit here.
  */
 describe('docs/view/viewer.js', () => {
-    const RETIRED = ['app-opaque-float', 'app-sticky-bar'];
+    const RETIRED = ['app-opaque-float', 'app-sticky-bar', 'report-shell-cap', 'report-shell-well', 'revive-table__rows'];
     const bundle = fs.readFileSync(
         path.resolve(__dirname, '..', '..', '..', 'docs', 'view', 'viewer.js'),
         'utf8',
@@ -375,7 +354,7 @@ describe('docs/view/viewer.js', () => {
     // present, or the bundle predates the adoption even though it happens to
     // carry none of the retired ones.
     it('carries the classes the app has adopted since', () => {
-        for (const name of ['axi-dock', 'axi-toolbar--float', 'axi-panel--tile', 'axi-sheet']) {
+        for (const name of ['axi-dock', 'axi-toolbar--float', 'axi-panel--tile', 'axi-sheet', 'axi-empty']) {
             expect(bundle.includes(name), `docs/view/viewer.js does not ship .${name}`).toBe(true);
         }
     });

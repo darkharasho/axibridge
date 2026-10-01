@@ -42,18 +42,8 @@ describe('resolveMapAccentFromName', () => {
         expect(resolveMapAccentFromName('Conjured Amalgamate').primary).toBe(WHITE);
     });
 
-    it('derives the whole variable set from the one hex', () => {
-        const accent = resolveMapAccentFromName('Red Borderlands');
-        expect(accent).toEqual({
-            primary: RED,
-            secondary: 'rgba(239, 68, 68, 0.85)',
-            gradient: 'linear-gradient(135deg, #ef4444, rgba(239, 68, 68, 0.7))',
-            accentBg: 'rgba(239, 68, 68, 0.1)',
-            accentBgStrong: 'rgba(239, 68, 68, 0.18)',
-            accentBorder: 'rgba(239, 68, 68, 0.35)',
-            glowPrimary: 'rgba(239, 68, 68, 0.35)',
-            glowSecondary: 'rgba(239, 68, 68, 0.25)',
-        });
+    it('is the one hex and nothing derived from it', () => {
+        expect(resolveMapAccentFromName('Red Borderlands')).toEqual({ primary: RED });
     });
 });
 
@@ -92,36 +82,9 @@ describe('resolveMapAccentFromStats', () => {
 });
 
 describe('MAP_ACCENT_CSS_VARS', () => {
-    it('covers every field of the accent', () => {
-        // --axi-accent duplicates the `primary` key deliberately (see the export's
-        // doc comment), so the key set alone can't be a plain array-equality check
-        // against Object.keys(accent). But Set equality on its own is too weak: it
-        // drops cardinality, so it would miss two *different* keys colliding onto
-        // the same CSS var as long as the resulting key-set size still matched by
-        // coincidence. Assert both: the unique key set covers every field, and the
-        // duplicate is exactly the one deliberate case (primary, twice).
+    it('sets --axi-accent and nothing else: upstream derives the companions', () => {
+        expect(MAP_ACCENT_CSS_VARS).toEqual([['--axi-accent', 'primary']]);
         const accent = resolveMapAccentFromName('EBG');
-        const keys = MAP_ACCENT_CSS_VARS.map(([, key]) => key);
-        expect(new Set(keys)).toEqual(new Set(Object.keys(accent)));
-        expect(keys).toHaveLength(Object.keys(accent).length + 1);
-        expect(keys.filter(key => key === 'primary')).toHaveLength(2);
-    });
-
-    it('leads with --axi-accent so the map colour reaches the design language', () => {
-        expect(MAP_ACCENT_CSS_VARS[0]).toEqual(['--axi-accent', 'primary']);
-    });
-
-    it('still carries every brand and glow variable a component may read directly', () => {
-        expect(MAP_ACCENT_CSS_VARS.map(([cssVar]) => cssVar)).toEqual([
-            '--axi-accent',
-            '--brand-primary',
-            '--brand-secondary',
-            '--brand-gradient',
-            '--accent-bg',
-            '--accent-bg-strong',
-            '--accent-border',
-            '--glow-primary',
-            '--glow-secondary',
-        ]);
+        expect(new Set(MAP_ACCENT_CSS_VARS.map(([, key]) => key))).toEqual(new Set(Object.keys(accent)));
     });
 });

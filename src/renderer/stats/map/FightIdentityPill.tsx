@@ -70,21 +70,21 @@ const FightIdentityPillInner: React.FC<FightIdentityPillProps> = ({ fights, onOp
                 style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}
             >
                 <span style={{
-                    fontSize: 11, fontWeight: 600, color: 'var(--text-primary)',
+                    fontSize: 11, fontWeight: 600, color: 'var(--axi-text)',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                     {current?.label ?? '—'}
                 </span>
                 {current && (
-                    <span style={{ fontSize: 10, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                    <span style={{ fontSize: 10, color: 'var(--axi-text-faint)', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                         · {formatDuration(current.durationMs)}
                         · <Users size={9} />{current.squadSize}
                     </span>
                 )}
-                <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>
+                <span style={{ fontSize: 10, color: 'var(--axi-text-faint)', flexShrink: 0 }}>
                     · {currentIdx >= 0 ? currentIdx + 1 : '—'} of {fights.length}
                 </span>
-                <ChevronDown size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                <ChevronDown size={12} style={{ color: 'var(--axi-text-faint)', flexShrink: 0 }} />
             </button>
 
             <button type="button" title="Next fight" aria-label="Next fight"

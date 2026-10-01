@@ -227,12 +227,12 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                                             <div className="font-medium axi-ink-plain truncate">{webhook.name}</div>
                                             {isBridge ? (
                                                 needsRelink ? (
-                                                    <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-[3px] text-[10px] font-semibold uppercase tracking-wide bg-amber-500/20 axi-ink-warn">
+                                                    <span className="mt-1 axi-chip axi-chip--warn">
                                                         <AlertTriangle className="w-3 h-3" />
                                                         Re-link required
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-[3px] text-[10px] font-semibold uppercase tracking-wide bg-purple-500/20 axi-ink-meta">
+                                                    <span className="mt-1 axi-chip axi-chip--meta">
                                                         <Zap className="w-3 h-3" />
                                                         Bridge
                                                     </span>
@@ -391,14 +391,14 @@ export function DestinationsCard({ webhooks, enabledWebhookIds, onSave, onSetEna
                 <div className="flex gap-2">
                     <button
                         onClick={() => setIsAdding(true)}
-                        className="axi-btn axi-btn--dashed flex-1 justify-center axi-ink-dim" style={{ borderColor: 'var(--border-default)' }}
+                        className="axi-btn axi-btn--dashed flex-1 justify-center axi-ink-dim"
                     >
                         <Plus className="w-5 h-5" />
                         Add Webhook
                     </button>
                     <button
                         onClick={() => setIsLinking(true)}
-                        className="axi-btn axi-btn--dashed flex-1 justify-center axi-ink-dim" style={{ borderColor: 'var(--border-default)' }}
+                        className="axi-btn axi-btn--dashed flex-1 justify-center axi-ink-dim"
                     >
                         <Zap className="w-5 h-5" />
                         Link AxiTools channel

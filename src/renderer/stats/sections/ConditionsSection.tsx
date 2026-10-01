@@ -99,7 +99,7 @@ export const ConditionsSection = ({
     <div {...expandedPaneProps(expandedSection === 'conditions-outgoing', expandedSectionClosing)}>
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
             <Skull className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Conditions</h3>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Conditions</h3>
             <div className="ml-auto flex items-center gap-2">
                 {!isExpanded && (
                     <PillToggleGroup
@@ -121,7 +121,7 @@ export const ConditionsSection = ({
         {conditionSummary && conditionSummary.length > 0 ? (
             isExpanded ? (
                 <div className="flex flex-col gap-4">
-                    <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--axi-rule)' }}>
                         <SearchSelectDropdown
                             options={[
                                 ...allConditions.map((entry: any) => ({ id: entry.name, label: entry.name, type: 'column' as const })),
@@ -164,7 +164,7 @@ export const ConditionsSection = ({
                             buttonLabel="Players"
                             buttonIcon={<Users className="h-3.5 w-3.5" />}
                         />
-                        <div className="h-5 w-px" style={{ background: 'var(--border-subtle)' }} />
+                        <div className="h-5 w-px" style={{ background: 'var(--axi-rule)' }} />
                         <PillToggleGroup
                                 value={conditionDirection}
                                 onChange={setConditionDirection}
@@ -186,7 +186,7 @@ export const ConditionsSection = ({
                     </div>
                     <div className="overflow-hidden">
                         {filteredConditions.length === 0 ? (
-                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No conditions match this filter</div>
+                            <div className="axi-empty">No conditions match this filter</div>
                         ) : (
                             (() => {
                                 const metricKey = effectiveConditionSort.key;
@@ -287,7 +287,7 @@ export const ConditionsSection = ({
                                             id: `${entry.player.account}-${idx}`,
                                             label: (
                                                 <>
-                                                    <span className="text-[color:var(--text-muted)] font-mono">{idx + 1}</span>
+                                                    <span className="text-[color:var(--axi-text-faint)] font-mono">{idx + 1}</span>
                                                     {renderProfessionIcon(entry.player.profession, entry.player.professionList, 'w-4 h-4')}
                                                     <span className="truncate">{entry.player.account}</span>
                                                 </>
@@ -344,7 +344,7 @@ export const ConditionsSection = ({
                 contentClassName={`overflow-hidden ${expandedSection === 'conditions-outgoing' ? 'flex flex-col min-h-0' : ''}`}
                 sidebar={
                     <>
-                        <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Conditions</div>
+                        <div className="text-xs uppercase tracking-widest text-[color:var(--axi-text-dim)] mb-2">Conditions</div>
                         <input
                             value={conditionSearch}
                             onChange={(e) => setConditionSearch(e.target.value)}
@@ -355,7 +355,7 @@ export const ConditionsSection = ({
                         <div className={`${sidebarListClass} ${expandedSection === 'conditions-outgoing' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                             {(() => {
                                 if (filteredConditions.length === 0) {
-                                    return <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No conditions match this filter</div>;
+                                    return <div className="axi-empty">No conditions match this filter</div>;
                                 }
                                 return (
                                     <>
@@ -505,7 +505,7 @@ export const ConditionsSection = ({
                                             return String(a.account || '').localeCompare(String(b.account || ''));
                                         });
                                     if (rows.length === 0) {
-                                        return <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No condition data available</div>;
+                                        return <div className="axi-empty">No condition data available</div>;
                                     }
                                     return rows.map((entry: any, idx: number) => {
                                         const conditionTotals = entry.conditions || {};
@@ -607,7 +607,7 @@ export const ConditionsSection = ({
                 </>
             )
         ) : (
-            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No condition data available</div>
+            <div className="axi-empty">No condition data available</div>
         )}
     </div>
     );

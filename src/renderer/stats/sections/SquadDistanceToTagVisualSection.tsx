@@ -131,8 +131,8 @@ export const SquadDistanceToTagVisualSection = (props: Props) => {
     return (
         <div {...expandedPaneProps(isExpanded, expandedSectionClosing)}>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
-                <Crosshair className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Distance to Tag — Visual</h3>
+                <Crosshair className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Distance to Tag — Visual</h3>
                 {rows.length > 0 && (
                     <div className="ml-auto flex flex-nowrap items-center gap-1 text-[11px] whitespace-nowrap" role="group" aria-label="Metric">
                         {METRIC_OPTIONS.map(opt => {
@@ -145,7 +145,7 @@ export const SquadDistanceToTagVisualSection = (props: Props) => {
                                     onClick={() => setMetric(opt.key)}
                                     className="axi-pill axi-pill--xs"
                                     style={{
-                                        border: '1px solid var(--border-subtle)',
+                                        border: '1px solid var(--axi-rule)',
                                         fontWeight: active ? 700 : 500,
                                     }}
                                 >{opt.label}</button>
@@ -162,7 +162,7 @@ export const SquadDistanceToTagVisualSection = (props: Props) => {
             </div>
 
             {rows.length === 0 ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
+                <div className="axi-empty">
                     No distance data for the loaded fights.
                 </div>
             ) : (
@@ -198,12 +198,12 @@ export const SquadDistanceToTagVisualSection = (props: Props) => {
                                         x={distToRadius(d) + 3}
                                         y={-2}
                                         fontSize={9}
-                                        fill="var(--text-muted)"
+                                        fill="var(--axi-text-faint)"
                                     >{d}</text>
                                 </g>
                             ))}
-                            <circle cx={0} cy={0} r={8} fill="var(--status-warning)" stroke="#fff" strokeWidth={1.5} />
-                            <text x={0} y={20} fontSize={9} fill="var(--text-secondary)" textAnchor="middle">TAG</text>
+                            <circle cx={0} cy={0} r={8} fill="var(--axi-warn)" stroke="#fff" strokeWidth={1.5} />
+                            <text x={0} y={20} fontSize={9} fill="var(--axi-text-dim)" textAnchor="middle">TAG</text>
                             {chips.map(chip => (
                                 <g
                                     key={chip.row.account}
@@ -242,7 +242,7 @@ export const SquadDistanceToTagVisualSection = (props: Props) => {
                                 } as React.CSSProperties}
                             >
                                 <div style={{ fontWeight: 700 }}>{hovered.row.account}</div>
-                                <div style={{ color: 'var(--text-secondary)' }}>{hovered.row.profession} · {hovered.row.fightCount} fights</div>
+                                <div style={{ color: 'var(--axi-text-dim)' }}>{hovered.row.profession} · {hovered.row.fightCount} fights</div>
                                 <div style={{ marginTop: 4, fontFamily: 'monospace', fontSize: 10 }}>
                                     avg {formatWithCommas(hovered.row.avg, 0)} · p25 {formatWithCommas(hovered.row.p25, 0)} · med {formatWithCommas(hovered.row.median, 0)} · p75 {formatWithCommas(hovered.row.p75, 0)} · p95 {formatWithCommas(hovered.row.p95, 0)}
                                 </div>

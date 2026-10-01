@@ -733,7 +733,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                 {column.map(({ profession, count, isSummary }: any) => {
                                     if (isSummary) {
                                         return (
-                                            <div key={`${title}-summary`} className="flex items-center justify-between gap-2 bg-white/5 rounded-md px-2 py-1 border axi-edge-rule">
+                                            <div key={`${title}-summary`} className="flex items-center justify-between gap-2 axi-well axi-well--sm [--axi-well-pad:4px_8px]">
                                                 <span className="axi-ink-dim min-w-0 flex-1 truncate">{`+ ${count}`}</span>
                                                 <span />
                                             </div>
@@ -747,7 +747,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                         : (alwaysShowDetailedClassInfo ? displayName : label);
                                     const shouldShowIcon = (alwaysShowDetailedClassInfo || useClassIcons) && Boolean(iconPath);
                                     return (
-                                        <div key={profession} className="flex items-center justify-between gap-2 bg-white/5 rounded-md px-2 py-1 border axi-edge-rule">
+                                        <div key={profession} className="flex items-center justify-between gap-2 axi-well axi-well--sm [--axi-well-pad:4px_8px]">
                                             <span className="flex items-center gap-1 axi-ink-plain min-w-0 flex-1" title={displayName}>
                                                 {shouldShowIcon ? (
                                                     <img
@@ -975,29 +975,29 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
         <Container
             ref={ref}
             {...motionProps}
-            className="rounded-[4px] transition-all mb-3 group matte-log-card"
-            style={{ position: 'relative', background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)', overflow: 'visible' }}
+            className="axi-panel [--axi-panel-pad:0] transition-all mb-3 group matte-log-card"
+            style={{ position: 'relative', overflow: 'visible' }}
         >
             {removalEmitter && (
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10, overflow: 'visible' }}>
                     {removalEmitter}
                 </div>
             )}
-            <div className="rounded-[4px]" style={{ position: 'relative', overflow: dissolving ? 'visible' : 'hidden' }}>
+            <div style={{ position: 'relative', overflow: dissolving ? 'visible' : 'hidden' }}>
             {/* Collapsed View */}
             <div className={`p-4 flex items-center gap-4${snapActive ? ' particle-snap-active' : ''}`}>
                 <div className="relative shrink-0">
                     <div
                         data-status={statusKey}
-                        className={`recent-activity-status-badge w-10 h-10 rounded-[4px] flex items-center justify-center border transition-all ${isQueued ? 'bg-slate-500/20 axi-edge-rule axi-ink-dim animate-pulse' :
-                        isPending ? 'bg-slate-500/20 axi-edge-rule axi-ink-dim animate-pulse' :
-                            isParsing ? 'bg-blue-500/20 axi-edge-meta axi-ink-meta animate-pulse' :
-                            isUploading ? 'bg-blue-500/20 axi-edge-meta axi-ink-meta animate-pulse' :
-                            isRetrying ? 'bg-blue-500/20 axi-edge-meta axi-ink-meta animate-pulse' :
-                                isCalculating ? 'bg-amber-500/20 axi-edge-warn axi-ink-warn animate-pulse' :
-                                    isDiscord ? 'bg-purple-500/20 axi-edge-meta axi-ink-meta animate-pulse' :
-                                        hasError ? 'bg-red-500/20 axi-edge-danger axi-ink-danger' :
-                                            'bg-green-500/20 axi-edge-ok axi-ink-ok'
+                        className={`recent-activity-status-badge w-10 h-10 axi-well axi-well--sm [--axi-well-pad:0] flex items-center justify-center transition-all ${isQueued ? 'axi-edge-rule axi-ink-dim animate-pulse' :
+                        isPending ? 'axi-edge-rule axi-ink-dim animate-pulse' :
+                            isParsing ? 'axi-edge-meta axi-ink-meta animate-pulse' :
+                            isUploading ? 'axi-edge-meta axi-ink-meta animate-pulse' :
+                            isRetrying ? 'axi-edge-meta axi-ink-meta animate-pulse' :
+                                isCalculating ? 'axi-edge-warn axi-ink-warn animate-pulse' :
+                                    isDiscord ? 'axi-edge-meta axi-ink-meta animate-pulse' :
+                                        hasError ? 'axi-edge-danger axi-ink-danger' :
+                                            'axi-edge-ok axi-ink-ok'
                         }`}
                     >
                         {badgePuffEmitter}
@@ -1016,19 +1016,14 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                         <h4 className="text-sm font-bold axi-ink-plain truncate">{cardTitle}</h4>
                         {lacksAxilogData && (
                             <span
-                                className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0"
-                                style={{
-                                    background: 'var(--status-warning-bg)',
-                                    border: '1px solid var(--status-warning-border)',
-                                    color: 'var(--status-warning)',
-                                }}
+                                className="axi-chip axi-chip--warn shrink-0"
                                 title="Parsed without Axilog data — damage, positioning, boons and replay from this log are missing from the stats totals."
                             >
                                 No Axilog data
                             </span>
                         )}
                         {encounterDurationLabel && (
-                            <span className="text-xs font-mono font-semibold shrink-0 tabular-nums" style={{ color: 'var(--brand-primary)' }}>{encounterDurationLabel}</span>
+                            <span className="text-xs font-mono font-semibold shrink-0 tabular-nums" style={{ color: 'var(--axi-accent)' }}>{encounterDurationLabel}</span>
                         )}
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-xs axi-ink-faint">
@@ -1067,14 +1062,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                             onToggle();
                         }}
                         disabled={ds === 'loading' || (detailsNotReady && !isExpanded && !onCancel)}
-                        className={`px-3 py-1.5 rounded-[4px] text-xs font-medium transition-all flex items-center gap-1 border ${isCancellable
-                            ? 'bg-red-500/10 axi-ink-danger axi-edge-danger hover:bg-red-500/20'
-                            : ds === 'loading'
-                                ? 'bg-white/5 axi-ink-faint axi-edge-rule cursor-not-allowed'
-                                : detailsNotReady && !isExpanded && !onCancel
-                                    ? 'bg-white/5 axi-ink-faint axi-edge-rule cursor-not-allowed opacity-50'
-                                    : 'bg-white/5 axi-ink-dim axi-edge-rule hover:bg-white/10 hover:text-white group-hover:border-white/20'
-                            }`}
+                        className={`axi-btn axi-btn--xs flex items-center gap-1 ${isCancellable ? 'axi-ink-danger axi-edge-danger' : ''}`}
                     >
                         {isCancellable ? (
                             <><span>Cancel</span></>
@@ -1102,7 +1090,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                         // cut from it by one line along the top. The language has no word
                         // for that band yet, so the fill and the cut stay in
                         // axi-design.css, where the reason is written down.
-                        className="log-detail-drawer" style={{ overflow: 'hidden' }}
+                        className="log-detail-drawer bg-[color:var(--axi-ground)] border-t border-t-[length:var(--axi-border-panel)] axi-edge-line" style={{ overflow: 'hidden' }}
                     >
                         <div className="p-4 space-y-4">
                             {(settings.showSquadSummary || settings.showEnemySummary) && (

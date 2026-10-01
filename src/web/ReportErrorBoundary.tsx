@@ -46,24 +46,23 @@ export class ReportErrorBoundary extends Component<Props, State> {
 
         return (
             <div className="report-shell">
-                <div className="report-shell-card">
-                    <div className="report-shell-cap report-shell-cap--error" />
-                    <div className="report-shell-body">
-                        <p className="report-shell-eyebrow report-shell-eyebrow--error">Render failed</p>
+                <div className="report-shell-card axi-panel" data-status="danger">
+                    <div>
+                        <p className="axi-eyebrow axi-ink-danger">Render failed</p>
                         <h1 className="report-shell-title">This report failed to render</h1>
-                        <p className="report-shell-text">
+                        <p className="report-shell-text axi-ink-dim">
                             Something in the report data could not be displayed. If this report was published
                             by a newer version of AxiBridge, re-publishing it will also refresh the viewer and
                             may fix this.
                         </p>
-                        <div className="report-shell-well">
+                        <div className="axi-well axi-well--sm mt-4">
                             <p className="report-shell-message">{message}</p>
                             {error.stack && <pre className="report-shell-stack">{error.stack}</pre>}
                         </div>
-                        <div className="report-shell-actions">
+                        <div className="mt-5 flex gap-2.5">
                             <button
                                 type="button"
-                                className="axi-action report-shell-btn"
+                                className="axi-btn"
                                 onClick={() => window.location.reload()}
                             >
                                 Reload

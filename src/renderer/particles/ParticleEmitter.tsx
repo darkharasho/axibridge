@@ -162,7 +162,7 @@ export function ParticleEmitter({
                 startY = o.y + Math.sin(angle) * distance - diameter / 2;
             }
 
-            const particleColor = color || 'var(--brand-primary)';
+            const particleColor = color || 'var(--axi-accent)';
             const style: ParticleStyle = {
                 position: 'absolute',
                 width: `${diameter}px`,
@@ -180,7 +180,7 @@ export function ParticleEmitter({
                 const glowSize = Math.round(diameter * 1.5);
                 style.boxShadow = color
                     ? `0 0 ${glowSize}px ${color}66`
-                    : `0 0 ${glowSize}px color-mix(in srgb, var(--brand-primary) 40%, transparent)`;
+                    : `0 0 ${glowSize}px color-mix(in srgb, var(--axi-accent) 40%, transparent)`;
             }
 
             return style;

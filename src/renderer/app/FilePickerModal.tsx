@@ -53,24 +53,22 @@ const FilePickerItem = memo(({ entry, index, isSelected, isFocused, toggleSelect
         <div
             onClick={(e) => toggleSelection(entry.path, index, e.shiftKey)}
             onMouseEnter={() => setFocusedIndex(index)}
-            className={`grid grid-cols-[minmax(0,3.2fr)_minmax(140px,1.1fr)_86px] gap-3 items-center px-2.5 py-1.5 rounded-[4px] border select-none transition-all cursor-pointer ${isSelected
-                ? 'bg-blue-500/12 axi-edge-meta'
+            className={`grid grid-cols-[minmax(0,3.2fr)_minmax(140px,1.1fr)_86px] gap-3 items-center px-2.5 py-1.5 rounded-[var(--axi-radius-sm)] border select-none transition-all cursor-pointer ${isSelected
+                ? 'bg-[color:var(--axi-surface-raised-paint)] axi-edge-meta'
                 : isFocused
-                    ? 'bg-white/10 axi-edge-rule'
-                    : 'bg-transparent border-transparent hover:bg-white/5 hover:border-white/10'
+                    ? 'bg-[color:var(--axi-surface-raised-paint)] axi-edge-rule'
+                    : 'bg-transparent border-transparent hover:bg-[color:var(--axi-surface-raised-paint)] hover:border-white/10'
                 }`}
         >
             <div className="flex items-center gap-2.5 min-w-0">
-                <div className={`shrink-0 w-4 h-4 rounded-[4px] border flex items-center justify-center transition-colors ${isSelected ? 'axi-edge-meta bg-blue-400/90' : 'axi-edge-rule bg-black/40'}`}>
-                    {isSelected && <svg className="w-2.5 h-2.5 text-[var(--tw-colors-cyan-950)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-                </div>
+                <input type="checkbox" className="axi-check shrink-0 pointer-events-none" checked={isSelected} readOnly tabIndex={-1} aria-hidden="true" />
                 <div className="flex-1 min-w-0 flex flex-col justify-center min-h-[26px]">
                     <div className="flex items-center gap-2 min-w-0">
                         <span className={`text-xs font-medium truncate leading-tight ${isSelected ? 'axi-ink-meta' : 'axi-ink-plain'}`}>
                             {entry.name}
                         </span>
                         {encounterName && (
-                            <span className="px-1.5 py-0.5 rounded-[4px] text-[9px] font-semibold leading-none bg-white/8 border axi-edge-rule axi-ink-dim">
+                            <span className="axi-chip">
                                 {encounterName}
                             </span>
                         )}
@@ -399,7 +397,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                         transition={{ type: "spring", bounce: 0, duration: 0.4 }}
                     >
                         {/* Left Panel */}
-                        <div className="w-[260px] min-w-[260px] flex flex-col border-r" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+                        <div className="w-[260px] min-w-[260px] flex flex-col border-r" style={{ borderColor: 'var(--axi-ink-line)', background: 'var(--axi-surface-paint)' }}>
                             {/* Search box */}
                             <div className="p-3 pb-0">
                                 <div className="axi-search">
@@ -419,12 +417,12 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
 
                             {/* Segmented filter tabs */}
                             <div className="px-3 pt-3">
-                                <div className="flex rounded-[4px] overflow-hidden" style={{ border: 'var(--panel-border-w, 1px) solid var(--border-default)', background: 'var(--bg-input)' }}>
+                                <div className="flex overflow-hidden" style={{ border: 'var(--axi-border-control) solid var(--axi-ink-line)', background: 'var(--axi-ground)' }}>
                                     {(['Day', 'Since', 'Range'] as const).map((mode) => {
                                         const modeKey = mode === 'Range' ? 'Between' : mode;
                                         const isActive = (modeKey === 'Day' && selectDayOpen) || (modeKey === 'Since' && selectSinceOpen) || (modeKey === 'Between' && selectBetweenOpen);
                                         return (
-                                            <button key={mode} onClick={() => handleFilterTabClick(modeKey as 'Day' | 'Since' | 'Between')} className={`flex-1 py-1.5 text-[10px] font-medium transition-colors ${isActive ? 'bg-cyan-500/20 axi-ink-meta' : 'axi-ink-faint hover:text-gray-300 hover:bg-white/5'}`}>
+                                            <button key={mode} onClick={() => handleFilterTabClick(modeKey as 'Day' | 'Since' | 'Between')} aria-pressed={isActive} className={`axi-pill axi-pill--xs flex-1 text-[10px]`.trim()}>
                                                 {mode}
                                             </button>
                                         );
@@ -460,7 +458,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                 {selectSinceView.toLocaleString(undefined, { month: 'long', year: 'numeric' })}
                                                             </button>
                                                             {selectSinceMonthOpen && (
-                                                                <div className="file-picker-popover absolute z-10 top-full justify-center -left-8 mt-2 w-44 rounded-[4px] p-2" style={{ background: 'var(--bg-elevated)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+                                                                <div className="file-picker-popover absolute z-10 top-full justify-center -left-8 mt-2 w-44 p-2" style={{ background: 'var(--axi-surface-paint)', border: 'var(--axi-border-control) solid var(--axi-ink-line)', boxShadow: 'var(--axi-shadow-panel)' }}>
                                                                     <div className="flex items-center justify-between mb-2">
                                                                         <button
                                                                             onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear() - 1, prev.getMonth(), 1))}
@@ -486,10 +484,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                                     setSelectSinceView((prev: Date) => new Date(prev.getFullYear(), i, 1));
                                                                                     setSelectSinceMonthOpen(false);
                                                                                 }}
-                                                                                className={`px-2 py-1 rounded-full text-[10px] border transition-colors ${selectSinceView.getMonth() === i
-                                                                                    ? 'file-picker-selected-cell font-semibold'
-                                                                                    : 'bg-white/5 axi-ink-dim axi-edge-rule hover:text-white'
-                                                                                    }`}
+                                                                                className={`axi-pill axi-pill--xs ${selectSinceView.getMonth() === i ? 'file-picker-selected-cell font-semibold' : ''}`}
                                                                             >
                                                                                 {new Date(2000, i, 1).toLocaleString(undefined, { month: 'short' })}
                                                                             </button>
@@ -538,9 +533,9 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                                 const matching = filePickerAll.filter((e: any) => Number.isFinite(e.mtimeMs) && e.mtimeMs >= dayStart && e.mtimeMs <= dayEnd);
                                                                                 setFilePickerSelected(new Set(matching.map((e: any) => e.path)));
                                                                             }}
-                                                                            className={`h-7 w-7 rounded-full mx-auto flex items-center justify-center transition-colors border ${isSelected
+                                                                            className={`h-7 w-7 mx-auto flex items-center justify-center transition-colors border ${isSelected
                                                                                 ? 'file-picker-selected-cell font-semibold'
-                                                                                : 'border-transparent axi-ink-plain hover:bg-white/10 hover:border-white/10'
+                                                                                : 'border-transparent axi-ink-plain hover:bg-[color:var(--axi-surface-raised-paint)] hover:border-white/10'
                                                                                 }`}
                                                                         >
                                                                             {day}
@@ -581,7 +576,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                     {selectSinceView.toLocaleString(undefined, { month: 'long', year: 'numeric' })}
                                                                 </button>
                                                                 {selectSinceMonthOpen && (
-                                                                    <div className="file-picker-popover absolute z-10 top-full justify-center -left-8 mt-2 w-44 rounded-[4px] p-2" style={{ background: 'var(--bg-elevated)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+                                                                    <div className="file-picker-popover absolute z-10 top-full justify-center -left-8 mt-2 w-44 p-2" style={{ background: 'var(--axi-surface-paint)', border: 'var(--axi-border-control) solid var(--axi-ink-line)', boxShadow: 'var(--axi-shadow-panel)' }}>
                                                                         <div className="flex items-center justify-between mb-2">
                                                                             <button
                                                                                 onClick={() => setSelectSinceView((prev: Date) => new Date(prev.getFullYear() - 1, prev.getMonth(), 1))}
@@ -607,10 +602,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                                         setSelectSinceView((prev: Date) => new Date(prev.getFullYear(), i, 1));
                                                                                         setSelectSinceMonthOpen(false);
                                                                                     }}
-                                                                                    className={`px-2 py-1 rounded-full text-[10px] border transition-colors ${selectSinceView.getMonth() === i
-                                                                                        ? 'file-picker-selected-cell font-semibold'
-                                                                                        : 'bg-white/5 axi-ink-dim axi-edge-rule hover:text-white'
-                                                                                        }`}
+                                                                                    className={`axi-pill axi-pill--xs ${selectSinceView.getMonth() === i ? 'file-picker-selected-cell font-semibold' : ''}`}
                                                                                 >
                                                                                     {new Date(2000, i, 1).toLocaleString(undefined, { month: 'short' })}
                                                                                 </button>
@@ -652,9 +644,9 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                                             <button
                                                                                 key={`day-${day}`}
                                                                                 onClick={() => setSelectSinceDate(new Date(year, month, day))}
-                                                                                className={`h-7 w-7 rounded-full mx-auto flex items-center justify-center transition-colors border ${isSelected
+                                                                                className={`h-7 w-7 mx-auto flex items-center justify-center transition-colors border ${isSelected
                                                                                     ? 'file-picker-selected-cell font-semibold'
-                                                                                    : 'border-transparent axi-ink-plain hover:bg-white/10 hover:border-white/10'
+                                                                                    : 'border-transparent axi-ink-plain hover:bg-[color:var(--axi-surface-raised-paint)] hover:border-white/10'
                                                                                     }`}
                                                                             >
                                                                                 {day}
@@ -670,7 +662,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                         <div className="grid grid-cols-3 gap-2">
                                                             <div>
                                                                 <div className="text-[10px] axi-ink-dim mb-1">Hour</div>
-                                                                <div className="file-picker-time-list h-32 overflow-y-auto rounded-lg border axi-edge-rule bg-white/5 file-picker-scroll-container">
+                                                                <div className="file-picker-time-list h-32 overflow-y-auto axi-well axi-well--sm [--axi-well-pad:0] file-picker-scroll-container">
                                                                     {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => (
                                                                         <button
                                                                             key={`hour-${hour}`}
@@ -687,7 +679,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                             </div>
                                                             <div>
                                                                 <div className="text-[10px] axi-ink-dim mb-1">Minute</div>
-                                                                <div className="file-picker-time-list h-32 overflow-y-auto rounded-lg border axi-edge-rule bg-white/5 file-picker-scroll-container">
+                                                                <div className="file-picker-time-list h-32 overflow-y-auto axi-well axi-well--sm [--axi-well-pad:0] file-picker-scroll-container">
                                                                     {Array.from({ length: 60 }, (_, i) => i).map((minute) => (
                                                                         <button
                                                                             key={`minute-${minute}`}
@@ -704,7 +696,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                                             </div>
                                                             <div>
                                                                 <div className="text-[10px] axi-ink-dim mb-1">AM/PM</div>
-                                                                <div className="file-picker-time-list h-32 overflow-y-auto rounded-lg border axi-edge-rule bg-white/5 file-picker-scroll-container">
+                                                                <div className="file-picker-time-list h-32 overflow-y-auto axi-well axi-well--sm [--axi-well-pad:0] file-picker-scroll-container">
                                                                     {(['AM', 'PM'] as const).map((period) => (
                                                                         <button
                                                                             key={period}
@@ -789,7 +781,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
 
                             {/* Panel footer */}
                             {(activePreset || selectDayOpen || selectSinceOpen || selectBetweenOpen) && dateFilteredCount > 0 && (
-                                <div className="flex-none p-3 border-t" style={{ borderColor: 'var(--border-default)' }}>
+                                <div className="flex-none p-3 border-t" style={{ borderColor: 'var(--axi-ink-line)' }}>
                                     <div className="text-[10px] axi-ink-dim mb-2">
                                         {getFilterSummaryText()} · <span className="axi-ink-meta">{dateFilteredCount} log{dateFilteredCount === 1 ? '' : 's'} found</span>
                                     </div>
@@ -821,10 +813,10 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                     Add Logs
                                 </h3>
                                 <div className="flex items-center gap-1.5">
-                                    <button onClick={() => loadLogFiles(logDirectory)} className="axi-btn axi-btn--icon axi-ink-dim" style={{ border: '1px solid var(--border-subtle)' }} title="Refresh">
+                                    <button onClick={() => loadLogFiles(logDirectory)} className="axi-btn axi-btn--icon axi-ink-dim" title="Refresh">
                                         <RefreshCw className="w-3.5 h-3.5" />
                                     </button>
-                                    <button onClick={handleClose} className="axi-btn axi-btn--icon axi-ink-dim" style={{ border: '1px solid var(--border-subtle)' }} aria-label="Close log picker">
+                                    <button onClick={handleClose} className="axi-btn axi-btn--icon axi-ink-dim" aria-label="Close log picker">
                                         <X className="w-3.5 h-3.5" />
                                     </button>
                                 </div>
@@ -832,7 +824,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
 
                             {/* Column headers */}
                             {!filePickerLoading && filteredAvailable.length > 0 && (
-                                <div className="flex-none px-4 py-2 bg-black/40 border-b axi-edge-rule grid grid-cols-[minmax(0,3.2fr)_minmax(140px,1.1fr)_86px] gap-4 text-[11px] uppercase tracking-[0.24em] axi-ink-faint font-semibold">
+                                <div className="flex-none px-4 py-2 bg-[color:var(--axi-well-fill)] border-b axi-edge-rule grid grid-cols-[minmax(0,3.2fr)_minmax(140px,1.1fr)_86px] gap-4 text-[11px] uppercase tracking-[0.24em] axi-ink-faint font-semibold">
                                     <div>Name</div>
                                     <div>Modified</div>
                                     <div className="text-right">Size</div>
@@ -846,7 +838,7 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                                         <motion.div
                                             animate={{ rotate: 360 }}
                                             transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                                            className="w-5 h-5 border-2 axi-edge-meta border-t-cyan-400 rounded-full mr-3"
+                                            className="axi-spinner mr-3"
                                         />
                                         Loading logs...
                                     </div>
@@ -894,8 +886,8 @@ export function FilePickerModal({ ctx, isBulkUploadActive }: { ctx: any; isBulkU
                             </div>
 
                             {/* Footer */}
-                            <div className="flex-none px-4 py-3 border-t axi-edge-rule bg-black/30">
-                                {filePickerError && (<div className="text-xs axi-ink-danger mb-3 font-medium px-2.5 py-1.5 bg-rose-500/10 rounded-[4px] border axi-edge-danger">{filePickerError}</div>)}
+                            <div className="flex-none px-4 py-3 border-t axi-edge-rule bg-[color:var(--axi-well-fill)]">
+                                {filePickerError && (<div className="text-xs axi-ink-danger mb-3 font-medium axi-well axi-well--sm axi-edge-danger">{filePickerError}</div>)}
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="flex items-center gap-3">
                                         <div className="text-xs axi-ink-dim">

@@ -147,7 +147,7 @@ export const DamageModifiersSection = ({
                     ? <ShieldOff className="w-4 h-4 shrink-0" style={{ color: 'var(--section-defense)' }} />
                     : <Flame className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />
                 }
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>{config.title}</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>{config.title}</h3>
                 <div className="ml-auto flex items-center gap-2">
                     {canFilterHypothetical && <button
                         type="button"
@@ -160,8 +160,8 @@ export const DamageModifiersSection = ({
                     </button>}
                     {!canFilterHypothetical && modSummaries.length > 0 && (
                         <span
-                            className="px-2.5 py-1 rounded-[var(--radius-md)] border text-[10px] uppercase tracking-widest"
-                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-muted)' }}
+                            className="axi-pill axi-pill--xs"
+                            style={{ borderColor: 'var(--axi-ink-line)', color: 'var(--axi-text-faint)' }}
                             title="This log set was parsed without a personal-modifier catalog, so personal and shared modifiers cannot be told apart — every modifier is listed, including squad-wide buffs whose damage gain is attributed to all benefiting players rather than to the buff source."
                         >
                             All
@@ -176,7 +176,7 @@ export const DamageModifiersSection = ({
             </div>
 
             {modSummaries.length === 0 ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No {incoming ? 'incoming ' : ''}damage modifier data available</div>
+                <div className="axi-empty">No {incoming ? 'incoming ' : ''}damage modifier data available</div>
             ) : isExpanded ? (
                 /* ===== EXPANDED / FULLSCREEN VIEW ===== */
                 <ExpandedView
@@ -340,7 +340,7 @@ const CollapsedView = ({
             contentClassName={`overflow-hidden ${expandedSection === config.sectionId ? 'flex flex-col min-h-0' : ''}`}
             sidebar={
                 <>
-                    <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Modifiers</div>
+                    <div className="text-xs uppercase tracking-widest text-[color:var(--axi-text-dim)] mb-2">Modifiers</div>
                     <input
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -350,7 +350,7 @@ const CollapsedView = ({
                     />
                     <div className={`${sidebarListClass} ${expandedSection === config.sectionId ? 'max-h-none flex-1 min-h-0' : ''}`}>
                         {filteredMods.length === 0 ? (
-                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No modifiers match this filter</div>
+                            <div className="axi-empty">No modifiers match this filter</div>
                         ) : (
                             filteredMods.map((mod) => (
                                 <button
@@ -367,7 +367,7 @@ const CollapsedView = ({
                                         for a stacked pair. */}
                                     <span className="flex flex-col min-w-0 gap-0.5 leading-normal">
                                         <span className="truncate">{mod.name}</span>
-                                        <span className={`text-[10px] font-normal ${mod.squadDamageGain < 0 ? 'axi-ink-ok' : 'text-[color:var(--text-muted)]'}`}>
+                                        <span className={`text-[10px] font-normal ${mod.squadDamageGain < 0 ? 'axi-ink-ok' : 'text-[color:var(--axi-text-faint)]'}`}>
                                             {mod.squadDamageGain >= 0 ? '+' : ''}{formatWithCommas(mod.squadDamageGain, 0)} squad total
                                         </span>
                                     </span>
@@ -388,9 +388,9 @@ const CollapsedView = ({
                                     {activeModInfo.icon && (
                                         <img src={activeModInfo.icon} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
                                     )}
-                                    <div className="text-xs font-semibold text-[color:var(--text-primary)]">{activeModInfo.name}</div>
+                                    <div className="text-xs font-semibold text-[color:var(--axi-text)]">{activeModInfo.name}</div>
                                     {activeModInfo.description && (
-                                        <div className="text-[10px] text-[color:var(--text-muted)] leading-tight">
+                                        <div className="text-[10px] text-[color:var(--axi-text-faint)] leading-tight">
                                             {activeModInfo.description.split(/<br\s*\/?>/).map((part, i, arr) => (
                                                 <span key={i}>{part}{i < arr.length - 1 && <br />}</span>
                                             ))}
@@ -436,7 +436,7 @@ head={
 rows={
                                 <>
                                     {sortedPlayerData.length === 0 ? (
-                                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No player data for this modifier</div>
+                                        <div className="axi-empty">No player data for this modifier</div>
                                     ) : (
                                         sortedPlayerData.map((row, idx) => {
                                             const pctOfTotal = row.totalDamage > 0
@@ -449,28 +449,23 @@ rows={
                                                 ? (Math.abs(row.damageGain) / maxAbsGain) * 100
                                                 : 0;
                                             const isNegative = row.damageGain < 0;
-                                            const barStyle = isNegative
-                                                ? 'linear-gradient(to left, rgba(20,184,166,0.2), rgba(20,184,166,0.05))'
-                                                : incoming
-                                                    ? 'linear-gradient(to right, rgba(239,68,68,0.2), rgba(239,68,68,0.05))'
-                                                    : config.barGradientStyle;
                                             return (
-                                                <div key={`${row.account}-${idx}`} className={`relative border-b border-[color:var(--border-subtle)] ${activeModIsHypothetical ? 'opacity-50' : ''}`}>
+                                                <div key={`${row.account}-${idx}`} className={`relative border-b border-[color:var(--axi-rule)] ${activeModIsHypothetical ? 'opacity-50' : ''}`}>
                                                     {/* Bar overlay — negative grows from right, positive from left */}
                                                     <div
-                                                        className={`row-quantity-bar absolute inset-y-0 pointer-events-none ${isNegative ? 'right-0' : 'left-0'}`}
+                                                        className={`row-quantity-bar absolute bottom-0 h-1 pointer-events-none ${isNegative ? 'right-0' : 'left-0'}`}
                                                         data-sign={isNegative ? 'neg' : incoming ? 'incoming' : 'gain'}
-                                                        style={{ width: `${barWidthPct}%`, background: `var(--row-bar-fill, ${barStyle})` }}
+                                                        style={{ width: `${barWidthPct}%`, background: isNegative ? 'var(--axi-ok)' : incoming ? 'var(--axi-danger)' : 'var(--axi-meta)' }}
                                                     />
                                                     {/* Row content */}
                                                     <tr>
-<td className="text-[color:var(--text-muted)]">{idx + 1}</td>
+<td className="text-[color:var(--axi-text-faint)]">{idx + 1}</td>
 <th scope="row"><span className="axi-table__who">{renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
                                                             <span className="truncate">{row.account}</span></span></th>
 <td>{row.damageGain >= 0 ? '+' : ''}{formatWithCommas(row.damageGain, 0)}</td>
-<td className="text-[color:var(--text-secondary)]">{pctOfTotal}%</td>
-<td className="text-[color:var(--text-secondary)]">{hitCoverage}</td>
-<td className="text-[color:var(--text-secondary)]">{row.totalFightMs ? `${(row.totalFightMs / 1000).toFixed(1)}s` : '—'}</td>
+<td className="text-[color:var(--axi-text-dim)]">{pctOfTotal}%</td>
+<td className="text-[color:var(--axi-text-dim)]">{hitCoverage}</td>
+<td className="text-[color:var(--axi-text-dim)]">{row.totalFightMs ? `${(row.totalFightMs / 1000).toFixed(1)}s` : '—'}</td>
 </tr>
                                                 </div>
                                             );
@@ -480,7 +475,7 @@ rows={
                             }
                         />
                     ) : (
-                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">Select a modifier from the sidebar</div>
+                        <div className="axi-empty">Select a modifier from the sidebar</div>
                     )}
                 </>
             }
@@ -554,7 +549,7 @@ const ExpandedView = ({
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+            <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--axi-rule)' }}>
                     <SearchSelectDropdown
                         options={[
                             ...allColumnOptions.map((option) => ({ ...option, type: 'column' as const })),
@@ -639,7 +634,7 @@ const ExpandedView = ({
                 )}
             <div className="overflow-hidden">
                 {visibleMods.length === 0 ? (
-                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No modifiers match this filter</div>
+                    <div className="axi-empty">No modifiers match this filter</div>
                 ) : (
                     <DenseStatsTable
                         title={`${config.title} - Dense View`}
@@ -667,7 +662,7 @@ const ExpandedView = ({
                             id: `${entry.row.account}-${idx}`,
                             label: (
                                 <>
-                                    <span className="text-[color:var(--text-muted)] font-mono">{idx + 1}</span>
+                                    <span className="text-[color:var(--axi-text-faint)] font-mono">{idx + 1}</span>
                                     {renderProfessionIcon(entry.row.profession, entry.row.professionList, 'w-4 h-4')}
                                     <span className="truncate">{entry.row.account}</span>
                                 </>

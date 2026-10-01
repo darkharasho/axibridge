@@ -81,8 +81,8 @@ export const PlayerComparisonSection = ({
         <div {...expandedPaneProps(isExpanded, expandedSectionClosing)}>
             {/* Header */}
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
-                <Users className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+                <Users className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>
                     Player Comparison
                 </h3>
                 <div className="ml-auto flex items-center gap-2">
@@ -95,7 +95,7 @@ export const PlayerComparisonSection = ({
             </div>
 
             {!hasData ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] p-8 text-center" style={{ color: 'var(--text-muted)' }}>
+                <div className="axi-empty">
                     No player data available
                 </div>
             ) : (
@@ -191,17 +191,17 @@ const PlayerSelect = ({
                 {selected ? (
                     <>
                         {renderProfessionIcon(selected.profession, selected.professionList, 'w-4 h-4')}
-                        <span style={{ color: 'var(--text-primary)' }} className="font-medium text-sm truncate">{selected.account}</span>
-                        <span style={{ color: 'var(--text-muted)' }} className="text-xs ml-auto">{selected.profession}</span>
+                        <span style={{ color: 'var(--axi-text)' }} className="font-medium text-sm truncate">{selected.account}</span>
+                        <span style={{ color: 'var(--axi-text-faint)' }} className="text-xs ml-auto">{selected.profession}</span>
                     </>
                 ) : (
-                    <span style={{ color: 'var(--text-muted)' }} className="text-sm">{label}</span>
+                    <span style={{ color: 'var(--axi-text-faint)' }} className="text-sm">{label}</span>
                 )}
             </button>
             {open && (
                 <div
-                    className="absolute z-10 mt-1 w-full rounded-[var(--radius-md)] overflow-y-auto max-h-60"
-                    style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}
+                    className="absolute z-10 mt-1 w-full rounded-[var(--axi-radius-sm)] overflow-y-auto max-h-60"
+                    style={{ background: 'var(--axi-surface-paint)', border: 'var(--axi-border-control) solid var(--axi-ink-line)', boxShadow: 'var(--axi-shadow-panel)' }}
                 >
                     {players
                         .filter((p: any) => p.account !== excludeKey)
@@ -209,12 +209,12 @@ const PlayerSelect = ({
                             <button
                                 key={p.account}
                                 type="button"
-                                className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-[var(--bg-hover)]"
+                                className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-[var(--axi-surface-raised-paint)]"
                                 onClick={() => { onChange(p.account); setOpen(false); }}
                             >
                                 {renderProfessionIcon(p.profession, p.professionList, 'w-4 h-4')}
-                                <span style={{ color: 'var(--text-primary)' }} className="text-sm truncate">{p.account}</span>
-                                <span style={{ color: 'var(--text-muted)' }} className="text-xs ml-auto">{p.profession}</span>
+                                <span style={{ color: 'var(--axi-text)' }} className="text-sm truncate">{p.account}</span>
+                                <span style={{ color: 'var(--axi-text-faint)' }} className="text-xs ml-auto">{p.profession}</span>
                             </button>
                         ))}
                 </div>
@@ -262,7 +262,7 @@ const HeadToHeadView = ({
                     renderProfessionIcon={renderProfessionIcon}
                     label="Select Player A"
                 />
-                <span style={{ color: 'var(--text-muted)' }} className="font-bold text-base">vs</span>
+                <span style={{ color: 'var(--axi-text-faint)' }} className="font-bold text-base">vs</span>
                 <PlayerSelect
                     players={players}
                     selectedKey={playerBKey}
@@ -274,18 +274,18 @@ const HeadToHeadView = ({
             </div>
 
             {!playerA || !playerB ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] p-8 text-center" style={{ color: 'var(--text-muted)' }}>
+                <div className="axi-empty">
                     Select two players to compare
                 </div>
             ) : (
-                <div className="rounded-[var(--radius-md)] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
+                <div className="axi-well axi-well--sm [--axi-well-pad:0] overflow-hidden">
                     <table className="axi-table" style={{ borderCollapse: 'collapse' }}>
                         <thead>
-                            <tr style={{ borderBottom: '2px solid var(--border-default)' }}>
-                                <th className="text-[11px]" style={{ color: 'var(--text-muted)', width: '30%' }}>Metric</th>
-                                <th className="text-[11px]" style={{ color: 'var(--text-muted)', width: '25%' }}>{playerA.account}</th>
-                                <th className="text-[11px]" style={{ color: 'var(--text-muted)', width: '25%' }}>{playerB.account}</th>
-                                <th className="text-[11px]" style={{ color: 'var(--text-muted)', width: '20%' }}>Diff</th>
+                            <tr style={{ borderBottom: '2px solid var(--axi-ink-line)' }}>
+                                <th className="text-[11px]" style={{ color: 'var(--axi-text-faint)', width: '30%' }}>Metric</th>
+                                <th className="text-[11px]" style={{ color: 'var(--axi-text-faint)', width: '25%' }}>{playerA.account}</th>
+                                <th className="text-[11px]" style={{ color: 'var(--axi-text-faint)', width: '25%' }}>{playerB.account}</th>
+                                <th className="text-[11px]" style={{ color: 'var(--axi-text-faint)', width: '20%' }}>Diff</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -297,15 +297,15 @@ const HeadToHeadView = ({
                                 const diff = getDiffPercent(valA, valB, metric.lowerIsBetter);
 
                                 return (
-                                    <tr key={metric.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                                        <td className="text-sm" style={{ color: 'var(--text-primary)' }}>{metric.label}</td>
-                                        <td className="text-sm font-semibold" style={{ background: colorA.bg || undefined, color: colorA.text || 'var(--text-primary)' }}>
+                                    <tr key={metric.id} style={{ borderBottom: '1px solid var(--axi-rule)' }}>
+                                        <td className="text-sm" style={{ color: 'var(--axi-text)' }}>{metric.label}</td>
+                                        <td className="text-sm font-semibold" style={{ background: colorA.bg || undefined, color: colorA.text || 'var(--axi-text)' }}>
                                             {formatValue(valA, metric)}
                                         </td>
-                                        <td className="text-sm font-semibold" style={{ background: colorB.bg || undefined, color: colorB.text || 'var(--text-primary)' }}>
+                                        <td className="text-sm font-semibold" style={{ background: colorB.bg || undefined, color: colorB.text || 'var(--axi-text)' }}>
                                             {formatValue(valB, metric)}
                                         </td>
-                                        <td style={{ color: diff !== null && diff>= 0 ? 'var(--status-success)' : diff !== null ? 'var(--status-error)' : 'var(--text-muted)' }}>
+                                        <td style={{ color: diff !== null && diff>= 0 ? 'var(--axi-ok)' : diff !== null ? 'var(--axi-danger)' : 'var(--axi-text-faint)' }}>
                                             {diff !== null ? `${diff >= 0 ? '+' : ''}${diff.toFixed(0)}%` : '—'}
                                         </td>
                                     </tr>
@@ -362,14 +362,14 @@ const VsAverageView = ({
 
     if (players.length === 0) {
         return (
-            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] p-8 text-center" style={{ color: 'var(--text-muted)' }}>
+            <div className="axi-empty">
                 No data for this category
             </div>
         );
     }
 
     return (
-        <div className="rounded-[var(--radius-md)] overflow-x-auto" style={{ border: '1px solid var(--border-default)' }}>
+        <div className="axi-well axi-well--sm [--axi-well-pad:0] overflow-x-auto">
             <table className="axi-table">
                 <thead>
                     <tr>
@@ -394,10 +394,10 @@ const VsAverageView = ({
                 </thead>
                 <tbody>
                     {/* Squad Average row */}
-                    <tr style={{ background: 'var(--bg-card-inner)' }}>
-                        <td className="italic" style={{ color: 'var(--text-muted)' }}>Squad Average</td>
+                    <tr style={{ background: 'var(--axi-ground)' }}>
+                        <td className="italic" style={{ color: 'var(--axi-text-faint)' }}>Squad Average</td>
                         {metrics.map((metric) => (
-                            <td key={metric.id} style={{ color: 'var(--text-muted)' }}>
+                            <td key={metric.id} style={{ color: 'var(--axi-text-faint)' }}>
                                 {formatValue(averages[metric.id], metric)}
                             </td>
                         ))}
@@ -418,7 +418,7 @@ const VsAverageView = ({
                                     <td
                                         key={metric.id}
                                         className="axi-table__num"
-                                        style={{ background: color.bg || undefined, color: color.text || 'var(--text-primary)' }}
+                                        style={{ background: color.bg || undefined, color: color.text || 'var(--axi-text)' }}
                                     >
                                         {formatValue(value, metric)}
                                     </td>

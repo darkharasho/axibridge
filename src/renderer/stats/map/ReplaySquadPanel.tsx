@@ -67,8 +67,8 @@ const ReplaySquadPanelInner: React.FC<ReplaySquadPanelProps> = ({ fight, collaps
                     '--axi-panel-pad': '8px 0', cursor: 'pointer',
                 } as React.CSSProperties}
             >
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>◀</span>
-                <span style={{ writingMode: 'vertical-rl', fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 7 }}>
+                <span style={{ fontSize: 11, color: 'var(--axi-text-faint)' }}>◀</span>
+                <span style={{ writingMode: 'vertical-rl', fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--axi-text-faint)', marginTop: 7 }}>
                     Squad
                 </span>
             </button>
@@ -85,9 +85,9 @@ const ReplaySquadPanelInner: React.FC<ReplaySquadPanelProps> = ({ fight, collaps
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
             '--axi-panel-pad': '0',
         } as React.CSSProperties}>
-            <div style={{ padding: '6px 8px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+            <div style={{ padding: '6px 8px', borderBottom: '1px solid var(--axi-rule)', flexShrink: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--axi-text-dim)' }}>
                         Squad · {allies.length}
                     </span>
                     <button
@@ -116,7 +116,7 @@ const ReplaySquadPanelInner: React.FC<ReplaySquadPanelProps> = ({ fight, collaps
                         <React.Fragment key={group}>
                             <div style={{
                                 display: 'flex', alignItems: 'center', gap: 4,
-                                borderTop: '1px solid var(--border-subtle)', marginTop: 2, paddingTop: 3,
+                                borderTop: '1px solid var(--axi-rule)', marginTop: 2, paddingTop: 3,
                             }}>
                                 {/* Row = collapse, crosshair = spotlight. The row
                                     used to be the only spotlight control; collapse

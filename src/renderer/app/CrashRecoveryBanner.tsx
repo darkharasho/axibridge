@@ -41,22 +41,20 @@ export const CrashRecoveryBanner = ({ notice, onRecompute, onDismiss }: CrashRec
 
     return (
         <div
-            className="mb-3 rounded-[4px] px-3 py-2.5 flex items-start gap-3"
+            className="mb-3 axi-well axi-well--sm axi-edge-warn flex items-start gap-3"
             style={{
-                background: 'var(--status-warning-bg, rgba(251,191,36,0.08))',
-                border: 'var(--panel-border-w, 1px) solid var(--status-warning-border, rgba(251,191,36,0.3))',
             }}
             data-testid="crash-recovery-banner"
         >
             <AlertTriangle
                 className="w-3.5 h-3.5 mt-0.5 shrink-0"
-                style={{ color: 'var(--status-warning, #fbbf24)' }}
+                style={{ color: 'var(--axi-warn)' }}
             />
             <div className="flex-1">
-                <div className="text-[11px] mb-1" style={{ color: 'var(--text-primary)' }}>
+                <div className="text-[11px] mb-1" style={{ color: 'var(--axi-text)' }}>
                     Recovered from a crash
                 </div>
-                <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[11px] leading-relaxed" style={{ color: 'var(--axi-text-faint)' }}>
                     {describeReason(reason)}{' '}
                     {logCount > 0
                         ? `Your ${logCount} ${logWord} ${logCount === 1 ? 'was' : 'were'} restored.`
@@ -69,7 +67,7 @@ export const CrashRecoveryBanner = ({ notice, onRecompute, onDismiss }: CrashRec
                     <button
                         onClick={onRecompute}
                         className="axi-btn axi-btn--xs"
-                        style={{ borderColor: 'var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
+                        style={{ borderColor: 'var(--axi-ink-line)', background: 'var(--axi-surface-paint)', color: 'var(--axi-text-dim)' }}
                         title="Recompute stats from the restored logs"
                     >
                         <RefreshCw className="w-3 h-3" />
@@ -79,7 +77,7 @@ export const CrashRecoveryBanner = ({ notice, onRecompute, onDismiss }: CrashRec
                 <button
                     onClick={onDismiss}
                     className="axi-btn axi-btn--xs"
-                    style={{ borderColor: 'var(--border-subtle)', background: 'transparent', color: 'var(--text-muted)' }}
+                    style={{ borderColor: 'var(--axi-rule)', background: 'transparent', color: 'var(--axi-text-faint)' }}
                     title="Dismiss this notice"
                 >
                     Dismiss

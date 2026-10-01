@@ -22,11 +22,11 @@ function Column({ title, tone, findings }: { title: string; tone: 'good' | 'bad'
   return (
     <section
       className="commander-panel axi-panel axi-panel--tile"
-      style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
+      style={{ background: 'var(--axi-surface-paint)', borderColor: 'var(--axi-ink-line)' }}
     >
       <div className={`text-[12px] uppercase tracking-[0.06em] mb-2 ${titleColor}`}>{title}</div>
       {findings.length === 0
-        ? <div className="text-[11px] italic leading-snug" style={{ color: 'var(--text-muted)' }}>{emptyMsg}</div>
+        ? <div className="text-[11px] italic leading-snug" style={{ color: 'var(--axi-text-faint)' }}>{emptyMsg}</div>
         : findings.map(f => <InsightCard key={f.id} finding={f} />)}
     </section>
   );

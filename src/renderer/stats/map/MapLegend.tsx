@@ -121,7 +121,7 @@ const MapLegendInner: React.FC<{ style?: React.CSSProperties }> = ({ style }) =>
                 <div key={row.key} data-legend-row={row.key}
                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Swatch glyph={row.glyph} color={row.color} />
-                    <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{row.label}</span>
+                    <span style={{ fontSize: 10, color: 'var(--axi-text-dim)' }}>{row.label}</span>
                 </div>
             ))}
         </div>

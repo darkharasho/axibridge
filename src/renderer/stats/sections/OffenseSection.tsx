@@ -107,7 +107,7 @@ export const OffenseSection = ({
     <div {...expandedPaneProps(expandedSection === 'offense-detailed', expandedSectionClosing)}>
         <div className={`flex flex-wrap items-center gap-2 mb-3.5 ${isExpanded ? 'px-5 pt-4' : ''}`}>
             <Swords className="w-4 h-4 shrink-0" style={{ color: 'var(--section-offense)' }} />
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>
                 Offense Detailed
             </h3>
             <div className="ml-auto flex items-center gap-2">
@@ -130,11 +130,11 @@ export const OffenseSection = ({
             </div>
         </div>
         {stats.offensePlayers.length === 0 ? (
-            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No offensive stats available</div>
+            <div className="axi-empty">No offensive stats available</div>
         ) : isExpanded ? (
             <div className="flex flex-col gap-4 px-5 pt-1 flex-1 min-h-0">
                 <div>
-                    <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--axi-rule)' }}>
                         <SearchSelectDropdown
                             options={[
                                 ...offenseColumnOptions.map((option) => ({ ...option, type: 'column' as const })),
@@ -177,7 +177,7 @@ export const OffenseSection = ({
                             buttonLabel="Players"
                             buttonIcon={<Users className="h-3.5 w-3.5" />}
                         />
-                        <div className="h-5 w-px" style={{ background: 'var(--border-subtle)' }} />
+                        <div className="h-5 w-px" style={{ background: 'var(--axi-rule)' }} />
                         <PillToggleGroup
                             value={offenseViewMode}
                             onChange={setOffenseViewMode}
@@ -230,7 +230,7 @@ export const OffenseSection = ({
                 </div>
                 <div className="flex-1 min-h-0 flex flex-col">
                     {filteredOffenseMetrics.length === 0 ? (
-                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No offensive stats match this filter</div>
+                        <div className="axi-empty">No offensive stats match this filter</div>
                     ) : (
                         (() => {
                             const totalSeconds = (row: any) => Math.max(1, (row.totalFightMs || 0) / 1000);
@@ -301,7 +301,7 @@ export const OffenseSection = ({
                                         id: `${entry.row.account}-${idx}`,
                                         label: (
                                             <>
-                                                <span className="font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</span>
+                                                <span className="font-mono" style={{ color: 'var(--axi-text-faint)' }}>{idx + 1}</span>
                                                 {renderProfessionIcon(entry.row.profession, entry.row.professionList, 'w-4 h-4')}
                                                 <span className="truncate">{entry.row.account}</span>
                                             </>
@@ -324,7 +324,7 @@ export const OffenseSection = ({
                 contentStyle={undefined}
                 sidebar={
                     <>
-                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Offensive Tabs</div>
+                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--axi-text-dim)' }}>Offensive Tabs</div>
                         <input
                             value={offenseSearch}
                             onChange={(e) => setOffenseSearch(e.target.value)}
@@ -335,7 +335,7 @@ export const OffenseSection = ({
                         <div className={`${sidebarListClass} ${expandedSection === 'offense-detailed' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                             {(() => {
                                 if (filteredOffenseMetrics.length === 0) {
-                                    return <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No offensive stats match this filter</div>;
+                                    return <div className="axi-empty">No offensive stats match this filter</div>;
                                 }
                                 return filteredOffenseMetrics.map((metric) => (
                                     <button

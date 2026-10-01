@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { MetricCard } from './MetricCard';
 import { ThresholdBar } from '../viz/ThresholdBar';
 import { CompBars } from '../viz/CompBars';
@@ -30,9 +31,9 @@ export function MatchupSection({ fight, thresholds }: { fight: CommanderFightDat
         value={
           <span>
             <span style={{ color: 'rgb(110, 231, 183)' }}>{m.squadCount}</span>
-            <span style={{ color: 'var(--text-muted)' }}>·</span>
+            <span style={{ color: 'var(--axi-text-faint)' }}>·</span>
             <span style={{ color: 'rgb(252, 211, 77)' }}>{m.alliesCount}</span>
-            <span style={{ color: 'var(--text-muted)' }}>·</span>
+            <span style={{ color: 'var(--axi-text-faint)' }}>·</span>
             <span style={{ color: 'rgb(253, 164, 175)' }}>{m.enemyCount}</span>
           </span>
         }
@@ -91,7 +92,7 @@ function EnemyTeamSplit({ teams }: { teams: Array<{ teamID: number; count: numbe
   const total = Math.max(1, teams.reduce((a, t) => a + t.count, 0));
   return (
     <div className="flex flex-col gap-0.5" data-role="enemy-team-split">
-      <div className="flex h-1.5 w-full overflow-hidden rounded-sm" style={{ background: 'var(--bg-card-inner)' }}>
+      <div className="axi-meter w-full" style={{ '--axi-meter-h': '6px' } as CSSProperties}>
         {teams.map((t) => (
           <div
             key={t.teamID}

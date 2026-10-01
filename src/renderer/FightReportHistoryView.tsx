@@ -119,8 +119,8 @@ function RepoDropdown({ options, selected, onSelect }: { options: HistoryRepoOpt
                             type="button"
                             onClick={() => { onSelect(option.key); setOpen(false); }}
                             className={`w-full text-left px-3 py-2 text-sm transition-colors ${option.key === selected.key ? 'font-medium' : ''}`}
-                            style={{ color: option.key === selected.key ? 'var(--brand-primary)' : 'var(--text-primary)' }}
-                            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                            style={{ color: option.key === selected.key ? 'var(--axi-accent)' : 'var(--axi-text)' }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--axi-surface-raised-paint)')}
                             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                         >
                             {option.label}
@@ -417,7 +417,7 @@ export function FightReportHistoryView() {
     if (error) {
         return (
             <div className="flex-1 min-h-0 flex items-center justify-center">
-                <div className="rounded-[4px] px-4 py-3 text-sm axi-ink-danger" style={{ background: 'var(--bg-card)', border: 'var(--history-edge-w, 1px) solid var(--border-default)' }}>
+                <div className="axi-well axi-well--sm text-sm axi-ink-danger axi-edge-danger">
                     {error}
                 </div>
             </div>
@@ -438,7 +438,7 @@ export function FightReportHistoryView() {
                 each one pairs its label with an .axi-tabs__close, and the tab
                 you are reading is filled rather than underlined - the language
                 has one way to say "this one is on" and the fill is it. */}
-            <div className="history-tabs border-b px-4" style={{ borderColor: 'var(--border-default)' }}>
+            <div className="history-tabs border-b border-b-[length:var(--axi-border-control)] axi-edge-line bg-[color:var(--axi-ground)] px-4 pt-1.5">
                 <nav className="axi-tabs items-center">
                     <button type="button" onClick={() => setActiveTab('list')}
                         aria-current={activeTab === 'list' ? 'page' : undefined}>
@@ -480,7 +480,7 @@ export function FightReportHistoryView() {
                         </div>
                     </div>
                 ) : (
-                    <div className="flex-1 min-h-0 flex items-center justify-center text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="flex-1 min-h-0 flex items-center justify-center text-sm" style={{ color: 'var(--axi-text-dim)' }}>
                         Report not found. It may have been closed.
                     </div>
                 );
@@ -499,12 +499,11 @@ export function FightReportHistoryView() {
                         initial={{ opacity: 0, y: -12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, ease: 'easeOut' }}
-                        className="history-source-bar rounded-[4px] px-4 py-3 mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
-                        style={{ background: 'var(--bg-card)', border: 'var(--history-edge-w, 1px) solid var(--border-default)' }}
+                        className="history-source-bar axi-panel [--axi-panel-pad:12px_16px] mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
                     >
                         <div className="min-w-0">
-                            <div className="text-[10px] uppercase tracking-[0.22em]" style={{ color: 'var(--text-secondary)' }}>History Source</div>
-                            <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>Browse your published fight reports.</div>
+                            <div className="text-[10px] uppercase tracking-[0.22em]" style={{ color: 'var(--axi-text-dim)' }}>History Source</div>
+                            <div className="text-xs" style={{ color: 'var(--axi-text-dim)' }}>Browse your published fight reports.</div>
                         </div>
                         <div className="flex items-center gap-2">
                             <RepoDropdown options={repoOptions} selected={selectedOption} onSelect={setSelectedRepoKey} />
@@ -564,8 +563,8 @@ export function FightReportHistoryView() {
                                                 type="button"
                                                 onClick={() => { setCommanderFilter(''); setCommanderDropdownOpen(false); }}
                                                 className="w-full text-left px-3 py-2 text-sm"
-                                                style={{ color: !commanderFilter ? 'var(--brand-primary)' : 'var(--text-primary)' }}
-                                                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                                                style={{ color: !commanderFilter ? 'var(--axi-accent)' : 'var(--axi-text)' }}
+                                                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--axi-surface-raised-paint)')}
                                                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                                             >
                                                 All Commanders
@@ -576,8 +575,8 @@ export function FightReportHistoryView() {
                                                     type="button"
                                                     onClick={() => { setCommanderFilter(cmdr); setCommanderDropdownOpen(false); }}
                                                     className={`w-full text-left px-3 py-2 text-sm ${commanderFilter === cmdr ? 'font-medium' : ''}`}
-                                                    style={{ color: commanderFilter === cmdr ? 'var(--brand-primary)' : 'var(--text-primary)' }}
-                                                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                                                    style={{ color: commanderFilter === cmdr ? 'var(--axi-accent)' : 'var(--axi-text)' }}
+                                                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--axi-surface-raised-paint)')}
                                                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                                                 >
                                                     {cmdr}
@@ -595,8 +594,7 @@ export function FightReportHistoryView() {
                             initial={{ opacity: 0, y: -8 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.2 }}
-                            className="rounded-[4px] px-4 py-3 mb-4 text-sm axi-ink-danger"
-                            style={{ background: 'var(--bg-card)', border: 'var(--history-edge-w, 1px) solid var(--border-default)' }}
+                            className="axi-well axi-well--sm axi-edge-danger mb-4 text-sm axi-ink-danger"
                         >
                             {detailError}
                         </motion.div>
@@ -608,7 +606,7 @@ export function FightReportHistoryView() {
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.3, delay: 0.1 }}
                             className="flex items-center justify-center py-12 text-sm"
-                            style={{ color: 'var(--text-secondary)' }}
+                            style={{ color: 'var(--axi-text-dim)' }}
                         >
                             Loading reports...
                         </motion.div>
@@ -620,7 +618,7 @@ export function FightReportHistoryView() {
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.3 }}
                             className="flex items-center justify-center py-12 text-sm"
-                            style={{ color: 'var(--text-secondary)' }}
+                            style={{ color: 'var(--axi-text-dim)' }}
                         >
                             {searchQuery.trim() ? 'No reports match your search.' : 'No reports found.'}
                         </motion.div>
@@ -676,8 +674,8 @@ export function FightReportHistoryView() {
                                                         type="button"
                                                         onClick={() => handleCopyLink(entry)}
                                                         className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-left transition-colors"
-                                                        style={{ color: copiedId === entry.id ? 'var(--status-success)' : 'var(--text-primary)' }}
-                                                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                                                        style={{ color: copiedId === entry.id ? 'var(--axi-ok)' : 'var(--axi-text)' }}
+                                                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--axi-surface-raised-paint)')}
                                                         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                                                     >
                                                         <Copy className="w-3 h-3 shrink-0" />
@@ -687,8 +685,8 @@ export function FightReportHistoryView() {
                                                         type="button"
                                                         onClick={() => handleDeleteOne(entry)}
                                                         className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-left transition-colors"
-                                                        style={{ color: 'var(--status-error)' }}
-                                                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                                                        style={{ color: 'var(--axi-danger)' }}
+                                                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--axi-surface-raised-paint)')}
                                                         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                                                     >
                                                         <Trash2 className="w-3 h-3 shrink-0" />
@@ -704,7 +702,7 @@ export function FightReportHistoryView() {
                                             <input type="checkbox" checked={selectedForDelete.has(entry.id)} readOnly className="axi-check" style={{ '--axi-check-size': '18px' } as CSSProperties} />
                                         </div>
                                     )}
-                                    <div className="text-sm font-semibold pr-6 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                                    <div className="text-sm font-semibold pr-6 flex items-center gap-2" style={{ color: 'var(--axi-text)' }}>
                                         <span className="truncate">{entry.title}</span>
                                         {entry.guild?.tag && (
                                             <button
@@ -714,33 +712,33 @@ export function FightReportHistoryView() {
                                                     setSearchQuery(entry.guild?.tag || '');
                                                 }}
                                                 className="axi-btn axi-btn--xs shrink-0"
-                                                style={{ borderColor: 'var(--border-hover)', color: 'var(--text-secondary)' }}
+                                                style={{ borderColor: 'var(--axi-rule)', color: 'var(--axi-text-dim)' }}
                                                 title={`Search reports by ${entry.guild?.name || entry.guild?.tag}`}
                                             >
                                                 [{entry.guild.tag}]
                                             </button>
                                         )}
                                     </div>
-                                    <div className="text-[11px] mt-1" style={{ color: 'var(--text-secondary)' }}>
+                                    <div className="text-[11px] mt-1" style={{ color: 'var(--axi-text-dim)' }}>
                                         {entry.dateLabel || `${entry.dateStart} — ${entry.dateEnd}`}
                                     </div>
                                     {entry.commanders?.length > 0 && (
-                                        <div className="text-[11px] mt-1" style={{ color: 'var(--brand-primary)' }}>
+                                        <div className="text-[11px] mt-1" style={{ color: 'var(--axi-accent)' }}>
                                             {entry.commanders.join(', ')}
                                         </div>
                                     )}
                                     {entry.summary && (
-                                        <div className="flex gap-4 mt-2 pt-2" style={{ borderTop: '1px solid var(--border-default)' }}>
+                                        <div className="flex gap-4 mt-2 pt-2" style={{ borderTop: 'var(--axi-border-control) solid var(--axi-ink-line)' }}>
                                             {entry.summary.avgSquadSize != null && (
                                                 <div>
-                                                    <div className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Squad</div>
-                                                    <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>~{Math.round(entry.summary.avgSquadSize)}</div>
+                                                    <div className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--axi-text-dim)' }}>Squad</div>
+                                                    <div className="text-sm font-semibold" style={{ color: 'var(--axi-text)' }}>~{Math.round(entry.summary.avgSquadSize)}</div>
                                                 </div>
                                             )}
                                             {entry.summary.avgEnemySize != null && (
                                                 <div>
-                                                    <div className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Enemy</div>
-                                                    <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>~{Math.round(entry.summary.avgEnemySize)}</div>
+                                                    <div className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--axi-text-dim)' }}>Enemy</div>
+                                                    <div className="text-sm font-semibold" style={{ color: 'var(--axi-text)' }}>~{Math.round(entry.summary.avgEnemySize)}</div>
                                                 </div>
                                             )}
                                         </div>
@@ -775,10 +773,10 @@ export function FightReportHistoryView() {
                             className="axi-dock axi-dock--end sticky bottom-0 -mx-4"
                         >
                             <div className="flex items-center justify-between">
-                                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                <span className="text-sm" style={{ color: 'var(--axi-text-dim)' }}>
                                     {selectedForDelete.size} report{selectedForDelete.size === 1 ? '' : 's'} selected
                                 </span>
-                                <ParticleHover className="rounded-[4px]" color="#ef4444">
+                                <ParticleHover className="rounded-[var(--axi-radius-sm)]" color="#ef4444">
                                     <button type="button" onClick={handleDeleteSelected} disabled={deleteLoading}
                                         className="axi-btn axi-ink-danger axi-edge-danger">
                                         {deleteLoading ? 'Deleting...' : 'Delete Selected'}

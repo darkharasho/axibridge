@@ -80,8 +80,8 @@ export const TopSkillsSection = ({
         {showOutgoing && (
         <div>
             <div className="flex flex-wrap items-center gap-2 mb-3.5 min-h-[28px]">
-                <ArrowBigUp className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                <h3 className="top-skills-outgoing-icon text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Top Outgoing Skills</h3>
+                <ArrowBigUp className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+                <h3 className="top-skills-outgoing-icon text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Top Outgoing Skills</h3>
                 <div className="ml-auto flex items-center gap-2">
                     {showMetricToggle && (
                         <PillToggleGroup
@@ -93,13 +93,13 @@ export const TopSkillsSection = ({
                             ]}
                         />
                     )}
-                    {!showMetricToggle && <span className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{metricLabel}</span>}
+                    {!showMetricToggle && <span className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--axi-text-dim)' }}>{metricLabel}</span>}
                 </div>
             </div>
             <div className="max-h-80 overflow-y-auto overflow-x-hidden space-y-4">
                 {sortedTopSkills.map((skill: { name: string; icon?: string; damage: number; hits: number }, i: number) => (
                     <div key={`outgoing-${skill.name || 'unknown'}-${i}`} className="flex items-center gap-4">
-                        <div className="w-8 text-center text-xl font-bold text-[color:var(--text-muted)]">#{i + 1}</div>
+                        <div className="w-8 text-center text-xl font-bold text-[color:var(--axi-text-faint)]">#{i + 1}</div>
                         <div className="flex-1">
                             <div className="text-sm mb-1 py-0.5 leading-normal">
                                 <div className="sm:flex sm:items-center sm:justify-between sm:gap-3">
@@ -114,7 +114,7 @@ export const TopSkillsSection = ({
                                     </div>
                                     <div className="shrink-0">
                                         <span className="top-skills-outgoing-value axi-ink-warn font-mono font-bold">{Math.round((skill as any)[metricKey] || 0).toLocaleString()}</span>
-                                        <span className="text-[color:var(--text-secondary)] text-xs ml-2">({skill.hits.toLocaleString()} hits)</span>
+                                        <span className="text-[color:var(--axi-text-dim)] text-xs ml-2">({skill.hits.toLocaleString()} hits)</span>
                                     </div>
                                 </div>
                             </div>
@@ -128,7 +128,7 @@ export const TopSkillsSection = ({
                     </div>
                 ))}
                 {sortedTopSkills.length === 0 && (
-                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No skill data available</div>
+                    <div className="axi-empty">No skill data available</div>
                 )}
             </div>
         </div>
@@ -143,7 +143,7 @@ export const TopSkillsSection = ({
         <div id={mode === 'both' ? 'top-skills-incoming' : undefined}>
             <div className="flex flex-wrap items-center gap-2 mb-3.5 min-h-[28px]">
                 <Shield className="w-4 h-4 shrink-0" style={{ color: 'var(--section-defense)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Top Incoming Skills</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Top Incoming Skills</h3>
                 <div className="ml-auto flex items-center gap-2">
                     {hasPlayerSplit ? (
                         <PillToggleGroup
@@ -155,14 +155,14 @@ export const TopSkillsSection = ({
                             ]}
                         />
                     ) : (
-                        <span className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>Damage</span>
+                        <span className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--axi-text-dim)' }}>Damage</span>
                     )}
                 </div>
             </div>
             <div className="max-h-80 overflow-y-auto overflow-x-hidden space-y-4">
                 {sortedIncoming.map((skill: { name: string; icon?: string; damage: number; hits: number }, i: number) => (
                     <div key={`incoming-${skill.name || 'unknown'}-${i}`} className="flex items-center gap-4">
-                        <div className="w-8 text-center text-xl font-bold text-[color:var(--text-muted)]">#{i + 1}</div>
+                        <div className="w-8 text-center text-xl font-bold text-[color:var(--axi-text-faint)]">#{i + 1}</div>
                         <div className="flex-1">
                             <div className="text-sm mb-1 py-0.5 leading-normal">
                                 <div className="sm:flex sm:items-center sm:justify-between sm:gap-3">
@@ -177,7 +177,7 @@ export const TopSkillsSection = ({
                                     </div>
                                     <div className="shrink-0">
                                         <span className="axi-ink-danger font-mono font-bold">{Math.round(incomingValue(skill)).toLocaleString()}</span>
-                                        <span className="text-[color:var(--text-secondary)] text-xs ml-2">({skill.hits.toLocaleString()} hits)</span>
+                                        <span className="text-[color:var(--axi-text-dim)] text-xs ml-2">({skill.hits.toLocaleString()} hits)</span>
                                     </div>
                                 </div>
                             </div>
@@ -191,7 +191,7 @@ export const TopSkillsSection = ({
                     </div>
                 ))}
                 {sortedIncoming.length === 0 && (
-                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No incoming damage data available</div>
+                    <div className="axi-empty">No incoming damage data available</div>
                 )}
             </div>
         </div>

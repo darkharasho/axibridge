@@ -19,8 +19,8 @@ const BAND_LABEL: Record<string, string> = {
 
 const bandColor = (fight: PinPressureFight): string | undefined => {
     if (!fight.comparable) return undefined;
-    if (fight.band === 'converged') return 'var(--status-danger)';
-    if (fight.band === 'focused') return 'var(--status-warning)';
+    if (fight.band === 'converged') return 'var(--axi-danger)';
+    if (fight.band === 'focused') return 'var(--axi-warn)';
     return undefined;
 };
 
@@ -56,10 +56,10 @@ export const PinPressureSection = ({ result }: Props) => {
     return (
         <div {...expandedPaneProps(isExpanded, expandedSectionClosing)}>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
-                <Crosshair className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Pin Pressure</h3>
+                <Crosshair className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Pin Pressure</h3>
                 {comparable > 0 && (
-                    <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="text-[10px]" style={{ color: 'var(--axi-text-dim)' }}>
                         {result.pooledRatio.toFixed(2)}× the squad&apos;s own rate across {comparable} {comparable === 1 ? 'fight' : 'fights'}
                     </span>
                 )}
@@ -77,7 +77,7 @@ export const PinPressureSection = ({ result }: Props) => {
               single "no data" line would flatten all three into a wrong one.
             */}
             {comparable === 0 ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
+                <div className="axi-empty">
                     {unmeasured > 0 && noComparison === 0 && fights.length === 0
                         ? <>None of the {unmeasured} loaded {unmeasured === 1 ? 'fight was' : 'fights were'} recorded with an arcdps build that logs enemy casts (May 2026 or later), so what the enemy aimed at before a down cannot be measured for {unmeasured === 1 ? 'it' : 'them'}.</>
                         : noComparison > 0
@@ -86,16 +86,16 @@ export const PinPressureSection = ({ result }: Props) => {
                 </div>
             ) : (
                 <>
-                    <div className={`rounded-[var(--radius-md)] overflow-hidden ${visible.length > 12 && !isExpanded ? 'max-h-[30rem] overflow-y-auto' : ''}`}>
-                        <table className="axi-table axi-table--sticky" style={{ color: 'var(--text-primary)' }}>
+                    <div className={`rounded-[var(--axi-radius-sm)] overflow-hidden ${visible.length > 12 && !isExpanded ? 'max-h-[30rem] overflow-y-auto' : ''}`}>
+                        <table className="axi-table axi-table--sticky" style={{ color: 'var(--axi-text)' }}>
                             <thead>
-                                <tr style={{ color: 'var(--text-secondary)' }}>
-                                    <th className="sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title="Ordered by how hard the enemy converged on the tag, hardest first — not chronologically.">Fight<span className="ml-1 normal-case tracking-normal opacity-70">(hardest first)</span></th>
-                                    <th className="text-left sticky top-0 z-20 bg-[color:var(--bg-elevated)]">Commander</th>
-                                    <th className="sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title={`Aimed casts in the ${windowSeconds}s before each of the tag's downs, per down, over the same figure for the rest of the squad before theirs. Both halves come from this fight, so its length, size and lethality divide out.`}>Focus at Down</th>
-                                    <th className="sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title={`Aimed casts in the ${windowSeconds}s before each tag down, per down.`}>Tag / Down</th>
-                                    <th className="sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title={`The same figure for every other squad member who went down — this fight's own baseline.`}>Squad / Down</th>
-                                    <th className="sticky top-0 z-20 bg-[color:var(--bg-elevated)]" title="How many times the tag went down in this fight, and how many downs the rest of the squad took. These are counts, not a rate — they are the denominators the two columns to the left are divided by.">Downs<span className="ml-1 normal-case tracking-normal opacity-70">(tag / squad)</span></th>
+                                <tr style={{ color: 'var(--axi-text-dim)' }}>
+                                    <th className="sticky top-0 z-20 bg-[color:var(--axi-surface-paint)]" title="Ordered by how hard the enemy converged on the tag, hardest first — not chronologically.">Fight<span className="ml-1 normal-case tracking-normal opacity-70">(hardest first)</span></th>
+                                    <th className="text-left sticky top-0 z-20 bg-[color:var(--axi-surface-paint)]">Commander</th>
+                                    <th className="sticky top-0 z-20 bg-[color:var(--axi-surface-paint)]" title={`Aimed casts in the ${windowSeconds}s before each of the tag's downs, per down, over the same figure for the rest of the squad before theirs. Both halves come from this fight, so its length, size and lethality divide out.`}>Focus at Down</th>
+                                    <th className="sticky top-0 z-20 bg-[color:var(--axi-surface-paint)]" title={`Aimed casts in the ${windowSeconds}s before each tag down, per down.`}>Tag / Down</th>
+                                    <th className="sticky top-0 z-20 bg-[color:var(--axi-surface-paint)]" title={`The same figure for every other squad member who went down — this fight's own baseline.`}>Squad / Down</th>
+                                    <th className="sticky top-0 z-20 bg-[color:var(--axi-surface-paint)]" title="How many times the tag went down in this fight, and how many downs the rest of the squad took. These are counts, not a rate — they are the denominators the two columns to the left are divided by.">Downs<span className="ml-1 normal-case tracking-normal opacity-70">(tag / squad)</span></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -115,11 +115,11 @@ export const PinPressureSection = ({ result }: Props) => {
                                                     <span className="ml-1.5 text-[10px] uppercase tracking-wide">{f.band !== 'normal' ? BAND_LABEL[f.band] : ''}</span>
                                                 </td>
                                                 <td>{f.tagPerDown.toFixed(1)}</td>
-                                                <td style={{ color: 'var(--text-secondary)' }}>{f.otherPerDown.toFixed(1)}</td>
+                                                <td style={{ color: 'var(--axi-text-dim)' }}>{f.otherPerDown.toFixed(1)}</td>
                                                 <td>{f.tagDowns} / {f.otherDowns}</td>
                                             </>
                                         ) : (
-                                            <td colSpan={4} style={{ color: 'var(--text-secondary)' }}>
+                                            <td colSpan={4} style={{ color: 'var(--axi-text-dim)' }}>
                                                 {f.tagDowns === 0
                                                     ? 'no comparison — the tag never went down'
                                                     : `no comparison — only ${f.otherDowns} other squad ${f.otherDowns === 1 ? 'down' : 'downs'} to compare against`}
@@ -143,7 +143,7 @@ export const PinPressureSection = ({ result }: Props) => {
                         </button>
                     )}
 
-                    <p className="mt-2.5 text-[10px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="mt-2.5 text-[10px] leading-relaxed" style={{ color: 'var(--axi-text-dim)' }}>
                         <strong>Focus at Down</strong> compares the enemy casts aimed at the tag in the {windowSeconds}s before it
                         fell against the casts aimed at everyone else in the squad before <em>they</em> fell, inside the same fight.
                         Above {FOCUSED_RATIO.toFixed(1)}× the enemy converged on the tag noticeably harder than on the squad;

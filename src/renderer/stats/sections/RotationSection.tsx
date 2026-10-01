@@ -143,8 +143,8 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
         return (
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
                 <ListOrdered className="w-4 h-4 shrink-0" style={{ color: ROTATION_ACCENT }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Rotation</h3>
-                <p className="text-[11px] w-full ml-6" style={{ color: 'var(--text-muted)' }}>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Rotation</h3>
+                <p className="text-[11px] w-full ml-6" style={{ color: 'var(--axi-text-faint)' }}>
                     {recorded ? ROTATION_TRIMMED_MESSAGE : ROTATION_NOT_RECORDED_MESSAGE}
                 </p>
             </div>
@@ -160,7 +160,7 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
         <div {...expandedPaneProps(isExpanded, expandedSectionClosing, { pad: '16px' })}>
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
                 <ListOrdered className="w-4 h-4 shrink-0" style={{ color: ROTATION_ACCENT }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Rotation</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Rotation</h3>
                 <span className="ml-auto flex items-center gap-2">
                     <FightPicker fights={fights} selectedId={fight?.id} onChange={setInternalFightId} />
                     <select
@@ -181,7 +181,7 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
                     section="Rotation"
                 />
             </div>
-            <div className="text-[10px] mb-3 ml-6" style={{ color: 'var(--text-secondary)' }}>
+            <div className="text-[10px] mb-3 ml-6" style={{ color: 'var(--axi-text-dim)' }}>
                 Per-cast timeline for one player
             </div>
             {/* Below `sm` the 208px rail would leave the track ~350px — about six
@@ -198,7 +198,7 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
                     >
                         {renderProfessionIcon(p.profession, undefined, 'w-3.5 h-3.5 shrink-0')}
                         {p.displayName}
-                        <span style={{ color: 'var(--text-muted)' }}>{p.skill.length}</span>
+                        <span style={{ color: 'var(--axi-text-faint)' }}>{p.skill.length}</span>
                     </button>
                 ))}
             </div>
@@ -219,14 +219,14 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
                                 onClick={() => setSelectedPlayerKey(p.key)}
                                 className="axi-btn axi-btn--xs text-left"
                                 style={{
-                                    background: selectedPlayer?.key === p.key ? 'var(--bg-hover)' : 'transparent',
-                                    color: 'var(--text-primary)',
-                                    border: `1px solid ${selectedPlayer?.key === p.key ? 'var(--border-hover)' : 'transparent'}`,
+                                    background: selectedPlayer?.key === p.key ? 'var(--axi-surface-raised-paint)' : 'transparent',
+                                    color: 'var(--axi-text)',
+                                    border: `1px solid ${selectedPlayer?.key === p.key ? 'var(--axi-rule)' : 'transparent'}`,
                                 }}
                             >
                                 {renderProfessionIcon(p.profession, undefined, 'w-3.5 h-3.5 shrink-0')}
                                 <span className="truncate flex-1">{p.displayName}</span>
-                                <span style={{ color: 'var(--text-muted)' }}>{p.skill.length}</span>
+                                <span style={{ color: 'var(--axi-text-faint)' }}>{p.skill.length}</span>
                             </button>
                         ))}
                     </div>
@@ -234,7 +234,7 @@ export const RotationSection: React.FC<RotationSectionProps> = ({
                 <div className="flex-1 min-w-0">
                     {selectedPlayer && fight ? (
                         <>
-                            <div className="flex flex-wrap gap-3 mb-2 text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                            <div className="flex flex-wrap gap-3 mb-2 text-[10px]" style={{ color: 'var(--axi-text-dim)' }}>
                                 <span>Casts: {selectedPlayer.skill.length}</span>
                                 <span>Active: {(selectedPlayer.activeMs / 1000).toFixed(1)}s</span>
                                 <span>Casts/min: {castsPerMin}</span>

@@ -198,22 +198,22 @@ export function AppLayout({ ctx }: { ctx: any }) {
 
 
     return (
-        <div className={shellClassName} style={{ borderRadius: maximized ? 0 : 'var(--window-radius)', overflow: 'hidden' }}>
+        <div className={shellClassName} style={{ borderRadius: maximized ? 0 : 'var(--axi-radius)', overflow: 'hidden' }}>
             {/* Custom Title Bar */}
-            <div className="app-titlebar h-12 shrink-0 w-full flex justify-between items-center px-4 border-b drag-region select-none z-50" style={{ background: 'var(--bg-base)', borderColor: 'var(--border-subtle)' }}>
+            <div className="app-titlebar axi-titlebar w-full justify-between px-4 drag-region select-none z-50">
                 <div className="flex items-center gap-2.5">
                     <span className="axibridge-logo h-5 w-5" style={axibridgeLogoStyle} aria-label="AxiBridge logo" />
                     <span style={{ fontFamily: '"Cinzel", serif', fontSize: '0.95rem', letterSpacing: '0.06em', fontWeight: 500 }}>
                         <span style={{ color: '#ffffff' }}>Axi</span>
-                        <span className="app-brand-bridge" style={{ color: 'var(--brand-primary)' }}>Bridge</span>
+                        <span className="app-brand-bridge" style={{ color: 'var(--axi-accent)' }}>Bridge</span>
                     </span>
                     {isDev ? (
-                        <span className="dev-build-badge ml-1 rounded-md border axi-edge-warn bg-amber-500/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] axi-ink-warn">
+                        <span className="dev-build-badge ml-1 axi-chip axi-chip--warn">
                             Dev Build
                         </span>
                     ) : null}
                 </div>
-                <div className="flex items-center gap-4 no-drag">
+                <div className="axi-titlebar__btns items-center gap-4 no-drag">
                     <button onClick={() => window.electronAPI.windowControl('minimize')} className="axi-action axi-action--glyph axi-ink-dim">
                         <Minus className="w-4 h-4" />
                     </button>
@@ -226,7 +226,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                 </div>
             </div>
 
-            <div data-nav-strip className="flex items-center px-3 py-1.5 border-b shrink-0" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-elevated)' }}>
+            <div data-nav-strip className="flex items-center px-3 py-2 border-b border-b-[length:var(--axi-border-panel)] axi-edge-line bg-[color:var(--axi-surface-paint)] shrink-0">
                 {/* Upstream's tab strip. It marks the current view with
                     aria-current="page" rather than a class, so what a screen
                     reader is told and what the fill says cannot disagree - and
@@ -267,15 +267,14 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                     <button
                                         onClick={() => window.electronAPI.restartApp()}
                                         className="axi-btn axi-btn--xs"
-                                        style={{ background: 'var(--status-success-bg)', color: 'var(--status-success)', borderColor: 'var(--status-success-border)' }}
+                                        style={{ background: 'var(--axi-surface-raised-paint)', color: 'var(--axi-ok)', borderColor: 'var(--axi-ok)' }}
                                     >
                                         <RefreshCw className="w-3 h-3" />
                                         <span>Restart to Update</span>
                                     </button>
                                 ) : (
                                     <div
-                                        className="flex items-center gap-2 text-[10px] font-medium px-2 py-0.5 rounded-[4px] border"
-                                        style={{ background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))', borderColor: 'var(--accent-border)' }}
+                                        className="axi-chip"
                                     >
                                         <RefreshCw className="w-3 h-3 animate-spin" />
                                         <span>{updateProgress ? `${Math.round(updateProgress.percent)}%` : 'Updating...'}</span>
@@ -289,11 +288,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                     initial={{ opacity: 0, x: 20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: 20 }}
-                                    className="flex items-center gap-2 text-[10px] font-medium px-2 py-0.5 rounded-[4px] border"
-                                    style={updateStatus.includes('Error')
-                                        ? { background: 'var(--status-error-bg)', color: 'var(--status-error)', borderColor: 'var(--status-error-border)' }
-                                        : { background: 'var(--bg-card)', color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }
-                                    }
+                                    className={`axi-chip ${updateStatus.includes('Error') ? 'axi-chip--danger' : ''}`}
                                 >
                                     <RefreshCw className={`w-3 h-3 ${updateStatus.includes('Checking') ? 'animate-spin' : ''}`} />
                                     <span>{updateStatus}</span>
@@ -303,8 +298,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                     </AnimatePresence>
                     {!autoUpdateSupported && (
                         <div
-                            className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-[4px] border"
-                            style={{ background: 'var(--status-warning-bg)', color: 'var(--status-warning)', borderColor: 'var(--status-warning-border)' }}
+                            className="axi-chip axi-chip--warn"
                             title={autoUpdateDisabledReason === 'portable'
                                 ? 'Portable build detected'
                                 : autoUpdateDisabledReason === 'missing-config'
@@ -315,8 +309,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                         </div>
                     )}
                     <span
-                        className="app-version-pill text-[10px] px-2 py-0.5 rounded-[4px] border cursor-pointer select-none transition-colors"
-                        style={{ color: 'var(--text-muted)', borderColor: 'var(--border-subtle)', background: 'var(--bg-card)' }}
+                        className="app-version-pill axi-chip axi-chip--action axi-ink-faint select-none"
                         onClick={() => {
                             if (view === 'settings') {
                                 if (!settingsUpdateCheckRef.current) {
@@ -347,8 +340,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                     </span>
                     <button
                         onClick={() => setShowTerminal(!showTerminal)}
-                        className={`p-1 rounded-[4px] transition-colors ${showTerminal ? 'text-[color:var(--text-primary)]' : 'text-[color:var(--text-muted)] hover:text-[color:var(--text-secondary)]'}`}
-                        style={showTerminal ? { background: 'var(--accent-bg)' } : {}}
+                        className={`p-1 transition-colors ${showTerminal ? 'text-[color:var(--axi-text)]' : 'text-[color:var(--axi-text-faint)] hover:text-[color:var(--axi-text-dim)]'}`}
+                        style={showTerminal ? { background: 'var(--axi-surface-paint)' } : {}}
                         title="Toggle Terminal"
                     >
                         <TerminalIcon className="w-3.5 h-3.5" />
@@ -357,7 +350,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
             </div>
 
 
-            <div className={`app-content relative z-10 max-w-none flex-1 w-full min-w-0 flex flex-col min-h-0 ${(view === 'stats' || view === 'history' || view === 'commander') ? 'pt-4 px-4 pb-2 overflow-hidden' : 'p-4 overflow-hidden'}`} style={{ background: 'var(--bg-elevated)' }}>
+            <div className={`app-content relative z-10 max-w-none flex-1 w-full min-w-0 flex flex-col min-h-0 ${(view === 'stats' || view === 'history' || view === 'commander') ? 'pt-4 px-4 pb-2 overflow-hidden' : 'p-4 overflow-hidden'}`}>
 
                 {createPortal(
                     <WebUploadOverlay
@@ -500,8 +493,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                             }}
                             className="w-full px-3 py-2 text-left text-sm transition-colors"
                             style={enabledWebhookIds.length === 0
-                                ? { background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }
-                                : { color: 'var(--text-secondary)' }}
+                                ? { background: 'var(--axi-surface-paint)', color: 'var(--axi-text-dim)' }
+                                : { color: 'var(--axi-text-dim)' }}
                             role="option"
                             aria-selected={enabledWebhookIds.length === 0}
                         >
@@ -520,8 +513,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                     onClick={() => handleSetDestinationEnabled(hook.id, !isEnabled)}
                                     className="w-full px-3 py-2 text-left text-sm transition-colors flex items-center gap-2"
                                     style={isEnabled
-                                        ? { background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }
-                                        : { color: 'var(--text-secondary)' }}
+                                        ? { background: 'var(--axi-surface-paint)', color: 'var(--axi-text-dim)' }
+                                        : { color: 'var(--axi-text-dim)' }}
                                     role="option"
                                     aria-selected={isEnabled}
                                 >
@@ -531,7 +524,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                     <span className="truncate">{hook.name}</span>
                                     {isBridge && (
                                         <span
-                                            className={`ml-auto shrink-0 px-1.5 py-0.5 rounded-[3px] text-[9px] font-semibold uppercase tracking-wide ${needsRelink ? 'bg-amber-500/20 axi-ink-warn' : 'bg-purple-500/20 axi-ink-meta'}`}
+                                            className={`ml-auto shrink-0 axi-chip ${needsRelink ? 'axi-chip--warn' : 'axi-chip--meta'}`}
                                         >
                                             {needsRelink ? 'Re-link' : 'Bridge'}
                                         </span>

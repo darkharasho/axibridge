@@ -20,12 +20,11 @@ type UnpublishedSectionNoticeProps = {
 export const UnpublishedSectionNotice = ({ sectionLabel, settingLabel, onEnable }: UnpublishedSectionNoticeProps) => (
     <div
         data-testid="unpublished-section-notice"
-        className="mb-2 rounded-[4px] px-3 py-2 flex items-center gap-3"
-        style={{ background: 'var(--status-info-bg)', border: '1px solid var(--status-info-border)' }}
+        className="mb-2 axi-well axi-well--sm axi-edge-meta flex items-center gap-3"
     >
-        <CloudOff className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--status-info)' }} aria-hidden="true" />
-        <div className="flex-1 min-w-0 text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}>
-            <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>Not in published reports.</span>{' '}
+        <CloudOff className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--axi-meta)' }} aria-hidden="true" />
+        <div className="flex-1 min-w-0 text-[11px] leading-snug" style={{ color: 'var(--axi-text-dim)' }}>
+            <span className="font-semibold" style={{ color: 'var(--axi-text)' }}>Not in published reports.</span>{' '}
             {sectionLabel} is available here, but web uploads leave it out while{' '}
             <span className="font-semibold">{settingLabel}</span> is off.
         </div>
@@ -34,7 +33,7 @@ export const UnpublishedSectionNotice = ({ sectionLabel, settingLabel, onEnable 
                 type="button"
                 onClick={onEnable}
                 className="axi-btn axi-btn--xs flex-shrink-0"
-                style={{ color: 'var(--status-info)', border: '1px solid var(--status-info-border)' }}
+                style={{ color: 'var(--axi-meta)', border: '1px solid var(--axi-meta)' }}
             >
                 Include in uploads
             </button>

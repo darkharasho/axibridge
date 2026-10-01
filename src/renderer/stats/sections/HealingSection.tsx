@@ -57,7 +57,7 @@ export const HealingSection = ({
     <div {...expandedPaneProps(expandedSection === 'healing-stats', expandedSectionClosing)}>
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
             <HeartPulse className="w-4 h-4 shrink-0" style={{ color: 'var(--section-healing)' }} />
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>
                 Healing Stats
             </h3>
             {playersWithoutAddon > 0 && (
@@ -110,11 +110,11 @@ export const HealingSection = ({
             </div>
         </div>
         {stats.healingPlayers.length === 0 ? (
-            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No healing stats available</div>
+            <div className="axi-empty">No healing stats available</div>
         ) : isExpanded ? (
             <div className="flex flex-col gap-4">
                 <div>
-                    <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--axi-rule)' }}>
                         <SearchSelectDropdown
                             options={[
                                 ...healingColumnOptions.map((option) => ({ ...option, type: 'column' as const })),
@@ -157,7 +157,7 @@ export const HealingSection = ({
                             buttonLabel="Players"
                             buttonIcon={<Users className="h-3.5 w-3.5" />}
                         />
-                        <div className="h-5 w-px" style={{ background: 'var(--border-subtle)' }} />
+                        <div className="h-5 w-px" style={{ background: 'var(--axi-rule)' }} />
                         <PillToggleGroup
                             value={healingCategory}
                             onChange={setHealingCategory}
@@ -292,7 +292,7 @@ export const HealingSection = ({
                                     id: `${entry.row.account}-${idx}`,
                                     label: (
                                         <>
-                                            <span className="font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</span>
+                                            <span className="font-mono" style={{ color: 'var(--axi-text-faint)' }}>{idx + 1}</span>
                                             {renderProfessionIcon(entry.row.profession, entry.row.professionList, 'w-4 h-4')}
                                             <span className="truncate">{entry.row.account}</span>
                                             {entry.row.hasHealAddon === false && <PartialMarker />}
@@ -315,7 +315,7 @@ export const HealingSection = ({
                 contentStyle={undefined}
                 sidebar={
                     <>
-                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Healing Tabs</div>
+                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--axi-text-dim)' }}>Healing Tabs</div>
                         <div className="axi-rail__nav axi-rail__nav--quiet flex-1 overflow-y-auto pr-1">
                             {HEALING_METRICS.map((metric) => (
                                 <button

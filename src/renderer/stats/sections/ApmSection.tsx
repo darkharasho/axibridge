@@ -95,8 +95,8 @@ export const ApmSection = ({
     return (
     <div {...expandedPaneProps(expandedSection === 'apm-stats', expandedSectionClosing)}>
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
-            <span className="flex shrink-0" style={{ color: 'var(--brand-primary)' }}><Gw2ApmIcon className="w-4 h-4" /></span>
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>APM Breakdown</h3>
+            <span className="flex shrink-0" style={{ color: 'var(--axi-accent)' }}><Gw2ApmIcon className="w-4 h-4" /></span>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>APM Breakdown</h3>
             <SectionExpandButton
                 expanded={isExpanded}
                 onToggle={() => (expandedSection === 'apm-stats' ? closeExpandedSection() : openExpandedSection('apm-stats'))}
@@ -105,15 +105,15 @@ export const ApmSection = ({
         </div>
         <div className={expandedSection === 'apm-stats' ? 'flex-1 min-h-0 flex flex-col' : ''}>
             {!apmSpecAvailable ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
+                <div className="axi-empty">
                     {skillUsageAvailable
                         ? 'No APM data available for the current selection.'
                         : 'Upload or highlight logs with rotation data to enable the APM table.'}
                 </div>
             ) : (
                 <div className={`grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-0 ${expandedSection === 'apm-stats' ? 'flex-1 min-h-0 h-full' : ''}`}>
-                    <div className={`pr-3 flex flex-col min-h-0 ${expandedSection === 'apm-stats' ? 'h-full' : ''}`} style={{ borderRight: '1px solid var(--border-subtle)' }}>
-                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Elite Specs</div>
+                    <div className={`pr-3 flex flex-col min-h-0 ${expandedSection === 'apm-stats' ? 'h-full' : ''}`} style={{ borderRight: '1px solid var(--axi-rule)' }}>
+                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--axi-text-dim)' }}>Elite Specs</div>
                         <div className="mb-2">
                             <input
                                 type="text"
@@ -150,7 +150,7 @@ export const ApmSection = ({
                                                 {renderProfessionIcon(spec.profession, undefined, 'w-4 h-4')}
                                                 <span className="truncate">{spec.profession}</span>
                                             </div>
-                                            <div className="flex items-center gap-2 text-[color:var(--text-secondary)]">
+                                            <div className="flex items-center gap-2 text-[color:var(--axi-text-dim)]">
                                                 <span className="text-[10px]">{spec.players.length}p</span>
                                             </div>
                                         </div>
@@ -210,7 +210,7 @@ export const ApmSection = ({
                                                 if (!query) return true;
                                                 return String(skill.name || '').toLowerCase().includes(query);
                                             }).length === 0 && (
-                                                <div className="px-2 py-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>No matching skills</div>
+                                                <div className="px-2 py-1 text-[10px]" style={{ color: 'var(--axi-text-faint)' }}>No matching skills</div>
                                             )}
                                         </div>
                                     )}
@@ -220,7 +220,7 @@ export const ApmSection = ({
                     </div>
                     <div className={`pl-3 overflow-hidden ${expandedSection === 'apm-stats' ? 'flex flex-col min-h-0' : ''}`}>
                         {!activeApmSpecTable ? (
-                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
+                            <div className="axi-empty">
                                 Select an elite spec to view APM details
                             </div>
                         ) : (
@@ -257,7 +257,7 @@ export const ApmSection = ({
                                     ]);
                                     return (
                                         <>
-                                        <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                                        <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--axi-rule)' }}>
                                                 <SearchSelectDropdown
                                                     options={searchOptions}
                                                     selectedIds={selectedIds}
@@ -298,7 +298,7 @@ export const ApmSection = ({
                                                     buttonLabel="Players"
                                                     buttonIcon={<Users className="h-3.5 w-3.5" />}
                                                 />
-                                                <div className="h-5 w-px" style={{ background: 'var(--border-subtle)' }} />
+                                                <div className="h-5 w-px" style={{ background: 'var(--axi-rule)' }} />
                                                 <PillToggleGroup
                                                     value={apmView}
                                                     onChange={setApmView}
@@ -364,7 +364,7 @@ export const ApmSection = ({
                                             : (activeApmSpecTable.playerRows || []);
                                         if (skills.length === 0) {
                                             return (
-                                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
+                                                <div className="axi-empty">
                                                     No skills available for this class.
                                                 </div>
                                             );
@@ -416,7 +416,7 @@ export const ApmSection = ({
                                                     id: `${activeApmSpecTable.profession}-${entry.row.key}`,
                                                     label: (
                                                         <>
-                                                            <span className="text-[color:var(--text-muted)] font-mono">{index + 1}</span>
+                                                            <span className="text-[color:var(--axi-text-faint)] font-mono">{index + 1}</span>
                                                             {renderProfessionIcon(entry.row.profession, entry.row.professionList, 'w-4 h-4')}
                                                             <span className="truncate">{entry.row.displayName}</span>
                                                         </>
@@ -430,11 +430,11 @@ export const ApmSection = ({
                                     <>
                                         <div className="stats-table-shell__header">
                                             <div className="flex items-center justify-between gap-2 px-4 py-3">
-                                                <div className="min-w-0 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                                                <div className="min-w-0 text-sm font-semibold" style={{ color: 'var(--axi-text)' }}>
                                                     <div className="flex items-center gap-2 min-w-0">
                                                         {renderProfessionIcon(activeApmSpecTable.profession, undefined, 'w-4 h-4')}
                                                         <span className="truncate">{activeApmSpecTable.profession}</span>
-                                                        <span className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>/</span>
+                                                        <span className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--axi-text-faint)' }}>/</span>
                                                         {isAllApmSkills || !activeApmSkill ? (
                                                             <span className="truncate">All Skills</span>
                                                         ) : (
@@ -442,7 +442,7 @@ export const ApmSection = ({
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                                                <div className="text-[11px]" style={{ color: 'var(--axi-text-dim)' }}>
                                                     {isAllApmSkills || !activeApmSkill
                                                         ? `${activeApmSpecTable.playerRows?.length || 0} players`
                                                         : `${(activeApmSkill as any)?.totalCasts ?? 0} casts`}

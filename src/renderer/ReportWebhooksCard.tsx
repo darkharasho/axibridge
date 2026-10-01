@@ -63,11 +63,11 @@ export function ReportWebhooksCard({
     };
 
     return (
-        <div className="rounded-[4px] border p-4" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
+        <div className="axi-panel [--axi-panel-pad:16px]">
             <div className="flex items-center justify-between mb-1">
                 <div>
-                    <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Report Webhooks</div>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    <div className="text-sm font-semibold" style={{ color: 'var(--axi-text)' }}>Report Webhooks</div>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--axi-text-faint)' }}>
                         Every enabled webhook gets the report link after each Upload to Web.
                         Forum channels create a new post titled from the template.
                     </p>
@@ -76,7 +76,7 @@ export function ReportWebhooksCard({
                     type="button"
                     onClick={() => onChange([...reportWebhooks, makeDefaultReportWebhook(Date.now().toString())])}
                     className="axi-btn axi-btn--sm"
-                    style={{ background: 'var(--accent-bg)', color: 'var(--text-primary)', borderColor: 'var(--accent-border)' }}
+                    style={{ background: 'var(--axi-surface-paint)', color: 'var(--axi-text)', borderColor: 'var(--axi-ink-line)' }}
                 >
                     <Plus className="w-3.5 h-3.5" />
                     Add Webhook
@@ -97,10 +97,9 @@ export function ReportWebhooksCard({
                                     value={draftValue(hook, 'name')}
                                     onChange={(e) => setDraft(hook.id, 'name', e.target.value)}
                                     onBlur={() => commitDraft(hook)}
-                                    className="flex-1 min-w-0 rounded-[4px] border px-2 py-1.5 text-xs bg-transparent focus:outline-none"
-                                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                    className="flex-1 min-w-0 axi-input text-xs"
                                 />
-                                <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
+                                <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: 'var(--axi-text-dim)' }}>
                                     <input
                                         type="checkbox"
                                         className="axi-check"
@@ -111,7 +110,7 @@ export function ReportWebhooksCard({
                                     />
                                     Enabled
                                 </label>
-                                <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
+                                <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: 'var(--axi-text-dim)' }}>
                                     <input
                                         type="checkbox"
                                         className="axi-check"
@@ -127,7 +126,7 @@ export function ReportWebhooksCard({
                                     title="Remove webhook"
                                     onClick={() => onChange(reportWebhooks.filter((entry) => entry.id !== hook.id))}
                                     className="axi-btn axi-btn--icon"
-                                    style={{ color: 'var(--status-error, #f87171)' }}
+                                    style={{ color: 'var(--axi-danger)' }}
                                 >
                                     <Trash2 className="w-3.5 h-3.5" />
                                 </button>
@@ -138,11 +137,10 @@ export function ReportWebhooksCard({
                                 value={url}
                                 onChange={(e) => setDraft(hook.id, 'url', e.target.value)}
                                 onBlur={() => commitDraft(hook)}
-                                className="w-full rounded-[4px] border px-2 py-1.5 text-xs bg-transparent focus:outline-none"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                className="w-full axi-input text-xs"
                             />
                             {!looksLikeDiscordWebhook(url) && (
-                                <p className="text-[11px]" style={{ color: 'var(--status-warning, #fbbf24)' }}>
+                                <p className="text-[11px]" style={{ color: 'var(--axi-warn)' }}>
                                     This doesn't look like a Discord webhook URL.
                                 </p>
                             )}
@@ -152,16 +150,15 @@ export function ReportWebhooksCard({
                                 value={template}
                                 onChange={(e) => setDraft(hook.id, 'titleTemplate', e.target.value)}
                                 onBlur={() => commitDraft(hook)}
-                                className="w-full rounded-[4px] border px-2 py-1.5 text-xs bg-transparent focus:outline-none font-mono"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                className="w-full axi-input text-xs font-mono"
                             />
-                            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                            <p className="text-[11px]" style={{ color: 'var(--axi-text-faint)' }}>
                                 Preview: {renderReportTitle(template, PREVIEW_CTX)}
                                 <span className="ml-2 opacity-70">
                                     Placeholders: {'{date}'} {'{day_of_week}'} {'{commander}'} {'{commanders}'} {'{account}'} {'{guild}'} {'{guild_tag}'}
                                 </span>
                             </p>
-                            <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--axi-text-dim)' }}>
                                 <span className="shrink-0">Post style</span>
                                 <select
                                     aria-label="Post style"
@@ -174,7 +171,7 @@ export function ReportWebhooksCard({
                                     ))}
                                 </select>
                             </label>
-                            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                            <p className="text-[11px]" style={{ color: 'var(--axi-text-faint)' }}>
                                 {STYLE_OPTIONS.find((o) => o.value === coerceReportPostStyle(hook.style))!.hint}
                             </p>
                             {hook.isForum && (
@@ -185,15 +182,14 @@ export function ReportWebhooksCard({
                                         value={rawTags}
                                         onChange={(e) => setDraft(hook.id, 'forumTagIds', e.target.value)}
                                         onBlur={() => commitDraft(hook)}
-                                        className="w-full rounded-[4px] border px-2 py-1.5 text-xs bg-transparent focus:outline-none font-mono"
-                                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                        className="w-full axi-input text-xs font-mono"
                                     />
                                     {rawTags.trim().length > 0 && parsedTags.length === 0 && (
-                                        <p className="text-[11px]" style={{ color: 'var(--status-warning, #fbbf24)' }}>
+                                        <p className="text-[11px]" style={{ color: 'var(--axi-warn)' }}>
                                             No tag IDs recognized — IDs are 17–20 digit numbers.
                                         </p>
                                     )}
-                                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                                    <p className="text-[11px]" style={{ color: 'var(--axi-text-faint)' }}>
                                         {parsedTags.length > MAX_FORUM_POST_TAGS
                                             ? `${parsedTags.length} tag IDs found — Discord allows 5 per post; the first 5 are used. `
                                             : parsedTags.length > 0

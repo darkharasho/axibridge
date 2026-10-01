@@ -30,8 +30,8 @@ export function CommanderProcessingBanner({ logs }: { logs: ILogData[] }) {
 
   return (
     <ProcessingStrip className="mb-3">
-      <span style={{ color: 'var(--text-primary)' }}>{summary}</span>
-      <span className="ml-1.5" style={{ color: 'var(--text-muted)' }}>
+      <span style={{ color: 'var(--axi-text)' }}>{summary}</span>
+      <span className="ml-1.5" style={{ color: 'var(--axi-text-faint)' }}>
         (Commander view will update once parsing finishes)
       </span>
     </ProcessingStrip>

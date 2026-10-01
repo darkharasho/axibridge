@@ -212,7 +212,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
         >
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                    <div className="settings-section__badge p-2 bg-blue-500/20 rounded-[4px] border axi-edge-meta">
+                    <div className="settings-section__badge axi-well axi-well--sm axi-ink-dim [--axi-well-pad:8px]">
                         <Icon className="w-5 h-5 axi-ink-meta" />
                     </div>
                     <h3 className="text-lg font-semibold axi-ink-plain">{title}</h3>
@@ -415,7 +415,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         return (
             <>
                 {before}
-                <mark className="rounded bg-cyan-500/30 px-1 axi-ink-meta">{match}</mark>
+                <mark className="bg-transparent axi-ink-meta font-semibold">{match}</mark>
                 {after}
             </>
         );
@@ -439,12 +439,12 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             const nodeRect = node.getBoundingClientRect();
             const scrollOffset = Math.max(0, container.scrollTop + (nodeRect.top - containerRect.top) - 12);
             container.scrollTo({ top: scrollOffset, behavior: 'smooth' });
-            node.classList.add('ring-2', 'ring-cyan-400/70', 'bg-cyan-500/10');
+            node.classList.add('ring-2', 'ring-[color:var(--axi-accent)]');
             if (metricsSpecHighlightRef.current) {
                 window.clearTimeout(metricsSpecHighlightRef.current);
             }
             metricsSpecHighlightRef.current = window.setTimeout(() => {
-                node.classList.remove('ring-2', 'ring-cyan-400/70', 'bg-cyan-500/10');
+                node.classList.remove('ring-2', 'ring-[color:var(--axi-accent)]');
             }, 1600);
         });
     };
@@ -1354,7 +1354,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         key={opt.id}
                         type="button"
                         onClick={() => updateStatsViewSettingValue('mvpBoonMetric', opt.id)}
-                        className={`px-2 py-0.5 rounded-md text-[10.5px] font-semibold border transition-colors ${active ? '' : 'axi-edge-rule axi-ink-dim hover:text-gray-200'}`}
+                        aria-pressed={active} className="axi-pill axi-pill--xs"
                         style={active ? { color, background: `${color}1f`, borderColor: `${color}66` } : undefined}
                     >
                         {opt.label}
@@ -1470,7 +1470,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                 className="flex items-center justify-between gap-4 mb-6"
             >
                 <div className="flex items-start gap-3 sm:items-center sm:gap-4">
-                    <div className="p-2 rounded-[4px] shrink-0" style={{ background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', color: 'var(--button-label, var(--brand-primary))' }}>
+                    <div className="axi-well axi-well--sm [--axi-well-pad:8px] shrink-0 axi-ink-dim">
                         <Settings className="w-5 h-5" />
                     </div>
                     <div className="space-y-1">
@@ -1494,10 +1494,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 className="flex items-center gap-2"
                             >
                                 <div
-                                    className={`px-3 py-1 rounded-full text-xs font-semibold border ${isSaving
-                                        ? 'bg-green-500/20 axi-ink-ok axi-edge-ok'
-                                        : 'bg-white/5 axi-ink-dim axi-edge-rule'
-                                        }`}
+                                    className={`axi-chip ${isSaving ? 'axi-chip--ok' : ''}`}
                                 >
                                     {isSaving ? 'Saving…' : 'Saved'}
                                 </div>
@@ -1575,7 +1572,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                     {settingsSearchMatches && (
                         <div className="flex flex-col gap-1">
                             {settingsSearchMatches.length === 0 && (
-                                <div className="px-3 py-6 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
+                                <div className="px-3 py-6 text-center text-xs" style={{ color: 'var(--axi-text-faint)' }}>
                                     No settings match “{settingsSearch}”.
                                 </div>
                             )}
@@ -1590,10 +1587,10 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             setSettingsSearch('');
                                             navigateToSection(id);
                                         }}
-                                        className="w-full text-left px-3 py-2 rounded-[4px] text-sm transition-colors"
-                                        style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', color: 'var(--text-secondary)' }}
+                                        className="w-full text-left px-3 py-2 text-sm transition-colors"
+                                        style={{ background: 'var(--axi-surface-paint)', border: 'var(--axi-border-control) solid var(--axi-ink-line)', color: 'var(--axi-text-dim)' }}
                                     >
-                                        <span style={{ color: 'var(--text-muted)' }}>{categoryLabel} ›</span>
+                                        <span style={{ color: 'var(--axi-text-faint)' }}>{categoryLabel} ›</span>
                                         {' '}
                                         {labelForSection(id)}
                                     </button>
@@ -1608,7 +1605,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         style={{ display: selectedCategoryId === 'discord' ? undefined : 'none' }}
                     >
                     <SettingsSection title="Destinations" icon={MessageSquare} delay={0.02} sectionId="destinations">
-                        <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-xs mb-3" style={{ color: 'var(--axi-text-faint)' }}>
                             Every destination switched on here receives each fight report.
                         </p>
                         <DestinationsCard
@@ -1870,7 +1867,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     setGithubManageOpen(true);
                                     loadGithubReports();
                                 }}
-                                className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white hover:border-white/30 transition-colors"
+                                className="axi-pill axi-pill--xs"
                             >
                                 Manage
                             </button>
@@ -1890,12 +1887,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 <LinkIcon className="w-4 h-4" />
                                 {githubAuthStatus === 'connected' ? 'Re-connect GitHub' : 'Connect GitHub'}
                             </button>
-                            <div className={`text-xs px-3 py-1 rounded-full border ${githubAuthStatus === 'connected'
-                                ? 'bg-emerald-500/20 axi-ink-ok axi-edge-ok'
-                                : githubAuthStatus === 'pending'
-                                    ? 'bg-cyan-500/20 axi-ink-meta axi-edge-meta'
-                                    : 'bg-white/5 axi-ink-dim axi-edge-rule'
-                                }`}
+                            <div className={`axi-chip ${githubAuthStatus === 'connected' ? 'axi-chip--ok' : githubAuthStatus === 'pending' ? 'axi-chip--meta' : ''}`}
                             >
                                 {githubAuthStatus === 'connected' ? 'Connected' : githubAuthStatus === 'pending' ? 'Waiting for OAuth...' : 'Not connected'}
                             </div>
@@ -1924,7 +1916,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     <div className="font-mono text-lg axi-ink-plain">{githubUserCode}</div>
                                     <button
                                         onClick={() => navigator.clipboard.writeText(githubUserCode)}
-                                        className="px-3 py-1 rounded-full text-[10px] border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
+                                        className="axi-pill axi-pill--xs"
                                     >
                                         Copy Code
                                     </button>
@@ -1939,19 +1931,13 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => setGithubRepoMode('select')}
-                                            className={`px-2 py-1 rounded-full text-[10px] border ${githubRepoMode === 'select'
-                                                ? 'bg-cyan-500/20 axi-ink-meta axi-edge-meta'
-                                                : 'bg-white/5 axi-ink-dim axi-edge-rule'
-                                                }`}
+                                            aria-pressed={githubRepoMode === 'select'} className={`axi-pill axi-pill--xs text-[10px]`.trim()}
                                         >
                                             Choose Existing
                                         </button>
                                         <button
                                             onClick={() => setGithubRepoMode('create')}
-                                            className={`px-2 py-1 rounded-full text-[10px] border ${githubRepoMode === 'create'
-                                                ? 'bg-cyan-500/20 axi-ink-meta axi-edge-meta'
-                                                : 'bg-white/5 axi-ink-dim axi-edge-rule'
-                                                }`}
+                                            aria-pressed={githubRepoMode === 'create'} className={`axi-pill axi-pill--xs text-[10px]`.trim()}
                                         >
                                             Create New
                                         </button>
@@ -2007,10 +1993,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                                     setGithubCreateOwner(githubOrgs.some((org) => org.login === repo.owner) ? repo.owner : '');
                                                                 }
                                                             }}
-                                                            className={`w-full text-left px-3 py-2 rounded-[4px] text-xs font-semibold border transition-colors flex items-center justify-between gap-2 cursor-pointer ${selectedGithubRepoKey === repo.full_name
-                                                                ? 'bg-cyan-500/20 axi-ink-meta axi-edge-meta'
-                                                                : 'bg-white/5 axi-ink-dim axi-edge-rule hover:text-white'
-                                                                }`}
+                                                            aria-pressed={selectedGithubRepoKey === repo.full_name} className={`axi-pill axi-pill--xs w-full text-left ] flex items-center justify-between gap-2 cursor-pointer`.trim()}
                                                         >
                                                             <span className="truncate">{repo.full_name || 'No repos loaded'}</span>
                                                             {repo.full_name ? (
@@ -2020,7 +2003,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                                         event.stopPropagation();
                                                                         toggleFavoriteRepo(repo.full_name);
                                                                     }}
-                                                                    className={`axi-action axi-action--glyph p-1 rounded-md ${isFavorite ? 'axi-ink-warn' : 'axi-ink-faint'}`}
+                                                                    className={`axi-action axi-action--glyph p-1 ${isFavorite ?'axi-ink-warn' : 'axi-ink-faint'}`}
                                                                     title={isFavorite ? 'Remove favorite' : 'Favorite repo'}
                                                                 >
                                                                     <Star className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current' : 'fill-transparent'}`} />
@@ -2182,14 +2165,14 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             }}
                         />
                         {!r2OAuthConnected && !(r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2PublicUrl) && (
-                            <div className="mb-4 rounded-[6px] border axi-edge-warn bg-amber-400/5 px-3.5 py-3">
+                            <div className="mb-4 axi-well axi-edge-warn">
                                 <p className="text-xs font-semibold axi-ink-warn mb-2">Setting up R2 requires a payment method on your Cloudflare account</p>
                                 <ol className="list-decimal pl-4 space-y-0.5 text-xs axi-ink-dim">
                                     <li>Create a <span className="axi-ink-dim">Cloudflare account</span> (free).</li>
                                     <li><span className="axi-ink-dim">Add a payment method.</span> Cloudflare requires a card on file before R2 can be enabled — even on the free tier.</li>
                                     <li>Open <span className="axi-ink-dim">R2 Object Storage</span> in the dashboard and click <span className="axi-ink-dim">Enable</span>.</li>
                                     <li><span className="axi-ink-dim">Create a bucket</span>, any name.</li>
-                                    <li>In the bucket's <span className="axi-ink-dim">Settings</span>, enable the <span className="axi-ink-dim">Public Development URL</span> and copy the <code className="rounded-[3px] border axi-edge-rule bg-black/40 px-1 text-[11px] axi-ink-meta">pub-&hellip;.r2.dev</code> address.</li>
+                                    <li>In the bucket's <span className="axi-ink-dim">Settings</span>, enable the <span className="axi-ink-dim">Public Development URL</span> and copy the <code className="axi-code text-[11px] axi-ink-meta">pub-&hellip;.r2.dev</code> address.</li>
                                     <li>Go to <span className="axi-ink-dim">R2 &rarr; Manage R2 API Tokens &rarr; Create API Token</span> with <span className="axi-ink-dim">Object Read &amp; Write</span>, and copy the Access Key ID and Secret Access Key. <span className="axi-ink-dim">The secret is shown only once.</span></li>
                                     <li>Copy your <span className="axi-ink-dim">Account ID</span> from the dashboard home page.</li>
                                 </ol>
@@ -2289,7 +2272,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             {parserStatus?.eliteInsightsRemoval && (
                                 <div
                                     data-testid="elite-insights-removal-notice"
-                                    className="bg-blue-500/10 border axi-edge-meta rounded-[4px] px-3 py-2.5 mb-3 flex items-start gap-3"
+                                    className="axi-well axi-well--sm axi-edge-meta mb-3 flex items-start gap-3"
                                 >
                                     <div className="flex-1 text-xs axi-ink-meta leading-snug">
                                         <span className="font-semibold">Elite Insights has been removed.</span>{' '}
@@ -2445,10 +2428,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             key={option.id}
                                             type="button"
                                             onClick={() => updateTopStatsMode(option.id)}
-                                            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${statsViewSettings.topStatsMode === option.id
-                                                ? 'bg-blue-500/20 axi-ink-meta axi-edge-meta'
-                                                : 'bg-white/5 axi-ink-dim axi-edge-rule hover:text-gray-200'
-                                                }`}
+                                            aria-pressed={statsViewSettings.topStatsMode === option.id} className="axi-pill axi-pill--xs"
                                         >
                                             {option.label}
                                         </button>
@@ -2500,7 +2480,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                                 are that fill's own pair. A swatch painted `meta.color` on a pill
                                                                 filled `meta.color` is invisible, and the check's `#0f1115` was a
                                                                 hand-picked partner for one of the two states. */}
-                                                            <span className="w-3 h-3 rounded-sm inline-flex items-center justify-center border border-current">
+                                                            <span className="w-3 h-3 inline-flex items-center justify-center border border-current">
                                                                 {on && (
                                                                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={4}><path d="M20 6L9 17l-5-5" /></svg>
                                                                 )}
@@ -2527,10 +2507,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             key={option.id}
                                             type="button"
                                             onClick={() => updateInterruptMode(option.id)}
-                                            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${statsViewSettings.interruptMode === option.id
-                                                ? 'bg-blue-500/20 axi-ink-meta axi-edge-meta'
-                                                : 'bg-white/5 axi-ink-dim axi-edge-rule hover:text-gray-200'
-                                                }`}
+                                            aria-pressed={statsViewSettings.interruptMode === option.id} className="axi-pill axi-pill--xs"
                                         >
                                             {option.label}
                                         </button>
@@ -2689,7 +2666,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         key={b}
                                         type="button"
                                         onClick={() => setMvpBucket(b)}
-                                        className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-colors ${mvpBucket === b ? 'bg-blue-500/20 axi-ink-meta axi-edge-meta' : 'bg-white/5 axi-ink-dim axi-edge-rule hover:text-gray-200'}`}
+                                        aria-pressed={mvpBucket === b} className="axi-pill axi-pill--xs"
                                     >
                                         {b === 'offensive' ? 'Offensive' : b === 'defensive' ? 'Defensive' : 'General'}
                                         {b === 'general' && <span className="opacity-60 font-normal"> (both)</span>}
@@ -2705,7 +2682,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             return (
                                 <div key={cat} className="mb-3.5 last:mb-0">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: meta.color, boxShadow: `0 0 8px ${meta.color}` }} />
+                                        <span className="axi-diamond" style={{ background: meta.color }} />
                                         <span className="text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: meta.color }}>{meta.label}</span>
                                         <span className="flex-1 border-t axi-edge-rule" />
                                         {cat === 'boon' && renderBoonMetricToggle(meta.color)}
@@ -2715,8 +2692,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             const w = mvpWeights[mvpBucket][def.id] || 0;
                                             const on = w > 0;
                                             return (
-                                                <div key={def.id} className="inline-flex items-center rounded-lg border overflow-hidden"
-                                                    style={on ? { borderColor: `${meta.color}66`, background: `${meta.color}1f` } : { borderColor: 'var(--border-default)', background: 'var(--bg-input)' }}>
+                                                <div key={def.id} className="axi-well axi-well--sm [--axi-well-pad:0] inline-flex items-center overflow-hidden"
+                                                    style={on ? { borderColor: `${meta.color}66`, background: `${meta.color}1f` } : { borderColor: 'var(--axi-ink-line)', background: 'var(--axi-ground)' }}>
                                                     <span className="pl-2.5 pr-1 py-1 text-xs font-semibold" style={{ color: on ? meta.color : '#6b7280' }}>{mvpStatLabel(def)}</span>
                                                     <button type="button" aria-label={`decrease ${mvpStatLabel(def)}`} onClick={() => setMvpWeight(mvpBucket, def.id, w - 0.05)} className="axi-action axi-action--glyph w-5 h-6 text-sm leading-none" style={{ color: on ? meta.color : 'var(--axi-text-faint)' }}>−</button>
                                                     <span className="min-w-[30px] text-center text-xs font-bold tabular-nums" style={{ color: on ? meta.color : 'var(--axi-text-faint)' }}>{w.toFixed(2)}</span>
@@ -2748,10 +2725,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             key={option.id}
                                             type="button"
                                             onClick={() => updateStatsViewSettingValue('boonBucketIntervalMs', option.id)}
-                                            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${statsViewSettings.boonBucketIntervalMs === option.id
-                                                ? 'bg-blue-500/20 axi-ink-meta axi-edge-meta'
-                                                : 'bg-white/5 axi-ink-dim axi-edge-rule hover:text-gray-200'
-                                                }`}
+                                            aria-pressed={statsViewSettings.boonBucketIntervalMs === option.id} className="axi-pill axi-pill--xs"
                                         >
                                             {option.label}
                                         </button>
@@ -2772,10 +2746,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             key={option.id}
                                             type="button"
                                             onClick={() => updateStatsViewSettingValue('stackingBoonBucketIntervalMs', option.id)}
-                                            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${statsViewSettings.stackingBoonBucketIntervalMs === option.id
-                                                ? 'bg-blue-500/20 axi-ink-meta axi-edge-meta'
-                                                : 'bg-white/5 axi-ink-dim axi-edge-rule hover:text-gray-200'
-                                                }`}
+                                            aria-pressed={statsViewSettings.stackingBoonBucketIntervalMs === option.id} className="axi-pill axi-pill--xs"
                                         >
                                             {option.label}
                                         </button>
@@ -2870,7 +2841,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         style={{ display: selectedCategoryId === 'logs' ? undefined : 'none' }}
                     >
                     <SettingsSection title="Log Directory" icon={FolderOpen} delay={0.04} sectionId="log-directory">
-                        <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-xs mb-3" style={{ color: 'var(--axi-text-faint)' }}>
                             The arcdps folder AxiBridge watches for new logs.
                         </p>
                         <div className="flex items-center gap-2">
@@ -2881,7 +2852,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 type="button"
                                 onClick={onChangeLogDirectory}
                                 className="axi-btn axi-btn--sm shrink-0"
-                                style={{ background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
+                                style={{ background: 'var(--axi-surface-paint)', color: 'var(--axi-text-dim)' }}
                             >
                                 Change Folder
                             </button>
@@ -2933,10 +2904,10 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             {dpsCacheBusy && (
                                 <div className="w-full max-w-sm">
                                     <div className="text-[11px] axi-ink-dim mb-1">{dpsCacheProgressLabel || 'Clearing cache…'}</div>
-                                    <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                                    <div className="axi-meter" style={{ '--axi-meter-h': '6px' } as CSSProperties}>
                                         <div
-                                            className="h-full bg-amber-400 transition-all duration-150"
-                                            style={{ width: `${dpsCacheProgress}%` }}
+                                            className="axi-meter__fill transition-all duration-150"
+                                            style={{ '--axi-meter-v': `${dpsCacheProgress}%`, '--axi-series': 'var(--axi-warn)' } as CSSProperties}
                                         />
                                     </div>
                                     <div className="text-[11px] axi-ink-faint mt-1">{Math.round(dpsCacheProgress)}%</div>
@@ -2987,7 +2958,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             Blue" off a blue-to-indigo chip and get a flat blue
                                             UI. The swatch shows the colour the app paints. */}
                                         <div
-                                            className="w-full h-8 rounded-[4px] mb-2 border axi-edge-rule"
+                                            className="w-full h-8 axi-well axi-well--sm [--axi-well-pad:0] mb-2"
                                             style={{ backgroundColor: palette.primary }}
                                         />
                                         <div className="text-xs font-semibold axi-ink-plain">{palette.label}</div>
@@ -3154,27 +3125,27 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         </SettingsSection>
                     </div>
 
-                    <div id="legal" data-settings-section="true" data-settings-label="Legal" className="rounded-[4px] p-4 text-xs axi-ink-dim" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
+                    <div id="legal" data-settings-section="true" data-settings-label="Legal" className="axi-panel [--axi-panel-pad:16px] text-xs axi-ink-dim">
                         <div className="flex items-center justify-between mb-2">
                             <div className="text-sm font-semibold axi-ink-plain">Legal Notice</div>
                             <div className="flex items-center gap-2">
                                 <button
                                     type="button"
                                     onClick={() => window.electronAPI?.openExternal?.('https://github.com/darkharasho/axibridge')}
-                                    className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
+                                    className="axi-pill axi-pill--xs"
                                 >
                                     GitHub
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => window.electronAPI?.openExternal?.('https://discord.gg/UjzMXMGXEg')}
-                                    className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
+                                    className="axi-pill axi-pill--xs"
                                 >
                                     Discord
                                 </button>
                                 <button
                                     onClick={() => setProofOfWorkOpen(true)}
-                                    className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
+                                    className="axi-pill axi-pill--xs"
                                 >
                                     Proof of Work
                                 </button>
@@ -3228,7 +3199,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             </div >
 
             <div className="fixed bottom-4 left-4 right-4 z-40 lg:hidden">
-                <div className="flex items-center justify-between gap-2 rounded-[4px] px-3 py-1.5" style={{ background: 'var(--bg-card)', border: 'var(--panel-border-w, 1px) solid var(--border-default)', boxShadow: 'var(--shadow-card)' }}>
+                <div className="axi-panel [--axi-panel-pad:6px_12px] flex items-center justify-between gap-2">
                     <button
                         onClick={() => setSettingsNavOpen((open) => !open)}
                         className="axi-btn axi-btn--xs axi-edge-rule axi-ink-plain flex-1 justify-between"
@@ -3236,14 +3207,14 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                         <span ref={mobileNavLabelRef} className="truncate max-w-[160px]">
                             {labelForSection(activeSettingsSectionIdRef.current) ?? 'Settings'}
                         </span>
-                        <ChevronDown className={`w-4 h-4 text-[color:var(--accent)] transition-transform ${settingsNavOpen ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`w-4 h-4 axi-ink-accent transition-transform ${settingsNavOpen ? 'rotate-180' : ''}`} />
                     </button>
                     <button
                         onClick={() => stepSettingsSection(1)}
                         className="axi-btn axi-btn--xs axi-edge-rule axi-ink-plain"
                     >
                         Next
-                        <ChevronDown className="w-4 h-4 -rotate-90 text-[color:var(--accent)]" />
+                        <ChevronDown className="w-4 h-4 -rotate-90 axi-ink-accent" />
                     </button>
                 </div>
             </div>
@@ -3276,7 +3247,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             </div>
                             <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2 pb-4">
                                 {settingsSearchMatches?.length === 0 && (
-                                    <div className="px-3 py-6 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
+                                    <div className="px-3 py-6 text-center text-xs" style={{ color: 'var(--axi-text-faint)' }}>
                                         No settings match “{settingsSearch}”.
                                     </div>
                                 )}
@@ -3336,7 +3307,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     return sections.map((section) => (
                                         <div key={section} className="pt-2">
                                             <div className="text-[11px] uppercase tracking-widest axi-ink-faint mb-2">{section}</div>
-                                            <div className="divide-y divide-white/5 rounded-[4px] border axi-edge-rule bg-white/5 px-3">
+                                            <div className="divide-y divide-[color:var(--axi-rule)] axi-well axi-well--sm [--axi-well-pad:0_12px]">
                                                 {items
                                                     .filter((item) => item.section === section)
                                                     .map((item) => (
@@ -3356,7 +3327,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     <div className="text-sm axi-ink-faint italic py-6 text-center">No settings found in file.</div>
                                 )}
                             </div>
-                            <div className="sticky bottom-0 px-6 py-4 border-t axi-edge-rule bg-[var(--bg-card)] flex justify-end gap-3">
+                            <div className="sticky bottom-0 px-6 py-4 border-t axi-edge-rule bg-[var(--axi-surface-paint)] flex justify-end gap-3">
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -3415,7 +3386,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         key={tab}
                                         type="button"
                                         onClick={() => setDevSettingsTab(tab)}
-                                        className={`px-3 py-1.5 rounded-[4px] text-xs font-medium transition-colors ${devSettingsTab === tab ? 'bg-amber-500/20 border axi-edge-warn axi-ink-warn' : 'border axi-edge-rule bg-white/5 axi-ink-dim hover:text-gray-200'}`}
+                                        aria-pressed={devSettingsTab === tab} className={`axi-pill axi-pill--xs ]`.trim()}
                                     >
                                         {tab === 'tools' ? 'Tools' : 'Player Classification'}
                                     </button>
@@ -3460,10 +3431,10 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 {dpsCacheBusy && (
                                                     <>
                                                         <div className="text-xs axi-ink-dim mb-1">{dpsCacheProgressLabel || 'Clearing cache…'}</div>
-                                                        <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                                                        <div className="axi-meter" style={{ '--axi-meter-h': '6px' } as CSSProperties}>
                                                             <div
-                                                                className="h-full bg-rose-400 transition-all duration-150"
-                                                                style={{ width: `${dpsCacheProgress}%` }}
+                                                                className="axi-meter__fill transition-all duration-150"
+                                                                style={{ '--axi-meter-v': `${dpsCacheProgress}%`, '--axi-series': 'var(--axi-danger)' } as CSSProperties}
                                                             />
                                                         </div>
                                                         <div className="text-[11px] axi-ink-faint mt-1">{Math.round(dpsCacheProgress)}%</div>
@@ -3519,7 +3490,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                 <span className="axi-ink-warn">{damageCount} damage</span>
                                                 <span>threshold: <span className="axi-ink-warn font-mono">{threshold.toFixed(2)}</span></span>
                                             </div>
-                                            <div className="rounded-[4px] border axi-edge-rule overflow-hidden">
+                                            <div className="axi-well axi-well--sm [--axi-well-pad:0] overflow-hidden">
                                                 <table className="axi-table">
                                                     <thead>
                                                         <tr className="axi-ink-dim">
@@ -3541,15 +3512,15 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                                 <td className="axi-ink-plain">{c.account}</td>
                                                                 <td style={{ color: getProfessionColor(c.profession) }}>{c.profession}</td>
                                                                 <td className="text-center">
-                                                                    <span className={`inline-block px-2 py-0.5 rounded-[4px] text-[10px] font-semibold uppercase tracking-wide ${c.role === 'support' ? 'bg-emerald-500/20 axi-ink-ok border axi-edge-ok' : 'bg-orange-500/20 axi-ink-warn border axi-edge-warn'}`}>
+                                                                    <span className={`axi-chip ${c.role === 'support' ? 'axi-chip--ok' : 'axi-chip--warn'}`}>
                                                                         {c.role}
                                                                     </span>
                                                                 </td>
                                                                 <td className="axi-ink-dim">{c.supportScore.toFixed(2)}</td>
                                                                 <td>
                                                                     <div className="flex items-center justify-end gap-2">
-                                                                        <div className="w-16 h-1.5 rounded-full bg-white/10 overflow-hidden">
-                                                                            <div className={`h-full rounded-full ${c.role === 'support' ? 'bg-emerald-400' : 'bg-orange-400'}`} style={{ width: `${Math.round(c.confidenceScore * 100)}%` }} />
+                                                                        <div className="w-16 axi-meter" style={{ '--axi-meter-h': '6px' } as CSSProperties}>
+                                                                            <div className="axi-meter__fill" style={{ '--axi-meter-v': `${Math.round(c.confidenceScore * 100)}%`, '--axi-series': c.role === 'support' ? 'var(--axi-ok)' : 'var(--axi-warn)' } as CSSProperties} />
                                                                         </div>
                                                                         <span className="axi-ink-dim font-mono w-10 text-right">{(c.confidenceScore * 100).toFixed(0)}%</span>
                                                                     </div>
@@ -3557,7 +3528,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                                                 {c.factors && c.factors.length > 0 && (
                                                                     <td style={{ position: 'absolute', left: 0, right: 0, pointerEvents: 'none' }}>
                                                                         <div className="hidden group-hover:block absolute left-4 z-50 pointer-events-none" style={tooltipPosition}>
-                                                                            <div className="rounded-[4px] border axi-edge-rule px-3 py-2.5 text-[11px] shadow-2xl" style={{ background: '#1a1f2e', minWidth: 340 }}>
+                                                                            <div className="axi-panel axi-panel--float [--axi-panel-pad:10px_12px] text-[11px]" style={{ minWidth: 340 }}>
                                                                                 <div className="axi-ink-dim font-medium mb-1.5">
                                                                                     {c.account} — <span className={c.role === 'support' ? 'axi-ink-ok' : 'axi-ink-warn'}>{c.role}</span>
                                                                                     <span className="axi-ink-faint font-normal ml-2">score {c.supportScore.toFixed(2)} / threshold {c.threshold.toFixed(2)}</span>
@@ -3635,7 +3606,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 </div>
                                 <button
                                     onClick={() => setGithubManageOpen(false)}
-                                    className="p-2 rounded-full bg-white/5 border axi-edge-rule axi-ink-dim hover:text-white hover:border-white/30"
+                                    className="axi-btn axi-btn--icon"
                                 >
                                     <CloseIcon className="w-4 h-4" />
                                 </button>
@@ -3648,15 +3619,15 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 <div className="flex items-center gap-2">
                                     <button
                                         onClick={loadGithubReports}
-                                        className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
+                                        className="axi-pill axi-pill--xs"
                                     >
                                         Refresh
                                     </button>
-                                    <ParticleHover className="rounded-full" disabled={!particlesEnabled} color="#ef4444">
+                                    <ParticleHover className="rounded-[var(--axi-radius-sm)]" disabled={!particlesEnabled} color="#ef4444">
                                         <button
                                             onClick={handleDeleteSelectedReports}
                                             disabled={githubReportsSelected.size === 0 || githubReportsDeleting}
-                                            className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-red-500/20 axi-ink-danger axi-edge-danger disabled:opacity-50"
+                                            className="axi-btn axi-btn--xs axi-ink-danger axi-edge-danger"
                                         >
                                             {githubReportsDeleting ? 'Deleting...' : `Delete (${githubReportsSelected.size})`}
                                         </button>
@@ -3680,10 +3651,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     githubReports.map((report) => (
                                         <div
                                             key={report.id}
-                                            className={`web-report-item flex items-center gap-3 rounded-[4px] border px-4 py-3 ${githubReportsSelected.has(report.id)
-                                                ? 'bg-cyan-500/10 axi-edge-meta'
-                                                : 'bg-white/5 axi-edge-rule'
-                                                }`}
+                                            className={`web-report-item flex items-center gap-3 axi-well axi-well--sm [--axi-well-pad:12px_16px] ${githubReportsSelected.has(report.id) ? 'axi-edge-meta' : ''}`}
                                         >
                                             <input
                                                 type="checkbox"

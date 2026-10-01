@@ -72,12 +72,12 @@ const DeathTallyCardInner: React.FC<{ members: SquadMemberMovement[]; timeMs: nu
             <span style={{ ...rowStyle, color: '#60a5fa' }}>
                 <span aria-hidden="true">☠</span>
                 <span>{squad}</span>
-                <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>squad</span>
+                <span style={{ color: 'var(--axi-text-faint)', fontSize: 10 }}>squad</span>
             </span>
             <span style={{ ...rowStyle, color: '#ef4444' }}>
                 <span aria-hidden="true">☠</span>
                 <span>{enemy}</span>
-                <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>enemy</span>
+                <span style={{ color: 'var(--axi-text-faint)', fontSize: 10 }}>enemy</span>
             </span>
         </button>
     );

@@ -140,7 +140,7 @@ export const SupportSection = ({
     <div {...expandedPaneProps(expandedSection === 'support-detailed', expandedSectionClosing)}>
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
             <span className="flex shrink-0" style={{ color: 'var(--section-support)' }}><SupportPlusIcon className="w-4 h-4" /></span>
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>
                 Support Detailed
             </h3>
             <div className="ml-auto flex items-center gap-2">
@@ -170,11 +170,11 @@ export const SupportSection = ({
             </div>
         </div>
         {stats.supportPlayers.length === 0 ? (
-            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No support stats available</div>
+            <div className="axi-empty">No support stats available</div>
         ) : isExpanded ? (
             <div className="flex flex-col gap-4">
                 <div>
-                    <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--axi-rule)' }}>
                         <SearchSelectDropdown
                             options={[
                                 ...supportColumnOptions.map((option) => ({ ...option, type: 'column' as const })),
@@ -217,7 +217,7 @@ export const SupportSection = ({
                             buttonLabel="Players"
                             buttonIcon={<Users className="h-3.5 w-3.5" />}
                         />
-                        <div className="h-5 w-px" style={{ background: 'var(--border-subtle)' }} />
+                        <div className="h-5 w-px" style={{ background: 'var(--axi-rule)' }} />
                         <PillToggleGroup
                             value={supportViewMode}
                             onChange={setSupportViewMode}
@@ -277,7 +277,7 @@ export const SupportSection = ({
                 </div>
                 <div className="overflow-hidden">
                     {filteredSupportMetrics.length === 0 ? (
-                        <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No support stats match this filter</div>
+                        <div className="axi-empty">No support stats match this filter</div>
                     ) : (
                         (() => {
                             const resolveSupportTotal = (row: any, metricId: string) => {
@@ -348,7 +348,7 @@ export const SupportSection = ({
                                         id: `${entry.row.account}-${idx}`,
                                         label: (
                                             <>
-                                                <span className="font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</span>
+                                                <span className="font-mono" style={{ color: 'var(--axi-text-faint)' }}>{idx + 1}</span>
                                                 {renderProfessionIcon(entry.row.profession, entry.row.professionList, 'w-4 h-4')}
                                                 <span className="truncate">{entry.row.account}</span>
                                             </>
@@ -371,7 +371,7 @@ export const SupportSection = ({
                 contentStyle={undefined}
                 sidebar={
                     <>
-                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Support Tabs</div>
+                        <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--axi-text-dim)' }}>Support Tabs</div>
                         <input
                             value={supportSearch}
                             onChange={(e) => setSupportSearch(e.target.value)}
@@ -382,7 +382,7 @@ export const SupportSection = ({
                         <div className={`${sidebarListClass} ${expandedSection === 'support-detailed' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                             {(() => {
                                 if (filteredSupportMetrics.length === 0) {
-                                    return <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No support stats match this filter</div>;
+                                    return <div className="axi-empty">No support stats match this filter</div>;
                                 }
                                 return filteredSupportMetrics.map((metric) => (
                                     <button
@@ -434,7 +434,7 @@ export const SupportSection = ({
                             return (
                                 <>
                                 {metric.id === 'resurrects' && (
-                                    <div className="mb-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                                    <div className="mb-2 text-[11px]" style={{ color: 'var(--axi-text-dim)' }}>
                                         Resurrect Attempts counts hand-resurrect channel starts, not completed
                                         revives. See Defense → Revives for completed pickups, attribution, and
                                         Illusion of Life survival.

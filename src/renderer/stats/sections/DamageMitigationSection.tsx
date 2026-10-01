@@ -76,7 +76,7 @@ export const DamageMitigationSection = ({
         <div {...expandedPaneProps(expandedSection === 'defense-mitigation', expandedSectionClosing)}>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <span className="flex shrink-0" style={{ color: 'var(--section-mitigation)' }}><Gw2DamMitIcon className="w-4 h-4" /></span>
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>
                     Damage Mitigation
                 </h3>
                 <div className="ml-auto flex items-center gap-2">
@@ -112,10 +112,10 @@ export const DamageMitigationSection = ({
                 Damage mitigation is an estimate based on enemy skill damage averages and avoidance events (block/evade/miss/invuln/interrupted). Use it for relative comparison rather than exact prevention totals.
             </div>
             {!hasMitigationData ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No damage mitigation stats available</div>
+                <div className="axi-empty">No damage mitigation stats available</div>
             ) : isExpanded ? (
                 <div className="flex flex-col gap-4">
-                    <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <div className="flex flex-wrap items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--axi-rule)' }}>
                             <SearchSelectDropdown
                                 options={[
                                     ...mitigationColumnOptions.map((option) => ({ ...option, type: 'column' as const })),
@@ -171,7 +171,7 @@ export const DamageMitigationSection = ({
                                     buttonLabel="Minions"
                                 />
                             )}
-                            <div className="h-5 w-px" style={{ background: 'var(--border-subtle)' }} />
+                            <div className="h-5 w-px" style={{ background: 'var(--axi-rule)' }} />
                             <PillToggleGroup
                                 value={damageMitigationScope}
                                 onChange={setDamageMitigationScope}
@@ -253,11 +253,11 @@ export const DamageMitigationSection = ({
                         )}
                     <div className="overflow-hidden">
                         {mitigationRows.length === 0 ? (
-                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
+                            <div className="axi-empty">
                                 No {damageMitigationScope === 'minions' ? 'minion' : 'player'} mitigation stats available
                             </div>
                         ) : filteredMitigationMetrics.length === 0 ? (
-                            <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No mitigation stats match this filter</div>
+                            <div className="axi-empty">No mitigation stats match this filter</div>
                         ) : (
                             (() => {
                                 const totalSeconds = (row: any) => Math.max(1, (row.activeMs || 0) / 1000);
@@ -316,12 +316,12 @@ export const DamageMitigationSection = ({
                                                 id: `${entry.row.account}-${entry.row.minion || 'player'}-${idx}`,
                                                 label: (
                                                     <>
-                                                        <span className="font-mono" style={{ color: 'var(--text-muted)' }}>{idx + 1}</span>
+                                                        <span className="font-mono" style={{ color: 'var(--axi-text-faint)' }}>{idx + 1}</span>
                                                         {renderProfessionIcon(entry.row.profession, entry.row.professionList, 'w-4 h-4')}
                                                         <div className="min-w-0">
                                                             <div className="truncate">{entry.row.account}</div>
                                                             {entry.row.minion && (
-                                                                <div className="text-[10px] truncate" style={{ color: 'var(--text-secondary)' }}>{entry.row.minion}</div>
+                                                                <div className="text-[10px] truncate" style={{ color: 'var(--axi-text-dim)' }}>{entry.row.minion}</div>
                                                             )}
                                                         </div>
                                                     </>
@@ -345,7 +345,7 @@ export const DamageMitigationSection = ({
                     contentStyle={undefined}
                     sidebar={
                         <>
-                            <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>Mitigation Tabs</div>
+                            <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--axi-text-dim)' }}>Mitigation Tabs</div>
                             <input
                                 value={damageMitigationSearch}
                                 onChange={(e) => setDamageMitigationSearch(e.target.value)}
@@ -356,7 +356,7 @@ export const DamageMitigationSection = ({
                             <div className={`${sidebarListClass} ${expandedSection === 'defense-mitigation' ? 'max-h-none flex-1 min-h-0' : ''}`}>
                                 {(() => {
                                     if (filteredMitigationMetrics.length === 0) {
-                                        return <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No mitigation stats match this filter</div>;
+                                        return <div className="axi-empty">No mitigation stats match this filter</div>;
                                     }
                                     return filteredMitigationMetrics.map((metric) => (
                                         <button
@@ -428,7 +428,7 @@ head={
 }
 rows={
                                             rows.length === 0 ? (
-                                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
+                                                <div className="axi-empty">
                                                     No {damageMitigationScope === 'minions' ? 'minion' : 'player'} mitigation stats available
                                                 </div>
                                             ) : (
@@ -439,7 +439,7 @@ rows={
 <th scope="row"><span className="axi-table__who">{renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
                                                                 <div className="min-w-0">
                                                                     <div className="truncate">{row.account}</div>
-                                                                    {row.minion && <div className="text-[10px] truncate" style={{ color: 'var(--text-secondary)' }}>{row.minion}</div>}
+                                                                    {row.minion && <div className="text-[10px] truncate" style={{ color: 'var(--axi-text-dim)' }}>{row.minion}</div>}
                                                                 </div></span></th>
 <td>{(() => {
                                                                     const value = damageMitigationViewMode === 'total'

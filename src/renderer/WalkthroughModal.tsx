@@ -55,8 +55,8 @@ export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughMo
                 >
                     <div className="axi-modal__head justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="rounded-[4px] border axi-edge-meta bg-blue-500/20 p-1.5">
-                                <span className="axibridge-logo h-7 w-7 rounded-lg" style={axibridgeLogoStyle} aria-label="AxiBridge logo" />
+                            <div className="axi-well axi-well--sm axi-edge-meta axi-ink-meta [--axi-well-pad:6px]">
+                                <span className="axibridge-logo h-7 w-7" style={axibridgeLogoStyle} aria-label="AxiBridge logo" />
                             </div>
                             <div>
                                 <div className="text-lg font-bold axi-ink-plain">Welcome to AxiBridge</div>
@@ -79,9 +79,9 @@ export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughMo
                                     <div
                                         key={step.title}
                                         className="axi-well axi-well--sm flex gap-4 items-start"
-                                        style={{ background: 'var(--bg-card-inner)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}
+                                        style={{ background: 'var(--axi-ground)', border: 'var(--axi-border-control) solid var(--axi-ink-line)' }}
                                     >
-                                        <div className="mt-0.5 rounded-[4px] border axi-edge-meta bg-blue-500/15 p-2">
+                                        <div className="mt-0.5 axi-well axi-well--sm axi-edge-meta [--axi-well-pad:8px]">
                                             <Icon className="w-4 h-4 axi-ink-meta" />
                                         </div>
                                         <div>
@@ -97,7 +97,7 @@ export function WalkthroughModal({ isOpen, onClose, onLearnMore }: WalkthroughMo
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-2 px-6 py-4" style={{ borderTop: '1px solid var(--border-default)' }}>
+                    <div className="flex justify-end gap-2 px-6 py-4" style={{ borderTop: 'var(--axi-border-control) solid var(--axi-ink-line)' }}>
                         <button
                             onClick={() => onLearnMore?.()}
                             className="axi-btn axi-ink-plain"

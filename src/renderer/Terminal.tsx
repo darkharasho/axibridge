@@ -120,7 +120,7 @@ export function Terminal({ isOpen, onClose }: TerminalProps) {
     const renderedLogs = useMemo(() => logs.map((log, index) => (
         <div
             key={`${log.timestamp}-${index}`}
-            className={`term-row flex gap-3 text-xs group rounded-[2px] px-2 py-0.5 -mx-1 ${log.type === 'error' ? 'term-row-error' : ''}`}
+            className={`term-row flex gap-3 text-xs group px-2 py-0.5 -mx-1 ${log.type === 'error' ? 'term-row-error' : ''}`}
         >
             <span className="term-timestamp shrink-0 select-none w-[4.5rem] whitespace-nowrap tabular-nums">
                 {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
@@ -145,7 +145,7 @@ export function Terminal({ isOpen, onClose }: TerminalProps) {
                     {/* Header */}
                     <div className="terminal-header">
                         <div className="flex items-center gap-2">
-                            <TerminalIcon className="w-3.5 h-3.5" style={{ color: 'var(--brand-primary)' }} />
+                            <TerminalIcon className="w-3.5 h-3.5" style={{ color: 'var(--axi-accent)' }} />
                             <span className="terminal-title">Terminal</span>
                             <span className="terminal-divider" />
                             <span className="terminal-meta">{logs.length} events</span>
@@ -183,7 +183,7 @@ export function Terminal({ isOpen, onClose }: TerminalProps) {
                     >
                         {logs.length === 0 ? (
                             <div className="terminal-empty">
-                                <TerminalIcon className="w-10 h-10 mb-2" style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
+                                <TerminalIcon className="w-10 h-10 mb-2" style={{ color: 'var(--axi-text-faint)', opacity: 0.5 }} />
                                 <span>No logs recorded</span>
                             </div>
                         ) : renderedLogs}

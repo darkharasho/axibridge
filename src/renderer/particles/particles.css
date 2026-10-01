@@ -23,7 +23,7 @@
 .particle-pulse-fallback {
     position: absolute;
     inset: -4px;
-    background: var(--brand-primary);
+    background: var(--axi-accent);
     border-radius: 50%;
     animation: particle-pulse 600ms ease-in-out 1;
     pointer-events: none;

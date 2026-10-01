@@ -627,7 +627,7 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
                         embedded
                         label={group.label}
                         icon={group.icon as React.ComponentType<{ className?: string }>}
-                        accentColor={GROUP_ACCENT_COLORS[groupId] || 'var(--brand-primary)'}
+                        accentColor={GROUP_ACCENT_COLORS[groupId] || 'var(--axi-accent)'}
                         sectionCount={visibleSections.length}
                     >
                         {visibleSections.map((s, i) => (
@@ -662,7 +662,7 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
                     visible
                     label={group.label}
                     icon={group.icon as React.ComponentType<{ className?: string }>}
-                    accentColor={GROUP_ACCENT_COLORS[groupId] || 'var(--brand-primary)'}
+                    accentColor={GROUP_ACCENT_COLORS[groupId] || 'var(--axi-accent)'}
                     sectionCount={sections.length}
                 >
                     {sections.map((s, i) => (
@@ -4449,7 +4449,7 @@ type SpikeFight = {
         <div className={containerClass}>
             {expandedSection && (
                 <div
-                    className={`fixed inset-0 z-40 bg-black/70 backdrop-blur-md modal-backdrop ${expandedSectionClosing ? 'modal-backdrop-exit' : 'modal-backdrop-enter'
+                    className={`axi-scrim axi-scrim--sheet modal-backdrop ${expandedSectionClosing ? 'modal-backdrop-exit' : 'modal-backdrop-enter'
                         }`}
                     onClick={closeExpandedSection}
                 />
@@ -4525,7 +4525,7 @@ type SpikeFight = {
                         <div className="stats-dissolve-joke">{statsSettlingBannerJoke}</div>
                     )}
                     {!aggregationSettling.active && detailsProgress.active && (
-                        <span className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="text-[11px] truncate" style={{ color: 'var(--axi-text-dim)' }}>
                             {detailsProgress.phaseLabel} {detailsProgress.progressText}
                         </span>
                     )}
@@ -4543,7 +4543,7 @@ type SpikeFight = {
             {/* Embedded mode: text-only status labels (no spinner) */}
             {embedded && aggregationSettling.active && (
                 <div className="mb-3 text-xs">
-                    <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--axi-text-dim)' }}>
                         <span className="font-medium">{aggregationSettling.phaseLabel}</span>
                         <span style={{ opacity: 0.7 }}>{aggregationSettling.progressText}</span>
                     </div>
@@ -4551,7 +4551,7 @@ type SpikeFight = {
             )}
             {embedded && !aggregationSettling.active && detailsProgress.active && (
                 <div className="mb-3 text-xs">
-                    <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--axi-text-dim)' }}>
                         <span className="font-medium">{detailsProgress.phaseLabel}</span>
                         <span style={{ opacity: 0.7 }}>{detailsProgress.progressText}</span>
                     </div>

@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 export type Severity = 'green' | 'yellow' | 'red';
 
 interface ThresholdBarProps {
@@ -8,10 +10,12 @@ interface ThresholdBarProps {
   width?: number | string;
 }
 
-const FILL_CLASS: Record<Severity, string> = {
-  green: 'bg-emerald-500',
-  yellow: 'bg-amber-500',
-  red: 'bg-rose-500',
+/* Rule 5: a filled shape in a status ink IS the verdict, so the fill reads the
+   status token for the severity rather than a palette hue. */
+const SERIES: Record<Severity, string> = {
+  green: 'var(--axi-ok)',
+  yellow: 'var(--axi-warn)',
+  red: 'var(--axi-danger)',
 };
 
 export function ThresholdBar({ value, max, threshold, severity, width = '100%' }: ThresholdBarProps) {
@@ -22,17 +26,17 @@ export function ThresholdBar({ value, max, threshold, severity, width = '100%' }
       : Math.max(0, Math.min(100, (threshold / Math.max(1e-9, max)) * 100));
 
   return (
-    <div className="relative h-1.5 rounded-sm" style={{ width, background: 'var(--bg-card-inner)' }}>
+    <div className="axi-meter relative overflow-visible" style={{ width, '--axi-meter-h': '6px' } as CSSProperties}>
       <div
         data-role="fill"
-        className={`absolute left-0 top-0 bottom-0 rounded-sm ${FILL_CLASS[severity]}`}
-        style={{ width: `${pct}%` }}
+        className="axi-meter__fill"
+        style={{ '--axi-meter-v': `${pct}%`, '--axi-series': SERIES[severity] } as CSSProperties}
       />
       {thresholdPct != null && (
         <div
           data-role="threshold"
-          className="absolute -top-0.5 -bottom-0.5 w-[2px] bg-slate-200/70"
-          style={{ left: `${thresholdPct}%` }}
+          className="absolute -top-0.5 -bottom-0.5 w-[2px]"
+          style={{ left: `${thresholdPct}%`, background: 'var(--axi-text)' }}
         />
       )}
     </div>

@@ -80,7 +80,7 @@ export const HealingBreakdownSection = ({
         <div {...expandedPaneProps(isExpanded, expandedSectionClosing)}>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <ListTree className="w-4 h-4 shrink-0" style={{ color: 'var(--section-healing)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Healing Breakdown</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Healing Breakdown</h3>
                 {playersWithoutAddon > 0 && (
                     <span
                         className="inline-flex items-center gap-1 text-[10px] font-medium"
@@ -109,7 +109,7 @@ export const HealingBreakdownSection = ({
             </div>
 
             {healingBreakdownPlayers.length === 0 ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">
+                <div className="axi-empty">
                     No healing breakdown data available for the current selection.
                 </div>
             ) : isExpanded ? (
@@ -167,7 +167,7 @@ export const HealingBreakdownSection = ({
                                     id: `${entry.player.key}-${idx}`,
                                     label: (
                                         <>
-                                            <span className="text-[color:var(--text-muted)] font-mono">{idx + 1}</span>
+                                            <span className="text-[color:var(--axi-text-faint)] font-mono">{idx + 1}</span>
                                             {renderProfessionIcon(entry.player.profession, entry.player.professionList, 'w-4 h-4')}
                                             <span className="truncate">{entry.player.displayName}</span>
                                             {!entry.player.hasHealAddon && (
@@ -182,8 +182,8 @@ export const HealingBreakdownSection = ({
                     })()
             ) : (
                 <div className="grid lg:grid-cols-[280px_1fr] gap-0 h-[500px]">
-                    <div className="pr-3 flex flex-col min-h-0" style={{ borderRight: '1px solid var(--border-subtle)' }}>
-                        <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-3">
+                    <div className="pr-3 flex flex-col min-h-0" style={{ borderRight: '1px solid var(--axi-rule)' }}>
+                        <div className="text-xs uppercase tracking-widest text-[color:var(--axi-text-dim)] mb-3">
                             Squad Players
                         </div>
                         <div className="mb-2">
@@ -197,7 +197,7 @@ export const HealingBreakdownSection = ({
                         </div>
                         <div className="space-y-1 pr-1 flex-1 min-h-0 overflow-y-auto">
                             {filteredPlayers.length === 0 ? (
-                                <div className="px-3 py-4 text-xs text-[color:var(--text-muted)] italic">
+                                <div className="px-3 py-4 text-xs text-[color:var(--axi-text-faint)] italic">
                                     No players match the filter.
                                 </div>
                             ) : (
@@ -218,7 +218,7 @@ export const HealingBreakdownSection = ({
                                                 </div>
                                                 <div
                                                     className="shrink-0 flex items-center justify-end gap-1.5 text-xs font-mono"
-                                                    style={{ color: 'var(--text-secondary)' }}
+                                                    style={{ color: 'var(--axi-text-dim)' }}
                                                     title={!player.hasHealAddon ? PARTIAL_TOOLTIP : undefined}
                                                 >
                                                     <span>{formatWithCommas(getPlayerTotal(player), 0)}</span>
@@ -235,7 +235,7 @@ export const HealingBreakdownSection = ({
                     <div className="pl-3 flex flex-col min-h-0">
                         <div className="overflow-hidden flex-1 min-h-0 flex flex-col">
                             {!selectedPlayer ? (
-                                <div className="h-full flex items-center justify-center text-xs text-[color:var(--text-muted)]">
+                                <div className="h-full flex items-center justify-center text-xs text-[color:var(--axi-text-faint)]">
                                     Select a player to view skill breakdown.
                                 </div>
                             ) : (() => {
@@ -246,9 +246,9 @@ export const HealingBreakdownSection = ({
                                     <div className="h-full flex flex-col">
                                         <div className="stats-table-shell__header">
                                             <div className="flex items-center justify-between px-4 py-3">
-                                                <div className="min-w-0 text-sm text-[color:var(--text-primary)]">
+                                                <div className="min-w-0 text-sm text-[color:var(--axi-text)]">
                                                     <div className="flex items-center gap-2 min-w-0">
-                                                        <span className="text-[10px] uppercase tracking-[0.25em] text-[color:var(--text-secondary)] shrink-0">Skill Totals /</span>
+                                                        <span className="text-[10px] uppercase tracking-[0.25em] text-[color:var(--axi-text-dim)] shrink-0">Skill Totals /</span>
                                                         {renderProfessionIcon(selectedPlayer.profession, selectedPlayer.professionList, 'w-4 h-4')}
                                                         <span className="truncate font-semibold">{selectedPlayer.displayName}</span>
                                                         {!selectedPlayer.hasHealAddon && (
@@ -256,7 +256,7 @@ export const HealingBreakdownSection = ({
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="text-xs text-[color:var(--text-secondary)] uppercase tracking-[0.18em]">
+                                                <div className="text-xs text-[color:var(--axi-text-dim)] uppercase tracking-[0.18em]">
                                                     {modeLabel} / {skills.length} {skills.length === 1 ? 'skill' : 'skills'}
                                                 </div>
                                             </div>

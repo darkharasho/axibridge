@@ -138,7 +138,7 @@ export const AllDamageSection = ({
     const renderContent = (expanded: boolean) => (
         <div
             id={expanded ? undefined : sectionId}
-            className={`rounded-xl overflow-hidden ${expanded ? 'h-full flex flex-col' : ''}`}
+            className={`overflow-hidden ${expanded ? 'h-full flex flex-col' : ''}`}
             style={{ scrollMarginTop: '80px' }}
         >
             {/* ── Header ── */}
@@ -338,7 +338,7 @@ export const AllDamageSection = ({
                                                     <div className="axi-ink-plain font-medium mb-1">{(payload[0]?.payload as any)?.label}</div>
                                                     {sorted.slice(0, 10).map((entry) => (
                                                         <div key={entry.dataKey as string} className="flex items-center gap-1.5">
-                                                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
+                                                            <span className="axi-diamond" style={{ backgroundColor: entry.color }} />
                                                             <span className="axi-ink-dim truncate max-w-[120px]">
                                                                 {drilldownPlayersAll.find((p) => p.key === entry.dataKey)?.displayName || entry.dataKey}
                                                             </span>
@@ -455,7 +455,7 @@ export const AllDamageSection = ({
                                                 <tr key={idx}>
                                                     <td className="axi-ink-dim axi-table__who">
                                                         {row.icon && (
-                                                            <img src={row.icon} alt="" className="w-4 h-4 rounded" loading="lazy" />
+                                                            <img src={row.icon} alt="" className="w-4 h-4" loading="lazy" />
                                                         )}
                                                         <span className="truncate max-w-[200px]">{row.skillName}</span>
                                                     </td>

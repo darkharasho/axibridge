@@ -23,13 +23,13 @@ export function MetricCard({ label, value, description, meta, severity, children
       className="commander-metric axi-panel axi-panel--tile [--axi-panel-pad:8px_10px] flex flex-col gap-1 min-h-[108px]"
     >
       <div className="flex justify-between items-baseline gap-2">
-        <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{label}</span>
-        <span className="text-[17px] font-semibold leading-tight text-right" style={{ color: 'var(--text-primary)' }}>{value}</span>
+        <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--axi-text-faint)' }}>{label}</span>
+        <span className="text-[17px] font-semibold leading-tight text-right" style={{ color: 'var(--axi-text)' }}>{value}</span>
       </div>
       {description && (
-        <div className="text-[10px] italic leading-snug" style={{ color: 'var(--text-muted)' }}>{description}</div>
+        <div className="text-[10px] italic leading-snug" style={{ color: 'var(--axi-text-faint)' }}>{description}</div>
       )}
-      {meta && <div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{meta}</div>}
+      {meta && <div className="text-[10px]" style={{ color: 'var(--axi-text-dim)' }}>{meta}</div>}
       {children && <div className="mt-auto">{children}</div>}
     </div>
   );

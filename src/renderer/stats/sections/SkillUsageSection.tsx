@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from 'react';
+import type { CSSProperties, Dispatch, SetStateAction } from 'react';
 import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer } from '../ui/ChartContainer';
 import { CheckCircle2, ChevronDown, ChevronRight, Maximize2, X, XCircle, Keyboard } from 'lucide-react';
@@ -160,7 +160,7 @@ export const SkillUsageSection = ({
                     placeholder="Search player or account"
                     className="axi-input"
                 />
-                <div className="skill-usage-player-list-container flex-1 min-h-0 overflow-y-auto rounded-lg border axi-edge-rule">
+                <div className="skill-usage-player-list-container flex-1 min-h-0 overflow-y-auto axi-well axi-well--sm [--axi-well-pad:0]">
                     {groupedSkillUsagePlayers.length === 0 ? (
                         <div className="px-3 py-4 text-xs axi-ink-faint italic">
                             No squad players match the filter
@@ -181,7 +181,7 @@ export const SkillUsageSection = ({
                                             }
                                             setExpandedSkillUsageClass(group.profession);
                                         }}
-                                        className={`skill-usage-player-list-item w-full px-3 py-2 text-left transition-colors ${isExpanded ? 'bg-white/5' : 'hover:bg-white/5'}`}
+                                        className={`skill-usage-player-list-item w-full px-3 py-2 text-left transition-colors ${isExpanded ? 'bg-[color:var(--axi-well-fill)]' : 'hover:bg-[color:var(--axi-well-fill)]'}`}
                                     >
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2 min-w-0">
@@ -226,7 +226,7 @@ export const SkillUsageSection = ({
                                                         type="button"
                                                         key={player.key}
                                                         onClick={() => togglePlayerSelection(player.key)}
-                                                        className={`skill-usage-player-list-item w-full border-b axi-edge-rule px-6 py-2 text-left transition-colors last:border-b-0 ${isSelected ? 'bg-indigo-500/15 ring-1 ring-indigo-500/30 axi-ink-plain' : 'border-transparent hover:border-white/10 hover:bg-white/5'}`}
+                                                        className={`skill-usage-player-list-item w-full border-b axi-edge-rule px-6 py-2 text-left transition-colors last:border-b-0 ${isSelected ? 'bg-[color:var(--axi-surface-raised-paint)] ring-1 ring-[color:var(--axi-meta)] axi-ink-plain' : 'border-transparent hover:border-white/10 hover:bg-[color:var(--axi-surface-raised-paint)]'}`}
                                                     >
                                                         <div className="flex items-center justify-between">
                                                             <div>
@@ -266,7 +266,7 @@ export const SkillUsageSection = ({
                     placeholder="Filter skill names"
                     className="axi-input"
                 />
-                <div className="rounded-lg p-0.5 flex-1 min-h-0">
+                <div className="p-0.5 flex-1 min-h-0">
                     {selectedPlayers.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-xs axi-ink-faint">
                             Select squad players to see the skills they cast.
@@ -288,7 +288,7 @@ export const SkillUsageSection = ({
                                                 key={entry.skillId}
                                                 type="button"
                                                 onClick={() => setSelectedSkillId(entry.skillId)}
-                                                className={`w-full space-y-1 rounded-lg border px-2 py-1.5 text-left transition-colors ${isSelected ? 'axi-edge-rule bg-white/5' : 'axi-edge-rule bg-white/5 hover:border-white/10 hover:bg-white/5'}`}
+                                                aria-pressed={isSelected} className="w-full space-y-1 text-left axi-well axi-well--sm [--axi-well-pad:6px_8px]"
                                             >
                                                 <div className="flex items-center justify-between text-sm axi-ink-plain min-w-0">
                                                     <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -303,10 +303,10 @@ export const SkillUsageSection = ({
                                                     </div>
                                                     <span className="axi-ink-meta font-mono text-xs shrink-0">{formatSkillUsageValue(entry.total)}</span>
                                                 </div>
-                                                <div className="h-1 w-full rounded-full bg-white/5">
+                                                <div className="axi-meter w-full" style={{ '--axi-meter-h': '4px' } as CSSProperties}>
                                                     <div
-                                                        className="h-full rounded-full transition-all"
-                                                        style={{ width: `${widthPct}%`, backgroundColor: entry.color }}
+                                                        className="axi-meter__fill transition-all"
+                                                        style={{ '--axi-meter-v': `${widthPct}%`, '--axi-series': entry.color } as CSSProperties}
                                                     />
                                                 </div>
                                             </button>
@@ -322,7 +322,7 @@ export const SkillUsageSection = ({
         <div className="space-y-3">
             {skillUsageReady ? (
                 <div className="space-y-4">
-                    <div className="space-y-4 rounded-lg p-4 mt-2">
+                    <div className="space-y-4 p-4 mt-2">
                         <div className="flex items-center justify-between">
                             <div className="text-sm font-semibold axi-ink-plain">
                                 {selectedSkillName
@@ -405,7 +405,7 @@ export const SkillUsageSection = ({
                         </ChartContainer>
                     </div>
                     {selectedPlayers.length > 0 && (
-                        <div className="rounded-lg p-4 space-y-3">
+                        <div className="p-4 space-y-3">
                             <div className="flex items-center justify-between">
                                 <div className="text-[10px] uppercase tracking-wider axi-ink-faint">Selected Players</div>
                                 <div className="text-[11px] axi-ink-faint">
@@ -433,8 +433,7 @@ export const SkillUsageSection = ({
                                                         return [...prev, playerKey];
                                                     });
                                                 }}
-                                                className={`w-full rounded-lg border bg-white/5 p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-left transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 min-w-0 ${isActive ? 'axi-edge-rule bg-white/5' : 'axi-edge-rule hover:border-white/10 hover:bg-white/5'
-                                                    }`}
+                                                className="w-full axi-well flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-left cursor-pointer min-w-0"
                                                 aria-pressed={isActive}
                                             >
                                                 <div className="flex items-center gap-2 min-w-0">
@@ -470,7 +469,7 @@ export const SkillUsageSection = ({
                     )}
                 </div>
             ) : (
-                <div className="rounded-lg border border-dashed axi-edge-rule px-4 py-6 mt-2 text-center text-xs axi-ink-faint">
+                <div className="axi-empty mt-2">
                     {skillUsageAvailable
                         ? 'Pick one skill and up to two players to visualize their usage over time.'
                         : 'Upload or highlight logs with rotation data to enable the skill usage tracker.'}

@@ -48,7 +48,7 @@ const Chip: React.FC<{
     accent: Accent;
     onChange: (v: boolean) => void;
 }> = ({ checked, label, title, accent, onChange }) => {
-    const color = accent ? ACCENT_COLOR[accent] : 'var(--status-info)';
+    const color = accent ? ACCENT_COLOR[accent] : 'var(--axi-meta)';
     return (
         <label
             title={title}
@@ -57,9 +57,9 @@ const Chip: React.FC<{
                 display: 'inline-flex', alignItems: 'center', gap: 4,
                 padding: '2px 7px', borderRadius: 12, cursor: 'pointer',
                 fontSize: 10, lineHeight: '15px',
-                background: checked ? `${color}22` : 'var(--bg-input)',
-                border: `1px solid ${checked ? color : 'var(--border-subtle)'}`,
-                color: checked ? color : 'var(--text-muted)',
+                background: checked ? `${color}22` : 'var(--axi-ground)',
+                border: `1px solid ${checked ? color : 'var(--axi-rule)'}`,
+                color: checked ? color : 'var(--axi-text-faint)',
             }}
         >
             {/* Kept as a real checkbox rather than aria-pressed so screen
@@ -118,8 +118,8 @@ const LayersPanelInner: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
                     '--axi-panel-pad': '8px 0', cursor: 'pointer',
                 } as React.CSSProperties}
             >
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>▶</span>
-                <span style={{ writingMode: 'vertical-rl', fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 7, transform: 'rotate(180deg)' }}>
+                <span style={{ fontSize: 11, color: 'var(--axi-text-faint)' }}>▶</span>
+                <span style={{ writingMode: 'vertical-rl', fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--axi-text-faint)', marginTop: 7, transform: 'rotate(180deg)' }}>
                     Layers
                 </span>
             </button>
@@ -136,8 +136,8 @@ const LayersPanelInner: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
             '--axi-panel-pad': '0',
         } as React.CSSProperties}>
-            <div style={{ padding: '7px 10px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>Layers</span>
+            <div style={{ padding: '7px 10px', borderBottom: '1px solid var(--axi-rule)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--axi-text-dim)' }}>Layers</span>
                 <button
                     type="button"
                     title="Collapse layers panel"
@@ -149,7 +149,7 @@ const LayersPanelInner: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
                 </button>
             </div>
             <div className="axi-scroll-quiet" style={{ overflowY: 'auto', flex: 1, padding: '8px 10px' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>Map</div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--axi-text-faint)', marginBottom: 6 }}>Map</div>
                 <div style={chipRow}>
                     {MAP_TOGGLES.map(t => (
                         <Chip key={t.key}
@@ -160,7 +160,7 @@ const LayersPanelInner: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
                               onChange={v => setReplayLayer(t.key, v)} />
                     ))}
                 </div>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 12, marginBottom: 6 }}>Squad overlay</div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--axi-text-faint)', marginTop: 12, marginBottom: 6 }}>Squad overlay</div>
                 <div style={chipRow}>
                     {SQUAD_TOGGLES.map(t => (
                         <Chip key={t.key}
@@ -171,7 +171,7 @@ const LayersPanelInner: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
                               onChange={v => setReplayLayer(t.key, v)} />
                     ))}
                 </div>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 12, marginBottom: 6 }}>Events</div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--axi-text-faint)', marginTop: 12, marginBottom: 6 }}>Events</div>
                 <div style={chipRow}>
                     {EVENT_TOGGLES.map(t => (
                         <Chip key={t.key}
@@ -182,9 +182,9 @@ const LayersPanelInner: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
                               onChange={v => setReplayLayer(t.key, v)} />
                     ))}
                 </div>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 12, marginBottom: 6 }}>Heatmap</div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--axi-text-faint)', marginTop: 12, marginBottom: 6 }}>Heatmap</div>
                 {HEATMAP_OPTIONS.map(opt => (
-                    <label key={opt.value} title={opt.title} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--text-primary)', padding: '3px 0', cursor: 'pointer' }}>
+                    <label key={opt.value} title={opt.title} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--axi-text)', padding: '3px 0', cursor: 'pointer' }}>
                         <input type="radio" name="replay-heatmap"
                                className="axi-radio"
                                style={{ '--axi-check-size': '14px' } as React.CSSProperties}

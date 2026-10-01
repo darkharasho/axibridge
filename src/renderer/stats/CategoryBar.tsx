@@ -100,7 +100,7 @@ export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed, unpub
                 on the container below, not here.
             */}
             <div
-                className="stats-dashboard-nav-panel axi-rail axi-rail--float absolute inset-y-0 left-0 z-40 min-h-0 pointer-events-auto"
+                className="stats-dashboard-nav-panel axi-rail axi-rail--float absolute inset-y-0 left-0 z-40 mb-[var(--axi-offset-panel)] min-h-0 pointer-events-auto"
                 style={{
                     overflow: 'hidden',
                     '--axi-rail-w': `${expanded ? EXPANDED_W : COLLAPSED_W}px`,
@@ -124,7 +124,7 @@ export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed, unpub
                         <span
                             className="w-3.5 h-3.5 inline-block shrink-0"
                             style={{
-                                backgroundColor: 'var(--brand-primary)',
+                                backgroundColor: 'var(--axi-accent)',
                                 WebkitMaskImage: `url(${import.meta.env.BASE_URL || './'}svg/AxiBridge.svg)`,
                                 maskImage: `url(${import.meta.env.BASE_URL || './'}svg/AxiBridge.svg)`,
                                 WebkitMaskSize: 'contain',
@@ -139,7 +139,7 @@ export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed, unpub
                         <span
                             className="text-[10px] uppercase tracking-[0.28em] whitespace-nowrap"
                             style={{
-                                color: 'var(--text-secondary)',
+                                color: 'var(--axi-text-dim)',
                                 opacity: expanded ? 1 : 0,
                                 marginLeft: expanded ? 6 : 0,
                                 transition: `opacity 200ms ease, margin-left ${LAYOUT_T}`,
@@ -162,7 +162,7 @@ export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed, unpub
                                     type="button"
                                     onClick={() => handleCategoryClick(category.id)}
                                     title={isUnpublished ? `${category.label} — not included in published reports` : undefined}
-                                    className={`w-full h-9 flex items-center text-left rounded-sm ${isActiveCategory ? 'axi-ink-plain' : 'text-[color:var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}
+                                    className={`w-full h-9 flex items-center text-left ${isActiveCategory ? 'axi-ink-plain' : 'text-[color:var(--axi-text)] hover:bg-[var(--axi-surface-raised-paint)]'}`}
                                     style={{
                                         paddingLeft: expanded ? 12 : 20,
                                         paddingRight: expanded ? 12 : 20,
@@ -176,7 +176,7 @@ export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed, unpub
                                         animate={{ scale: expanded ? 1.1 : 1 }}
                                         transition={FAST_SPRING}
                                     >
-                                        <CategoryIcon className="w-3.5 h-3.5 text-[color:var(--brand-primary)]" />
+                                        <CategoryIcon className="w-3.5 h-3.5 text-[color:var(--axi-accent)]" />
                                     </motion.div>
                                     {/* Category label: maxWidth/marginLeft via CSS, opacity/x via framer-motion (transform) */}
                                     <motion.span
@@ -198,7 +198,7 @@ export function CategoryBar({ onSectionVisibilityChange, isSectionAllowed, unpub
                                         <CloudOff
                                             data-testid={`category-unpublished-${category.id}`}
                                             aria-hidden="true"
-                                            className="w-3 h-3 shrink-0 ml-2 text-[color:var(--text-secondary)]"
+                                            className="w-3 h-3 shrink-0 ml-2 text-[color:var(--axi-text-dim)]"
                                         />
                                     )}
                                     {/* Chevron: maxWidth via CSS, opacity/scale/rotate via framer-motion (composited).

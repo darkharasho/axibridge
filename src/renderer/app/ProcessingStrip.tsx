@@ -15,14 +15,14 @@ export function ProcessingStrip({ tone = 'busy', children, className = '' }: {
     className?: string;
 }) {
     const style: CSSProperties & Record<'--step-on', string> = {
-        background: 'var(--bg-card-inner)',
-        borderColor: 'var(--border-default)',
-        color: 'var(--text-secondary)',
-        '--step-on': tone === 'warn' ? 'var(--status-warning)' : 'var(--brand-primary)',
+        background: 'var(--axi-ground)',
+        borderColor: 'var(--axi-ink-line)',
+        color: 'var(--axi-text-dim)',
+        '--step-on': tone === 'warn' ? 'var(--axi-warn)' : 'var(--axi-accent)',
     };
     return (
         <div
-            className={`flex items-center gap-2 px-3 py-1.5 border rounded-md text-xs ${className}`}
+            className={`axi-chip gap-2 text-xs ${className}`}
             style={style}
             data-role="processing-strip"
             data-tone={tone}

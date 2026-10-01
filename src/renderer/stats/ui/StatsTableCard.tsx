@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 
 const defaultSidebarClass = 'stats-table-sidebar pr-3 flex flex-col min-h-0 overflow-y-auto';
-const defaultSidebarStyle: CSSProperties = { borderRight: '1px solid var(--border-subtle)' };
+const defaultSidebarStyle: CSSProperties = { borderRight: '1px solid var(--axi-rule)' };
 const defaultContentClass = 'overflow-hidden pl-3 min-w-0';
 const defaultContentStyle: CSSProperties = {};
 

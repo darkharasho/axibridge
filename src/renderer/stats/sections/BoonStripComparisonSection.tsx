@@ -67,8 +67,8 @@ export const BoonStripComparisonSection = () => {
     return (
         <div {...expandedPaneProps(isExpanded, expandedSectionClosing)}>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
-                <Eraser className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Boon Strips</h3>
+                <Eraser className="w-4 h-4 shrink-0" style={{ color: 'var(--axi-accent)' }} />
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Boon Strips</h3>
                 <SectionExpandButton
                     expanded={isExpanded}
                     onToggle={() => (isExpanded ? closeExpandedSection() : openExpandedSection(sectionId))}
@@ -77,13 +77,13 @@ export const BoonStripComparisonSection = () => {
             </div>
 
             {chartData.length === 0 ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No fight data available</div>
+                <div className="axi-empty">No fight data available</div>
             ) : (
-                <div className="rounded-[var(--radius-md)] p-4">
+                <div className="rounded-[var(--axi-radius-sm)] p-4">
                     <div className="flex items-center justify-between gap-3 mb-3">
                         <div>
-                            <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--text-secondary)]">{outgoingLabel} vs Incoming Strips</div>
-                            <div className="text-[11px] text-[color:var(--text-secondary)] mt-1">
+                            <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--axi-text-dim)]">{outgoingLabel} vs Incoming Strips</div>
+                            <div className="text-[11px] text-[color:var(--axi-text-dim)] mt-1">
                                 Green bars (up) are squad {outgoingLabel.toLowerCase()}. Red bars (down) are boons stripped off the squad.
                             </div>
                         </div>
@@ -113,17 +113,17 @@ export const BoonStripComparisonSection = () => {
                                         if (!point) return null;
                                         return (
                                             <div className="axi-panel axi-panel--float" style={{ '--axi-panel-pad': '10px 12px', fontSize: '12px' } as React.CSSProperties}>
-                                                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                                                <p style={{ margin: 0, color: 'var(--axi-text-dim)' }}>
                                                     {point.fullLabel}{' '}
-                                                    {point.isWin === true && <span style={{ color: 'var(--status-success)', fontWeight: 700 }}>W</span>}
-                                                    {point.isWin === false && <span style={{ color: 'var(--status-error)', fontWeight: 700 }}>L</span>}
+                                                    {point.isWin === true && <span style={{ color: 'var(--axi-ok)', fontWeight: 700 }}>W</span>}
+                                                    {point.isWin === false && <span style={{ color: 'var(--axi-danger)', fontWeight: 700 }}>L</span>}
                                                 </p>
-                                                <p style={{ margin: '4px 0 0', color: 'var(--text-primary)' }}>
-                                                    <span style={{ display: 'inline-block', width: 8, height: 8, backgroundColor: 'var(--status-success)', borderRadius: 2, marginRight: 6 }} />
+                                                <p style={{ margin: '4px 0 0', color: 'var(--axi-text)' }}>
+                                                    <span style={{ display: 'inline-block', width: 8, height: 8, backgroundColor: 'var(--axi-ok)', borderRadius: 2, marginRight: 6 }} />
                                                     {outgoingLabel} : {formatWithCommas(Math.abs(point.outgoing), 0)}
                                                 </p>
-                                                <p style={{ margin: '2px 0 0', color: 'var(--text-primary)' }}>
-                                                    <span style={{ display: 'inline-block', width: 8, height: 8, backgroundColor: 'var(--status-error)', borderRadius: 2, marginRight: 6 }} />
+                                                <p style={{ margin: '2px 0 0', color: 'var(--axi-text)' }}>
+                                                    <span style={{ display: 'inline-block', width: 8, height: 8, backgroundColor: 'var(--axi-danger)', borderRadius: 2, marginRight: 6 }} />
                                                     Incoming Strips : {formatWithCommas(Math.abs(point.incoming), 0)}
                                                 </p>
                                             </div>
@@ -141,12 +141,12 @@ export const BoonStripComparisonSection = () => {
                     </div>
                     <div className="flex justify-center gap-4 mt-2">
                         <div className="flex items-center gap-1.5">
-                            <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
-                            <span className="text-[9px] text-[color:var(--text-secondary)]">{outgoingLabel}</span>
+                            <span className="axi-diamond axi-diamond--ok" />
+                            <span className="text-[9px] text-[color:var(--axi-text-dim)]">{outgoingLabel}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                            <div className="w-2.5 h-2.5 rounded-sm bg-red-500" />
-                            <span className="text-[9px] text-[color:var(--text-secondary)]">Incoming Strips</span>
+                            <span className="axi-diamond axi-diamond--danger" />
+                            <span className="text-[9px] text-[color:var(--axi-text-dim)]">Incoming Strips</span>
                         </div>
                     </div>
                 </div>

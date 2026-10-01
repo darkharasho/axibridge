@@ -62,7 +62,7 @@ const formatFightTime = (iso: string): string => {
 };
 
 const Kpi = ({ value, label, tone }: { value: React.ReactNode; label: string; tone?: string }) => (
-    <div className="fight-hero-kpi rounded-xl border axi-edge-rule bg-white/[0.035] px-3 py-2.5">
+    <div className="fight-hero-kpi axi-well">
         <div className="text-lg font-semibold leading-tight" style={tone ? { color: tone } : undefined}>{value}</div>
         <div className="mt-1 text-[9px] uppercase tracking-[0.16em] axi-ink-dim">{label}</div>
     </div>
@@ -120,21 +120,21 @@ export function FightHero({
                         from .report-head-mark in axi-design.css, which is
                         unconditional. */}
                     <div
-                        className="report-head-mark grid shrink-0 place-items-center"
-                        style={{ width: 38, height: 38, borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)' }}
+                        className="report-head-mark axi-panel axi-panel--tile [--axi-panel-pad:0] grid shrink-0 place-items-center"
+                        style={{ width: 38, height: 38, background: 'var(--axi-accent)' }}
                     >
-                        <Swords className="h-5 w-5" strokeWidth={2.4} style={{ color: 'var(--text-inverse)' }} />
+                        <Swords className="h-5 w-5" strokeWidth={2.4} style={{ color: 'var(--axi-accent-ink)' }} />
                     </div>
                     <div className="min-w-0">
-                        <div className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: 'var(--text-secondary)' }}>
+                        <div className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: 'var(--axi-text-dim)' }}>
                             WvW Fight
                         </div>
                         <h1 className="mt-1 flex flex-wrap items-center gap-2 text-2xl font-bold sm:text-3xl">
                             <span>{mapLabel}</span>
                             {(meta as { guild?: { tag?: string; name?: string } }).guild?.tag && (
                                 <span
-                                    className="inline-flex items-center rounded-[4px] border px-2 py-0.5 text-sm font-semibold tracking-wide"
-                                    style={{ borderColor: 'var(--border-hover)', color: 'var(--text-secondary)' }}
+                                    className="axi-chip text-sm"
+                                    style={{ borderColor: 'var(--axi-rule)', color: 'var(--axi-text-dim)' }}
                                     title={(meta as { guild?: { name?: string } }).guild?.name || undefined}
                                 >
                                     [{(meta as { guild?: { tag?: string } }).guild?.tag}]
@@ -144,19 +144,19 @@ export function FightHero({
                         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs axi-ink-dim sm:text-sm">
                             {timeLabel && (
                                 <span className="inline-flex items-center gap-1.5">
-                                    <CalendarDays className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+                                    <CalendarDays className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--axi-accent)' }} />
                                     {timeLabel}
                                 </span>
                             )}
                             {fight.duration && (
                                 <span className="inline-flex items-center gap-1.5">
-                                    <Clock className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+                                    <Clock className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--axi-accent)' }} />
                                     {fight.duration}
                                 </span>
                             )}
                             {commanders.length > 0 && (
                                 <span className="inline-flex min-w-0 items-center gap-1.5">
-                                    <CommanderTagIcon className="h-3.5 w-3.5 shrink-0 text-[color:var(--brand-primary)]" />
+                                    <CommanderTagIcon className="h-3.5 w-3.5 shrink-0 text-[color:var(--axi-accent)]" />
                                     <span className="truncate">{commanders.join(', ')}</span>
                                 </span>
                             )}
@@ -201,12 +201,12 @@ export function FightHero({
 
             <div className="mt-5 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
                 <Kpi
-                    tone="var(--status-success-muted)"
+                    tone="var(--axi-ok)"
                     label="Enemy Downs / Kills"
                     value={<>{num(fight.enemyDowns)} <span className="text-xs axi-ink-faint">/ {num(fight.enemyDeaths)}</span></>}
                 />
                 <Kpi
-                    tone="var(--status-error-muted)"
+                    tone="var(--axi-danger)"
                     label="Squad Downs / Deaths"
                     value={<>{num(fight.alliesDown)} <span className="text-xs axi-ink-faint">/ {num(fight.alliesDead)}</span></>}
                 />

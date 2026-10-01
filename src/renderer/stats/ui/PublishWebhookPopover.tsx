@@ -54,10 +54,10 @@ export const PublishWebhookPopover = ({ webhooks, initialSelection, onConfirm, o
         >
             <div className="flex items-start justify-between gap-2 px-4 pt-3.5 pb-2.5">
                 <div>
-                    <div className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Publish report</div>
-                    <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>Post the report link to&hellip;</div>
+                    <div className="text-sm font-bold" style={{ color: 'var(--axi-text)' }}>Publish report</div>
+                    <div className="text-[11px] mt-0.5" style={{ color: 'var(--axi-text-dim)' }}>Post the report link to&hellip;</div>
                 </div>
-                <button type="button" onClick={toggleAll} className="axi-action text-[11px] font-semibold whitespace-nowrap" style={{ color: 'var(--brand-primary)' }}>
+                <button type="button" onClick={toggleAll} className="axi-action text-[11px] font-semibold whitespace-nowrap" style={{ color: 'var(--axi-accent)' }}>
                     {allChecked ? 'Clear all' : 'Select all'}
                 </button>
             </div>
@@ -78,28 +78,28 @@ export const PublishWebhookPopover = ({ webhooks, initialSelection, onConfirm, o
                                 checked={on}
                                 onChange={() => toggle(hook.id)}
                             />
-                            <span className="min-w-0 flex-1 text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                            <span className="min-w-0 flex-1 text-[13px] font-semibold truncate" style={{ color: 'var(--axi-text)' }}>
                                 {hook.name || `Webhook ${index + 1}`}
                                 {hook.isForum && (
-                                    <span className="ml-1.5 align-middle text-[9px] uppercase tracking-wide rounded px-1 py-0.5" style={{ color: 'var(--text-secondary)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>forum</span>
+                                    <span className="ml-1.5 align-middle axi-chip">forum</span>
                                 )}
                             </span>
                         </label>
                     );
                 })}
             </div>
-            <div className="text-[11px] px-4 pb-3 pt-0.5 leading-snug" style={{ color: 'var(--text-secondary)' }}>
+            <div className="text-[11px] px-4 pb-3 pt-0.5 leading-snug" style={{ color: 'var(--axi-text-dim)' }}>
                 Leave all unchecked to publish the report without posting to Discord.
             </div>
-            <div className="flex justify-end gap-2 px-3.5 py-2.5" style={{ borderTop: '1px solid var(--border-default)', background: 'var(--bg-card-inner)' }}>
-                <button type="button" onClick={onCancel} className="axi-btn" style={{ background: 'transparent', color: 'var(--text-secondary)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>
+            <div className="flex justify-end gap-2 px-3.5 py-2.5" style={{ borderTop: 'var(--axi-border-control) solid var(--axi-ink-line)', background: 'var(--axi-ground)' }}>
+                <button type="button" onClick={onCancel} className="axi-btn axi-btn--ghost">
                     Cancel
                 </button>
                 <button
                     type="button"
                     onClick={() => onConfirm(webhooks.filter((hook) => checked.has(hook.id)).map((hook) => hook.id))}
                     className="axi-btn"
-                    style={{ background: 'var(--brand-primary)', color: 'var(--on-brand, #0b1220)', border: 'none' }}
+                    style={{ background: 'var(--axi-accent)', color: 'var(--axi-accent-ink)', border: 'none' }}
                 >
                     <UploadCloud className="w-3.5 h-3.5" strokeWidth={2.2} />
                     {count > 0 ? `Publish · post to ${count}` : 'Publish'}

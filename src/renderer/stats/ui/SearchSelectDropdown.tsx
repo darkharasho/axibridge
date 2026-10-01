@@ -117,26 +117,21 @@ export const SearchSelectDropdown = ({
                 }}
                 onFocus={() => setOpen(true)}
                 placeholder={placeholder}
-                className="w-full sm:w-64 rounded-lg border px-2 py-1 text-xs focus:outline-none"
-                style={{
-                    background: 'var(--bg-elevated)',
-                    borderColor: 'var(--border-default)',
-                    color: 'var(--text-primary)',
-                }}
+                className="w-full sm:w-64 axi-input text-xs"
             />
             {open && (
                 <div
                     className="app-dropdown axi-panel axi-panel--tile axi-panel--float stats-popover absolute z-30 mt-2 w-64 text-xs [--axi-panel-pad:8px]"
                 >
                     {filteredOptions.length === 0 ? (
-                        <div className="px-2 py-2 italic" style={{ color: 'var(--text-muted)' }}>No matches</div>
+                        <div className="px-2 py-2 italic" style={{ color: 'var(--axi-text-faint)' }}>No matches</div>
                     ) : (
                         <div ref={listRef} className="max-h-60 overflow-y-auto space-y-2 pr-1">
                             {grouped.columns.length > 0 && (
                                 <div>
                                     <div
                                         className="px-2 pb-1 text-[10px] uppercase tracking-widest"
-                                        style={{ color: 'var(--text-secondary)' }}
+                                        style={{ color: 'var(--axi-text-dim)' }}
                                     >Columns</div>
                                     {grouped.columns.map((option) => {
                                         const selected = selectedIds?.has(`${option.type}:${option.id}`) ?? false;
@@ -157,18 +152,18 @@ export const SearchSelectDropdown = ({
                                                 const idx = optionIndexMap.get(`${option.type}-${option.id}`);
                                                 if (typeof idx === 'number') setActiveIndex(idx);
                                             }}
-                                            className="w-full text-left px-2 py-1.5 rounded-[var(--axi-radius-sm)] border"
+                                            className="w-full text-left px-2 py-1.5"
                                             style={{
-                                                color: 'var(--text-primary)',
+                                                color: 'var(--axi-text)',
                                                 background: selected
-                                                    ? 'var(--accent-bg-strong)'
+                                                    ? 'var(--axi-surface-raised-paint)'
                                                     : isActive
-                                                    ? 'var(--bg-hover)'
+                                                    ? 'var(--axi-surface-raised-paint)'
                                                     : 'transparent',
                                                 borderColor: selected
-                                                    ? 'var(--border-hover)'
+                                                    ? 'var(--axi-rule)'
                                                     : isActive
-                                                    ? 'var(--border-default)'
+                                                    ? 'var(--axi-ink-line)'
                                                     : 'transparent',
                                             }}
                                         >
@@ -184,7 +179,7 @@ export const SearchSelectDropdown = ({
                                 <div>
                                     <div
                                         className="px-2 pb-1 text-[10px] uppercase tracking-widest"
-                                        style={{ color: 'var(--text-secondary)' }}
+                                        style={{ color: 'var(--axi-text-dim)' }}
                                     >Players</div>
                                     {grouped.players.map((option) => {
                                         const selected = selectedIds?.has(`${option.type}:${option.id}`) ?? false;
@@ -205,18 +200,18 @@ export const SearchSelectDropdown = ({
                                                 const idx = optionIndexMap.get(`${option.type}-${option.id}`);
                                                 if (typeof idx === 'number') setActiveIndex(idx);
                                             }}
-                                            className="w-full text-left px-2 py-1.5 rounded-[var(--axi-radius-sm)] border"
+                                            className="w-full text-left px-2 py-1.5"
                                             style={{
-                                                color: 'var(--text-primary)',
+                                                color: 'var(--axi-text)',
                                                 background: selected
-                                                    ? 'var(--accent-bg-strong)'
+                                                    ? 'var(--axi-surface-raised-paint)'
                                                     : isActive
-                                                    ? 'var(--bg-hover)'
+                                                    ? 'var(--axi-surface-raised-paint)'
                                                     : 'transparent',
                                                 borderColor: selected
-                                                    ? 'var(--border-hover)'
+                                                    ? 'var(--axi-rule)'
                                                     : isActive
-                                                    ? 'var(--border-default)'
+                                                    ? 'var(--axi-ink-line)'
                                                     : 'transparent',
                                             }}
                                         >

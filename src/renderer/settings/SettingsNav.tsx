@@ -47,10 +47,10 @@ export function SettingsNav({
                             type="button"
                             onClick={() => onSelectCategory(category.id)}
                             aria-expanded={isExpanded}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-[4px] text-sm transition-colors"
+                            className="w-full flex items-center gap-2 px-2 py-1.5 text-sm transition-colors"
                             style={isExpanded
-                                ? { background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }
-                                : { color: 'var(--text-secondary)' }}
+                                ? { background: 'var(--axi-surface-paint)', color: 'var(--axi-text-dim)' }
+                                : { color: 'var(--axi-text-dim)' }}
                         >
                             {isExpanded
                                 ? <ChevronDown className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
@@ -59,10 +59,10 @@ export function SettingsNav({
                             <span className="truncate">{category.label}</span>
                             {matchCountsByCategory && (
                                 <span
-                                    className="ml-auto shrink-0 px-1.5 py-0.5 rounded-[3px] text-[9px] font-semibold"
+                                    className="ml-auto shrink-0 px-1.5 py-0.5 text-[9px] font-semibold"
                                     style={matchCount
-                                        ? { background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }
-                                        : { color: 'var(--text-muted)' }}
+                                        ? { background: 'var(--axi-surface-paint)', color: 'var(--axi-text-dim)' }
+                                        : { color: 'var(--axi-text-faint)' }}
                                 >
                                     {matchCount ?? 0}
                                 </span>
@@ -75,7 +75,7 @@ export function SettingsNav({
                             return (
                                 <div className="ml-6 flex flex-col gap-1 py-1">
                                     {sections.length === 0 && (
-                                        <div className="px-2 py-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                                        <div className="px-2 py-1 text-[11px]" style={{ color: 'var(--axi-text-faint)' }}>
                                             No matches
                                         </div>
                                     )}
@@ -85,7 +85,7 @@ export function SettingsNav({
                                             type="button"
                                             data-settings-nav-id={section.id}
                                             onClick={() => onSelectSection(section.id)}
-                                            className={`axi-action text-left px-2 py-1 rounded-[4px] text-xs ${
+                                            className={`axi-action text-left px-2 py-1 text-xs ${
                                                 section.id === activeSectionId ? 'axi-ink-plain' : 'axi-ink-dim'
                                             }`}
                                         >

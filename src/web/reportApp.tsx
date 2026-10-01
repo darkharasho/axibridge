@@ -567,7 +567,7 @@ export function ReportApp({ injectedSource, assetBase }: {
         return (
             <>
                 {before}
-                <mark className="rounded bg-[color:var(--accent-bg-strong)] px-1 axi-ink-plain">{match}</mark>
+                <mark className="bg-[color:var(--axi-surface-raised-paint)] px-1 axi-ink-plain">{match}</mark>
                 {after}
             </>
         );
@@ -591,12 +591,12 @@ export function ReportApp({ injectedSource, assetBase }: {
             const nodeRect = node.getBoundingClientRect();
             const scrollOffset = Math.max(0, container.scrollTop + (nodeRect.top - containerRect.top) - 12);
             container.scrollTop = scrollOffset;
-            node.classList.add('ring-2', 'ring-[color:var(--accent-border)]', 'bg-[color:var(--accent-bg)]');
+            node.classList.add('ring-2', 'ring-[color:var(--axi-ink-line)]', 'bg-[color:var(--axi-surface-paint)]');
             if (metricsSpecHighlightRef.current) {
                 window.clearTimeout(metricsSpecHighlightRef.current);
             }
             metricsSpecHighlightRef.current = window.setTimeout(() => {
-                node.classList.remove('ring-2', 'ring-[color:var(--accent-border)]', 'bg-[color:var(--accent-bg)]');
+                node.classList.remove('ring-2', 'ring-[color:var(--axi-ink-line)]', 'bg-[color:var(--axi-surface-paint)]');
             }, 1600);
         });
     };
@@ -961,14 +961,14 @@ export function ReportApp({ injectedSource, assetBase }: {
     }, [navGroups]);
     // All theming resolves from --axi-accent and the axi token set; the two data
     // attributes on <html> are the only switches.
-    const defaultLogoColor = 'var(--brand-primary)';
+    const defaultLogoColor = 'var(--axi-accent)';
     // `background` shorthand, not `backgroundColor`: under glass `--bg-card`
     // resolves to `--axi-surface`, an alpha gradient, and a plain
     // `background-color: var(--axi-surface)` is invalid at computed-value time
     // — it silently computes to transparent, leaving every card with no fill.
     const glassCardStyle: CSSProperties = {
-        background: 'var(--bg-card)',
-        borderColor: 'var(--border-default)'
+        background: 'var(--axi-surface-paint)',
+        borderColor: 'var(--axi-ink-line)'
     };
     // Sticky table headers need an opaque base, or scrolled rows show straight
     // through. This used to layer the token over a hardcoded dark fallback as a
@@ -978,7 +978,7 @@ export function ReportApp({ injectedSource, assetBase }: {
     // stop. --bg-card is now flat and opaque in BOTH surface treatments (the glass
     // token block in index.css), so the token alone is the opaque base.
     const rollupTableHeaderStyle: CSSProperties = {
-        backgroundColor: 'var(--bg-card)'
+        backgroundColor: 'var(--axi-surface-paint)'
     };
     const showProfessionTooltip = (event: ReactMouseEvent<HTMLElement>, entries?: RollupProfessionUsage[]) => {
         if (!entries || entries.length === 0) return;
@@ -992,12 +992,12 @@ export function ReportApp({ injectedSource, assetBase }: {
     const hideProfessionTooltip = () => setProfessionTooltip(null);
     const professionTooltipPane = professionTooltip && (
         <div
-            className="fixed z-50 pointer-events-none rounded-xl border axi-edge-rule px-3.5 py-2.5 text-xs shadow-2xl"
+            className="fixed z-50 pointer-events-none axi-panel axi-panel--float [--axi-panel-pad:10px_14px] text-xs"
             style={{
                 left: professionTooltip.x,
                 top: professionTooltip.y,
                 backgroundColor: '#0c0f16',
-                backgroundImage: 'linear-gradient(var(--bg-card), var(--bg-card))'
+                backgroundImage: 'linear-gradient(var(--axi-surface-paint), var(--axi-surface-paint))'
             }}
         >
             <div className="text-[10px] uppercase tracking-widest axi-ink-dim mb-1.5">Classes Played</div>
@@ -1006,7 +1006,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                     <div key={entry.profession} className="flex items-center justify-between gap-6">
                         <span className="flex items-center gap-2 axi-ink-plain">
                             <span
-                                className="inline-block w-2 h-2 rounded-full"
+                                className="axi-diamond"
                                 style={{ backgroundColor: getProfessionColor(entry.profession) }}
                             />
                             {entry.profession}
@@ -1360,7 +1360,7 @@ export function ReportApp({ injectedSource, assetBase }: {
     }, []);
 
     const legalNoticePane = (
-        <div className="rounded-xl border axi-edge-rule bg-white/5 px-4 py-3 text-[11px] axi-ink-faint">
+        <div className="axi-well text-[11px] axi-ink-faint">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.35em] axi-ink-dim">Legal Notice</div>
                 <div className="flex flex-wrap items-end gap-2">
@@ -1368,7 +1368,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                         href="https://github.com/darkharasho/axibridge"
                         target="_blank"
                         rel="noreferrer"
-                        className="px-2.5 py-1 rounded-full text-[9px] uppercase tracking-widest border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
+                        className="axi-pill axi-pill--xs"
                     >
                         GitHub
                     </a>
@@ -1376,7 +1376,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                         href="https://discord.gg/UjzMXMGXEg"
                         target="_blank"
                         rel="noreferrer"
-                        className="px-2.5 py-1 rounded-full text-[9px] uppercase tracking-widest border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
+                        className="axi-pill axi-pill--xs"
                     >
                         Discord
                     </a>
@@ -1386,7 +1386,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                             event.preventDefault();
                             setProofOfWorkOpen(true);
                         }}
-                        className="px-2.5 py-1 rounded-full text-[9px] uppercase tracking-widest border bg-white/5 axi-ink-dim axi-edge-rule hover:text-white"
+                        className="axi-pill axi-pill--xs"
                     >
                         Proof of Work
                     </a>
@@ -1656,7 +1656,7 @@ export function ReportApp({ injectedSource, assetBase }: {
             <div
                 className="min-h-screen axi-ink-plain relative overflow-x-hidden"
             >
-                <div className={`fixed inset-0 z-20 bg-black/40 backdrop-blur-sm transition-opacity ${isNarrowViewport ? '' : 'hidden'} ${tocOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setTocOpen(false)} />
+                <div className={`axi-scrim !z-20 transition-opacity ${isNarrowViewport ? '' : 'hidden'} ${tocOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setTocOpen(false)} />
                 <aside
                     className={`fixed z-30 top-0 bottom-0 w-64 max-w-[80vw] transition-transform duration-300 ${isNarrowViewport ? '' : 'hidden'} ${tocOpen ? 'translate-x-0' : '-translate-x-full'}`}
                 >
@@ -1757,14 +1757,14 @@ export function ReportApp({ injectedSource, assetBase }: {
                     // --float, not just --flush: this rail is pinned to the viewport and the
                     // report scrolls behind it, so the translucent --axi-surface a theme
                     // like glass gives a rail would show the table rows through the nav.
-                    className="axi-rail axi-rail--flush axi-rail--float fixed inset-y-0 left-0 z-20"
+                    className="axi-rail axi-rail--flush axi-rail--float fixed inset-y-0 left-0 z-20 mb-[var(--axi-offset-panel)]"
                     style={{ '--axi-rail-w': '16rem', '--axi-rail-pad': '0' } as CSSProperties}
                 >
                     <div className="flex flex-col w-full flex-1 min-h-0">
                         <div className="px-6 pt-6 pb-5">
                             <div className="flex items-center gap-3">
                                 <div
-                                    className="h-10 w-10 rounded-2xl border axi-edge-rule"
+                                    className="h-10 w-10 axi-well axi-well--sm [--axi-well-pad:0]"
                                     style={{
                                         backgroundColor: defaultLogoColor,
                                         maskImage: `url("${axibridgeLogoUrl}")`,
@@ -1780,7 +1780,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                     aria-label="AxiBridge logo"
                                 />
                                 <div>
-                                    <div><div className="text-[11px] tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="axi-ink-plain">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div><div className="text-[10px] uppercase tracking-[0.3em] axi-ink-dim">Reports</div></div>
+                                    <div><div className="text-[11px] tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="axi-ink-plain">Axi</span><span style={{ color: 'var(--axi-accent)' }}>Bridge</span></div><div className="text-[10px] uppercase tracking-[0.3em] axi-ink-dim">Reports</div></div>
                                     <div className="text-sm font-semibold axi-ink-plain">Navigation</div>
                                 </div>
                             </div>
@@ -1907,18 +1907,18 @@ export function ReportApp({ injectedSource, assetBase }: {
                                             <img
                                                 src={logoUrl}
                                                 alt="Squad logo"
-                                                className="w-16 h-16 sm:w-24 sm:h-24 rounded-lg object-cover mx-auto sm:mx-0"
+                                                className="w-16 h-16 sm:w-24 sm:h-24 object-cover mx-auto sm:mx-0"
                                             />
                                         )
                                     )}
                                     <div className="min-w-0">
-                                        <div className="report-brand-label"><div className="text-xs tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="axi-ink-plain">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div><div className="text-[10px] uppercase tracking-[0.3em] axi-ink-dim">Log Report</div></div>
+                                        <div className="report-brand-label"><div className="text-xs tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="axi-ink-plain">Axi</span><span style={{ color: 'var(--axi-accent)' }}>Bridge</span></div><div className="text-[10px] uppercase tracking-[0.3em] axi-ink-dim">Log Report</div></div>
                                         <h1 className="text-2xl sm:text-3xl font-bold mt-1 flex items-center gap-2 flex-wrap">
                                             <span>{report.meta.title}</span>
                                             {(report.meta as any).guild?.tag && (
                                                 <span
-                                                    className="inline-flex items-center rounded-[4px] border px-2 py-0.5 text-sm font-semibold tracking-wide"
-                                                    style={{ borderColor: 'var(--border-hover)', color: 'var(--text-secondary)' }}
+                                                    className="axi-chip text-sm"
+                                                    style={{ borderColor: 'var(--axi-rule)', color: 'var(--axi-text-dim)' }}
                                                     title={(report.meta as any).guild.name || undefined}
                                                 >
                                                     [{(report.meta as any).guild.tag}]{(report.meta as any).guild.name ? ` ${(report.meta as any).guild.name}` : ''}
@@ -1930,24 +1930,24 @@ export function ReportApp({ injectedSource, assetBase }: {
                                 </div>
                                 <button
                                     onClick={() => setTocOpen(true)}
-                                    className={`${isNarrowViewport && !isCompactViewport ? 'flex' : 'hidden'} px-3 py-2 rounded-xl bg-white/5 border axi-edge-rule text-xs uppercase tracking-widest axi-ink-dim hover:border-white/30 transition-colors items-center gap-2`}
+                                    className={`${isNarrowViewport && !isCompactViewport ? 'flex' : 'hidden'} axi-pill axi-pill--xs items-center gap-2`}
                                 >
                                     <PanelLeft className="w-4 h-4" />
                                     Contents
                                 </button>
                                 <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:overflow-visible pr-1 sm:pr-2">
-                                    <div className="col-span-2 sm:col-span-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border axi-edge-rule text-[10px] sm:text-xs uppercase tracking-widest axi-ink-dim inline-flex items-center gap-2 min-w-0 justify-start">
-                                        <CalendarDays className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                                    <div className="axi-chip inline-flex items-center gap-2 min-w-0 justify-start">
+                                        <CalendarDays className="w-4 h-4 shrink-0 text-[color:var(--axi-accent)]" />
                                         {report.meta.dateLabel || 'Log Range'}
                                     </div>
-                                    <div className="col-span-2 sm:col-span-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border axi-edge-rule text-[10px] sm:text-xs uppercase tracking-widest axi-ink-dim flex items-center gap-2 min-w-0">
-                                        <CommanderTagIcon className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                                    <div className="axi-chip flex items-center gap-2 min-w-0">
+                                        <CommanderTagIcon className="w-4 h-4 shrink-0 text-[color:var(--axi-accent)]" />
                                         <span className="truncate">
                                             {report.meta.commanders.length ? report.meta.commanders.join(', ') : 'No Commanders'}
                                         </span>
                                     </div>
-                                    <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border axi-edge-rule text-[10px] sm:text-xs uppercase tracking-widest axi-ink-dim flex items-center gap-2 min-w-0">
-                                        <ShieldCheck className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                                    <div className="axi-chip flex items-center gap-2 min-w-0">
+                                        <ShieldCheck className="w-4 h-4 shrink-0 text-[color:var(--axi-accent)]" />
                                         Report {report.meta.appVersion ? `v${report.meta.appVersion}` : 'build'}
                                     </div>
                                 </div>
@@ -1980,7 +1980,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                     <div ref={statsWrapperRef} onWheelCapture={handleStatsWheel} className="flex-1 min-w-0">
                         <div id="stats-view-top">
                             {(sliceLinkStatus || sliceError || sliceState.message || sliceComputing) && (
-                                <div className="mb-3 rounded-xl border axi-edge-rule bg-white/5 px-3 py-2 text-[11px] font-semibold uppercase tracking-widest axi-ink-dim">
+                                <div className="mb-3 axi-well axi-eyebrow">
                                     {sliceLinkStatus || sliceError || sliceState.message || (sliceComputing ? 'Recomputing…' : null)}
                                 </div>
                             )}
@@ -2081,33 +2081,33 @@ export function ReportApp({ injectedSource, assetBase }: {
                                         <img
                                             src={logoUrl}
                                             alt="Squad logo"
-                                            className="w-16 h-16 sm:w-24 sm:h-24 rounded-lg object-cover mx-auto sm:mx-0"
+                                            className="w-16 h-16 sm:w-24 sm:h-24 object-cover mx-auto sm:mx-0"
                                         />
                                     )
                                 )}
                                 <div>
-                                    <div className="text-sm tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="axi-ink-plain">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div>
+                                    <div className="text-sm tracking-[0.06em]" style={{ fontFamily: '"Cinzel", serif' }}><span className="axi-ink-plain">Axi</span><span style={{ color: 'var(--axi-accent)' }}>Bridge</span></div>
                                     <h1 className="text-2xl sm:text-3xl font-bold mt-2">All Reports</h1>
                                     <p className="text-xs sm:text-sm axi-ink-dim mt-1">Combined commander and player stats across every hosted report.</p>
                                 </div>
                             </div>
                             <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
-                                <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border axi-edge-rule text-[10px] sm:text-xs uppercase tracking-widest axi-ink-dim inline-flex items-center gap-2">
-                                    <BarChart3 className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                                <div className="axi-chip inline-flex items-center gap-2">
+                                    <BarChart3 className="w-4 h-4 shrink-0 text-[color:var(--axi-accent)]" />
                                     {rollupData?.uniqueRaids || 0} Raids
                                 </div>
                                 {showIndexChrome && <a
                                     href={themedIndexHref}
-                                    className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border axi-edge-rule text-[10px] sm:text-xs uppercase tracking-widest axi-ink-dim inline-flex items-center justify-center gap-2 hover:border-[color:var(--accent-border)] transition-colors"
+                                    className="axi-pill axi-pill--xs justify-center"
                                 >
-                                    <ArrowLeft className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                                    <ArrowLeft className="w-4 h-4 shrink-0 text-[color:var(--axi-accent)]" />
                                     Back To Reports
                                 </a>}
                             </div>
                         </div>
 
                         {error && (
-                            <div className="mb-6 rounded-2xl border axi-edge-warn bg-amber-500/10 px-6 py-5 axi-ink-warn shadow-xl backdrop-blur-md" style={glassCardStyle}>
+                            <div className="mb-6 axi-panel axi-edge-warn axi-ink-warn">
                                 <div className="text-sm uppercase tracking-widest axi-ink-warn">Warning</div>
                                 <div className="mt-2 text-base font-semibold axi-ink-plain">{error}</div>
                             </div>
@@ -2160,7 +2160,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                         <div className={`${glassCard} p-4 sm:p-5`} style={glassCardStyle}>
                                             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-4">
                                                 <div>
-                                                    <div className="text-[11px] uppercase tracking-widest text-[color:var(--accent-border)]">Commanders</div>
+                                                    <div className="text-[11px] uppercase tracking-widest text-[color:var(--axi-ink-line)]">Commanders</div>
                                                     <h2 className="text-lg sm:text-xl font-semibold mt-1">All Commander Runs</h2>
                                                 </div>
                                                 <div className="text-[11px] uppercase tracking-widest axi-ink-dim">Runs are counted per unique raid</div>
@@ -2207,7 +2207,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                         </div>
                                                     </div>
                                                     <div className="px-3 pb-3 sm:px-4 sm:pb-4">
-                                                    <div className="max-h-[32rem] overflow-auto rounded-xl border axi-edge-rule">
+                                                    <div className="max-h-[32rem] overflow-auto axi-well [--axi-well-pad:0]">
                                                         <table className="w-full min-w-[860px] text-sm">
                                                             <thead className="sticky top-0 text-[11px] uppercase tracking-widest axi-ink-faint z-10" style={rollupTableHeaderStyle}>
                                                                 <tr className="border-b axi-edge-rule">
@@ -2227,7 +2227,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                                 const totalFights = row.wins + row.losses;
                                                                 const winRate = totalFights > 0 ? (row.wins / totalFights) * 100 : 0;
                                                                 return (
-                                                                    <tr key={row.account} className="border-b axi-edge-rule align-top hover:bg-white/[0.03]">
+                                                                    <tr key={row.account} className="border-b axi-edge-rule align-top hover:bg-[color:var(--axi-surface-raised-paint)]">
                                                                         <td className="py-3 pr-4 pl-4 sm:pl-5">
                                                                             <div className="font-medium axi-ink-plain">{row.account}</div>
                                                                             <div className="text-xs axi-ink-dim mt-1">
@@ -2271,7 +2271,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                         <div className={`${glassCard} p-4 sm:p-5`} style={glassCardStyle}>
                                             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-4">
                                                 <div>
-                                                    <div className="text-[11px] uppercase tracking-widest text-[color:var(--accent-border)]">Players</div>
+                                                    <div className="text-[11px] uppercase tracking-widest text-[color:var(--axi-ink-line)]">Players</div>
                                                     <h2 className="text-lg sm:text-xl font-semibold mt-1">Everyone Who Joined</h2>
                                                 </div>
                                                 <div className="text-[11px] uppercase tracking-widest axi-ink-dim">Last seen is based on the report end time</div>
@@ -2318,7 +2318,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                         </div>
                                                     </div>
                                                     <div className="px-3 pb-3 sm:px-4 sm:pb-4">
-                                                    <div className="max-h-[32rem] overflow-auto rounded-xl border axi-edge-rule">
+                                                    <div className="max-h-[32rem] overflow-auto axi-well [--axi-well-pad:0]">
                                                         <table className="w-full min-w-[900px] text-sm">
                                                             <thead className="sticky top-0 text-[11px] uppercase tracking-widest axi-ink-faint z-10" style={rollupTableHeaderStyle}>
                                                                 <tr className="border-b axi-edge-rule">
@@ -2332,7 +2332,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                         </thead>
                                                         <tbody>
                                                             {filteredPlayerRows.map((row) => (
-                                                                <tr key={row.account} className="border-b axi-edge-rule align-top hover:bg-white/[0.03]">
+                                                                <tr key={row.account} className="border-b axi-edge-rule align-top hover:bg-[color:var(--axi-surface-raised-paint)]">
                                                                     <td className="py-3 pr-4 pl-4 sm:pl-5">
                                                                         <div className="font-medium axi-ink-plain">{row.account}</div>
                                                                         {row.characterNames.length > 0 && (
@@ -2395,7 +2395,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                 <img
                                     src={logoUrl}
                                     alt="Squad logo"
-                                    className="w-20 h-20 sm:w-28 sm:h-28 rounded-lg object-cover mx-auto sm:mx-0 shrink-0"
+                                    className="w-20 h-20 sm:w-28 sm:h-28 object-cover mx-auto sm:mx-0 shrink-0"
                                 />
                             ) : (
                                 <img
@@ -2405,13 +2405,13 @@ export function ReportApp({ injectedSource, assetBase }: {
                                 />
                             )}
                             <div>
-                                <div className="text-2xl sm:text-3xl tracking-[0.06em] font-medium" style={{ fontFamily: '"Cinzel", serif' }}><span className="axi-ink-plain">Axi</span><span style={{ color: 'var(--brand-primary)' }}>Bridge</span></div>
+                                <div className="text-2xl sm:text-3xl tracking-[0.06em] font-medium" style={{ fontFamily: '"Cinzel", serif' }}><span className="axi-ink-plain">Axi</span><span style={{ color: 'var(--axi-accent)' }}>Bridge</span></div>
                                 <div className="text-xs sm:text-sm uppercase tracking-[0.3em] axi-ink-dim mt-1">Reports</div>
                                 <p className="text-xs axi-ink-faint mt-1">Select a report to view the full stats dashboard.</p>
                             </div>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-                            <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-white/5 border axi-edge-rule text-[10px] sm:text-xs uppercase tracking-widest axi-ink-dim">
+                            <div className="axi-chip">
                                 {filteredIndex.length} Reports
                             </div>
                         </div>
@@ -2426,13 +2426,13 @@ export function ReportApp({ injectedSource, assetBase }: {
                             className="axi-input md:flex-1"
                         />
                         <div className="text-[11px] sm:text-xs axi-ink-dim">
-                            Showing <span className="text-[color:var(--brand-primary)]">{filteredIndex.length}</span> of{' '}
-                            <span className="text-[color:var(--brand-primary)]">{sortedIndex.length}</span>
+                            Showing <span className="text-[color:var(--axi-accent)]">{filteredIndex.length}</span> of{' '}
+                            <span className="text-[color:var(--axi-accent)]">{sortedIndex.length}</span>
                         </div>
                     </div>
 
                     {error && (
-                        <div className="mb-6 rounded-2xl border axi-edge-warn bg-amber-500/10 px-6 py-5 axi-ink-warn shadow-xl backdrop-blur-md" style={glassCardStyle}>
+                        <div className="mb-6 axi-panel axi-edge-warn axi-ink-warn">
                             <div className="text-sm uppercase tracking-widest axi-ink-warn">Warning</div>
                             <div className="mt-2 text-base font-semibold axi-ink-plain">{error}</div>
                             {reportPathHint && (
@@ -2450,23 +2450,20 @@ export function ReportApp({ injectedSource, assetBase }: {
                     {showIndexChrome && !error && index && sortedIndex.length > 0 && (
                         <a
                             href={rollupHref}
-                            className={`${glassCard} mb-4 px-5 py-4 transition-all duration-200 group block overflow-hidden relative hover:-translate-y-0.5`}
+                            className={`${glassCard} axi-edge-accent mb-4 px-5 py-4 transition-all duration-200 group block overflow-hidden relative hover:-translate-y-0.5`}
                             style={{
                                 ...glassCardStyle,
-                                borderColor: 'rgba(var(--accent-rgb), 0.55)',
-                                backgroundImage: `linear-gradient(135deg, rgba(var(--accent-rgb), 0.28), rgba(var(--accent-rgb), 0.1) 52%, rgba(255,255,255,0.02) 100%)`,
-                                boxShadow: '0 22px 50px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255,255,255,0.05)'
                             }}
                         >
                             <div
                                 className="absolute inset-y-0 left-0 w-1.5"
-                                style={{ background: 'linear-gradient(180deg, rgba(var(--accent-rgb), 0.95), rgba(var(--accent-rgb), 0.35))' }}
+                                style={{ background: 'var(--axi-accent)' }}
                                 aria-hidden="true"
                             />
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                                 <div className="min-w-0 block text-left pl-1 sm:pl-2">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--accent-border)] bg-[color:var(--accent-bg)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] axi-ink-plain">
+                                        <span className="axi-chip gap-1 axi-ink-plain">
                                             <BarChart3 className="w-4 h-4" />
                                             All Reports
                                         </span>
@@ -2474,7 +2471,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                     </div>
                                     <div className="text-base sm:text-lg font-semibold mt-2 axi-ink-plain">Combined Stats Across Every Included Report</div>
                                     <div className="text-xs axi-ink-dim mt-1 flex items-center gap-2">
-                                        <Users className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                                        <Users className="w-4 h-4 shrink-0 text-[color:var(--axi-accent)]" />
                                         <span>Cross-report commander totals, roster attendance, and recent participation in one place.</span>
                                     </div>
                                 </div>
@@ -2482,10 +2479,10 @@ export function ReportApp({ injectedSource, assetBase }: {
                                     <div className="flex flex-col items-end gap-1">
                                         <div className="text-[10px] uppercase tracking-widest axi-ink-faint">Source Reports</div>
                                         <div className="text-lg axi-ink-plain font-semibold">{sortedIndex.length}</div>
-                                        <div className="text-[10px] uppercase tracking-widest text-[color:var(--accent-border)]">Open Summary</div>
+                                        <div className="text-[10px] uppercase tracking-widest text-[color:var(--axi-ink-line)]">Open Summary</div>
                                     </div>
-                                    <div className="h-10 w-10 rounded-full border border-[color:var(--accent-border)] bg-[color:var(--accent-bg)] inline-flex items-center justify-center">
-                                        <ExternalLink className="w-5 h-5 text-[color:var(--brand-primary)] opacity-90" />
+                                    <div className="h-10 w-10 axi-well axi-well--sm [--axi-well-pad:0] inline-flex items-center justify-center">
+                                        <ExternalLink className="w-5 h-5 text-[color:var(--axi-accent)] opacity-90" />
                                     </div>
                                 </div>
                             </div>
@@ -2498,7 +2495,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                 <a
                                     key={entry.id}
                                     href={buildReportHref(baseHref, entry.id)}
-                                    className={`${glassCard} px-5 py-4 hover:border-[color:var(--accent-border)] transition-colors group`}
+                                    className={`${glassCard} px-5 py-4 hover:border-[color:var(--axi-ink-line)] transition-colors group`}
                                     style={glassCardStyle}
                                 >
                                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
@@ -2517,7 +2514,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                             setSearchTerm((entry as any).guild.tag);
                                                         }}
                                                         className="axi-btn axi-btn--xs shrink-0"
-                                                        style={{ borderColor: 'var(--border-hover)', color: 'var(--text-secondary)' }}
+                                                        style={{ borderColor: 'var(--axi-rule)', color: 'var(--axi-text-dim)' }}
                                                         title={`Search reports by ${(entry as any).guild.name || (entry as any).guild.tag}`}
                                                     >
                                                         [{(entry as any).guild.tag}]
@@ -2525,7 +2522,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                 )}
                                             </div>
                                             <div className="text-xs axi-ink-dim mt-1 flex items-center gap-2">
-                                                <Users className="w-4 h-4 shrink-0 text-[color:var(--brand-primary)]" />
+                                                <Users className="w-4 h-4 shrink-0 text-[color:var(--axi-accent)]" />
                                                 <span className="truncate">
                                                     {entry.commanders.length ? entry.commanders.join(', ') : 'No Commanders'}
                                                 </span>
@@ -2551,7 +2548,7 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                     {entry.summary?.avgSquadSize ?? '--'} / {entry.summary?.avgEnemySize ?? '--'}
                                                 </div>
                                             </div>
-                                            <ExternalLink className="w-5 h-5 text-[color:var(--brand-primary)] opacity-60 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" />
+                                            <ExternalLink className="w-5 h-5 text-[color:var(--axi-accent)] opacity-60 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" />
                                         </div>
                                     </div>
                                 </a>

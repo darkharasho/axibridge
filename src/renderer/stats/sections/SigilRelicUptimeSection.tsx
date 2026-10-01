@@ -51,7 +51,7 @@ export const SigilRelicUptimeSection = ({
         <div {...expandedPaneProps(expandedSection === 'sigil-relic-uptime', expandedSectionClosing)}>
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <span className="flex shrink-0" style={{ color: 'var(--section-support)' }}><Gw2SigilIcon className="w-4 h-4" /></span>
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>Sigil/Relic Uptime</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>Sigil/Relic Uptime</h3>
                 <SectionExpandButton
                     expanded={expandedSection === 'sigil-relic-uptime'}
                     onToggle={() => (expandedSection === 'sigil-relic-uptime' ? closeExpandedSection() : openExpandedSection('sigil-relic-uptime'))}
@@ -59,7 +59,7 @@ export const SigilRelicUptimeSection = ({
                 />
             </div>
             {!hasSigilRelicTables ? (
-                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No sigil/relic uptime data available</div>
+                <div className="axi-empty">No sigil/relic uptime data available</div>
             ) : (
                 <StatsTableLayout
                     expanded={isExpanded}
@@ -67,7 +67,7 @@ export const SigilRelicUptimeSection = ({
                     contentClassName={`overflow-hidden ${isExpanded ? 'flex flex-col min-h-0' : ''}`}
                     sidebar={
                         <>
-                            <div className="text-xs uppercase tracking-widest text-[color:var(--text-secondary)] mb-2">Sigil/Relic</div>
+                            <div className="text-xs uppercase tracking-widest text-[color:var(--axi-text-dim)] mb-2">Sigil/Relic</div>
                             <input
                                 value={sigilRelicSearch}
                                 onChange={(e) => setSigilRelicSearch(e.target.value)}
@@ -77,16 +77,16 @@ export const SigilRelicUptimeSection = ({
                             />
                             <div className={`${sidebarListClass} ${isExpanded ? 'max-h-none flex-1 min-h-0' : ''}`}>
                                 {filteredSigilRelicTables.length === 0 ? (
-                                    <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">No sigil/relic entries match this filter</div>
+                                    <div className="axi-empty">No sigil/relic entries match this filter</div>
                                 ) : (
                                     filteredSigilRelicTables.map((buff: any) => (
                                         <button
                                             key={buff.id}
                                             onClick={() => setActiveSigilRelicTab(buff.id)}
                                             title={buff.name}
-                                            className={`w-full text-left px-3 py-1.5 rounded-[var(--radius-md)] text-xs transition-colors ${activeSigilRelicTab === buff.id
-                                                ? 'bg-fuchsia-500/20 axi-ink-meta font-semibold'
-                                                : 'hover:bg-[var(--bg-hover)] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
+                                            className={`w-full text-left px-3 py-1.5 rounded-[var(--axi-radius-sm)] text-xs transition-colors ${activeSigilRelicTab === buff.id
+                                                ? 'bg-[color:var(--axi-surface-raised-paint)] axi-ink-meta font-semibold'
+                                                : 'hover:bg-[var(--axi-surface-raised-paint)] text-[color:var(--axi-text-dim)] hover:text-[color:var(--axi-text)]'
                                                 }`}
                                         >
                                             <InlineIconLabel
@@ -105,7 +105,7 @@ export const SigilRelicUptimeSection = ({
                     content={
                         <>
                             {!activeSigilRelicTable ? (
-                                <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">Select a sigil/relic to view uptime</div>
+                                <div className="axi-empty">Select a sigil/relic to view uptime</div>
                             ) : (
                                 <StatsTableShell
                                     expanded={isExpanded}
@@ -131,10 +131,10 @@ rows={
                                                 const uptimePct = Number(row.uptimePerSecond ?? row.perSecond ?? 0) * 100;
                                                 return (
                                                     <tr key={`${activeSigilRelicTable.id}-${row.account}-${idx}`}>
-<td className="text-[color:var(--text-muted)]">{idx + 1}</td>
+<td className="text-[color:var(--axi-text-faint)]">{idx + 1}</td>
 <th scope="row"><span className="axi-table__who">{renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
                                                             <span className="truncate">{row.account}</span></span></th>
-<td className="text-[color:var(--text-secondary)]">{formatWithCommas(uptimePct, 1)}%</td>
+<td className="text-[color:var(--axi-text-dim)]">{formatWithCommas(uptimePct, 1)}%</td>
 </tr>
                                                 );
                                             })}

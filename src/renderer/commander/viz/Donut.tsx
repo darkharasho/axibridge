@@ -31,7 +31,7 @@ export function Donut({ pct, color, label }: DonutProps) {
           r={RADIUS}
           fill="none"
           strokeWidth={STROKE_WIDTH}
-          style={{ stroke: 'var(--bg-card-inner)' }}
+          style={{ stroke: 'var(--axi-ground)' }}
         />
         <circle
           data-role="donut-arc"
@@ -51,7 +51,7 @@ export function Donut({ pct, color, label }: DonutProps) {
         <span
           data-role="donut-label"
           className="absolute text-[9px] font-medium"
-          style={{ color: 'var(--text-primary)' }}
+          style={{ color: 'var(--axi-text)' }}
         >
           {label}
         </span>

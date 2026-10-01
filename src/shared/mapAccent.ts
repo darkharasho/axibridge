@@ -18,22 +18,8 @@ import { resolveMapFromZone } from './mapUtils';
  * (`incrementalAggregation.ts`), so the accent agrees with the chart.
  */
 export interface MapAccent {
-    /** `--axi-accent` and `--brand-primary` */
+    /** `--axi-accent` - the one variable the design language reads. */
     primary: string;
-    /** `--brand-secondary` */
-    secondary: string;
-    /** `--brand-gradient` */
-    gradient: string;
-    /** `--accent-bg` */
-    accentBg: string;
-    /** `--accent-bg-strong` */
-    accentBgStrong: string;
-    /** `--accent-border` */
-    accentBorder: string;
-    /** `--glow-primary` */
-    glowPrimary: string;
-    /** `--glow-secondary` */
-    glowSecondary: string;
 }
 
 const MAP_ACCENT_HEX = {
@@ -43,32 +29,8 @@ const MAP_ACCENT_HEX = {
     neutral: '#ffffff',
 } as const;
 
-const toRgb = (hex: string): [number, number, number] => [
-    parseInt(hex.slice(1, 3), 16),
-    parseInt(hex.slice(3, 5), 16),
-    parseInt(hex.slice(5, 7), 16),
-];
-
-/**
- * Expand one hex into the full accent variable set, using the same alpha ladder
- * every accent palette in upstream's `accents.css` uses (.10 wash, .18 strong
- * wash, .35 border and glow) and the same single-hue gradient shape those
- * palettes ship.
- */
-const buildAccent = (hex: string): MapAccent => {
-    const [r, g, b] = toRgb(hex);
-    const rgba = (alpha: number) => `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    return {
-        primary: hex,
-        secondary: rgba(0.85),
-        gradient: `linear-gradient(135deg, ${hex}, ${rgba(0.7)})`,
-        accentBg: rgba(0.1),
-        accentBgStrong: rgba(0.18),
-        accentBorder: rgba(0.35),
-        glowPrimary: rgba(0.35),
-        glowSecondary: rgba(0.25),
-    };
-};
+/** The accent is one hex: upstream derives every companion from `--axi-accent`. */
+const buildAccent = (hex: string): MapAccent => ({ primary: hex });
 
 /** Accent for a single map label, e.g. `'Red Borderlands'` or `'EBG'`. */
 export function resolveMapAccentFromName(name: string): MapAccent {
@@ -110,22 +72,10 @@ export function resolveMapAccentFromStats(stats: any): MapAccent | null {
 /**
  * The accent as inline custom properties, ready for `element.style.setProperty`.
  *
- * `--axi-accent` leads the list and is not redundant with `--brand-primary`: the
- * accent direction runs from the design language outwards now
- * (`--brand-primary: var(--axi-accent)` at `:root`), so setting only the brand
- * variable would leave every axi remap and every upstream component on the
- * palette accent and the map colour would never arrive. The brand variables stay
- * because components that read them directly need a concrete value, not one that
- * resolves back through the token being overridden.
+ * One entry. accents.css sets `--axi-accent` on <html>; a share link's map
+ * colour sets the same variable on <body>, and because every upstream component
+ * and every app rule reads `--axi-accent` directly, nothing else has to move.
  */
 export const MAP_ACCENT_CSS_VARS: Array<[string, keyof MapAccent]> = [
     ['--axi-accent', 'primary'],
-    ['--brand-primary', 'primary'],
-    ['--brand-secondary', 'secondary'],
-    ['--brand-gradient', 'gradient'],
-    ['--accent-bg', 'accentBg'],
-    ['--accent-bg-strong', 'accentBgStrong'],
-    ['--accent-border', 'accentBorder'],
-    ['--glow-primary', 'glowPrimary'],
-    ['--glow-secondary', 'glowSecondary'],
 ];

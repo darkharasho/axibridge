@@ -876,7 +876,7 @@ function App() {
     const axibridgeLogoStyle = { WebkitMaskImage: `url(${appIconPath})`, maskImage: `url(${appIconPath})` } as const;
     const isDev = import.meta.env.DEV;
     const [copyPathsFlash, setCopyPathsFlash] = useState(false);
-    const shellClassName = 'app-shell h-screen w-screen axi-ink-plain overflow-hidden flex flex-col';
+    const shellClassName = 'app-shell axi-window w-screen axi-ink-plain';
 
     const successCount = statusCounts.success || 0;
     const errorCount = statusCounts.error || 0;
@@ -898,9 +898,9 @@ function App() {
             <div className="rail-card axi-panel axi-panel--tile [--axi-panel-pad:8px_10px]">
                 <p className="rail-card__label axi-eyebrow">Watch Folder</p>
                 <div className="flex gap-1 w-full max-w-full">
-                    <div className="flex-1 min-w-0 rounded-[4px] border px-1.5 h-8 flex items-center gap-2 transition-colors" style={{ background: 'var(--bg-input)', borderColor: 'var(--border-default)' }}>
+                    <div className="flex-1 min-w-0 axi-input flex items-center gap-2 transition-colors">
                         <div className="pl-1 shrink-0">
-                            <FolderOpen className="w-4 h-4" style={{ color: 'var(--brand-primary)' }} />
+                            <FolderOpen className="w-4 h-4" style={{ color: 'var(--axi-accent)' }} />
                         </div>
                         <input
                             type="text"
@@ -920,11 +920,11 @@ function App() {
                             }}
                         />
                     </div>
-                    <ParticleHover className="shrink-0 rounded-[4px]" disabled={!particlesEnabled}>
+                    <ParticleHover className="shrink-0 rounded-[var(--axi-radius-sm)]" disabled={!particlesEnabled}>
                         <button
                             onClick={handleSelectDirectory}
                             className="axi-btn axi-btn--icon w-8 h-8 justify-center"
-                            style={{ background: 'var(--accent-bg)', borderColor: 'var(--accent-border)', color: 'var(--button-label, var(--brand-primary))' }}
+                            style={{ background: 'var(--axi-surface-paint)', borderColor: 'var(--axi-ink-line)', color: 'var(--axi-text-dim)' }}
                             title="Browse..."
                         >
                             <FolderOpen className="w-3.5 h-3.5" />
@@ -990,11 +990,11 @@ function App() {
                             </span>
                         </button>
                     </div>
-                    <ParticleHover className="shrink-0 rounded-[4px]" disabled={!particlesEnabled}>
+                    <ParticleHover className="shrink-0 rounded-[var(--axi-radius-sm)]" disabled={!particlesEnabled}>
                         <button
                             onClick={() => setWebhookModalOpen(true)}
                             className="axi-btn axi-btn--icon w-8 h-8 justify-center"
-                            style={{ background: 'var(--accent-bg)', borderColor: 'var(--accent-border)', color: 'var(--button-label, var(--brand-primary))' }}
+                            style={{ background: 'var(--axi-surface-paint)', borderColor: 'var(--axi-ink-line)', color: 'var(--axi-text-dim)' }}
                             title="Manage Webhooks"
                         >
                             <Settings className="w-3.5 h-3.5" />
@@ -1002,12 +1002,12 @@ function App() {
                     </ParticleHover>
                 </div>
                 {relinkWarning && (
-                    <div className="mt-2 flex items-start justify-between gap-2 rounded-[3px] border axi-edge-warn bg-amber-400/5 px-2 py-1.5">
+                    <div className="mt-2 flex items-start justify-between gap-2 axi-well axi-well--sm axi-edge-warn">
                         <p className="text-[11px] axi-ink-warn">{relinkWarning}</p>
                     </div>
                 )}
                 {discordDestinationStatus && (
-                    <div className="mt-2 flex items-start justify-between gap-2 rounded-[3px] border axi-edge-danger bg-rose-400/5 px-2 py-1.5">
+                    <div className="mt-2 flex items-start justify-between gap-2 axi-well axi-well--sm axi-edge-danger">
                         <p className="text-[11px] axi-ink-danger">{discordDestinationStatus.message}</p>
                         <button
                             type="button"
@@ -1053,8 +1053,8 @@ function App() {
             initial={{ opacity: 0, scale: 0.992 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3, duration: 0.24, ease: 'easeOut' }}
-            className={`rounded-[4px] border p-3 flex flex-col h-full transition-all duration-300 relative matte-activity-panel`}
-            style={{ background: isDragging ? 'rgba(59,130,246,0.08)' : 'var(--bg-card)', borderColor: isDragging ? 'var(--brand-primary)' : 'var(--border-default)', borderRadius: '4px', boxShadow: 'var(--shadow-card)' } as React.CSSProperties}
+            className="axi-panel [--axi-panel-pad:12px] flex flex-col h-full transition-all duration-300 relative matte-activity-panel"
+            style={{ background: isDragging ? 'var(--axi-surface-raised-paint)' : undefined, borderColor: isDragging ? 'var(--axi-accent)' : undefined } as React.CSSProperties}
             onDragOver={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1103,28 +1103,28 @@ function App() {
                 onRecompute={handleCrashRecompute}
                 onDismiss={handleCrashDismiss}
             />
-            <div className="flex items-center justify-between mb-3 pb-2 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-                <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-                    <FileText className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
+            <div className="flex items-center justify-between mb-3 pb-2 border-b" style={{ borderColor: 'var(--axi-rule)' }}>
+                <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--axi-text)' }}>
+                    <FileText className="w-3.5 h-3.5" style={{ color: 'var(--axi-text-faint)' }} />
                     Recent Activity
                 </h2>
                 <div className="flex items-center gap-2">
-                    <ParticleHover className="rounded-[4px]" disabled={!particlesEnabled}>
+                    <ParticleHover className="rounded-[var(--axi-radius-sm)]" disabled={!particlesEnabled}>
                         <button
                             onClick={() => filePickerState.setFilePickerOpen(true)}
                             className="axi-btn axi-btn--xs"
-                            style={{ borderColor: 'var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--button-label, var(--brand-primary))' }}
+                            style={{ borderColor: 'var(--axi-ink-line)', background: 'var(--axi-surface-paint)', color: 'var(--axi-text-dim)' }}
                             title="Select logs to upload"
                         >
                             <FilePlus2 className="w-3 h-3" />
                             Add Logs
                         </button>
                     </ParticleHover>
-                    <ParticleHover className="rounded-[4px]" disabled={!particlesEnabled} color="#f87171">
+                    <ParticleHover className="rounded-[var(--axi-radius-sm)]" disabled={!particlesEnabled} color="#f87171">
                         <button
                             onClick={clearLogsFromActivity}
                             className="axi-btn axi-btn--xs"
-                            style={{ borderColor: 'var(--accent-border)', background: 'var(--accent-bg)', color: 'var(--status-error)' }}
+                            style={{ borderColor: 'var(--axi-ink-line)', background: 'var(--axi-surface-paint)', color: 'var(--axi-danger)' }}
                             title="Clear all logs"
                         >
                             <Trash2 className="w-3 h-3" />
@@ -1139,13 +1139,7 @@ function App() {
                                 setCopyPathsFlash(true);
                                 window.setTimeout(() => setCopyPathsFlash(false), 1400);
                             }}
-                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-medium border transition-all duration-200 ${copyPathsFlash ? 'scale-105' : ''}`}
-                            style={{
-                                borderColor: copyPathsFlash ? 'rgba(74, 222, 128, 0.6)' : 'rgba(245, 158, 11, 0.5)',
-                                background: copyPathsFlash ? 'rgba(74, 222, 128, 0.18)' : 'rgba(245, 158, 11, 0.15)',
-                                color: copyPathsFlash ? '#86efac' : '#fcd34d',
-                                boxShadow: copyPathsFlash ? '0 0 0 3px rgba(74, 222, 128, 0.18)' : 'none',
-                            }}
+                            className={`axi-btn axi-btn--xs ${copyPathsFlash ? 'axi-ink-ok axi-edge-ok scale-105' : 'axi-ink-warn axi-edge-warn'}`}
                             title={`Copy ${logs.length} log file path${logs.length === 1 ? '' : 's'} to clipboard`}
                         >
                             {copyPathsFlash ? <Check className="w-3 h-3" /> : <Clipboard className="w-3 h-3" />}
@@ -1156,14 +1150,14 @@ function App() {
             </div>
             {bulkCalculatingActive && calculatingCount > 0 && (
                 <ProcessingStrip tone="warn" className="mb-3">
-                    <span style={{ color: 'var(--text-primary)' }}>Bulk calculations are running.</span>
-                    <span className="ml-1.5" style={{ color: 'var(--text-muted)' }}>
+                    <span style={{ color: 'var(--axi-text)' }}>Bulk calculations are running.</span>
+                    <span className="ml-1.5" style={{ color: 'var(--axi-text-faint)' }}>
                         The app may feel less responsive until they finish.
                     </span>
                 </ProcessingStrip>
             )}
             {(uploadRetryQueue.failed > 0 || uploadRetryQueue.retrying > 0 || uploadRetryQueue.entries.length > 0) && (
-                <div className="mb-3 rounded-[4px] border axi-edge-danger bg-rose-500/10 px-3 py-2 text-xs axi-ink-danger">
+                <div className="mb-3 axi-well axi-well--sm axi-edge-danger text-xs axi-ink-danger">
                     <div className="flex items-center justify-between gap-3">
                         <div className="font-semibold">Upload Retry Queue</div>
                         <div className="flex items-center gap-2">

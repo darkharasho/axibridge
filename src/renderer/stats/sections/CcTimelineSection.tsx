@@ -69,7 +69,7 @@ export const CcTimelineSection: React.FC<CcTimelineSectionProps> = ({
                 table dropped into the page. */}
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
                 <Hand className="w-4 h-4 shrink-0" style={{ color: CC_ACCENT }} />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>CC Timeline</h3>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text)' }}>CC Timeline</h3>
                 <span className="ml-auto">
                     <FightPicker fights={fights} selectedId={fight?.id} onChange={setInternalFightId} />
                 </span>
@@ -79,7 +79,7 @@ export const CcTimelineSection: React.FC<CcTimelineSectionProps> = ({
                     section="CC Timeline"
                 />
             </div>
-            <div className="text-[10px] mb-3 ml-6" style={{ color: 'var(--text-secondary)' }}>
+            <div className="text-[10px] mb-3 ml-6" style={{ color: 'var(--axi-text-dim)' }}>
                 Outgoing crowd control per player, in {CONTROL_BUCKET_MS / 1000}s buckets
                 <span className="mx-1.5 opacity-50">|</span>cell shade is intensity against this fight&apos;s peak
                 <span className="mx-1.5 opacity-50">|</span>incoming CC lives in Defense Detailed

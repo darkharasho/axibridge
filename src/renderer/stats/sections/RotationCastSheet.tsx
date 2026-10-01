@@ -26,8 +26,8 @@ const Field: React.FC<{ label: string; children: React.ReactNode; testId?: strin
     label, children, testId, color,
 }) => (
     <div className="flex flex-col gap-0.5 min-w-[110px] py-1">
-        <span className="text-[10px] uppercase tracking-[0.05em]" style={{ color: 'var(--text-muted)' }}>{label}</span>
-        <b className="text-[13px] font-semibold" data-testid={testId} style={{ color: color || 'var(--text-primary)' }}>
+        <span className="text-[10px] uppercase tracking-[0.05em]" style={{ color: 'var(--axi-text-faint)' }}>{label}</span>
+        <b className="text-[13px] font-semibold" data-testid={testId} style={{ color: color || 'var(--axi-text)' }}>
             {children}
         </b>
     </div>
@@ -58,18 +58,18 @@ export const RotationCastSheet: React.FC<RotationCastSheetProps> = ({
     return (
         <div
             data-testid="rotation-cast-sheet"
-            className="mt-3 rounded-[var(--radius-md)] p-3"
+            className="mt-3 rounded-[var(--axi-radius-sm)] p-3"
             style={{
-                background: 'var(--bg-card-inner)',
-                border: '1px solid var(--border-default)',
-                borderTop: '2px solid var(--brand-primary)',
+                background: 'var(--axi-ground)',
+                border: 'var(--axi-border-control) solid var(--axi-ink-line)',
+                borderTop: '2px solid var(--axi-accent)',
             }}
         >
             <div className="flex items-center gap-2.5">
                 {iconSrc && <img src={iconSrc} alt="" className="h-8 w-8 object-contain shrink-0" />}
                 <div className="flex-1 min-w-0">
-                    <h4 className="text-[14px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{cast.name}</h4>
-                    <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    <h4 className="text-[14px] font-semibold truncate" style={{ color: 'var(--axi-text)' }}>{cast.name}</h4>
+                    <div className="text-[11px]" style={{ color: 'var(--axi-text-faint)' }}>
                         {sameSkill.length} {sameSkill.length === 1 ? 'cast' : 'casts'} this fight
                     </div>
                 </div>
@@ -82,7 +82,7 @@ export const RotationCastSheet: React.FC<RotationCastSheetProps> = ({
             <div className="flex flex-wrap gap-x-6 mt-2.5">
                 <Field label="Cast at">{mmssMillis(cast.castTime)}</Field>
                 <Field label="Duration">{cast.duration} ms</Field>
-                <Field label="Outcome" color={cast.interrupted ? 'var(--status-error)' : undefined}>
+                <Field label="Outcome" color={cast.interrupted ? 'var(--axi-danger)' : undefined}>
                     {cast.interrupted ? 'Interrupted' : 'Completed'}
                 </Field>
                 <Field label="Gap since prev" testId="rotation-cast-gap">
@@ -90,19 +90,19 @@ export const RotationCastSheet: React.FC<RotationCastSheetProps> = ({
                 </Field>
                 <Field label="Previous cast">{prev ? prev.name : '—'}</Field>
             </div>
-            <div className="text-[10px] uppercase tracking-[0.05em] mt-2.5" style={{ color: 'var(--text-muted)' }}>
+            <div className="text-[10px] uppercase tracking-[0.05em] mt-2.5" style={{ color: 'var(--axi-text-faint)' }}>
                 Every cast of this skill
             </div>
-            <div className="relative h-5 mt-1 rounded-[var(--radius-md)]" style={{ background: 'var(--bg-input)' }}>
+            <div className="relative h-5 mt-1 rounded-[var(--axi-radius-sm)]" style={{ background: 'var(--axi-ground)' }}>
                 {sameSkill.map(({ c, i }) => (
                     <span
                         key={i}
                         data-spark-tick=""
-                        className="absolute top-1 bottom-1 rounded-sm"
+                        className="absolute top-1 bottom-1"
                         style={{
                             left: `${(Math.max(0, c.castTime) / span) * 100}%`,
                             width: i === index ? '4px' : '3px',
-                            background: i === index ? 'var(--text-primary)' : 'var(--brand-primary)',
+                            background: i === index ? 'var(--axi-text)' : 'var(--axi-accent)',
                         }}
                     />
                 ))}
