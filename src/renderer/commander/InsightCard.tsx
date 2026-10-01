@@ -2,12 +2,11 @@ import type { DetectorFinding } from './detectors/types';
 import { VizRouter } from './viz/VizRouter';
 
 export function InsightCard({ finding }: { finding: DetectorFinding }) {
-  const borderColor = finding.side === 'good' ? 'border-l-emerald-500' : 'border-l-rose-500';
   return (
     <div
       data-side={finding.side}
-      className={`insight-card grid grid-cols-[1fr_110px] gap-2.5 items-center rounded-md border-l-4 ${borderColor} p-2.5 mb-2`}
-      style={{ background: 'var(--bg-card-inner)' }}
+      data-status={finding.side === 'good' ? 'ok' : 'danger'}
+      className="insight-card axi-panel axi-panel--tile [--axi-panel-pad:10px] grid grid-cols-[1fr_110px] gap-2.5 items-center mb-2"
     >
       <div>
         <div className="text-sm font-medium mb-0.5" style={{ color: 'var(--text-primary)' }}>{finding.headline}</div>

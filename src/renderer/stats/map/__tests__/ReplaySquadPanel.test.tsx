@@ -170,10 +170,10 @@ describe('ReplaySquadPanel party collapse and spotlight', () => {
         expect(container.querySelectorAll('[data-hpcell]').length).toBe(0);
     });
 
-    it('applies the thin-scrollbar class to the scrolling roster', () => {
+    it('scrolls the roster as a quiet strip - a bar down a 216px panel is a channel, not information', () => {
         const fight = mkFight([mkMember()]);
         const { container } = render(<ReplaySquadPanel fight={fight} collapsed={false} onToggle={() => {}} />);
-        expect(container.querySelector('.replay-scroll')).not.toBeNull();
+        expect(container.querySelector('.axi-scroll-quiet')).not.toBeNull();
     });
 
     it('the panel takes the float surface', () => {

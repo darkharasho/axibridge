@@ -1674,9 +1674,9 @@ export function ReportApp({ injectedSource, assetBase }: {
                         {showIndexChrome && <div className="px-5 pb-4">
                             <a
                                 href={themedIndexHref}
-                                className="report-back-link w-full inline-flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[color:var(--accent-bg)] text-[10px] uppercase tracking-[0.35em] axi-ink-plain transition-colors hover:bg-[color:var(--accent-border)]"
+                                className="axi-btn axi-btn--primary w-full justify-start gap-3 tracking-[0.35em]"
                             >
-                                <span className="h-8 w-8 rounded-full border border-[color:var(--accent-border)] inline-flex items-center justify-center text-[color:var(--brand-primary)]">
+                                <span className="h-8 w-8 inline-flex items-center justify-center">
                                     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                         <path d="M19 12H6.5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
                                         <path d="M12 6L6 12L12 18" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -1865,9 +1865,9 @@ export function ReportApp({ injectedSource, assetBase }: {
                         {showIndexChrome && <div className="mt-auto shrink-0 border-t axi-edge-rule">
                             <a
                                 href={themedIndexHref}
-                                className="report-back-link w-full inline-flex items-center gap-3 px-6 py-4 bg-[color:var(--accent-bg)] text-[10px] uppercase tracking-[0.35em] axi-ink-plain transition-colors hover:bg-[color:var(--accent-border)]"
+                                className="axi-btn axi-btn--primary w-full justify-start gap-3 tracking-[0.35em]"
                             >
-                                <span className="h-9 w-9 rounded-full border border-[color:var(--accent-border)] inline-flex items-center justify-center text-[color:var(--brand-primary)]">
+                                <span className="h-9 w-9 inline-flex items-center justify-center">
                                     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                         <path d="M19 12H6.5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
                                         <path d="M12 6L6 12L12 18" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />

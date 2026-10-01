@@ -47,24 +47,34 @@ describe('FightHero', () => {
         }
     });
 
-    /* The chip's classic fill is a theme token and its flat fill is handed to
-       CSS as a custom property. Both were literal rgba() before, which no
-       theme could reach - that is the regression this pins. */
-    it('draws the outcome from tokens, not from literal colours', () => {
-        const chip = hero(true).querySelector('.fight-hero-outcome') as HTMLElement;
-        const style = chip.getAttribute('style') || '';
-        expect(style).not.toMatch(/rgba?\(|#[0-9a-f]{3,6}/i);
-        expect(chip.style.getPropertyValue('--outcome-fill')).toBe('var(--status-success)');
+    /* The verdict is rule 5's filled chip, and which status it is, is said by
+       the modifier alone: no inline fill, no literal, nothing a theme cannot
+       reach. An undecided fight has no status and takes the plain chip. */
+    it('draws the outcome as a filled chip of the language, with no inline paint', () => {
+        for (const [isWin, modifier] of [[true, 'axi-chip--ok'], [false, 'axi-chip--danger']] as Array<[boolean, string]>) {
+            const chip = hero(isWin).querySelector('.fight-hero-outcome') as HTMLElement;
+            expect(chip.classList.contains('axi-chip')).toBe(true);
+            expect(chip.classList.contains(modifier)).toBe(true);
+            expect(chip.getAttribute('style')).toBeNull();
+        }
+        const none = hero(null).querySelector('.fight-hero-outcome') as HTMLElement;
+        expect(Array.from(none.classList).filter((c) => c.startsWith('axi-chip--'))).toEqual([]);
     });
 
-    /* The gradients stay for every other theme; what the language needs is a
-       handle on which side is which, since it cannot reach an inline fill. */
-    it('tags each strength bar with its side', () => {
+    /* The strength bars are meters: the language draws the trough and the
+       edge, the component says only how full each is and in which series. */
+    it('draws each strength bar as a meter, tagged with its side, with no gradient', () => {
         const container = hero(true);
-        const sides = Array.from(container.querySelectorAll('.fight-hero-fill'))
-            .map((el) => (el as HTMLElement).dataset.side);
-        expect(sides).toEqual(['friendly', 'enemy']);
-        expect(container.querySelectorAll('.fight-hero-track')).toHaveLength(2);
+        const fills = Array.from(container.querySelectorAll('.fight-hero-fill')) as HTMLElement[];
+        expect(fills.map((el) => el.dataset.side)).toEqual(['friendly', 'enemy']);
+        for (const el of fills) {
+            expect(el.classList.contains('axi-meter__fill')).toBe(true);
+            expect(el.style.getPropertyValue('--axi-meter-v')).toMatch(/%$/);
+            expect(el.getAttribute('style')).not.toMatch(/gradient|#[0-9a-f]{3,6}/i);
+        }
+        const tracks = container.querySelectorAll('.fight-hero-track');
+        expect(tracks).toHaveLength(2);
+        tracks.forEach((t) => expect(t.classList.contains('axi-meter')).toBe(true));
     });
 
     it('keeps no pastel literals on the KPI tiles', () => {

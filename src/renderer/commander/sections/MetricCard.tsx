@@ -10,23 +10,17 @@ interface MetricCardProps {
   children?: ReactNode;
 }
 
-const STRIPE: Record<Severity, string> = {
-  green:  'border-l-emerald-500',
-  yellow: 'border-l-amber-500',
-  red:    'border-l-rose-500',
-};
+/* The verdict is a cap across the head of the tile, in the status ink, drawn
+   by the language from `data-status` (rule 5: a full-height stripe is the
+   card's frame, and five in a row are five coloured frames). */
+const STATUS: Record<Severity, 'ok' | 'warn' | 'danger'> = { green: 'ok', yellow: 'warn', red: 'danger' };
 
 export function MetricCard({ label, value, description, meta, severity, children }: MetricCardProps) {
   return (
     <div
       data-severity={severity}
-      className={`commander-metric flex flex-col gap-1 rounded-md border border-l-4 ${STRIPE[severity]} px-2.5 py-2 min-h-[108px]`}
-      style={{
-        background: 'var(--bg-card)',
-        borderTopColor: 'var(--border-default)',
-        borderRightColor: 'var(--border-default)',
-        borderBottomColor: 'var(--border-default)',
-      }}
+      data-status={STATUS[severity]}
+      className="commander-metric axi-panel axi-panel--tile [--axi-panel-pad:8px_10px] flex flex-col gap-1 min-h-[108px]"
     >
       <div className="flex justify-between items-baseline gap-2">
         <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{label}</span>

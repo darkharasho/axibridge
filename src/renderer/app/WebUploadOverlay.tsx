@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react';
 import type { IWebUploadState } from '../global.d';
 import type { LogEntry } from './hooks/useWebUpload';
@@ -170,15 +171,13 @@ export function WebUploadOverlay({
 
                 {/* ── Progress bar + current message ── */}
                 <div className="px-5 pb-2">
-                    <div className="web-upload-track h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--bg-input)' }}>
+                    <div className="web-upload-track axi-meter">
                         <div
-                            className="h-full rounded-full transition-all duration-500"
+                            className="axi-meter__fill transition-all duration-500"
                             style={{
-                                width: `${webUploadState.progress ?? (webUploadState.uploading ? 35 : 100)}%`,
-                                background: hasFailure
-                                    ? 'linear-gradient(90deg, var(--status-error), var(--status-warning))'
-                                    : 'linear-gradient(90deg, var(--brand-primary), var(--brand-secondary))',
-                            }}
+                                '--axi-meter-v': `${webUploadState.progress ?? (webUploadState.uploading ? 35 : 100)}%`,
+                                ...(hasFailure ? { '--axi-series': 'var(--axi-danger)' } : {}),
+                            } as CSSProperties}
                         />
                     </div>
                     <div className="text-[11px] font-medium mt-2 leading-snug" style={{ color: hasFailure ? 'var(--status-error-muted)' : 'var(--text-secondary)' }}>

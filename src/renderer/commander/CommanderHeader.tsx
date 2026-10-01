@@ -10,15 +10,19 @@ interface CommanderHeaderProps {
   onSelectFight: (id: string) => void;
 }
 
+/* A verdict is a status, and rule 5 says a status is filled: ink text on the
+   status colour, which is also what makes eight chips in a row legible at
+   the micro size. The caught-* pair is commentary about the fight rather
+   than a judgement of it, so it takes the meta chip - the outlined one. */
 const CHIP_STYLE: Record<VerdictChip, string> = {
-  'wipe':          'bg-rose-500/15 axi-ink-danger axi-edge-danger',
-  'trade':         'bg-amber-500/15 axi-ink-warn axi-edge-warn',
-  'carry':         'bg-emerald-500/15 axi-ink-ok axi-edge-ok',
-  'clean':         'bg-emerald-500/15 axi-ink-ok axi-edge-ok',
-  'outnumbered':   'bg-amber-500/15 axi-ink-warn axi-edge-warn',
-  'caught-engage': 'bg-violet-500/15 axi-ink-meta axi-edge-meta',
-  'caught-out':    'bg-violet-500/15 axi-ink-meta axi-edge-meta',
-  'bomb-broke-us': 'bg-rose-500/15 axi-ink-danger axi-edge-danger',
+  'wipe':          'axi-chip--danger',
+  'trade':         'axi-chip--warn',
+  'carry':         'axi-chip--ok',
+  'clean':         'axi-chip--ok',
+  'outnumbered':   'axi-chip--warn',
+  'caught-engage': 'axi-chip--meta',
+  'caught-out':    'axi-chip--meta',
+  'bomb-broke-us': 'axi-chip--danger',
 };
 
 function fmtTime(epochMs: number): string {
@@ -66,7 +70,7 @@ export function CommanderHeader({ fight, fightLabel, availableFights, selectedFi
             <span
               key={chip}
               data-verdict={chip}
-              className={`commander-chip text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-sm border ${CHIP_STYLE[chip]}`}
+              className={`commander-chip axi-chip font-semibold ${CHIP_STYLE[chip]}`}
             >
               {chip}
             </span>

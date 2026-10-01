@@ -74,12 +74,6 @@
   --duration-slow: 350ms;
   --duration-slower: 500ms;
 
-  /* Scrollbar */
-  --scrollbar-size: 10px;
-  --scrollbar-track: rgba(8, 12, 18, 0.78);
-  --scrollbar-thumb: rgba(146, 163, 184, 0.35);
-  --scrollbar-thumb-hover: rgba(148, 163, 184, 0.56);
-
   /* Status / semantic colors */
   --status-success: #4ade80;
   --status-success-muted: #86efac;
@@ -235,11 +229,11 @@ body.web-report {
     min-height: 100%;
     overflow-x: hidden;
     overflow-y: auto;
-    --scrollbar-size: 12px;
 }
 
+/* Layout, not look: the bar's gutter is reserved so a report does not reflow
+   when its content grows past the fold. The bar itself is the language's. */
 body.web-report * {
-    scrollbar-width: auto;
     scrollbar-gutter: stable;
 }
 
@@ -248,11 +242,6 @@ body.web-report * {
     body.web-report * {
         scrollbar-gutter: auto;
     }
-}
-
-body.web-report *::-webkit-scrollbar {
-    width: 14px;
-    height: 14px;
 }
 
 body.web-report #top-skills-outgoing .max-h-80,
@@ -282,35 +271,6 @@ body.web-report #root {
 
 .no-drag {
     -webkit-app-region: no-drag;
-}
-
-/* Minimal, theme-aware scrollbars across app + web report. */
-* {
-    scrollbar-width: thin;
-    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-}
-
-*::-webkit-scrollbar {
-    width: var(--scrollbar-size);
-    height: var(--scrollbar-size);
-}
-
-*::-webkit-scrollbar-track {
-    background: var(--scrollbar-track);
-}
-
-*::-webkit-scrollbar-thumb {
-    background-color: var(--scrollbar-thumb);
-    border-radius: 999px;
-    border: 2px solid var(--scrollbar-track);
-}
-
-*::-webkit-scrollbar-thumb:hover {
-    background-color: var(--scrollbar-thumb-hover);
-}
-
-*::-webkit-scrollbar-corner {
-    background: transparent;
 }
 
 svg {
@@ -369,28 +329,9 @@ button,
     outline: none;
 }
 
-input:focus,
-select:focus,
-textarea:focus,
-button:focus,
-[contenteditable="true"]:focus,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-button:focus-visible,
-[contenteditable="true"]:focus-visible {
-    outline: none;
-    box-shadow: none;
-}
-
-/* The reset above strips every button's focus ring, and an inline style cannot
-   express `:focus-visible` — so the rotation track's cast buttons, which exist
-   to be keyboard-reachable, would show nothing on tab. See
-   `RotationTrack.tsx`. */
-.rotation-cast:focus-visible {
-    outline: 2px solid var(--brand-primary);
-    outline-offset: -1px;
-}
+/* No focus reset. The language's base layer draws one accent ring on
+   :focus-visible for every control, and the reset that used to live here was
+   why the rotation track needed a class of its own to be keyboard-visible. */
 
 @keyframes modal-pane-grow {
     from {
@@ -1242,12 +1183,6 @@ body.web-report {
   background-color: var(--bg-base);
 }
 
-/* App shell elevated background
-   Shorthand: --bg-elevated is --axi-surface, a gradient, under glass. */
-.app-shell, .min-h-screen {
-  background: var(--bg-elevated);
-}
-
 /* ── Terminal ──────────────────────────────────────────────────────────── */
 
 .terminal-window {
@@ -1306,8 +1241,6 @@ body.web-report {
   flex: 1;
   overflow-y: auto;
   padding: 8px 12px 16px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 .terminal-empty {
@@ -1384,33 +1317,6 @@ body.web-report {
 
 .term-key {
   color: #90caf9;
-}
-
-/* Replay HUD panels only. The app-wide 10px/12px scrollbars stay as they
-   are — a floating card over the map cannot afford that much of its width. */
-.replay-scroll {
-    --scrollbar-size: 6px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--scrollbar-thumb) transparent;
-}
-
-.replay-scroll::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-.replay-scroll::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.replay-scroll::-webkit-scrollbar-thumb {
-    background-color: var(--scrollbar-thumb);
-    border: none;
-    border-radius: 3px;
-}
-
-.replay-scroll::-webkit-scrollbar-thumb:hover {
-    background-color: var(--scrollbar-thumb-hover);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1568,32 +1474,13 @@ body.web-report {
   background: transparent !important;
 }
 
-[data-axi-accent][data-axi-theme="glass"] .app-shell,
-[data-axi-accent][data-axi-theme="glass"] .min-h-screen {
+[data-axi-accent][data-axi-theme="glass"] .app-shell {
   background-color: transparent;
 }
 
-/* The web report's own ground fill contests the rule above and wins it: the
-   .min-h-screen wrapper there is `.stats-view.min-h-screen`, and
-   axi-design.css paints THAT selector `[data-axi-accent] body
-   .stats-view.min-h-screen` (0,3,1) - one class deeper than this block's
-   (0,3,0), because it also has to win the desktop app's own .min-h-screen
-   contests. Measured, not assumed: without this the report header renders
-   opaque under glass instead of letting the ground light through. Matching
-   its extra class is the only way to out-specify it here.
-
-   Shorthand, not `background-color`: the bare `.min-h-screen { background:
-   var(--bg-elevated); }` rule above already painted a background-image (the
-   glass gradient, since --bg-elevated resolves through --axi-surface), and
-   neither this rule nor the one it is beating touches background-image at
-   all. `.app-shell`'s equivalent zeroes it earlier via a shorthand `background:
-   var(--axi-ground)` in axi-design.css, which is solid and so resets the
-   image for free; `.stats-view.min-h-screen` has no such earlier step, so the
-   shorthand here has to do both jobs at once or the gradient keeps painting
-   through a "transparent" background-color. */
-[data-axi-accent][data-axi-theme="glass"] .stats-view.min-h-screen {
-  background: transparent;
-}
+/* `.min-h-screen` is not painted any more - it was a blanket utility painted
+   with the surface, which put the report page a rung above the panels on it,
+   and the page is the ground by being left alone. */
 
 /* Bulk upload turns the blurs off for frame rate. The opaque fills stay - they
    are legibility, not decoration.

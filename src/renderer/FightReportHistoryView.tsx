@@ -746,9 +746,9 @@ export function FightReportHistoryView() {
                                         </div>
                                     )}
                                     {entry.summary?.mapSlices && entry.summary.mapSlices.length > 0 && (
-                                        <div className="history-card__slices flex h-1 rounded-full overflow-hidden mt-2">
+                                        <div className="history-card__slices axi-meter mt-2" style={{ '--axi-meter-h': '8px' } as CSSProperties}>
                                             {entry.summary.mapSlices.map((slice, si) => (
-                                                <div key={si} style={{ width: `${slice.value}%`, background: slice.color }} />
+                                                <div key={si} className="axi-meter__fill" style={{ '--axi-meter-v': `${slice.value}%`, '--axi-series': slice.color } as CSSProperties} />
                                             ))}
                                         </div>
                                     )}
