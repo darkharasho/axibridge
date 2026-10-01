@@ -75523,11 +75523,11 @@ function Mke({ injectedSource: e, assetBase: t } = {}) {
                   /* @__PURE__ */ s.jsx("div", { className: "text-xs sm:text-sm axi-ink-dim mt-2", children: r.meta.dateLabel || dP(r.meta.dateStart, r.meta.dateEnd) })
                 ] })
               ] }),
-              /* @__PURE__ */ s.jsxs(
+              $n && !Ba && /* @__PURE__ */ s.jsxs(
                 "button",
                 {
                   onClick: () => X(!0),
-                  className: `${$n && !Ba ? "flex" : "hidden"} axi-pill axi-pill--xs items-center gap-2`,
+                  className: "axi-pill axi-pill--xs items-center gap-2",
                   children: [
                     /* @__PURE__ */ s.jsx(lk, { className: "w-4 h-4" }),
                     "Contents"
