@@ -108,7 +108,7 @@ const ReplaySquadPanelInner: React.FC<ReplaySquadPanelProps> = ({ fight, collaps
                     </div>
                 )}
             </div>
-            <div className="replay-scroll" style={{ overflowY: 'auto', overflowX: 'hidden', flex: 1, padding: '3px 5px' }}>
+            <div className="axi-scroll-quiet" style={{ overflowY: 'auto', overflowX: 'hidden', flex: 1, padding: '3px 5px' }}>
                 {byParty.map(([group, members]) => {
                     const isCollapsed = collapsedParties.has(group);
                     const isSpotlit = group === spotlightParty;

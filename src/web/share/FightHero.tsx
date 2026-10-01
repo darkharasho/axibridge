@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { CalendarDays, Clock, Swords } from 'lucide-react';
 import { CommanderTagIcon } from '../../renderer/ui/CommanderTagIcon';
 import type { ReportPayload } from '../../shared/reportTypes';
@@ -102,17 +103,10 @@ export function FightHero({
        whole chip in, handed to CSS as a custom property because which status
        it is, is the component's to know and the chip's shape is not. */
     const outcome = fight.isWin === true
-        ? { key: 'win', text: 'Victory', bg: 'var(--status-success-bg)', border: 'var(--status-success-border)', fg: 'var(--status-success-muted)', fill: 'var(--status-success)' }
+        ? { key: 'win', text: 'Victory', chip: 'axi-chip--ok' }
         : fight.isWin === false
-            ? { key: 'loss', text: 'Defeat', bg: 'var(--status-error-bg)', border: 'var(--status-error-border)', fg: 'var(--status-error-muted)', fill: 'var(--status-error)' }
-            : { key: 'none', text: 'Inconclusive', bg: 'var(--bg-hover)', border: 'var(--border-hover)', fg: 'var(--text-secondary)', fill: 'var(--bg-hover)' };
-
-    const outcomeStyle: React.CSSProperties & Record<'--outcome-fill', string> = {
-        background: outcome.bg,
-        borderColor: outcome.border,
-        color: outcome.fg,
-        '--outcome-fill': outcome.fill
-    };
+            ? { key: 'loss', text: 'Defeat', chip: 'axi-chip--danger' }
+            : { key: 'none', text: 'Inconclusive', chip: '' };
 
     return (
         <div className={`${className} relative overflow-hidden p-5 sm:p-6 mb-6 mx-1 sm:mx-1 lg:mx-0`} style={style}>
@@ -170,9 +164,8 @@ export function FightHero({
                     </div>
                 </div>
                 <div
-                    className="fight-hero-outcome shrink-0 self-start rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.14em]"
+                    className={`fight-hero-outcome axi-chip ${outcome.chip} shrink-0 self-start font-bold`}
                     data-outcome={outcome.key}
-                    style={outcomeStyle}
                 >
                     {outcome.text}
                 </div>
@@ -180,7 +173,7 @@ export function FightHero({
 
             {/* The identity and the numbers used to run together on plain
                 whitespace. A rule separates who-and-where from how-it-went. */}
-            <div className="fight-hero-rule mt-5" style={{ borderTop: '2px solid var(--border-subtle)' }} />
+            <div className="fight-hero-rule mt-5" style={{ borderTop: 'var(--axi-border-hairline) solid var(--axi-rule)' }} />
 
             <div className="mt-5 flex items-center gap-4">
                 <div className="min-w-0 flex-1">
@@ -190,8 +183,8 @@ export function FightHero({
                         </span>
                         <span className="text-xl font-semibold axi-ink-meta">{friendly}</span>
                     </div>
-                    <div className="fight-hero-track mt-1.5 h-2 overflow-hidden rounded-full bg-white/[0.07]">
-                        <div className="fight-hero-fill h-full rounded-full" data-side="friendly" style={{ width: `${(friendly / widest) * 100}%`, background: 'linear-gradient(90deg,#2563eb,#60a5fa)' }} />
+                    <div className="fight-hero-track axi-meter mt-1.5">
+                        <div className="fight-hero-fill axi-meter__fill" data-side="friendly" style={{ '--axi-meter-v': `${(friendly / widest) * 100}%`, '--axi-series': 'var(--axi-meta)' } as CSSProperties} />
                     </div>
                 </div>
                 <div className="shrink-0 pt-4 text-[10px] uppercase tracking-[0.2em] axi-ink-faint">vs</div>
@@ -200,8 +193,8 @@ export function FightHero({
                         <span className="text-xl font-semibold axi-ink-danger">{enemies}</span>
                         <span className="truncate text-[10px] uppercase tracking-[0.14em] axi-ink-dim">Enemies</span>
                     </div>
-                    <div className="fight-hero-track mt-1.5 h-2 overflow-hidden rounded-full bg-white/[0.07]">
-                        <div className="fight-hero-fill ml-auto h-full rounded-full" data-side="enemy" style={{ width: `${(enemies / widest) * 100}%`, background: 'linear-gradient(90deg,#b91c1c,#f87171)' }} />
+                    <div className="fight-hero-track axi-meter mt-1.5">
+                        <div className="fight-hero-fill axi-meter__fill ml-auto" data-side="enemy" style={{ '--axi-meter-v': `${(enemies / widest) * 100}%`, '--axi-series': 'var(--axi-danger)' } as CSSProperties} />
                     </div>
                 </div>
             </div>

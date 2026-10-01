@@ -148,7 +148,7 @@ const LayersPanelInner: React.FC<LayersPanelProps> = ({ open, onToggle }) => {
                     ◀
                 </button>
             </div>
-            <div className="replay-scroll" style={{ overflowY: 'auto', flex: 1, padding: '8px 10px' }}>
+            <div className="axi-scroll-quiet" style={{ overflowY: 'auto', flex: 1, padding: '8px 10px' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>Map</div>
                 <div style={chipRow}>
                     {MAP_TOGGLES.map(t => (

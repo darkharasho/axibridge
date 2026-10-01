@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { useMemo, useState } from 'react';
 import { ChevronRight, HelpingHand } from 'lucide-react';
 import { renderProfessionIcon } from '../ui/StatsViewShared';
@@ -196,10 +197,10 @@ const IllusionOfLifeCard = ({ iol }: {
 
             {total > 0 && (
                 <>
-                    <div className="revive-iol__bar flex h-3 w-full overflow-hidden rounded-full bg-[color:var(--border-subtle)]">
-                        <div style={{ width: `${(iol.survived / total) * 100}%`, background: 'var(--status-success)' }} />
-                        <div style={{ width: `${(iol.reDowned / total) * 100}%`, background: 'var(--status-error)' }} />
-                        <div style={{ width: `${(diedUnderIol / total) * 100}%`, background: DIED_UNDER_IOL_COLOR }} />
+                    <div className="revive-iol__bar axi-meter">
+                        <div className="axi-meter__fill" style={{ '--axi-meter-v': `${(iol.survived / total) * 100}%`, '--axi-series': 'var(--status-success)' } as CSSProperties} />
+                        <div className="axi-meter__fill" style={{ '--axi-meter-v': `${(iol.reDowned / total) * 100}%`, '--axi-series': 'var(--status-error)' } as CSSProperties} />
+                        <div className="axi-meter__fill" style={{ '--axi-meter-v': `${(diedUnderIol / total) * 100}%`, '--axi-series': DIED_UNDER_IOL_COLOR } as CSSProperties} />
                     </div>
                     <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
                         <span className="flex items-center gap-1.5">

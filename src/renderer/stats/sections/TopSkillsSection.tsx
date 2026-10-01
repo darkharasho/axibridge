@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { useMemo, useState } from 'react';
 import { ArrowBigUp, Shield } from 'lucide-react';
 import { InlineIconLabel } from '../ui/StatsViewShared';
@@ -117,10 +118,10 @@ export const TopSkillsSection = ({
                                     </div>
                                 </div>
                             </div>
-                            <div className="quantity-bar h-1.5 w-full bg-[var(--bg-hover)] rounded-sm overflow-hidden">
+                            <div className="axi-meter" style={{ '--axi-meter-h': '8px' } as CSSProperties}>
                                 <div
-                                    className="top-skills-outgoing-bar h-full bg-orange-500 rounded-sm"
-                                    style={{ width: `${(Number((skill as any)[metricKey] || 0) / topSkillsPeak) * 100}%` }}
+                                    className="top-skills-outgoing-bar axi-meter__fill"
+                                    style={{ '--axi-meter-v': `${(Number((skill as any)[metricKey] || 0) / topSkillsPeak) * 100}%` } as CSSProperties}
                                 />
                             </div>
                         </div>
@@ -180,10 +181,10 @@ export const TopSkillsSection = ({
                                     </div>
                                 </div>
                             </div>
-                            <div className="quantity-bar h-1.5 w-full bg-[var(--bg-hover)] rounded-sm overflow-hidden">
+                            <div className="axi-meter" style={{ '--axi-meter-h': '8px' } as CSSProperties}>
                                 <div
-                                    className="h-full bg-red-500 rounded-sm"
-                                    style={{ width: `${(incomingValue(skill) / incomingPeak) * 100}%` }}
+                                    className="axi-meter__fill"
+                                    style={{ '--axi-meter-v': `${(incomingValue(skill) / incomingPeak) * 100}%`, '--axi-series': 'var(--axi-danger)' } as CSSProperties}
                                 />
                             </div>
                         </div>

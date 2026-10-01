@@ -284,17 +284,17 @@ describe('RotationSection', () => {
         }
     });
 
-    it('gives cast buttons a focus-visible outline the global reset does not strip', () => {
-        // src/renderer/index.css sets `outline: none` on every `button:focus`
-        // and `button:focus-visible`, and an inline style cannot express
-        // `:focus-visible` — so keyboard focus on a cast is invisible without a
-        // dedicated class. The class and the rule have to travel together.
+    it('leaves cast buttons to the language\'s focus ring, which nothing in the app resets', () => {
+        // index.css used to set `outline: none` on every `button:focus-visible`,
+        // and the cast buttons needed a rule of their own to be keyboard-visible.
+        // The reset is gone: the language's base layer draws one accent ring on
+        // :focus-visible for every control, and the regression this guards is
+        // the reset coming back and silently blinding keyboard focus app-wide.
         const { container } = render(
             <RotationSection fights={[fight]} recorded selectedFightId="f1" />);
-        const box = container.querySelector('[data-cast]') as HTMLElement;
-        expect(box.className).toContain('rotation-cast');
+        expect(container.querySelector('[data-cast]')).not.toBeNull();
         const css = readFileSync(resolve(__dirname, '../../index.css'), 'utf8');
-        expect(css).toMatch(/\.rotation-cast:focus-visible\s*\{[^}]*outline:/);
+        expect(css).not.toMatch(/:focus-visible[^{]*\{[^}]*outline:\s*none/);
     });
 
     it('labels each row with the fight clock, not a raw second count', () => {

@@ -209,11 +209,6 @@
      palette was not already using. */
   --section-boon: #f472b6;
 
-  /* --- remap: scrollbar --- */
-  --scrollbar-track: var(--axi-ground);
-  --scrollbar-thumb: var(--axi-rule);
-  --scrollbar-thumb-hover: var(--axi-text-faint);
-
   /* Longhand, not the shorthand. This selector is (0,1,1) against upstream's
      bare `body` at (0,0,1), so it always wins the cascade for whatever
      properties it declares. `background:` declares all of them, including
@@ -272,13 +267,6 @@
   border-bottom-color: var(--axi-ink-line) !important;
 }
 
-/* Focus is accent-coloured and thick enough to read against a near-black
-   outline, which a 1px ring does not. */
-[data-axi-accent] body :focus-visible {
-  outline: var(--axi-border-control) solid var(--axi-accent);
-  outline-offset: 2px;
-}
-
 /* The bridges below deliberately sit above every component section in this
    file. They are a blanket translation of utilities the components know
    nothing about, so anywhere a component section has made a considered choice
@@ -323,8 +311,7 @@
    band the named ones already cover. */
 [data-axi-accent] body .bg-white\/\[0\.03\],
 [data-axi-accent] body .bg-white\/\[0\.035\],
-[data-axi-accent] body .bg-white\/\[0\.04\],
-[data-axi-accent] body .bg-white\/\[0\.07\] {
+[data-axi-accent] body .bg-white\/\[0\.04\] {
   /* --axi-well-fill, not --axi-ground. This group is the one the comment above
      calls a well, and it named the ground because it was written before the
      language had a word for the level. The two are the same value in the main
@@ -364,7 +351,6 @@
 [data-axi-accent] body .bg-cyan-500\/30,
 [data-axi-accent] body .bg-cyan-500\/8,
 [data-axi-accent] body .bg-emerald-400\/5,
-[data-axi-accent] body .bg-emerald-500\/15,
 [data-axi-accent] body .bg-emerald-500\/20,
 [data-axi-accent] body .bg-fuchsia-500\/20,
 [data-axi-accent] body .bg-green-500\/20,
@@ -376,10 +362,8 @@
 [data-axi-accent] body .bg-red-500\/20,
 [data-axi-accent] body .bg-rose-400\/5,
 [data-axi-accent] body .bg-rose-500\/10,
-[data-axi-accent] body .bg-rose-500\/15,
 [data-axi-accent] body .bg-slate-500\/10,
 [data-axi-accent] body .bg-slate-500\/20,
-[data-axi-accent] body .bg-violet-500\/15,
 [data-axi-accent] body .bg-white\/10 {
   /* Shorthand: --axi-surface-raised is a gradient under glass, invalid at
      computed-value time as background-color for every literal above. */
@@ -393,8 +377,7 @@
 
 [data-axi-accent] body .bg-amber-400,
 [data-axi-accent] body .bg-amber-500,
-[data-axi-accent] body .bg-orange-400,
-[data-axi-accent] body .bg-orange-500 { background-color: var(--axi-warn); }
+[data-axi-accent] body .bg-orange-400 { background-color: var(--axi-warn); }
 
 /* ---------------------------------------------------------------------------
    THE FORM BRIDGE
@@ -425,7 +408,6 @@
 [data-axi-accent] body .rounded-\[2px\],
 [data-axi-accent] body .rounded-\[3px\],
 [data-axi-accent] body .rounded-\[4px\],
-[data-axi-accent] body .rounded-\[5px\],
 [data-axi-accent] body .rounded-\[6px\] { border-radius: var(--axi-radius-sm); }
 
 /* A control's block and a panel's block, chosen by how far off the surface the
@@ -463,41 +445,14 @@
 [data-axi-accent] body .border-dotted { border-style: solid; }
 
 /* ---------------------------------------------------------------------------
-   THE SCROLLBARS
-   The colours already came through the remap, but the shape did not: the thumb
-   was a 999px capsule, which is the one radius this language does not have.
-   Everything else here is a rectangle with a corner, and so is this. */
-[data-axi-accent] body *::-webkit-scrollbar-thumb {
-  border-radius: 0;
-  border: var(--axi-border-hairline) solid var(--scrollbar-track);
-}
-[data-axi-accent] body *::-webkit-scrollbar-corner { background: var(--axi-ground); }
-
-/* The publish popover builds its checkboxes out of a span and a tick icon
-   rather than an <input>, so the plate rules cannot reach them. Same plate,
-   said in the one place it has to be said twice. */
-[data-axi-accent] body .menu-checkbox {
-  border-width: var(--axi-border-control);
-  border-color: var(--axi-ink-line);
-  border-radius: 3px;
-  /* Shorthand: --axi-surface-raised is a gradient under glass. */
-  background: var(--axi-surface-raised);
-  box-shadow: var(--axi-shadow-control);
-}
-[data-axi-accent] body .menu-checkbox[data-on] { background-color: var(--axi-accent); }
-
-/* ---------------------------------------------------------------------------
-   THE LAST GRADIENTS
+   THE LAST GRADIENT
    Rule 1 forbids a gradient used as decoration. Most of the app's gradients
    already resolve to flat colour, because they were written out of --brand-*
-   variables that now both point at the accent. These three are literals.
+   variables that now both point at the accent; the squad-comp board's went
+   when the board became an .axi-well. One literal is left.
 
    The conic gradient in StatsViewShared and the theme swatches in Settings are
    left alone on purpose: in both, the gradient is the data. */
-[data-axi-accent] body .squad-comp-board {
-  background-image: none;
-  background-color: var(--axi-ground);
-}
 
 /* The damage-modifier rows draw their magnitude as a fading bar behind the
    text. Rule 9: a quantity is length, never intensity - the fade was saying
@@ -557,14 +512,10 @@
    An ink line wherever one fill meets the next. It is not a third form step,
    it is the same outline the shape already carries continued inward, which is
    why it can be drawn at one weight - the control step - at every size.
-   The cut reaches the charts too, but it is not written here: CHARTS, at the
-   foot of this file, is the one place chart furniture is drawn. Four rules
-   used to stand here and in the brush section saying the same things one
-   section earlier, and every one of them lost - .recharts-pie-sector > path
-   and .recharts-bar-rectangle > path name the same nodes one element deeper,
-   so they outranked these, and the grid and axis rules were simply restated
-   later. A second place to write a thing down is not a second opinion, it is
-   a rule that never applies. */
+   The cut reaches the charts too, and it is written upstream: `.axi-chart`
+   edges every point, bar and slice in the ink line at the hairline, so the
+   four rules that used to restate it here - and lose, to selectors one element
+   deeper in a later section - are gone with the section they lost to. */
 
 /* ---------------------------------------------------------------------------
    THE SECTIONS
@@ -604,55 +555,9 @@
    thing you picked. Nobody picked the MVP; the data did. */
 /* ---------------------------------------------------------------------------
    THE COMMANDER VIEW
-   The panels here are .axi-panel--tile in the markup now. What is left is the
-   two things the language has no word for yet: a severity cap across a card's
-   top edge, and a verdict chip - see the note on each. */
-[data-axi-accent] body .commander-metric,
-[data-axi-accent] body .insight-card {
-  border-width: var(--axi-border-control);
-  border-color: var(--axi-ink-line);
-  border-radius: var(--axi-radius);
-}
-/* The severity verdict is a judgement about the number on the card, so it is
-   drawn where Overview draws it: as a cap across the top edge, directly over
-   the value it judges. Down the left at full height it was the card's frame
-   instead - five cards in a row read as five coloured bars - and the edge it
-   ran along was the same edge that separates the card from the one beside it.
-   The cap names the card once, at the head, then gets out of the way; the left
-   edge drops back to the ink every other outline in the language uses. */
-[data-axi-accent] body .commander-metric,
-[data-axi-accent] body .insight-card {
-  border-left-width: var(--axi-border-control);
-  border-left-color: var(--axi-ink-line);
-  border-top-width: var(--axi-border-panel);
-}
-/* !important because a metric card writes its top, right and bottom edge
-   colours as inline styles - the one place a stylesheet cannot outrank - and
-   the top edge is exactly the one the cap needs. */
-[data-axi-accent] body .commander-metric[data-severity='green'] { border-top-color: var(--axi-ok) !important; }
-[data-axi-accent] body .commander-metric[data-severity='yellow'] { border-top-color: var(--axi-warn) !important; }
-[data-axi-accent] body .commander-metric[data-severity='red'] { border-top-color: var(--axi-danger) !important; }
-[data-axi-accent] body .insight-card[data-side='good'] { border-top-color: var(--axi-ok); }
-[data-axi-accent] body .insight-card[data-side='bad'] { border-top-color: var(--axi-danger); }
-
-/* A verdict chip is a status, and rule 5 says a status is filled. Filled means
-   ink text on the status colour, which is also what makes eight chips in a row
-   legible at 10px. */
-[data-axi-accent] body .commander-chip {
-  color: var(--axi-ink-line);
-  border-width: var(--axi-border-hairline);
-  border-color: var(--axi-ink-line);
-  border-radius: var(--axi-radius-sm);
-}
-[data-axi-accent] body .commander-chip[data-verdict='wipe'],
-[data-axi-accent] body .commander-chip[data-verdict='bomb-broke-us'] { background: var(--axi-danger); }
-[data-axi-accent] body .commander-chip[data-verdict='trade'],
-[data-axi-accent] body .commander-chip[data-verdict='outnumbered'] { background: var(--axi-warn); }
-[data-axi-accent] body .commander-chip[data-verdict='carry'],
-[data-axi-accent] body .commander-chip[data-verdict='clean'] { background: var(--axi-ok); }
-[data-axi-accent] body .commander-chip[data-verdict='caught-engage'],
-[data-axi-accent] body .commander-chip[data-verdict='caught-out'] { background: var(--axi-meta); }
-
+   The metric and insight cards are .axi-panel--tile with the status cap the
+   language draws from data-status (rule 5), and the verdict chips are
+   .axi-chip--ok/warn/danger/meta, so nothing is left of this view here. */
 /* Four stats categories - Overview, Commander, Roster, Replay - have no hue of
    their own and borrowed the brand colour, which in this language is the
    accent. That put a gold edge down the side of the panel you were reading,
@@ -673,41 +578,6 @@
    inline `border: 1px solid ...` each card wrote for itself - went when the
    literals did. .app-modal-card and .app-modal-overlay survive as hooks for
    the tests and for the z-index stack, and carry no styling. */
-
-/* A quantity bar. At 6px tall with a soft rounded cap it was a progress
-   indicator borrowed from somewhere else; here a measured length gets an
-   outlined well and a flat fill sitting in it, which is the same shape the
-   language uses everywhere else and is readable at a glance from across the
-   row. Rule 9 is already satisfied by the width - this just stops the bar
-   being the one element on the screen with nothing drawn around it. */
-[data-axi-accent] body .quantity-bar {
-  height: 10px;
-  /* The trough is filled at the raised step rather than the ground, and that
-     is what earns it the ink outline the rest of the bars carry: ink reads
-     against a fill lighter than itself. Left on the ground it was a black line
-     on a black field, which is how these two came to be the only bars in the
-     app without an edge. */
-  background: var(--axi-surface-raised);
-  border: var(--axi-border-control) solid var(--axi-ink-line);
-  border-radius: var(--axi-radius-sm);
-  overflow: hidden;
-}
-[data-axi-accent] body .quantity-bar > * { border-radius: 0; }
-
-/* Overview's scoreboard. It used to be two mirrored boxes, each a 3-up of
-   unrelated numbers with one blown up in the middle, and each outlined in its
-   own status colour for the whole height of the box - so the colour read as
-   the card's frame rather than as a name for the side. Now it is one panel:
-   the sides sit either side of the tally, split by a rule, and each is named
-   once by a cap of status colour over its label. The wells inside it are the
-   ground, so their line is the well line and not the ink. */
-[data-axi-accent] body .overview-card {
-  --overview-edge-w: var(--axi-border-panel);
-  --overview-label: var(--axi-text-dim);
-  --overview-well-w: var(--axi-border-control);
-  --overview-well-line: var(--axi-well-line);
-  --overview-cap-h: var(--axi-border-panel);
-}
 
 /* ---------------------------------------------------------------------------
    THE REPORT'S NAVIGATION
@@ -836,16 +706,6 @@
   --history-edge-w: var(--axi-border-control);
 }
 
-/* The map split is a quantity read as length, so it keeps its proportions and
-   gains the edge every other bar in the app carries. It sits on the card's
-   surface rather than the ground, which is what lets the ink read. */
-[data-axi-accent] body .history-card__slices {
-  height: 8px;
-  border: var(--axi-border-control) solid var(--axi-ink-line);
-  border-radius: var(--axi-radius-sm);
-  overflow: hidden;
-}
-
 /* The two borderTop dividers in this view are left alone on purpose. They are
    rules drawn inside a panel, and ink at a hairline is what a divider should
    be - the same call the form bridge makes for border-b. (They are also inline
@@ -879,16 +739,7 @@
    white ignores whichever theme is actually on, which is wrong everywhere and
    not only here. What is left is the one thing a token could not carry. */
 
-/* The progress bar is the last bar in the app without the ink edge. It has to
-   grow to take one: an outline at the control step is thicker than the 3px
-   track was tall, so the track becomes a bar you can actually read. */
-[data-axi-accent] body .web-upload-track {
-  height: 10px;
-  border: var(--axi-border-control) solid var(--axi-ink-line);
-  border-radius: var(--axi-radius-sm);
-}
-[data-axi-accent] body .web-upload-track > div { border-radius: 0; }
-
+/* Its progress bar is .axi-meter now, so even that is gone. */
 /* ---------------------------------------------------------------------------
    THE FLOATING CHROME
    The dropdowns, popovers and tooltips that sit above the Stats content. They
@@ -918,12 +769,6 @@
    separates them from the map better than the seam did while finally giving them
    a hover state. .app-dropdown survives on all of them, and on the fight-slice
    tray, as the entrance animation and nothing else. */
-
-/* A dropdown's rows are a list inside a well, not a stack of little panels, so
-   they step down to the small radius rather than keeping the panel-sized one
-   the named scale gives them. The separation is carried by the fill. */
-[data-axi-accent] body .app-dropdown button.rounded-lg,
-[data-axi-accent] body .stats-popover button.rounded-lg { border-radius: var(--axi-radius-sm); }
 
 /* ---------------------------------------------------------------------------
    THE REPLAY CHROME
@@ -1033,39 +878,11 @@
   border: var(--axi-border-control) solid var(--axi-ink-line);
   border-radius: var(--axi-radius);
 }
-[data-axi-accent] body .revive-iol__bar {
-  height: 10px;
-  background: var(--axi-surface-raised);
-  border: var(--axi-border-control) solid var(--axi-ink-line);
-  border-radius: var(--axi-radius-sm);
-}
 [data-axi-accent] body .revive-iol__hist-bar {
   border: 1px solid var(--axi-ink-line);
   border-radius: 0;
 }
 
-
-/* ---------------------------------------------------------------------------
-   THE PUBLISHED REPORT'S BACK LINK
-   The rest of the report's frame is drawn under THE WEB REPORT'S LEFT NAV
-   above, and the report's body is the stats view, so it arrives in the
-   language already. This is the one piece of chrome that was left: the link
-   back to the report index, which is the frame's only action. It takes the
-   button form outright - nothing else in the nav claims gold except the
-   category you are reading, and the two never sit on screen together. */
-[data-axi-accent] body .report-back-link {
-  background: var(--axi-accent) !important;
-  color: var(--axi-accent-ink) !important;
-  border-radius: var(--axi-radius-sm);
-}
-[data-axi-accent] body .report-back-link:hover { background: var(--axi-accent) !important; filter: brightness(1.08); }
-/* The arrow inside it is drawn in the brand colour, which in this language is
-   the accent - so on the gold button it was gold on gold and the ring around it
-   was the only thing you could see. Everything on an accent fill is ink. */
-[data-axi-accent] body .report-back-link > span {
-  color: var(--axi-accent-ink);
-  border-color: var(--axi-accent-ink);
-}
 
 /* ---------------------------------------------------------------------------
    THE FILE PICKER'S CONFIRM
@@ -1090,226 +907,14 @@
 
 
 /* ---------------------------------------------------------------------------
-   CHARTS
-   The one region the language never reached. Every recharts call site draws
-   its own furniture from literals - the grid at white 8% dashed, the axis at
-   white 10%, ticks in #94a3b8, and a tooltip filled #1e293b with a 0.5rem
-   radius. That tooltip is slate-800: a colour from a different palette
-   entirely, which is most of why a chart reads as a window onto another app.
-
-   None of it needs a component edit. recharts spreads stroke and fill onto its
-   SVG elements as presentation attributes, and a stylesheet outranks those;
-   the tooltip is the one exception, an inline style, so it takes !important.
-   That keeps all fifteen chart sections untouched and every other theme
-   exactly as it was.
-
-   The grammar is the one the rest of the app already follows. Furniture is
-   drawn in the neutral ramp and recedes; the series keep their own colours,
-   because those are meaning - green is the squad, red is the enemy - and the
-   language never had an opinion about those. What it has an opinion about is
-   everything drawn around them.
-
-   Three of the fills below used to reach a surface colour through the app's
-   --bg-card and --bg-hover shims, because `fill` takes <paint> and not <image>
-   and every surface token was a linear-gradient under both the glass and the
-   flat theme. index.css pinned those shims flat under glass and had nothing to
-   offer under flat, so the flat theme computed the brush slide and the bar
-   cursor as rgb(0, 0, 0) and dropped the bucket grid's whole heat ramp to
-   rgba(0, 0, 0, 0), color-mix() taking colours only. Recorded here as found and
-   not fixed, because the gap was the language's: a surface that may be a
-   gradient has nothing to offer anything that needs a paint or a mix operand,
-   and pinning the shims flat under flat would have fixed these three while
-   flattening every panel in the theme.
-
-   Fixed upstream instead, in axi-design 1.42.0. Every surface now has a -paint
-   companion holding the same surface as one flat <color>, so the three read
-   --axi-surface-paint and --axi-surface-raised-paint directly and the shims are
-   out of it. Measured in all three themes after the change. */
-
-[data-axi-accent] body {
-  /* A grid line is quieter than a rule: a rule divides two things, a grid is
-     scaffolding you read values against and should sit barely above the
-     ground it is drawn on.
-
-     Derived, not picked. This was #262c36 - the last hard-coded colour in the
-     file, and one that ignored the theme entirely: glass and flat both draw
-     their rules in a translucent light, and a fixed slate grid stayed slate
-     under both. 47% is where the old hex sat: #3a4250, the default --axi-rule,
-     laid over #15181d, the default ground, at that alpha gives #262c36 to
-     within one step per channel. Mixing toward `transparent` rather than the
-     ground keeps it right on a panel fill too. */
-  --axi-grid: color-mix(in srgb, var(--axi-rule) 47%, transparent);
-
-}
-
-/* Solid, not dashed. A dash is decoration, and fifteen charts of dashes is a
-   texture rather than a scale. The white-at-8% dashed grid this replaces was
-   written at 36 call sites; because recharts spreads it as a presentation
-   attribute, one selector here retires all 36 without editing a section. */
-[data-axi-accent] body .recharts-cartesian-grid line {
-  stroke: var(--axi-grid);
-  stroke-dasharray: none;
-  stroke-width: 1;
-}
-/* Stripes are a second background inside a chart that already has one. */
-[data-axi-accent] body .recharts-cartesian-grid-bg,
-[data-axi-accent] body .recharts-cartesian-gridstripes-horizontal,
-[data-axi-accent] body .recharts-cartesian-gridstripes-vertical { display: none; }
-
-/* The axis is the chart's own edge, so it is a rule at the hairline weight -
-   the same line the app draws inside a panel. */
-[data-axi-accent] body .recharts-cartesian-axis-line {
-  stroke: var(--axi-rule);
-  stroke-width: var(--axi-border-hairline);
-}
-[data-axi-accent] body .recharts-cartesian-axis-tick-line { stroke: var(--axi-rule); }
-
-/* Ticks are labels, so they take label colour and tabular figures - a y-axis
-   whose digits change width is a column that will not hold still. */
-[data-axi-accent] body .recharts-cartesian-axis-tick-value {
-  fill: var(--axi-text-faint);
-  font-variant-numeric: tabular-nums;
-}
-[data-axi-accent] body .recharts-label,
-[data-axi-accent] body .recharts-legend-item-text { fill: var(--axi-text-dim); color: var(--axi-text-dim); }
-
-/* The tooltip is a panel that happens to follow the cursor, so it is drawn
-   like every other panel: surface, ink edge at the control weight, the small
-   radius, and no shadow - this language does not float things.
-
-   The !important is not a shortcut. The sections pass recharts a `contentStyle`
-   object, which lands as an inline style, and an inline style beats a plain
-   rule - so without it a tooltip would keep its 0.5rem corner and its
-   hardcoded white text while its border moved. */
-[data-axi-accent] body .recharts-default-tooltip,
-[data-axi-accent] body .recharts-tooltip-wrapper > div {
-  background: var(--axi-surface) !important;
-  border: var(--axi-border-control) solid var(--axi-ink-line) !important;
-  border-radius: var(--axi-radius-sm) !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  color: var(--axi-text) !important;
-  padding: 8px 10px !important;
-}
-[data-axi-accent] body .recharts-tooltip-label {
-  color: var(--axi-text-dim) !important;
-  font-size: 10px;
-  letter-spacing: .18em;
-  text-transform: uppercase;
-}
-[data-axi-accent] body .recharts-tooltip-item { color: var(--axi-text) !important; }
-[data-axi-accent] body .recharts-tooltip-item-value { font-variant-numeric: tabular-nums; }
-
-/* Rule 2 again: the hover band was white at a few percent over the ground.
-   Here it is the next surface up, which is a fill change rather than a wash. */
-[data-axi-accent] body .recharts-tooltip-cursor {
-  /* The raised step's -paint companion, for the reason the brush slide gives
-     just below: a fill cannot be a gradient. */
-  fill: var(--axi-surface-raised-paint);
-  fill-opacity: 1;
-  stroke: var(--axi-rule);
-  /* The band's outline used to be declared alone, 68 rules up the file, at the
-     control weight - the one surviving line of a rule whose fill and stroke had
-     both been overruled from down here. At the hairline it matches the axis and
-     every other line this block draws. */
-  stroke-width: var(--axi-border-hairline);
-}
-/* A line chart's cursor is a crosshair, not a band, so it stays a line. */
-[data-axi-accent] body .recharts-curve.recharts-tooltip-cursor {
-  fill: none;
-  stroke: var(--axi-rule);
-  stroke-dasharray: none;
-}
-
-/* A point on a line is a small object standing on the series, so it gets the
-   ink edge that every other object in this language gets. It keeps its own
-   fill, because the fill is which series it belongs to. */
-[data-axi-accent] body .recharts-line-dot,
-[data-axi-accent] body .recharts-scatter-symbol > path {
-  stroke: var(--axi-ink-line);
-  stroke-width: var(--axi-border-hairline);
-}
-[data-axi-accent] body .recharts-active-dot > * {
-  stroke: var(--axi-ink-line);
-  stroke-width: var(--axi-border-control);
-}
-
-/* Slices are objects on the ground, so an ink edge separates them; without it
-   two adjacent slices of similar colour merge into one shape. */
-[data-axi-accent] body .recharts-pie-sector > path {
-  stroke: var(--axi-ink-line);
-  stroke-width: var(--axi-border-hairline);
-}
-
-/* A threshold is a claim, so it is drawn at the hairline weight and solid -
-   it is one of the few lines in a chart that is supposed to be read. */
-[data-axi-accent] body .recharts-reference-line-line {
-  stroke: var(--axi-text-faint);
-  stroke-width: var(--axi-border-hairline);
-  stroke-dasharray: none;
-}
-
-/* The brush is a range control sitting under the chart, so it is a well with
-   travellers standing in it, not a pale slab. */
-[data-axi-accent] body .recharts-brush > rect:first-of-type {
-  fill: var(--axi-ground);
-  stroke: var(--axi-well-line);
-  stroke-width: var(--axi-border-control);
-}
-/* --axi-surface-paint and not --axi-surface: `fill` takes <paint> and not
-   <image>, and both themes paint the surface with a gradient. The companion is
-   that surface as one flat colour. */
-[data-axi-accent] body .recharts-brush-slide {
-  fill: var(--axi-surface-paint);
-  fill-opacity: 1;
-}
-/* The two travellers are the only thing in any chart in the app you can grab,
-   and they are small. That is what an accent is for: a target you have to find
-   before you can use it, unlike the tooltip cursor, which is already under the
-   pointer and so needs no colour to be located. One accent in the plot, on the
-   one control.
-
-   This is a restoration. The rule said exactly this until a later pass wrote
-   `> rect` and `> line` to be precise about the child elements and, at equal
-   specificity and later in the file, silently took the accent off with them -
-   the handles had been grey on grey ever since. */
-[data-axi-accent] body .recharts-brush-traveller > rect {
-  fill: var(--axi-accent);
-  stroke: var(--axi-ink-line);
-  stroke-width: var(--axi-border-hairline);
-}
-[data-axi-accent] body .recharts-brush-traveller > line { stroke: var(--axi-accent-ink); }
-[data-axi-accent] body .recharts-brush-texts { fill: var(--axi-text-faint); }
-
-/* The preview curve inside the brush is context, not data you read off, so it
-   drops to furniture weight. */
-[data-axi-accent] body .recharts-brush .recharts-curve {
-  stroke: var(--axi-text-faint);
-  fill: none;
-}
-
-/* A bar is an object on the ground and takes the same ink edge as the rest.
-   Its corner radius is a path recharts computes in JS, so the one thing this
-   block cannot flatten from CSS is a rounded bar - the call sites that want
-   square corners have to drop their own radius prop. */
-[data-axi-accent] body .recharts-bar-rectangle > path {
-  stroke: var(--axi-ink-line);
-  stroke-width: var(--axi-border-hairline);
-}
-[data-axi-accent] body .recharts-bar-background-rectangle { fill: var(--axi-ground); }
-
-/* The legend is a key, so it reads as labels rather than as chips. */
-[data-axi-accent] body .recharts-legend-wrapper { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
-
-/* The published report's field. `.min-h-screen` in index.css is a blanket
-   utility painted --bg-elevated, which under this language is the surface - so
-   .stats-view, which carries that utility, painted the whole report page a rung
-   ABOVE the panels standing on it. Same defect as .app-content on the desktop
-   side, and the same fix: the page is ground, and a panel is the thing raised
-   off it. Without this the header band, the page and every card are one colour
-   and only the header's rule separates anything. */
-[data-axi-accent] body .stats-view.min-h-screen { background-color: var(--axi-ground); }
-
+   THE PUBLISHED REPORT'S HEAD
+   The charts that used to open this section are drawn by the language: every
+   recharts chart comes through ChartContainer, which wears .axi-chart, and the
+   twenty-seven furniture rules that stood here - grid, axis, ticks, legend,
+   hover band, brush, the ink edge on every mark - are upstream's, without the
+   !important the tooltip needed (the tooltip is .axi-tooltip--flow as custom
+   content, so there is no inline style to shout over). What is left below is
+   the report page's own chrome. */
 /* The report header's trophy. What makes it a *raised* thing rather than a
    coloured square - the ink outline and the hard offset - is the language's, at
    the control weight (rule 3), same as every other small drawn object.
@@ -1350,41 +955,9 @@
    argument with another rule, but to reach past the element's own style
    attribute, which is where the classic look has to live. */
 
-/* A verdict is status, so this is the one place on the page a status colour is
-   spent on exactly what rule 5 reserves it for - and having earned it, it gets
-   the full weight: flat fill, ink label, ink edge, hard offset. It ends up the
-   loudest object in the report, which is right for the one word a share link
-   is opened to read. The fill comes in as --outcome-fill, so which status this
-   is stays the component's business. */
-[data-axi-accent] body .fight-hero-outcome {
-  background: var(--outcome-fill) !important;
-  color: var(--axi-accent-ink) !important;
-  border: var(--axi-border-control) solid var(--axi-ink-line) !important;
-  box-shadow: var(--axi-shadow-control);
-}
-
-/* Except when there is no verdict. An undecided fight has no status to report,
-   and ink on a neutral grey is unreadable anyway, so it steps back to a plain
-   raised chip. */
-[data-axi-accent] body .fight-hero-outcome[data-outcome='none'] {
-  background: var(--axi-surface-raised) !important;
-  color: var(--axi-text) !important;
-}
-
-/* The two strength bars were drawn as gradients, which rule 1 forbids outright
-   - a gradient is decoration standing in for a shape. Flat, and outlined as a
-   well rather than as a raised thing (see --axi-well-line): the trough sits at
-   ground level. Taller than the app's 8px, because a squared 8px bar reads as
-   a hairline where the capsule read as a bar. */
-[data-axi-accent] body .fight-hero-track {
-  height: 14px;
-  border: var(--axi-border-hairline) solid var(--axi-well-line);
-}
-
-[data-axi-accent] body .fight-hero-fill[data-side='friendly'] { background: var(--axi-meta) !important; }
-[data-axi-accent] body .fight-hero-fill[data-side='enemy'] { background: var(--axi-danger) !important; }
-
-[data-axi-accent] body .fight-hero-rule { border-top-color: var(--axi-rule); }
+/* The hero's verdict is .axi-chip--ok/--danger and its two strength bars
+   are .axi-meter with the meta and danger series: rule 5's chip and rule 9's
+   length, both drawn by the language. */
 
 /* ---------------------------------------------------------------------------
    THE REPORT SHELL

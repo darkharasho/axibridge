@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, UploadCloud } from 'lucide-react';
+import { UploadCloud } from 'lucide-react';
 import type { PublishWebhookOption } from '../hooks/useStatsUploads';
 
 interface PublishWebhookPopoverProps {
@@ -65,34 +65,26 @@ export const PublishWebhookPopover = ({ webhooks, initialSelection, onConfirm, o
                 {webhooks.map((hook, index) => {
                     const on = checked.has(hook.id);
                     return (
-                        <button
+                        <label
                             key={hook.id}
-                            type="button"
-                            role="menuitemcheckbox"
-                            aria-checked={on}
-                            onClick={() => toggle(hook.id)}
-                            className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors"
-                            onMouseEnter={(event) => (event.currentTarget.style.background = 'var(--bg-hover)')}
-                            onMouseLeave={(event) => (event.currentTarget.style.background = 'transparent')}
+                            className="flex w-full cursor-pointer items-center gap-3 rounded-[var(--axi-radius-sm)] px-2 py-2 text-left"
                         >
-                            {/* A checkbox drawn by hand rather than an <input>, so the rules that
-                                redraw checkboxes cannot see it. Colours move to classes and the
-                                state moves to data-on, which is how the rest of the app says it. */}
-                            <span
-                                data-on={on ? '' : undefined}
-                                className={`menu-checkbox flex h-[18px] w-[18px] flex-none items-center justify-center rounded-[5px] border-[1.5px] ${on
-                                    ? 'bg-[color:var(--brand-primary)] border-[color:var(--brand-primary)]'
-                                    : 'bg-[color:var(--bg-input)] border-[color:var(--border-hover)]'}`}
-                            >
-                                {on && <Check className="w-3 h-3" style={{ color: 'var(--on-brand, #0b1220)' }} strokeWidth={3.2} />}
-                            </span>
+                            {/* A real checkbox, so the language draws it: a span wearing a
+                                class is not a checkbox, and the rule that redraws checkboxes
+                                could not see the one that used to be here. */}
+                            <input
+                                type="checkbox"
+                                className="axi-check"
+                                checked={on}
+                                onChange={() => toggle(hook.id)}
+                            />
                             <span className="min-w-0 flex-1 text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
                                 {hook.name || `Webhook ${index + 1}`}
                                 {hook.isForum && (
                                     <span className="ml-1.5 align-middle text-[9px] uppercase tracking-wide rounded px-1 py-0.5" style={{ color: 'var(--text-secondary)', border: 'var(--panel-border-w, 1px) solid var(--border-default)' }}>forum</span>
                                 )}
                             </span>
-                        </button>
+                        </label>
                     );
                 })}
             </div>

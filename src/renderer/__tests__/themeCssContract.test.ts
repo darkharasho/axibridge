@@ -217,13 +217,16 @@ describe('axi-design.css', () => {
         expect(block).not.toMatch(/(?<!-)background:\s*var\(--axi-ground\)/);
     });
 
-    // Was two tokens. --axi-well-line went upstream with .axi-well in 1.17.0,
-    // and a local redeclaration of a token the package now owns is exactly the
-    // drift this file exists to prevent — so it is asserted absent rather than
-    // present. --axi-grid still has no upstream equivalent.
-    it('declares --axi-grid, and no longer restates --axi-well-line', () => {
-        expect(css).toContain('--axi-grid:');
+    // Both were app tokens once. --axi-well-line went upstream with .axi-well in
+    // 1.17.0 and --axi-grid with .axi-chart in 1.45.0, and a local redeclaration
+    // of a token the package owns is exactly the drift this file exists to
+    // prevent - so both are asserted absent. The chart furniture that read
+    // --axi-grid went with it: ChartContainer wears .axi-chart and nothing in
+    // this file may name a recharts element again.
+    it('restates neither --axi-grid nor --axi-well-line, and draws no chart furniture', () => {
+        expect(css).not.toContain('--axi-grid:');
         expect(css).not.toContain('--axi-well-line:');
+        expect(css).not.toMatch(/^\[data-axi-accent\] body [^{]*\.recharts-/m);
     });
 });
 

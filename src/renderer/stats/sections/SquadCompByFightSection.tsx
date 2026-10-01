@@ -115,7 +115,7 @@ export const SquadCompByFightSection = ({
                                 })}
                             </div>
                         </aside>
-                        <div className="rounded-[var(--radius-md)] border border-[color:var(--border-default)] bg-gradient-to-b from-slate-950/55 to-slate-900/45 p-3 squad-comp-board">
+                        <div className="axi-well p-3 squad-comp-board">
                             {!activeFight ? (
                                 <div className="rounded-[var(--radius-md)] border border-dashed border-[color:var(--border-hover)] px-4 py-6 text-center text-xs text-[color:var(--text-secondary)]">Select a fight.</div>
                             ) : (

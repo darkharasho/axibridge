@@ -1,28 +1,25 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 import { useStatsSharedContext } from '../StatsViewContext';
 
 /* The panel's wells - the tally in the middle of the scoreboard, and the two
-   down/death halves under it - are all the same thing: content sunk back to
-   the ground inside the card. */
-const WELL: CSSProperties = {
-    background: 'var(--bg-card-inner)',
-    border: 'var(--overview-well-w, 1px) solid var(--overview-well-line, var(--border-default))',
-    borderRadius: 'var(--radius-md)',
-};
+   down/death halves under it - are all the same thing: content sunk back into
+   the panel, which is upstream's .axi-well. */
+const WELL = 'axi-well';
 
-const LABEL = 'text-[10px] uppercase tracking-[0.3em]';
+const LABEL = 'text-[10px] uppercase tracking-[0.3em] axi-ink-dim';
 
 /* A short bar of side colour over a label. It names the side once, at the
-   head, instead of outlining the whole box to say the same thing. */
+   head, instead of outlining the whole box to say the same thing - rule 5's
+   cap, at the panel weight the card is drawn at. */
 const Cap = ({ color, width }: { color: string; width?: number | string }) => (
-    <div style={{ height: 'var(--overview-cap-h, 3px)', width: width ?? 46, borderRadius: '2px', background: color }} />
+    <div style={{ height: 'var(--axi-border-panel)', width: width ?? 46, background: color }} />
 );
 
 const Stat = ({ value, label, align }: { value: ReactNode; label: string; align: 'left' | 'right' }) => (
     <div className={`grid gap-[3px] ${align === 'right' ? 'justify-items-end' : ''}`}>
         <div className="text-[30px] font-extrabold leading-none tabular-nums">{value}</div>
-        <div className={LABEL} style={{ color: 'var(--overview-label, var(--text-secondary))' }}>{label}</div>
+        <div className={LABEL}>{label}</div>
     </div>
 );
 
@@ -36,7 +33,7 @@ const Side = ({ name, color, size, kdr, align }: {
         <div className={`grid gap-[9px] content-start px-2 sm:px-5 ${right ? 'justify-items-end' : ''}`}>
             <div className={`grid gap-[7px] ${right ? 'justify-items-end' : ''}`}>
                 <Cap color={color} />
-                <div className={LABEL} style={{ color: 'var(--overview-label, var(--text-secondary))' }}>{name}</div>
+                <div className={LABEL}>{name}</div>
             </div>
             {/* Two numbers abreast is what sets a side's min-content width,
                 and two sides of it either side of a rule still did not fit a
@@ -54,17 +51,17 @@ const Side = ({ name, color, size, kdr, align }: {
    four-up, so allied and enemy were only ever separated by reading the labels;
    the cap groups them by side before a word is read. */
 const CasualtyHalf = ({ color, side, downs, deaths }: { color: string; side: string; downs: number; deaths: number }) => (
-    <div style={{ ...WELL, overflow: 'hidden' }}>
+    <div className={`${WELL} overflow-hidden`}>
         <Cap color={color} width="100%" />
         <div className="grid grid-cols-2">
             {[{ n: downs, l: `${side} Downs` }, { n: deaths, l: `${side} Deaths` }].map((cell, i) => (
                 <div
                     key={cell.l}
                     className="grid gap-1 px-3.5 py-2.5"
-                    style={i === 1 ? { borderLeft: 'var(--overview-well-w, 1px) solid var(--overview-well-line, var(--border-default))' } : undefined}
+                    style={i === 1 ? { borderLeft: 'var(--axi-border-control) solid var(--axi-well-line)' } : undefined}
                 >
                     <div className="text-[19px] font-bold tabular-nums">{cell.n}</div>
-                    <div className={LABEL} style={{ color: 'var(--overview-label, var(--text-secondary))' }}>{cell.l}</div>
+                    <div className={LABEL}>{cell.l}</div>
                 </div>
             ))}
         </div>
@@ -82,7 +79,7 @@ export const OverviewSection = () => {
        outline around each of them - the subtle step, same as a rule between
        cells in a table. */
     const rule = (className?: string) => (
-        <div className={className} style={{ background: 'var(--overview-well-line, var(--border-subtle))', borderRadius: '1px' }} />
+        <div className={className} style={{ background: 'var(--axi-well-line)' }} />
     );
 
     return (
@@ -105,15 +102,15 @@ export const OverviewSection = () => {
             {!singleFight && <div className="grid items-stretch mb-4 grid-cols-[1fr_2px_1fr] sm:grid-cols-[1fr_2px_auto_2px_1fr]">
                 <Side name="Squad" color="var(--status-success)" size={stats.avgSquadSize} kdr={stats.squadKDR} align="left" />
                 {rule()}
-                <div className="order-first col-span-3 mb-3.5 flex items-center justify-center gap-3.5 px-[22px] py-2.5 sm:order-none sm:col-span-1 sm:mx-[18px] sm:mb-0 sm:justify-start" style={WELL}>
+                <div className={`order-first col-span-3 mb-3.5 flex items-center justify-center gap-3.5 px-[22px] py-2.5 sm:order-none sm:col-span-1 sm:mx-[18px] sm:mb-0 sm:justify-start ${WELL}`}>
                     <div className="text-center">
                         <div className="text-[46px] font-black leading-[0.9] tabular-nums" style={{ color: 'var(--status-success)' }}>{stats.wins}</div>
-                        <div className={`${LABEL} mt-[7px]`} style={{ color: 'var(--overview-label, var(--text-secondary))' }}>Won</div>
+                        <div className={`${LABEL} mt-[7px]`}>Won</div>
                     </div>
                     <div className="text-[22px] font-light" style={{ color: 'var(--text-muted)' }}>&ndash;</div>
                     <div className="text-center">
                         <div className="text-[46px] font-black leading-[0.9] tabular-nums" style={{ color: 'var(--status-error)' }}>{stats.losses}</div>
-                        <div className={`${LABEL} mt-[7px]`} style={{ color: 'var(--overview-label, var(--text-secondary))' }}>Lost</div>
+                        <div className={`${LABEL} mt-[7px]`}>Lost</div>
                     </div>
                 </div>
                 {/* Between the tally and the enemy side when they are side by

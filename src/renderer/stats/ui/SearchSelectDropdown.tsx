@@ -157,7 +157,7 @@ export const SearchSelectDropdown = ({
                                                 const idx = optionIndexMap.get(`${option.type}-${option.id}`);
                                                 if (typeof idx === 'number') setActiveIndex(idx);
                                             }}
-                                            className="w-full text-left px-2 py-1.5 rounded-lg border"
+                                            className="w-full text-left px-2 py-1.5 rounded-[var(--axi-radius-sm)] border"
                                             style={{
                                                 color: 'var(--text-primary)',
                                                 background: selected
@@ -205,7 +205,7 @@ export const SearchSelectDropdown = ({
                                                 const idx = optionIndexMap.get(`${option.type}-${option.id}`);
                                                 if (typeof idx === 'number') setActiveIndex(idx);
                                             }}
-                                            className="w-full text-left px-2 py-1.5 rounded-lg border"
+                                            className="w-full text-left px-2 py-1.5 rounded-[var(--axi-radius-sm)] border"
                                             style={{
                                                 color: 'var(--text-primary)',
                                                 background: selected
