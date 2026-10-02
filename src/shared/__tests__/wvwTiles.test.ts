@@ -178,3 +178,48 @@ describe('getTileLayers', () => {
         expect(detail.tiles[0].url).toContain(HIRES_TILE_BASE);
     });
 });
+
+/**
+ * Following the commander re-centres the viewport every animation frame, so
+ * `getTileLayers` is called with a different `tx`/`ty` ~60 times a second at a
+ * fixed scale. The budget step-down must not depend on where the view is
+ * parked: `ReplayView` keys each tile `<g>` by its zoom, so a zoom that flips
+ * between adjacent frames unmounts the detail layer and remounts it with every
+ * `<image>` unloaded — the map blanks and repaints, over and over.
+ *
+ * Red Borderlands (750×750, the squarest of the match maps) is the one that
+ * lands exactly on TILE_BUDGET; it was observed flashing in a real report.
+ */
+describe('getTileLayers is pan-invariant', () => {
+    const RED = WvwMap.RedBorderlands;
+
+    const signaturesWhilePanning = (
+        map: WvwMap, mapW: number, mapH: number,
+        scale: number, panelW: number, panelH: number, dpr: number,
+    ): Set<string> => {
+        const sigs = new Set<string>();
+        for (let tx = -1200; tx <= 1200; tx += 37) {
+            for (let ty = -1200; ty <= 1200; ty += 53) {
+                const layers = getTileLayers(map, mapW, mapH, { scale, tx, ty }, panelW, panelH, dpr);
+                sigs.add(layers.map(l => l.zoom).join('-'));
+            }
+        }
+        return sigs;
+    };
+
+    for (const scale of [2, 2.05, 3, 4, 4.2]) {
+        for (const dpr of [1, 1.5, 2]) {
+            it(`picks one layer set across a pan at scale ${scale}, dpr ${dpr}`, () => {
+                const sigs = signaturesWhilePanning(RED, 750, 750, scale, 1432, 900, dpr);
+                expect([...sigs]).toHaveLength(1);
+            });
+        }
+    }
+
+    it('still honours the budget at every pan position', () => {
+        for (let tx = -1200; tx <= 1200; tx += 37) {
+            const layers = getTileLayers(RED, 750, 750, { scale: 4, tx, ty: -300 }, 1432, 900, 1.5);
+            for (const l of layers.slice(1)) expect(l.tiles.length).toBeLessThanOrEqual(TILE_BUDGET);
+        }
+    });
+});

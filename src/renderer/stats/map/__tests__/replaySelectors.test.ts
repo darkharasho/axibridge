@@ -75,12 +75,34 @@ describe('firstPopulatedTimeMs', () => {
 
     // The measured shape of every native fixture: a handful of tracks start at
     // poll 0, the overwhelming majority at poll 1, a few stragglers later.
-    it('returns the earliest first poll in ms', () => {
+    it('returns the latest first poll inside the opening second', () => {
         expect(firstPopulatedTimeMs([track(1), track(1), track(7)], 300)).toBe(300);
     });
 
-    it('stays at 0 when any track really does start at poll 0', () => {
-        expect(firstPopulatedTimeMs([track(0), track(1)], 300)).toBe(0);
+    // The bug this seeding exists to prevent: one track starting at poll 0
+    // used to pull the whole opening frame back to 0, where it is the only
+    // thing drawn. The measured real histogram is {0: 1, 1: 40}.
+    it('does not let a lone poll-0 track strand the other 40', () => {
+        const members = [track(0), ...Array.from({ length: 40 }, () => track(1))];
+        expect(firstPopulatedTimeMs(members, 300)).toBe(300);
+    });
+
+    // Fight 24 of report 20260926-180744-08ba: poll 3 (900ms) is still inside
+    // the opening second and covers 69 of 103 actors instead of 5.
+    it('waits out a slower opening that is still inside the first second', () => {
+        expect(firstPopulatedTimeMs([track(0), track(1), track(3)], 300)).toBe(900);
+    });
+
+    // Stragglers past the first second are left to pop in; the opening frame
+    // must not sit on a blank map waiting for one late joiner.
+    it('ignores stragglers beyond the first second', () => {
+        expect(firstPopulatedTimeMs([track(1), track(4), track(40)], 300)).toBe(300);
+    });
+
+    // Nothing inside the window at all: fall back to the earliest track, which
+    // is the old behaviour and still beats showing an empty map.
+    it('falls back to the earliest track when none start inside the window', () => {
+        expect(firstPopulatedTimeMs([track(9), track(12)], 300)).toBe(2700);
     });
 
     it('ignores tracks with no samples', () => {
