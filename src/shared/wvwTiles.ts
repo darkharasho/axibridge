@@ -203,9 +203,48 @@ export function visibleMapRect(
 
 // Cap on culled tiles per layer: keeps a wide view from fetching hundreds of
 // z9 tiles (~7 MB) when z8 is visually near-identical at that density.
-export const TILE_BUDGET = 140;
+//
+// Measured against `maxCulledTiles`, NOT against the live culled count — see
+// that function for why. The bound runs about a row and a column above what a
+// given pan actually keeps, so this sits above the old 140 to hold the same
+// real-world line: a view that used to fetch ~121 z8 tiles still gets them.
+export const TILE_BUDGET = 160;
 
 export interface TileLayer { zoom: number; tiles: TileInfo[]; }
+
+/**
+ * A pan-independent upper bound on how many tiles {@link getMapTiles} can keep
+ * for a rect of this size, at any position.
+ *
+ * The budget step-down below MUST key on this rather than on the actual culled
+ * count. Following the commander re-centres the viewport on every animation
+ * frame, so at a fixed scale the rect slides continuously; the real count
+ * wobbles by a row or column as tile boundaries cross the edges, and near the
+ * budget that wobble flips the chosen zoom between adjacent frames. `ReplayView`
+ * keys each tile `<g>` by its zoom, so a flip unmounts the detail layer and
+ * remounts it with every `<image>` unloaded — the map blanks and repaints,
+ * over and over, for as long as playback runs.
+ *
+ * The bound mirrors the culling test in `getMapTiles`: a tile survives when its
+ * origin lies in a window of length `rect + 3 tiles`, which a grid of pitch
+ * `tile` meets at most `floor(rect / tile) + 4` times — then clamped to the
+ * map's own grid, which depends only on the zoom.
+ */
+function maxCulledTiles(map: WvwMap, tileZoom: number, mapWidth: number, mapHeight: number, rect: MapRect): number {
+    const data = WVW_TILE_DATA[map];
+    if (!data) return 0;
+    const [[cx1, cy1], [cx2, cy2]] = data.continentRect;
+    const cw = cx2 - cx1;
+    const ch = cy2 - cy1;
+    const tileSpan = TILE_SIZE * Math.pow(2, MAX_TILE_ZOOM - tileZoom);
+    const tileW = tileSpan / cw * mapWidth;
+    const tileH = tileSpan / ch * mapHeight;
+    const gridX = Math.floor((cx2 - 1) / tileSpan) - Math.floor(cx1 / tileSpan) + 1;
+    const gridY = Math.floor((cy2 - 1) / tileSpan) - Math.floor(cy1 / tileSpan) + 1;
+    const spanX = Math.min(gridX, Math.floor(rect.width / tileW) + 4);
+    const spanY = Math.min(gridY, Math.floor(rect.height / tileH) + 4);
+    return spanX * spanY;
+}
 
 /**
  * Tile layers for the replay map, bottom to top:
@@ -227,11 +266,12 @@ export function getTileLayers(
     let detailZoom = pickTileZoom(map, mapWidth, panelWidth, viewport.scale, dpr);
     let detailTiles: TileInfo[] = [];
     if (detailZoom > 5) {
-        detailTiles = getMapTiles(map, detailZoom, mapWidth, mapHeight, rect);
-        while (detailZoom > 6 && detailTiles.length > TILE_BUDGET) {
+        // Budget on the pan-independent bound, fetch the real culled set once
+        // the zoom is settled — see maxCulledTiles for why these differ.
+        while (detailZoom > 6 && maxCulledTiles(map, detailZoom, mapWidth, mapHeight, rect) > TILE_BUDGET) {
             detailZoom--;
-            detailTiles = getMapTiles(map, detailZoom, mapWidth, mapHeight, rect);
         }
+        detailTiles = getMapTiles(map, detailZoom, mapWidth, mapHeight, rect);
     }
     const coverageZoom = Math.min(detailZoom, 5);
     const layers: TileLayer[] = [
