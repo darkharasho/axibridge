@@ -59,27 +59,45 @@ export function orderMembersForRender<T extends { isCommander?: boolean }>(membe
     return [...members].sort((a, b) => Number(!!a.isCommander) - Number(!!b.isCommander));
 }
 
+/** How far into the fight a track may start and still count as part of the
+ *  opening roster rather than a late joiner. One second: long enough to clear
+ *  the measured poll-1..poll-3 opening spread, short enough that nobody stares
+ *  at a blank map. */
+const OPENING_WINDOW_MS = 1000;
+
 /**
- * The fight-relative time of the earliest position sample any actor has.
+ * The fight-relative time at which the opening roster is actually on the map.
  *
- * Measured across every native fixture, 1–6 tracks out of 60–134 carry a
- * sample at t=0 and essentially all the rest start at exactly one poll in;
- * no enemy anywhere had a t=0 sample. Opening the playhead at 0 therefore
- * draws a near-empty map that "fills in" 300ms later. Seeding it here shows
- * the real opening roster without inventing a single position.
+ * Measured across every native fixture and all 29 fights of a real report, the
+ * `firstPoll` histogram is consistently `{0: 1–5, 1: 28–116, …}`: a handful of
+ * tracks carry a sample at t=0, essentially all the rest start exactly one poll
+ * in, and a few stragglers join much later. Opening the playhead at 0 therefore
+ * draws a near-empty map — 1 of 82 actors on the reported fight — that "fills
+ * in" 300ms later.
  *
- * Returns 0 when nothing has a track, which leaves the old behaviour intact.
+ * So the seed is the LATEST first poll among tracks that start inside
+ * {@link OPENING_WINDOW_MS}, not the earliest overall: that is the first instant
+ * the whole opening roster exists, and it still invents no position. Tracks
+ * beyond the window are late joiners and are allowed to pop in. If nothing at
+ * all starts inside the window the earliest track wins, which is the old
+ * behaviour.
+ *
+ * Returns 0 when nothing has a track.
  */
 export function firstPopulatedTimeMs(
     members: Pick<SquadMemberMovement, 'positions' | 'firstPoll'>[],
     pollingRate: number,
 ): number {
     if (!(pollingRate > 0)) return 0;
+    const lastOpeningPoll = Math.floor(OPENING_WINDOW_MS / pollingRate);
     let earliest = Infinity;
+    let openingRosterComplete = -Infinity;
     for (const m of members) {
         if (!m.positions.length) continue;
-        const poll = m.firstPoll || 0;
+        const poll = Math.max(0, m.firstPoll || 0);
         if (poll < earliest) earliest = poll;
+        if (poll <= lastOpeningPoll && poll > openingRosterComplete) openingRosterComplete = poll;
     }
-    return Number.isFinite(earliest) ? Math.max(0, earliest) * pollingRate : 0;
+    const chosen = Number.isFinite(openingRosterComplete) ? openingRosterComplete : earliest;
+    return Number.isFinite(chosen) ? chosen * pollingRate : 0;
 }
