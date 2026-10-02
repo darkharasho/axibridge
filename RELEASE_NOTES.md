@@ -1,24 +1,39 @@
 # Release Notes
 
-Version v3.19.0 — September 30, 2026
+Version v3.19.1 — October 1, 2026
 
-## One design language, three themes
-AxiBridge now runs entirely on the shared axi design language, the same one the rest of the Axi apps use. The old theme system (Classic, Modern, CRT, Matte, Kinetic) is gone, and the handful of glass toggles that replaced it are now a single Theme setting with three choices: Default, Glass and Flat. Your previous glass setting carries over automatically, and importing an older settings file still works.
+## The replay starts with everyone on it
 
-NOTE: Published web reports pick up the new look the next time you publish them from this version. Reports you already published keep the look they were published with. Share links at bridge.axi.link are already on the new look.
+Open a fight in the replay and the whole squad is there on the first frame. Before,
+you'd get a near-empty map — on one real fight, 1 player out of 82 — that filled in
+a moment later. The playhead was starting a fraction of a second too early, before
+most people's position data begins.
 
-## Web reports and share links wear the same theme
-The theme you pick in the app is carried into the report you publish, so a Glass report reads as Glass on the web and in share links, not just on your desktop.
+## No more flickering map
 
-## QoL Improvements
-- Tables are keyboard-friendly: every sortable column header can be reached and sorted with the keyboard, and the dense stats grids are real tables now, so screen readers and copy-paste behave.
-- Buttons, toggles, dropdowns, tooltips, inputs and the search palette all come from one set of components, so they look and behave the same on every page instead of drifting slightly from screen to screen.
-- Hover and focus states are consistent everywhere, including the replay map controls, which previously had no hover or disabled state at all.
-- "Back to Reports" stays pinned to the bottom of the web report's nav rail.
+The replay map no longer flashes on and off while it follows the tag. The tile detail
+level was being recalculated as the view moved, and sitting right on the edge it would
+flip back and forth every frame, throwing away the map image each time. It now picks
+one detail level and stays there.
+
+This was most obvious on Red Borderlands, but anyone on a high-DPI display could hit
+it on any map.
+
+## Commanders and squadmates who had no stats
+
+Sometimes arcdps writes the same player into a log twice, and we were treating the two
+halves as two different people. Everything — damage, boons, healing, the replay track —
+landed on the half with no name attached, so the real squad member showed up with
+zeroes across the board and no dot on the replay. A commander this happened to had no
+tag on the map at all.
+
+Checked against 400 real logs: 6 were affected, 11 squad members total.
+
+NOTE: this applies to logs parsed from now on. Re-parse older logs from History if you
+want their numbers fixed.
 
 ## Fixes
-- Fixed the mobile web report showing two "Contents" buttons.
-- Fixed the desktop nav rail showing up on narrow web report viewports.
-- Fixed the web report's page background being painted over instead of letting the theme's ground show through.
-- Fixed charts being themed twice, with the wrong pass winning under Glass.
-- Fixed SVG icons picking up gradient fills under Glass.
+
+- The update check no longer claims it failed when it was just slow. A check that took
+  56 seconds was being reported as an error at 30, and the error banner stayed up even
+  after the check came back fine.
