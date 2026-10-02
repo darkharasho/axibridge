@@ -103,6 +103,11 @@ import { parseCliFlags } from './cliFlags';
 
 const cliFlags = parseCliFlags(process.argv);
 
+/** How long to wait for the update check before reporting it as timed out.
+ *  A real user's check was measured answering correctly at 56s, so anything
+ *  near 30s mislabels a working slow connection as broken. */
+const UPDATE_CHECK_TIMEOUT_MS = 120_000;
+
 /** Compute the landmark-aware fight label from pruned EI details (safe to call with null). */
 function buildFightLabelFromDetails(details: any): string | undefined {
     if (!details) return undefined;
@@ -1740,10 +1745,23 @@ if (!gotTheLock) {
 
             try {
                 log.info('[AutoUpdater] Starting update check...');
+                // Measured on a real user's connection: the check answered
+                // correctly at 56s. The old 30s budget turned that success into
+                // a red error banner. The budget exists only so a check that
+                // never answers at all cannot hang the status line forever, so
+                // it should sit well clear of a slow-but-working network.
+                //
+                // This does NOT cancel the check — electron-updater carries on
+                // and still emits update-available/update-not-available, which
+                // the renderer treats as authoritative and uses to clear the
+                // error this path may have raised.
                 const result = await Promise.race([
                     autoUpdater.checkForUpdates(),
                     new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('Update check timed out after 30s')), 30000)
+                        setTimeout(
+                            () => reject(new Error(`Update check timed out after ${UPDATE_CHECK_TIMEOUT_MS / 1000}s`)),
+                            UPDATE_CHECK_TIMEOUT_MS,
+                        )
                     )
                 ]);
                 log.info('[AutoUpdater] Update check completed:', result);
