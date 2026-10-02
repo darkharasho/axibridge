@@ -38,11 +38,23 @@ export function useAppUpdater(): AppUpdaterState & AppUpdaterActions {
 
     useEffect(() => {
         const cleanupMessage = window.electronAPI.onUpdateMessage((message) => setUpdateStatus(message));
+        // A timed-out check is not a cancelled one: the main process gives up
+        // waiting after a fixed budget, but electron-updater keeps going and
+        // still reports the real outcome afterwards. Whichever answer arrives
+        // last is the authoritative one, so any real outcome clears a stale
+        // error — otherwise a slow-but-successful check leaves the error modal
+        // up for the rest of the session.
+        const clearStaleError = () => {
+            setUpdateError(null);
+            setShowUpdateErrorModal(false);
+        };
         const cleanupAvailable = window.electronAPI.onUpdateAvailable(() => {
+            clearStaleError();
             setUpdateAvailable(true);
             setUpdateStatus('Update available.');
         });
         const cleanupNotAvailable = window.electronAPI.onUpdateNotAvailable(() => {
+            clearStaleError();
             setUpdateStatus('App is up to date.');
             setTimeout(() => setUpdateStatus(''), 5000);
         });
