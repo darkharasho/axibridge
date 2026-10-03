@@ -93,7 +93,8 @@ import { registerUploadHandlers } from './handlers/uploadHandlers';
 import { registerGithubHandlers, resolveShareTarget, shouldUploadToDpsReport } from './handlers/githubHandlers';
 import { registerCloudflareHandlers } from './handlers/cloudflareHandlers';
 import { registerParserHandlers } from './handlers/parserHandlers';
-import { registerReparseHandlers } from './handlers/reparseHandlers';
+import { registerReparseHandlers, reparseLogDetails, type ReparseHandlerOptions } from './handlers/reparseHandlers';
+import { startEventLoopLatenessMonitor, describeLateness } from './eventLoopLateness';
 import { registerShareHandlers } from './handlers/shareHandlers';
 import { AxilogManager } from './axilogParser';
 import { getSkillNameCache, initSkillNameCache } from './skillNameCache';
@@ -421,6 +422,34 @@ function queueEiParse(logPath: string, logId: string): Promise<any> {
 }
 
 const BULK_LOG_DETAILS_HEAP_BUDGET_BYTES = 400 * 1024 * 1024; // 400 MB
+/**
+ * Floor and cooldown for the heap-pressure sweep below.
+ *
+ * `heapUsed` counts garbage V8 has not collected yet, and a bulk ingest
+ * generates a great deal of it: a user's main.log shows heapUsed climbing
+ * 419MB -> 794MB during a 48-log batch and settling at 98MB a few seconds
+ * after it finished. The cache was never the memory — but the sweep fired on
+ * almost every log and drained it to 3 entries, and heapUsed kept climbing
+ * regardless, which is the proof it was evicting the wrong thing.
+ *
+ * It was not merely useless. Every evicted log's next `get-log-details` falls
+ * through to the disk copy, and that read ends in a `JSON.parse` of a
+ * multi-megabyte details file ON THE MAIN THREAD. Across 48 logs, re-read on
+ * each hydration pass, that is seconds of event-loop block — the "AxiBridge is
+ * not responding" the batch ends in.
+ *
+ * So the sweep keeps a floor it will not evict below on heap pressure alone
+ * (the hard count cap still applies above it), and a cooldown so one noisy
+ * batch cannot trigger it dozens of times in a row.
+ */
+/**
+ * Counted in KEYS, not logs: `setBulkLogDetails` stores each log under both
+ * its raw and its resolved path, which differ on Windows — so 48 keys is
+ * roughly 24 logs, the same ratio as the hard cap above it.
+ */
+const BULK_LOG_DETAILS_CACHE_FLOOR = 48;
+const BULK_LOG_DETAILS_SWEEP_COOLDOWN_MS = 10000;
+let lastHeapSweepAt = 0;
 const setBulkLogDetails = (filePath: string, details: any) => {
     const rawKey = String(filePath || '');
     const normalizedKey = normalizeDetailsCacheKey(filePath);
@@ -448,26 +477,34 @@ const setBulkLogDetails = (filePath: string, details: any) => {
         if (!oldest) break;
         bulkLogDetailsByBaseName.delete(oldest);
     }
-    // Evict oldest entries when heap usage exceeds budget to prevent OOM
+    // Evict oldest entries when heap usage exceeds budget to prevent OOM.
+    // Bounded by a floor and a cooldown — see BULK_LOG_DETAILS_CACHE_FLOOR for
+    // why an unbounded sweep made things strictly worse.
     try {
+        if (bulkLogDetailsCache.size <= BULK_LOG_DETAILS_CACHE_FLOOR) return;
+        const now = Date.now();
+        if (now - lastHeapSweepAt < BULK_LOG_DETAILS_SWEEP_COOLDOWN_MS) return;
         const heapUsed = process.memoryUsage().heapUsed;
-        if (heapUsed > BULK_LOG_DETAILS_HEAP_BUDGET_BYTES && bulkLogDetailsCache.size > 2) {
-            const evictCount = Math.max(1, Math.ceil(bulkLogDetailsCache.size * 0.25));
-            let evicted = 0;
-            for (const key of bulkLogDetailsCache.keys()) {
-                if (evicted >= evictCount) break;
-                bulkLogDetailsCache.delete(key);
-                evicted += 1;
-            }
-            // Also evict corresponding baseName entries
-            evicted = 0;
-            for (const key of bulkLogDetailsByBaseName.keys()) {
-                if (evicted >= evictCount) break;
-                bulkLogDetailsByBaseName.delete(key);
-                evicted += 1;
-            }
-            console.log(`[Main] Heap budget exceeded (${(heapUsed / 1024 / 1024).toFixed(0)}MB). Evicted ${evictCount} oldest cache entries. Remaining: ${bulkLogDetailsCache.size} entries.`);
+        if (heapUsed <= BULK_LOG_DETAILS_HEAP_BUDGET_BYTES) return;
+        lastHeapSweepAt = now;
+        const evictCount = Math.min(
+            Math.max(1, Math.ceil(bulkLogDetailsCache.size * 0.25)),
+            bulkLogDetailsCache.size - BULK_LOG_DETAILS_CACHE_FLOOR
+        );
+        let evicted = 0;
+        for (const key of bulkLogDetailsCache.keys()) {
+            if (evicted >= evictCount) break;
+            bulkLogDetailsCache.delete(key);
+            evicted += 1;
         }
+        // Also evict corresponding baseName entries
+        evicted = 0;
+        for (const key of bulkLogDetailsByBaseName.keys()) {
+            if (evicted >= evictCount) break;
+            bulkLogDetailsByBaseName.delete(key);
+            evicted += 1;
+        }
+        console.log(`[Main] Heap budget exceeded (${(heapUsed / 1024 / 1024).toFixed(0)}MB). Evicted ${evictCount} oldest cache entries. Remaining: ${bulkLogDetailsCache.size} entries.`);
     } catch { /* memory check failure should not block cache updates */ }
 };
 const getBulkLogDetails = (filePath: string) => {
@@ -490,9 +527,13 @@ const getBulkLogDetails = (filePath: string) => {
  * row rendered with a blank date. The pruned details are still on disk, so read
  * them back instead of treating LRU residency as the source of truth.
  *
- * The in-memory cache is only re-warmed when there is headroom; warming it
- * while already over budget would just evict another 25% of the map and make
- * the next reader pay the same disk round-trip.
+ * The in-memory cache is re-warmed unless we are both over the heap budget and
+ * already holding a useful number of entries. Refusing to warm purely because
+ * heapUsed is high was self-defeating during a bulk ingest: heapUsed is high
+ * for the whole batch (mostly uncollected parse garbage), so every rehydrated
+ * log was dropped again immediately and the NEXT hydration pass re-read the
+ * same multi-megabyte file and re-parsed it on this thread. The result was the
+ * same disk round-trip this function exists to avoid, 48 times over.
  */
 const loadPersistedLogDetails = async (filePath: string): Promise<any | null> => {
     if (!filePath) return null;
@@ -505,7 +546,8 @@ const loadPersistedLogDetails = async (filePath: string): Promise<any | null> =>
         }
         const details = await readCachedDetailsFileFn(store, hash);
         if (!details || details.error || !hasUsableFightDetails(details)) return null;
-        if (process.memoryUsage().heapUsed < BULK_LOG_DETAILS_HEAP_BUDGET_BYTES) {
+        if (bulkLogDetailsCache.size < BULK_LOG_DETAILS_CACHE_FLOOR
+            || process.memoryUsage().heapUsed < BULK_LOG_DETAILS_HEAP_BUDGET_BYTES) {
             setBulkLogDetails(filePath, details);
         }
         return details;
@@ -1823,6 +1865,11 @@ if (!gotTheLock) {
             }
         });
 
+        // Worst event-loop block since the last diagnostics line. Without it a
+        // "the app says Not Responding" report carries no way to tell whether
+        // the main thread was blocked at all, let alone for how long.
+        const latenessMonitor = startEventLoopLatenessMonitor();
+
         // Periodic memory diagnostics — log every 5 minutes so we can spot
         // gradual leaks that precede a renderer crash.
         setInterval(() => {
@@ -1833,7 +1880,8 @@ if (!gotTheLock) {
                 `heapTotal: ${(mem.heapTotal / 1024 / 1024).toFixed(1)}MB, ` +
                 `activeUploads: ${activeUploads.size}, ` +
                 `hashCache: ${fileHashByPath.size}, ` +
-                `detailsCache: ${bulkLogDetailsCache.size}`;
+                `detailsCache: ${bulkLogDetailsCache.size}` +
+                describeLateness(latenessMonitor.takePeakMs());
             log.info(msg);
             console.log(msg);
             // Ask renderer for its heap stats (if alive)
@@ -2028,6 +2076,42 @@ if (!gotTheLock) {
             fetchImageBuffer,
             onApplySettings: (settings) => applySettings(settings),
         });
+        /**
+         * Shared by the `log:reparse-axilog` button and by `get-log-details`'
+         * automatic heal, so a log repaired either way ends up identical —
+         * including on disk, which is what stops the same gap reappearing the
+         * next time the memory budget evicts it.
+         */
+        const reparseOptions: ReparseHandlerOptions = {
+            getAxilogManager: () => axilogManager,
+            getPruneOptions: statsPruneOptions,
+            setBulkLogDetails,
+            persistLogDetails: async (filePath: string, details: any) => {
+                let hash = getKnownFileHash(filePath);
+                if (!hash) {
+                    if (!fs.existsSync(filePath)) return;
+                    hash = await computeFileHash(filePath);
+                    rememberFileHash(filePath, hash);
+                }
+                const existing = loadDpsReportCacheIndex()[hash];
+                if (existing) {
+                    await updateDpsReportCacheDetails(hash, details);
+                    return;
+                }
+                // No index entry yet (first sight of this log, or the entry
+                // was lost). A permalink-less synthetic result is enough to
+                // hang the details file off — the permalink is filled in by
+                // the upload path whenever it next runs.
+                await saveDpsReportCacheEntry(hash, {
+                    id: path.basename(filePath),
+                    permalink: '',
+                    userToken: '',
+                    fightName: details?.fightName || path.basename(filePath),
+                    encounterDuration: details?.encounterDuration,
+                    uploadTime: details?.uploadTime || Date.now() / 1000,
+                } as UploadResult, details);
+            },
+        };
         registerUploadHandlers({
             store,
             getWindow: () => win,
@@ -2041,6 +2125,15 @@ if (!gotTheLock) {
             setUploadRetryPaused,
             getBulkLogDetails,
             loadPersistedLogDetails,
+            // The two cache tiers can both miss on a log whose `.zevtc` is
+            // still on disk — a lost index entry, a pruned details file, a
+            // cold install pointed at an old history. Re-parsing is the same
+            // repair the coverage banner offers; doing it here means the user
+            // never has to be told about it.
+            reparseLogDetails: async (filePath: string) => {
+                const result = await reparseLogDetails(reparseOptions, filePath);
+                return result.success ? result.details : null;
+            },
         });
         registerGithubHandlers({
             store,
@@ -2055,11 +2148,7 @@ if (!gotTheLock) {
             getWindow: () => win,
             getAxilogManager: () => axilogManager,
         });
-        registerReparseHandlers({
-            getAxilogManager: () => axilogManager,
-            getPruneOptions: statsPruneOptions,
-            setBulkLogDetails,
-        });
+        registerReparseHandlers(reparseOptions);
         registerShareHandlers({
             store,
             // LRU residency is not the source of truth (see the comment on

@@ -25,6 +25,15 @@ import { useSliceRecompute } from './hooks/useSliceRecompute';
 import { computeIncludedOrdinals } from '../renderer/stats/slice/computeIncludedOrdinals';
 import { fetchReportPayload } from '../renderer/stats/utils/fetchParts';
 import { UNSUPPORTED_PARTS_VERSION_MESSAGE } from '../shared/chunkedGzip';
+
+/**
+ * How long the viewer waits out a GitHub Pages deploy before calling a report
+ * missing. The commit lands well before the site serves it — on a repo with a
+ * few hundred reports the build regularly takes a couple of minutes — and the
+ * link is usually opened the moment the desktop app hands it over.
+ */
+const DEPLOY_RETRY_ATTEMPTS = 30;
+const DEPLOY_RETRY_INTERVAL_MS = 10000;
 import { useSliceSidecarLoader } from './hooks/useSliceSidecarLoader';
 import {
     ShieldCheck,
@@ -1020,6 +1029,7 @@ export function ReportApp({ injectedSource, assetBase }: {
 
     useEffect(() => {
         let isMounted = true;
+        let retryTimer: number | null = null;
 
         if (injectedSource) {
             setError(null);
@@ -1112,17 +1122,33 @@ export function ReportApp({ injectedSource, assetBase }: {
                     setIndex(entries);
                 })
                 .catch(() => {});
-            loadReport().catch((err) => {
-                if (reportId) {
+            // A 404 right after a publish usually means the Pages build has not
+            // finished, so the right answer is to wait, not to make the user
+            // reload until it works. Keep retrying for a few minutes and say
+            // that is what is happening.
+            let attempt = 0;
+            const attemptLoad = () => {
+                loadReport().catch((err) => {
                     if (!isMounted) return;
-                    setError(err instanceof Error && err.message === UNSUPPORTED_PARTS_VERSION_MESSAGE
-                        ? UNSUPPORTED_PARTS_VERSION_MESSAGE
-                        : 'Report not found yet. It may still be deploying.');
-                }
-                loadIndex();
-            });
+                    if (err instanceof Error && err.message === UNSUPPORTED_PARTS_VERSION_MESSAGE) {
+                        setError(UNSUPPORTED_PARTS_VERSION_MESSAGE);
+                        loadIndex();
+                        return;
+                    }
+                    attempt += 1;
+                    if (attempt <= DEPLOY_RETRY_ATTEMPTS) {
+                        setError(`Report not found yet — waiting for the GitHub Pages deploy (retry ${attempt}/${DEPLOY_RETRY_ATTEMPTS})...`);
+                        retryTimer = window.setTimeout(attemptLoad, DEPLOY_RETRY_INTERVAL_MS);
+                        return;
+                    }
+                    setError('Report not found. The GitHub Pages deploy may have failed — check the repository\u2019s Pages settings.');
+                    loadIndex();
+                });
+            };
+            attemptLoad();
             return () => {
                 isMounted = false;
+                if (retryTimer !== null) window.clearTimeout(retryTimer);
             };
         }
 

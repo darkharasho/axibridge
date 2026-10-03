@@ -10,6 +10,8 @@ import { hasUsableFightDetails } from '../detailsProcessing';
 const missingDetailsLogByPath = new Map<string, number>();
 /** Coalesces concurrent disk rehydrations of the same log (details files reach 27MB). */
 const inFlightRehydrations = new Map<string, Promise<any | null>>();
+/** Same coalescing for the re-parse heal — a parse is ~0.3s of worker time. */
+const inFlightReparses = new Map<string, Promise<any | null>>();
 
 // ─── Handler options ───────────────────────────────────────────────────────────
 
@@ -26,6 +28,11 @@ export interface UploadHandlerOptions {
     setUploadRetryPaused: (paused: boolean, reason: string | null) => void;
     getBulkLogDetails: (filePath: string) => any;
     loadPersistedLogDetails: (filePath: string) => Promise<any | null>;
+    /**
+     * Last-resort heal: re-parse the original `.zevtc`. Optional so callers
+     * and tests that only exercise the two cache tiers stay valid.
+     */
+    reparseLogDetails?: (filePath: string) => Promise<any | null>;
 }
 
 // ─── Handler registration ──────────────────────────────────────────────────────
@@ -44,6 +51,7 @@ export function registerUploadHandlers(opts: UploadHandlerOptions) {
         setUploadRetryPaused,
         getBulkLogDetails,
         loadPersistedLogDetails,
+        reparseLogDetails,
     } = opts;
 
     ipcMain.on('start-watching', (_event, dirPath: string) => {
@@ -149,6 +157,13 @@ export function registerUploadHandlers(opts: UploadHandlerOptions) {
      * entries. Fall back to the persistent on-disk copy before reporting
      * failure — otherwise every evicted log silently drops out of the fight
      * count and renders without a timestamp.
+     *
+     * And a miss on disk is not the same as an unrecoverable log either, as
+     * long as the `.zevtc` is still there: re-parsing it is exactly what the
+     * coverage banner's Re-parse button does, so doing it here turns a
+     * user-visible "N logs could not be read back from the cache" into a few
+     * hundred milliseconds nobody notices. Reported failures are now only the
+     * ones a user could not have fixed by clicking that button either.
      */
     ipcMain.handle('get-log-details', async (_event, payload: { filePath: string }) => {
         const filePath = payload?.filePath;
@@ -170,6 +185,20 @@ export function registerUploadHandlers(opts: UploadHandlerOptions) {
         const persisted = await rehydrate;
         if (persisted && hasUsableFightDetails(persisted)) {
             return { success: true, details: persisted };
+        }
+        if (reparseLogDetails && fs.existsSync(filePath)) {
+            let heal = inFlightReparses.get(filePath);
+            if (!heal) {
+                console.warn(`[Main] get-log-details cache miss; re-parsing ${filePath}`);
+                heal = reparseLogDetails(filePath).finally(() => {
+                    inFlightReparses.delete(filePath);
+                });
+                inFlightReparses.set(filePath, heal);
+            }
+            const healed = await heal;
+            if (healed && hasUsableFightDetails(healed)) {
+                return { success: true, details: healed };
+            }
         }
         const now = Date.now();
         const lastLoggedAt = missingDetailsLogByPath.get(filePath) || 0;
