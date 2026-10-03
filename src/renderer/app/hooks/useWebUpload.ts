@@ -22,6 +22,10 @@ export function useWebUpload(opts?: {
                 stage: data.stage || 'Uploading',
                 postStatus: nextPostStatus(prev.postStatus, data.stage),
                 progress: typeof data.progress === 'number' ? data.progress : prev.progress,
+                // Main owns this: its watch is keyed on the published commit
+                // sha, which is the only way to tell "our build succeeded"
+                // from "the PREVIOUS build succeeded and ours has not run".
+                buildStatus: data.buildStatus || prev.buildStatus,
                 detail: prev.stage === 'Upload failed' ? prev.detail : (data.message || prev.detail)
             }));
         });
@@ -58,53 +62,25 @@ export function useWebUpload(opts?: {
         setLogEntries((prev) => [...prev, { elapsed, text, isError, isWarn }]);
     }, [webUploadState.message, webUploadState.detail, webUploadState.stage]);
 
+    /**
+     * `buildStatus` used to be polled from here against
+     * `get-github-pages-build-status`, which answers with the LATEST Pages
+     * build whoever made it. Ten seconds after a publish that is still the
+     * previous commit's build, reading `built` — so the poller declared the
+     * report live on its first tick while the site was still serving the old
+     * tree, and the user opened the link to
+     * "Report not found yet. It may still be deploying."
+     *
+     * The main process now watches the build it actually published, keyed on
+     * that commit's sha, and pushes the result over `web-upload-status`. The
+     * only thing left to do here is leave 'checking' if the publish never
+     * reaches the deploy watch at all.
+     */
     useEffect(() => {
-        if (webUploadState.buildStatus !== 'checking' && webUploadState.buildStatus !== 'building') return;
-        if (!window.electronAPI?.getGithubPagesBuildStatus) {
-            setWebUploadState((prev) => ({ ...prev, buildStatus: 'unknown' }));
-            return;
-        }
-        let attempts = 0;
-        const interval = setInterval(async () => {
-            attempts += 1;
-            try {
-                const repoLabel = webUploadState.buildStatusRepo || '';
-                const repoParts = repoLabel.split('/').map((part) => part.trim()).filter(Boolean);
-                const resp = await window.electronAPI.getGithubPagesBuildStatus(
-                    repoParts.length === 2
-                        ? { repoFullName: repoLabel, repoOwner: repoParts[0], repoName: repoParts[1] }
-                        : undefined
-                );
-                if (resp?.success) {
-                    const status = String(resp.status || '').toLowerCase();
-                    if (status === 'built' || status === 'success') {
-                        setWebUploadState((prev) => ({ ...prev, buildStatus: 'built' }));
-                        clearInterval(interval);
-                        return;
-                    }
-                    if (status === 'errored' || status === 'error' || status === 'failed') {
-                        setWebUploadState((prev) => ({ ...prev, buildStatus: 'errored' }));
-                        clearInterval(interval);
-                        return;
-                    }
-                    setWebUploadState((prev) => ({ ...prev, buildStatus: 'building' }));
-                } else if (resp?.error) {
-                    setWebUploadState((prev) => ({ ...prev, buildStatus: 'unknown' }));
-                    clearInterval(interval);
-                    return;
-                }
-            } catch {
-                setWebUploadState((prev) => ({ ...prev, buildStatus: 'unknown' }));
-                clearInterval(interval);
-                return;
-            }
-            if (attempts >= 18) {
-                setWebUploadState((prev) => ({ ...prev, buildStatus: 'unknown' }));
-                clearInterval(interval);
-            }
-        }, 10000);
-        return () => clearInterval(interval);
-    }, [webUploadState.buildStatus, webUploadState.buildStatusRepo]);
+        if (webUploadState.buildStatus !== 'checking') return;
+        if (typeof window.electronAPI?.uploadWebReport === 'function') return;
+        setWebUploadState((prev) => ({ ...prev, buildStatus: 'unknown' }));
+    }, [webUploadState.buildStatus]);
 
     const scheduleWebUploadClear = useCallback(() => {
         if (webUploadClearTimerRef.current) {

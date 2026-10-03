@@ -520,7 +520,7 @@ export interface IElectronAPI {
     selectCloudflareAccount: (payload: { accountId: string; accountName?: string; corsOrigin?: string }) => Promise<CloudflareConnectResult>;
     cancelCloudflareOAuth: () => Promise<{ success: boolean }>;
     disconnectCloudflare: () => Promise<{ success: boolean; status?: CloudflareStatus }>;
-    onWebUploadStatus: (callback: (data: { stage: string; message?: string; progress?: number }) => void) => () => void;
+    onWebUploadStatus: (callback: (data: { stage: string; message?: string; progress?: number; buildStatus?: WebUploadBuildStatus }) => void) => () => void;
     exportSettings: () => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
     importSettings: () => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
     selectSettingsFile: () => Promise<{ success: boolean; canceled?: boolean; error?: string; settings?: any; filePath?: string }>;
