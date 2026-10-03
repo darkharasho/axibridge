@@ -30,6 +30,12 @@ const run = (command, commandArgs, options = {}) => {
     }
 };
 
+/** Like `run`, but returns the exit status instead of throwing. */
+const tryRun = (command, commandArgs, options = {}) => {
+    const result = spawnSync(command, commandArgs, { stdio: 'inherit', ...options });
+    return result.status ?? 1;
+};
+
 const capture = (command, commandArgs) => {
     const result = spawnSync(command, commandArgs, { encoding: 'utf8' });
     if (result.status !== 0) return '';
@@ -102,7 +108,24 @@ try {
         filesToAdd.push('RELEASE_NOTES.md');
     }
     run(gitCmd, ['add', ...filesToAdd]);
-    run(gitCmd, ['commit', '-m', `chore: release ${tagName}`]);
+
+    // Sign the release commit explicitly. This repo's LOCAL config sets
+    // `commit.gpgsign=false` (overriding the global `true`), so without `-S`
+    // every `chore: release` commit lands unsigned — flipping the config is not
+    // enough, and not what we want either: only this commit should be forced.
+    //
+    // Signing goes through 1Password's SSH agent, which fails with "agent
+    // returned an error" while the vault is locked. That must not abort the
+    // release: by this point the version bump and the regenerated notes are
+    // already written to the working tree, so dying here leaves it dirty
+    // halfway through. Fall back to an unsigned commit and say so loudly.
+    const commitMessage = `chore: release ${tagName}`;
+    if (tryRun(gitCmd, ['commit', '-S', '-m', commitMessage]) !== 0) {
+        console.warn('\nCould not sign the release commit (is the 1Password vault locked?).');
+        console.warn('Committing UNSIGNED so the release can proceed.\n');
+        run(gitCmd, ['commit', '-m', commitMessage]);
+    }
+
     run(gitCmd, ['push']);
 
     // Tag and push tag — only after the bump is committed, so the tag points at
