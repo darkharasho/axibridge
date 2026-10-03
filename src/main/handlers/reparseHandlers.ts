@@ -40,52 +40,83 @@ export interface ReparseHandlerOptions {
     getPruneOptions: () => { keepReplayPositions: boolean };
     /** Writes the healed details back into the store `get-log-details` reads. */
     setBulkLogDetails: (filePath: string, details: any) => void;
+    /**
+     * Writes the healed details back to the ON-DISK cache as well.
+     *
+     * Without this the heal only reaches the memory LRU, which is budgeted and
+     * evicts under exactly the bulk-ingest pressure that produced the gap in
+     * the first place — so a user who clicks Re-parse gets the banner back a
+     * few logs later and has no way to make it stick. Optional so existing
+     * callers and tests that do not care about persistence stay valid.
+     */
+    persistLogDetails?: (filePath: string, details: any) => Promise<void>;
+}
+
+/**
+ * Re-parse `filePath` and return pruned, enriched details, or a typed failure.
+ *
+ * Shared by the `log:reparse-axilog` IPC handler and by `get-log-details`'
+ * last-resort heal, so the two cannot drift: a log healed by the button and a
+ * log healed automatically have to be byte-identical, or the coverage banner
+ * would clear for one and not the other.
+ */
+export async function reparseLogDetails(
+    opts: ReparseHandlerOptions,
+    filePath: string
+): Promise<ReparseResult> {
+    const { getAxilogManager, getPruneOptions, setBulkLogDetails, persistLogDetails } = opts;
+    if (!filePath) {
+        return { success: false, reason: 'source-missing', error: 'Missing filePath.' };
+    }
+
+    const manager = getAxilogManager();
+    if (!manager?.isInstalled()) {
+        return {
+            success: false,
+            reason: 'axilog-unavailable',
+            error: 'The axilog parser is not available on this platform.',
+        };
+    }
+
+    if (!fs.existsSync(filePath)) {
+        return {
+            success: false,
+            reason: 'source-missing',
+            error: 'The original log file is no longer on disk.',
+        };
+    }
+
+    try {
+        let details: any = await manager.parseLog(filePath, filePath);
+        if (!details || details.error) {
+            return { success: false, reason: 'parse-failed', error: String(details?.error || 'Parse returned nothing.') };
+        }
+        // Same enrichment and pruning the ingestion paths apply, so the
+        // healed details are indistinguishable from a fresh parse.
+        details = attachConditionMetrics(details);
+        if (!hasUsableFightDetails(details)) {
+            return { success: false, reason: 'unusable-details', error: 'The re-parsed log has no usable fight data.' };
+        }
+        const pruned = pruneDetailsForStats(details, getPruneOptions());
+        details = null;
+        setBulkLogDetails(filePath, pruned);
+        if (persistLogDetails) {
+            // Best-effort: a heal that cannot be written to disk is still a
+            // heal for this session, and failing it would be strictly worse.
+            try {
+                await persistLogDetails(filePath, pruned);
+            } catch (err: any) {
+                console.warn('[Main] Could not persist re-parsed details:', err?.message || err);
+            }
+        }
+        return { success: true, details: pruned };
+    } catch (err: any) {
+        console.warn('[Main] log:reparse-axilog failed:', err?.message || err);
+        return { success: false, reason: 'parse-failed', error: err?.message || 'Re-parse failed.' };
+    }
 }
 
 export function registerReparseHandlers(opts: ReparseHandlerOptions) {
-    const { getAxilogManager, getPruneOptions, setBulkLogDetails } = opts;
-
-    ipcMain.handle('log:reparse-axilog', async (_event, payload: { filePath?: string }): Promise<ReparseResult> => {
-        const filePath = typeof payload?.filePath === 'string' ? payload.filePath.trim() : '';
-        if (!filePath) {
-            return { success: false, reason: 'source-missing', error: 'Missing filePath.' };
-        }
-
-        const manager = getAxilogManager();
-        if (!manager?.isInstalled()) {
-            return {
-                success: false,
-                reason: 'axilog-unavailable',
-                error: 'The axilog parser is not available on this platform.',
-            };
-        }
-
-        if (!fs.existsSync(filePath)) {
-            return {
-                success: false,
-                reason: 'source-missing',
-                error: 'The original log file is no longer on disk.',
-            };
-        }
-
-        try {
-            let details: any = await manager.parseLog(filePath, filePath);
-            if (!details || details.error) {
-                return { success: false, reason: 'parse-failed', error: String(details?.error || 'Parse returned nothing.') };
-            }
-            // Same enrichment and pruning the ingestion paths apply, so the
-            // healed details are indistinguishable from a fresh parse.
-            details = attachConditionMetrics(details);
-            if (!hasUsableFightDetails(details)) {
-                return { success: false, reason: 'unusable-details', error: 'The re-parsed log has no usable fight data.' };
-            }
-            const pruned = pruneDetailsForStats(details, getPruneOptions());
-            details = null;
-            setBulkLogDetails(filePath, pruned);
-            return { success: true, details: pruned };
-        } catch (err: any) {
-            console.warn('[Main] log:reparse-axilog failed:', err?.message || err);
-            return { success: false, reason: 'parse-failed', error: err?.message || 'Re-parse failed.' };
-        }
-    });
+    ipcMain.handle('log:reparse-axilog', async (_event, payload: { filePath?: string }): Promise<ReparseResult> =>
+        reparseLogDetails(opts, typeof payload?.filePath === 'string' ? payload.filePath.trim() : ''));
 }
