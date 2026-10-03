@@ -170,6 +170,33 @@ export const pruneDpsReportCacheIndex = (index: Record<string, DpsReportCacheEnt
     return changed;
 };
 
+// ─── Index serialization ──────────────────────────────────────────────────────
+
+/**
+ * Serialises every read-modify-write of the cache index.
+ *
+ * The index is one store key holding every entry, so "add one entry" is really
+ * "read the whole map, mutate it, write the whole map back". Bulk ingestion
+ * runs `processLogFile` with several workers, and each one `await`s a
+ * multi-megabyte details write in the middle of that sequence — so two workers
+ * routinely read the same snapshot and the second one's write erases the
+ * first's entry. The lost entry's `detailsPath` is gone for good: the details
+ * file is still on disk, but nothing points at it, so `readCachedDetailsFile`
+ * returns null, `get-log-details` answers "Details not found", and the log
+ * lands in the coverage banner as "could not be read back from the cache".
+ *
+ * That is why mutators take this lock AND re-read the index inside it. Holding
+ * a snapshot across an `await` is the bug; the lock only helps if the read
+ * happens after every suspension point.
+ */
+let cacheIndexLock: Promise<void> = Promise.resolve();
+
+export const withDpsReportCacheIndexLock = <T>(fn: () => T | Promise<T>): Promise<T> => {
+    const run = cacheIndexLock.then(fn, fn);
+    cacheIndexLock = run.then(() => undefined, () => undefined);
+    return run;
+};
+
 // ─── Store I/O ────────────────────────────────────────────────────────────────
 
 export const loadDpsReportCacheIndex = (store: StoreAdapter): Record<string, DpsReportCacheEntry> => {
@@ -241,14 +268,20 @@ export const invalidateDpsReportCacheEntry = (store: StoreAdapter, hash: string,
 };
 
 export const loadDpsReportCacheEntry = async (store: StoreAdapter, hash: string) => {
-    const index = loadDpsReportCacheIndex(store);
-    let changed = shouldRunPruneSweep() ? pruneDpsReportCacheIndex(index) : false;
-    if (changed) saveDpsReportCacheIndex(store, index);
+    const prunedIndex = await withDpsReportCacheIndexLock(() => {
+        const index = loadDpsReportCacheIndex(store);
+        if (shouldRunPruneSweep() && pruneDpsReportCacheIndex(index)) {
+            saveDpsReportCacheIndex(store, index);
+        }
+        return index;
+    });
 
-    const entry = index[hash];
+    const entry = prunedIndex[hash];
     if (!entry) return null;
 
     let jsonDetails: any | null = null;
+    /** Applied to a freshly re-read index, never to the snapshot above. */
+    let invalidateDetails = false;
     const detailsCachedAt = Number(entry.detailsCachedAt || entry.createdAt || 0);
     const detailsExpired = detailsCachedAt > 0 && Date.now() - detailsCachedAt > DPS_REPORT_DETAILS_TTL_MS;
     if (entry.detailsPath) {
@@ -260,8 +293,7 @@ export const loadDpsReportCacheEntry = async (store: StoreAdapter, hash: string)
             }
             entry.detailsPath = null;
             entry.detailsCachedAt = null;
-            index[hash] = entry;
-            changed = true;
+            invalidateDetails = true;
         } else {
             try {
                 const raw = await fs.promises.readFile(entry.detailsPath, 'utf8');
@@ -270,12 +302,21 @@ export const loadDpsReportCacheEntry = async (store: StoreAdapter, hash: string)
                 jsonDetails = null;
                 entry.detailsPath = null;
                 entry.detailsCachedAt = null;
-                index[hash] = entry;
-                changed = true;
+                invalidateDetails = true;
             }
         }
     }
-    if (changed) saveDpsReportCacheIndex(store, index);
+    if (invalidateDetails) {
+        await withDpsReportCacheIndexLock(() => {
+            const fresh = loadDpsReportCacheIndex(store);
+            const current = fresh[hash];
+            if (!current) return;
+            current.detailsPath = null;
+            current.detailsCachedAt = null;
+            fresh[hash] = current;
+            saveDpsReportCacheIndex(store, fresh);
+        });
+    }
 
     return { entry, jsonDetails };
 };
@@ -295,7 +336,6 @@ export const saveDpsReportCacheEntry = async (
         // Cache directory creation failures should not block uploads.
     }
 
-    const index = loadDpsReportCacheIndex(store);
     const entry: DpsReportCacheEntry = {
         hash,
         createdAt: Date.now(),
@@ -306,6 +346,9 @@ export const saveDpsReportCacheEntry = async (
         parserVersion: parserVersion ?? null,
     };
 
+    // The details file is keyed by hash, so no two concurrent callers can
+    // collide on it — only the index needs the lock, and it is taken after
+    // this write rather than across it.
     if (jsonDetails) {
         const detailsPath = path.join(cacheDir, `${hash}.json`);
         try {
@@ -318,9 +361,12 @@ export const saveDpsReportCacheEntry = async (
         }
     }
 
-    index[hash] = entry;
-    if (shouldRunPruneSweep()) pruneDpsReportCacheIndex(index);
-    saveDpsReportCacheIndex(store, index);
+    await withDpsReportCacheIndexLock(() => {
+        const index = loadDpsReportCacheIndex(store);
+        index[hash] = entry;
+        if (shouldRunPruneSweep()) pruneDpsReportCacheIndex(index);
+        saveDpsReportCacheIndex(store, index);
+    });
 };
 
 export const updateDpsReportCacheDetails = async (
@@ -337,13 +383,21 @@ export const updateDpsReportCacheDetails = async (
         return;
     }
 
-    const index = loadDpsReportCacheIndex(store);
-    const entry = index[hash];
-    if (!entry) return;
+    if (!loadDpsReportCacheIndex(store)[hash]) return;
 
     const detailsPath = path.join(cacheDir, `${hash}.json`);
     try {
         await fs.promises.writeFile(detailsPath, JSON.stringify(jsonDetails));
+    } catch {
+        return; // Ignore cache write errors.
+    }
+    // Re-read inside the lock: the snapshot taken before the write above is
+    // stale by now, and writing it back would drop every entry a concurrent
+    // ingest added in the meantime.
+    await withDpsReportCacheIndexLock(() => {
+        const index = loadDpsReportCacheIndex(store);
+        const entry = index[hash];
+        if (!entry) return;
         entry.detailsPath = detailsPath;
         entry.detailsCachedAt = Date.now();
         entry.detailsSchemaVersion = DETAILS_SCHEMA_VERSION;
@@ -352,9 +406,7 @@ export const updateDpsReportCacheDetails = async (
         entry.parserVersion = parserVersion ?? null;
         index[hash] = entry;
         saveDpsReportCacheIndex(store, index);
-    } catch {
-        // Ignore cache write errors.
-    }
+    });
 };
 
 /**

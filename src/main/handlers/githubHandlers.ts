@@ -13,6 +13,7 @@ import {
     type RollupReportPayload
 } from '../../web/rollup';
 import { parseAttendanceFile, updateAttendanceForPublish, type AttendanceRaid } from '../../web/attendance';
+import { waitForPagesDeploy, describePagesDeploy } from '../githubPagesDeploy';
 import { startReportPost } from '../reportPostRunner';
 import { asAxiTheme, DEFAULT_AXI_THEME, type AxiTheme } from '../../shared/webThemes';
 import { type IReportWebhook, selectReportWebhooks } from '../../shared/reportWebhooks';
@@ -337,6 +338,22 @@ const getGithubPagesLatestBuild = async (owner: string, repo: string, token: str
         throw new Error(`GitHub API error (${resp.status}) loading Pages build status`);
     }
     return resp.data;
+};
+
+/**
+ * Ask GitHub to build Pages now.
+ *
+ * Used both when no build was ever queued for our commit and after a build
+ * errors — in both cases the site keeps serving the previous tree, and this is
+ * the documented way out. 409 means a build is already running, which is the
+ * outcome we wanted anyway.
+ */
+const requestGithubPagesBuild = async (owner: string, repo: string, token: string) => {
+    const resp = await githubApiRequest('POST', `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}/pages/builds`, token);
+    if (resp.status === 409) return;
+    if (resp.status >= 300) {
+        throw new Error(`GitHub API error (${resp.status}) requesting a Pages build`);
+    }
 };
 
 const createGithubBlob = async (owner: string, repo: string, token: string, contentBase64: string, blobPath?: string) => {
@@ -1488,10 +1505,21 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
         }
     };
 
-    const sendWebUploadStatus = (stage: string, message?: string, progress?: number) => {
+    const sendWebUploadStatus = (
+        stage: string,
+        message?: string,
+        progress?: number,
+        /**
+         * Only the Pages-deploy watch sets this. It is the authoritative read
+         * on whether the commit is live, because it is keyed on the commit sha
+         * — the renderer cannot do that itself, and keying on build status
+         * alone reports the PREVIOUS build's success as this one's.
+         */
+        buildStatus?: 'building' | 'built' | 'errored' | 'unknown'
+    ) => {
         const win = getWindow();
         if (win && !win.isDestroyed()) {
-            win.webContents.send('web-upload-status', { stage, message, progress });
+            win.webContents.send('web-upload-status', { stage, message, progress, buildStatus });
         }
     };
 
@@ -2669,15 +2697,17 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const commitEntries: Array<{ path: string; sha: string | null }> = [...blobEntries, ...deleteEntries];
 
             const commitMessage = `Update web report ${reportMeta.id}`;
-            const publishCommit = async (treeBaseSha: string, parentSha: string) => {
+            const publishCommit = async (treeBaseSha: string, parentSha: string): Promise<string> => {
                 const newTree = await createGithubTree(owner, repo, token, treeBaseSha, commitEntries);
                 const newCommit = await createGithubCommit(owner, repo, token, commitMessage, newTree.sha, parentSha);
                 await updateGithubRef(owner, repo, branch, token, newCommit.sha);
+                return String(newCommit.sha);
             };
 
             sendWebUploadStatus('Finalizing', 'Publishing commit...', 90);
+            let publishedCommitSha = '';
             try {
-                await publishCommit(baseTreeSha, headSha);
+                publishedCommitSha = await publishCommit(baseTreeSha, headSha);
             } catch (err: any) {
                 const message = String(err?.message || '');
                 const status = Number(err?.status);
@@ -2695,14 +2725,42 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 if (!retryBaseTreeSha) {
                     throw err;
                 }
-                await publishCommit(retryBaseTreeSha, retryHeadSha);
+                publishedCommitSha = await publishCommit(retryBaseTreeSha, retryHeadSha);
             }
 
-            // The report is live on Pages the moment the commit lands. Rendering the
-            // card and posting to Discord is follow-up work that must NOT hold this
-            // handler open — the renderer's upload modal resolves on our return
-            // value, so awaiting it pinned the modal at "100% Complete" for the
-            // whole post. Detached on purpose; it reports itself over `onStatus`.
+            // The commit landing is not the report going live: GitHub still has
+            // to build Pages, and until it does the viewer answers
+            // "Report not found yet. It may still be deploying." Watch the build
+            // and say so, rather than handing over a URL that 404s. Detached for
+            // the same reason the Discord post is — the renderer's upload modal
+            // resolves on our return value and must not wait minutes for it.
+            void (async () => {
+                try {
+                    const deploy = await waitForPagesDeploy({
+                        commitSha: publishedCommitSha,
+                        getLatestBuild: () => getGithubPagesLatestBuild(owner, repo, token),
+                        requestBuild: () => requestGithubPagesBuild(owner, repo, token),
+                        onProgress: ({ status }) => {
+                            if (status === 'built') return;
+                            sendWebUploadStatus('Deploying', `GitHub Pages build ${status}...`, 97, 'building');
+                        },
+                    });
+                    sendWebUploadStatus(
+                        deploy.outcome === 'built' ? 'Complete' : 'Deploying',
+                        describePagesDeploy(deploy),
+                        100,
+                        deploy.outcome === 'timeout' ? 'unknown' : deploy.outcome
+                    );
+                } catch (err: any) {
+                    log.warn('[Main] Could not track the Pages deploy (non-blocking):', err?.message || err);
+                }
+            })();
+
+            // Rendering the card and posting to Discord is follow-up work that must
+            // NOT hold this handler open — the renderer's upload modal resolves on
+            // our return value, so awaiting it pinned the modal at "100% Complete"
+            // for the whole post. Detached on purpose; it reports itself over
+            // `onStatus`.
             const rawReportWebhooks = store.get('reportWebhooks', []);
             const allReportWebhooks = Array.isArray(rawReportWebhooks) ? rawReportWebhooks as IReportWebhook[] : [];
             // The renderer sends the user's per-publish choice; absent → all enabled.
