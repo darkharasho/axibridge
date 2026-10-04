@@ -21,22 +21,24 @@ export type CommitEntry = { path: string; sha: string | null };
 export const SITE_BUSY_MESSAGE = 'The site was updated by someone else while publishing. Try again.';
 
 export class SiteBusyError extends Error {
-    constructor() {
-        super(SITE_BUSY_MESSAGE);
+    constructor(cause?: unknown) {
+        super(SITE_BUSY_MESSAGE, { cause });
         this.name = 'SiteBusyError';
     }
 }
 
 export const isRefConflict = (err: unknown): boolean => {
     const e = err as any;
-    return Number(e?.status) === 422 || String(e?.message || '').includes('(422)');
+    return Number(e?.status) === 422 && String(e?.message || '').includes('updating ref');
 };
 
 /** A 403 from the git-data API means the token cannot push to this repo. */
 export const toPushAccessError = (err: unknown, owner: string, repo: string): unknown => {
     const e = err as any;
     if (Number(e?.status) === 403 || String(e?.message || '').includes('(403)')) {
-        return new Error(`You don't have push access to ${owner}/${repo}. Ask the site admin to add you.`);
+        // Secondary rate limits also arrive as 403; those are not an access problem.
+        if (/rate limit/i.test(String(e?.message || '')) || /rate limit/i.test(String(e?.data?.message || ''))) return err;
+        return new Error(`You don't have push access to ${owner}/${repo}. Ask the site admin to add you.`, { cause: err });
     }
     return err;
 };
@@ -68,7 +70,7 @@ export const commitWithRebase = async <T>(
             return { commitSha, result, attempts: attempt };
         } catch (err) {
             if (!isRefConflict(err)) throw err;
-            if (attempt >= maxAttempts) throw new SiteBusyError();
+            if (attempt >= maxAttempts) throw new SiteBusyError(err);
             opts.onRetry?.(attempt);
             await sleep(250 + Math.floor(random() * 750));
         }

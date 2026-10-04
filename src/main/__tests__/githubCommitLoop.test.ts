@@ -14,8 +14,10 @@ const noSleep = async () => {};
 
 describe('isRefConflict', () => {
     it('matches status or message', () => {
-        expect(isRefConflict({ status: 422 })).toBe(true);
-        expect(isRefConflict(new Error('GitHub API error (422) updating ref'))).toBe(true);
+        expect(isRefConflict({ status: 422 })).toBe(false);
+        expect(isRefConflict(Object.assign(new Error('GitHub API error (422) updating ref'), { status: 422 }))).toBe(true);
+        expect(isRefConflict(Object.assign(new Error('GitHub API error (422) creating tree'), { status: 422 }))).toBe(false);
+        expect(isRefConflict(new Error('GitHub API error (422) updating ref'))).toBe(false);
         expect(isRefConflict({ status: 500 })).toBe(false);
     });
 });
@@ -64,6 +66,29 @@ describe('commitWithRebase', () => {
             sleep: noSleep, onRetry
         })).rejects.toThrow(SITE_BUSY_MESSAGE);
         expect(onRetry).toHaveBeenCalledTimes(2);
+    });
+
+    it('throws a 422 on creating a tree as-is without retrying', async () => {
+        const err = Object.assign(new Error('GitHub API error (422) creating tree'), { status: 422 });
+        const commit = vi.fn(async () => { throw err; });
+        await expect(commitWithRebase({
+            readBase: async () => base('h'),
+            build: async () => ({ entries: [{ path: 'x', sha: '1' }], result: null }),
+            commit, sleep: noSleep
+        })).rejects.toBe(err);
+        expect(commit).toHaveBeenCalledTimes(1);
+    });
+
+    it('carries the last conflict as the busy error cause', async () => {
+        const last = conflict();
+        const err = await commitWithRebase({
+            readBase: async () => base('h'),
+            build: async () => ({ entries: [{ path: 'x', sha: '1' }], result: null }),
+            commit: async () => { throw last; },
+            sleep: noSleep
+        }).catch((e) => e);
+        expect(err).toBeInstanceOf(SiteBusyError);
+        expect(err.cause).toBe(last);
     });
 
     it('does not retry non-conflict errors', async () => {
@@ -119,7 +144,9 @@ describe('commitWithRebase', () => {
         const bDone = publisher('B', aStarted.then(() => aDone));
         const aDone = (async () => { await Promise.resolve(); return publisher('A'); })();
         releaseA();
-        await Promise.all([aDone, bDone]);
+        const [aOut, bOut] = await Promise.all([aDone, bDone]);
+        expect(aOut.attempts).toBe(1);
+        expect(bOut.attempts).toBe(2);
         expect(remote.entries.sort()).toEqual(['A', 'B']);
     });
 });
@@ -128,6 +155,16 @@ describe('toPushAccessError', () => {
     it('rewrites a 403 into the no-push message', () => {
         const err = toPushAccessError(Object.assign(new Error('GitHub API error (403) creating blob'), { status: 403 }), 'guild', 'reports') as Error;
         expect(err.message).toBe("You don't have push access to guild/reports. Ask the site admin to add you.");
+    });
+    it('passes a rate-limit 403 through untouched', () => {
+        const original = Object.assign(new Error('GitHub API error (403) creating blob'), {
+            status: 403, data: { message: 'You have exceeded a secondary rate limit' }
+        });
+        expect(toPushAccessError(original, 'a', 'b')).toBe(original);
+    });
+    it('keeps the original as cause when rewriting', () => {
+        const original = Object.assign(new Error('GitHub API error (403) creating blob'), { status: 403 });
+        expect((toPushAccessError(original, 'a', 'b') as Error).cause).toBe(original);
     });
     it('passes other errors through untouched', () => {
         const original = new Error('boom');
