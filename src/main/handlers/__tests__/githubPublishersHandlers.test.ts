@@ -76,6 +76,42 @@ describe('add-repo-publisher', () => {
     });
 });
 
+describe('add-repo-publisher 422', () => {
+    it('surfaces the first validation error message', async () => {
+        setup({ githubRepoOwner: 'guild', githubRepoName: 'site' }, (c) => {
+            if (c.path === '/users/kyra') return { status: 200, body: { login: 'kyra' } };
+            if (c.method === 'PUT') return { status: 422, body: { message: 'Validation Failed', errors: [{ message: 'Repository owner cannot be a collaborator' }] } };
+            return { status: 404 };
+        });
+        expect(await invoke('add-repo-publisher', { username: 'kyra' })).toEqual({ success: false, error: 'Repository owner cannot be a collaborator' });
+    });
+});
+
+describe('remove-repo-publisher / cancel-repo-invite guards', () => {
+    const responder = (c: RecordedCall): MockResponse => (c.path === '/user' ? { status: 200, body: { login: 'me' } } : { status: 204 });
+    it('refuses to remove the repo owner (case-insensitive)', async () => {
+        const calls = setup({ githubRepoOwner: 'guild', githubRepoName: 'site' }, responder);
+        expect(await invoke('remove-repo-publisher', { username: 'Guild' })).toEqual({ success: false, error: "The repo owner can't be removed." });
+        expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
+    });
+    it('refuses to remove yourself', async () => {
+        const calls = setup({ githubRepoOwner: 'guild', githubRepoName: 'site' }, responder);
+        expect(await invoke('remove-repo-publisher', { username: 'ME' })).toEqual({ success: false, error: "You can't remove yourself here — do it on GitHub." });
+        expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
+    });
+    it('removes another collaborator', async () => {
+        setup({ githubRepoOwner: 'guild', githubRepoName: 'site' }, responder);
+        expect(await invoke('remove-repo-publisher', { username: 'kyra' })).toEqual({ success: true });
+    });
+    it('rejects empty username and bad invitation ids', async () => {
+        setup({ githubRepoOwner: 'guild', githubRepoName: 'site' }, responder);
+        expect((await invoke('remove-repo-publisher', { username: '' })).success).toBe(false);
+        expect((await invoke('cancel-repo-invite', { invitationId: 0 })).success).toBe(false);
+        expect((await invoke('cancel-repo-invite', { invitationId: 1.5 })).success).toBe(false);
+        expect(await invoke('cancel-repo-invite', { invitationId: 7 })).toEqual({ success: true });
+    });
+});
+
 describe('get-pending-site-invites', () => {
     const invitations = [
         { id: 1, created_at: '2026-10-02', inviter: { login: 'boss' }, repository: { name: 'site', owner: { login: 'guild' }, description: 'AxiBridge Reports', default_branch: 'main', private: true } },
@@ -129,6 +165,18 @@ describe('accept-site-invite', () => {
         expect(res.target.madeDefault).toBe(false);
         expect(store.data.githubFavoriteRepos).toEqual(['guild/site']);
         expect(store.data.githubRepoOwner).toBe('me');
+    });
+    it('prefers the Pages source branch over the default branch', async () => {
+        const inv = [{ ...invitations[0], repository: { ...invitations[0].repository, default_branch: 'main' } }];
+        setup({}, (c) => {
+            if (c.path.startsWith('/user/repository_invitations') && c.method === 'GET') return { status: 200, body: inv };
+            if (c.method === 'PATCH') return { status: 204 };
+            if (c.path === '/repos/guild/site/pages') return { status: 200, body: { html_url: 'https://guild.github.io/site/', source: { branch: 'gh-pages', path: '/' } } };
+            return { status: 404 };
+        });
+        const res = await invoke('accept-site-invite', { invitationId: 1 });
+        expect(res.target.branch).toBe('gh-pages');
+        expect(store.data.githubBranch).toBe('gh-pages');
     });
     it('reports an expired invite', async () => {
         setup({}, responder({ status: 404 }));

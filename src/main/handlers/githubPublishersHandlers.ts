@@ -143,7 +143,7 @@ export function registerPublishersHandlers({ store }: PublishersHandlerOptions) 
             const resp = await githubApiRequest('PUT', `${repoPath(owner, repo)}/collaborators/${encodeGitPath(username)}`, token, { permission: 'push' });
             if (resp.status === 201) return { success: true, status: 'invited' };
             if (resp.status === 204) return { success: true, status: 'already-has-access' };
-            return { success: false, error: resp.data?.message || `GitHub API error (${resp.status}) adding ${username}` };
+            return { success: false, error: resp.data?.errors?.[0]?.message || resp.data?.message || `GitHub API error (${resp.status}) adding ${username}` };
         } catch (err: any) {
             return { success: false, error: err?.message || 'Failed to add publisher.' };
         }
@@ -154,7 +154,14 @@ export function registerPublishersHandlers({ store }: PublishersHandlerOptions) 
             const token = getToken();
             if (!token) return { success: false, error: 'GitHub not connected.' };
             const { owner, repo } = resolveRepo(payload);
-            const resp = await githubApiRequest('DELETE', `${repoPath(owner, repo)}/collaborators/${encodeGitPath(String(payload?.username || ''))}`, token);
+            const username = String(payload?.username || '').trim().replace(/^@/, '');
+            if (!owner || !repo || !username) return { success: false, error: 'Repository or username missing.' };
+            if (username.toLowerCase() === owner.toLowerCase()) return { success: false, error: "The repo owner can't be removed." };
+            const viewer = await getViewerLogin(token);
+            if (viewer && username.toLowerCase() === viewer.toLowerCase()) {
+                return { success: false, error: "You can't remove yourself here — do it on GitHub." };
+            }
+            const resp = await githubApiRequest('DELETE', `${repoPath(owner, repo)}/collaborators/${encodeGitPath(username)}`, token);
             if (resp.status >= 300) return { success: false, error: resp.data?.message || `GitHub API error (${resp.status}) removing publisher` };
             return { success: true };
         } catch (err: any) {
@@ -167,7 +174,11 @@ export function registerPublishersHandlers({ store }: PublishersHandlerOptions) 
             const token = getToken();
             if (!token) return { success: false, error: 'GitHub not connected.' };
             const { owner, repo } = resolveRepo(payload);
-            const resp = await githubApiRequest('DELETE', `${repoPath(owner, repo)}/invitations/${Number(payload?.invitationId)}`, token);
+            const invitationId = Number(payload?.invitationId);
+            if (!owner || !repo || !Number.isInteger(invitationId) || invitationId <= 0) {
+                return { success: false, error: 'Repository or invitation missing.' };
+            }
+            const resp = await githubApiRequest('DELETE', `${repoPath(owner, repo)}/invitations/${invitationId}`, token);
             if (resp.status >= 300) return { success: false, error: resp.data?.message || `GitHub API error (${resp.status}) cancelling invite` };
             return { success: true };
         } catch (err: any) {
@@ -208,6 +219,9 @@ export function registerPublishersHandlers({ store }: PublishersHandlerOptions) 
             const pagesUrl = pages.status === 200 && typeof pages.data?.html_url === 'string'
                 ? pages.data.html_url
                 : `https://${invite.owner}.github.io/${invite.repo}`;
+            const branch = pages.status === 200 && typeof pages.data?.source?.branch === 'string' && pages.data.source.branch
+                ? pages.data.source.branch as string
+                : invite.branch;
             const pagesSourcePath = pages.status === 200 ? normalizePagesPath(pages.data?.source?.path) : '';
 
             const existing = store.get('githubFavoriteRepos', []);
@@ -217,12 +231,12 @@ export function registerPublishersHandlers({ store }: PublishersHandlerOptions) 
             if (madeDefault) {
                 store.set('githubRepoOwner', invite.owner);
                 store.set('githubRepoName', invite.repo);
-                store.set('githubBranch', invite.branch);
+                store.set('githubBranch', branch);
                 store.set('githubPagesBaseUrl', pagesUrl);
                 store.set('githubPagesSourcePath', pagesSourcePath);
             }
             const target: SiteJoinTarget = {
-                owner: invite.owner, repo: invite.repo, fullName: invite.fullName, branch: invite.branch,
+                owner: invite.owner, repo: invite.repo, fullName: invite.fullName, branch,
                 pagesUrl, pagesSourcePath, madeDefault, favorites
             };
             return { success: true, target };
