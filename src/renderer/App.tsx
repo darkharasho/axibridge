@@ -43,9 +43,9 @@ const stripDetailsFromEntries = (entries: ILogData[]): ILogData[] =>
         : entries;
 
 function App() {
+    const siteInvites = useSiteInvites();
     const [logs, setLogs] = useState<ILogData[]>([]);
     /** Set when this renderer replaced one that died; drives the recovery notice. */
-    const siteInvites = useSiteInvites();
     const [crashNotice, setCrashNotice] = useState<CrashRecoveryNotice | null>(null);
     /** Holds aggregation off restored logs until the user asks for it. */
     const [statsPausedAfterCrash, setStatsPausedAfterCrash] = useState(false);

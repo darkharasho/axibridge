@@ -85,12 +85,58 @@ describe('useSiteInvites', () => {
         await act(async () => { release({ success: true, target }); await p1; await p2; });
         expect(result.current.joined).toEqual(target);
     });
-    it('dismiss removes the invite and survives a rejected IPC call', async () => {
-        (window as any).electronAPI.dismissSiteInvite = vi.fn(async () => { throw new Error('x'); });
+    it('dismiss removes the invite on success', async () => {
         const { result } = renderHook(() => useSiteInvites());
         await waitFor(() => expect(result.current.invites).toHaveLength(1));
         await act(() => result.current.dismiss(1));
         expect(result.current.invites).toHaveLength(0);
+        expect(result.current.error).toBeNull();
+    });
+    it('a rejected dismiss keeps the row and shows the error', async () => {
+        (window as any).electronAPI.dismissSiteInvite = vi.fn(async () => { throw new Error('ipc down'); });
+        const { result } = renderHook(() => useSiteInvites());
+        await waitFor(() => expect(result.current.invites).toHaveLength(1));
+        await act(() => result.current.dismiss(1));
+        expect(result.current.invites).toHaveLength(1);
+        expect(result.current.error).toBe('ipc down');
+    });
+    it('a {success:false} dismiss keeps the row and shows the error', async () => {
+        (window as any).electronAPI.dismissSiteInvite = vi.fn(async () => ({ success: false, error: 'cannot dismiss' }));
+        const { result } = renderHook(() => useSiteInvites());
+        await waitFor(() => expect(result.current.invites).toHaveLength(1));
+        await act(() => result.current.dismiss(1));
+        expect(result.current.invites).toHaveLength(1);
+        expect(result.current.error).toBe('cannot dismiss');
+    });
+    it('dismiss is ignored while a join is in flight', async () => {
+        let release: (v: unknown) => void = () => {};
+        (window as any).electronAPI.acceptSiteInvite = vi.fn(() => new Promise((r) => { release = r; }));
+        const { result } = renderHook(() => useSiteInvites());
+        await waitFor(() => expect(result.current.invites).toHaveLength(1));
+        let p: Promise<void>;
+        act(() => { p = result.current.join(1); void result.current.dismiss(1); });
+        expect((window as any).electronAPI.dismissSiteInvite).not.toHaveBeenCalled();
+        await act(async () => { release({ success: true, target }); await p; });
+    });
+    it('clear resets joined and error but keeps other invites', async () => {
+        (window as any).electronAPI.getPendingSiteInvites = vi.fn(async () => ({ success: true, invites: [invite, { ...invite, id: 2, repo: 'other', fullName: 'guild/other' }] }));
+        const { result } = renderHook(() => useSiteInvites());
+        await waitFor(() => expect(result.current.invites).toHaveLength(2));
+        await act(() => result.current.join(1));
+        expect(result.current.joined).toEqual(target);
+        act(() => result.current.clear());
+        expect(result.current.joined).toBeNull();
+        expect(result.current.error).toBeNull();
+        expect(result.current.invites.map((i) => i.id)).toEqual([2]);
+    });
+    it('a slow initial load does not clobber a join that already happened', async () => {
+        let resolveLoad: (v: unknown) => void = () => {};
+        (window as any).electronAPI.getPendingSiteInvites = vi.fn(() => new Promise((r) => { resolveLoad = r; }));
+        const { result } = renderHook(() => useSiteInvites());
+        await act(() => result.current.join(1));
+        await act(async () => { resolveLoad({ success: true, invites: [invite] }); });
+        expect(result.current.invites).toHaveLength(0);
+        expect(result.current.joined).toEqual(target);
     });
     it('does not update state after unmount', async () => {
         let release: (v: unknown) => void = () => {};

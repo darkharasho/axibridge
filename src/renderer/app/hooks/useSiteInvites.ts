@@ -9,47 +9,67 @@ export const useSiteInvites = () => {
     const mountedRef = useRef(true);
     const [busy, setBusy] = useState(false);
     const busyRef = useRef(false);
+    /** Bumped by every join/dismiss so a slow initial load can't clobber them. */
+    const mutationRef = useRef(0);
 
     useEffect(() => {
         mountedRef.current = true;
+        const startedAt = mutationRef.current;
         void window.electronAPI?.getPendingSiteInvites?.()
             .then((res) => {
-                if (mountedRef.current && res?.success) setInvites((res.invites ?? []).filter((i) => !i.dismissed));
+                if (mountedRef.current && mutationRef.current === startedAt && res?.success) setInvites((res.invites ?? []).filter((i) => !i.dismissed));
             })
             .catch(() => { /* the banner is optional; Settings still lists invites */ });
         return () => { mountedRef.current = false; };
     }, []);
 
-    const join = useCallback(async (id: number) => {
+    const mutate = useCallback(async (
+        id: number,
+        call: () => Promise<{ success: boolean; error?: string; target?: ISiteJoinTarget }>,
+        fallback: string,
+        onSuccess?: (target?: ISiteJoinTarget) => void
+    ) => {
         if (busyRef.current) return;
         busyRef.current = true;
         setBusy(true);
         setError(null);
         try {
-            const res = await window.electronAPI.acceptSiteInvite({ invitationId: id });
+            const res = await call();
+            mutationRef.current += 1;
             if (!mountedRef.current) return;
-            if (res?.success && res.target) {
+            if (res?.success) {
                 setInvites((prev) => prev.filter((i) => i.id !== id));
-                setJoined(res.target);
+                onSuccess?.(res.target);
             } else {
-                setError(res?.error || 'Failed to join site.');
+                setError(res?.error || fallback);
             }
         } catch (err) {
-            if (mountedRef.current) setError(err instanceof Error && err.message ? err.message : 'Failed to join site.');
+            if (mountedRef.current) setError(err instanceof Error && err.message ? err.message : fallback);
         } finally {
             busyRef.current = false;
             if (mountedRef.current) setBusy(false);
         }
     }, []);
 
-    const dismiss = useCallback(async (id: number) => {
-        setInvites((prev) => prev.filter((i) => i.id !== id));
-        try {
-            await window.electronAPI.dismissSiteInvite({ invitationId: id });
-        } catch {
-            // Hidden for this session either way; the next load re-lists it.
-        }
-    }, []);
+    const join = useCallback(
+        (id: number) =>
+            mutate(
+                id,
+                async () => {
+                    const res = await window.electronAPI.acceptSiteInvite({ invitationId: id });
+                    // A "success" without a target can't be confirmed to the user.
+                    return res?.success && !res.target ? { ...res, success: false } : res;
+                },
+                'Failed to join site.',
+                (target) => { if (target) setJoined(target); }
+            ),
+        [mutate]
+    );
+
+    const dismiss = useCallback(
+        (id: number) => mutate(id, () => window.electronAPI.dismissSiteInvite({ invitationId: id }), 'Failed to dismiss invite.'),
+        [mutate]
+    );
 
     const clear = useCallback(() => { setJoined(null); setError(null); }, []);
 

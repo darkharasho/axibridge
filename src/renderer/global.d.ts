@@ -499,7 +499,7 @@ export interface IElectronAPI {
     cancelRepoInvite: (payload: { owner?: string; repo?: string; invitationId: number }) => Promise<{ success: boolean; error?: string }>;
     getPendingSiteInvites: (payload?: { force?: boolean }) => Promise<{ success: boolean; invites?: ISiteInvite[]; error?: string }>;
     acceptSiteInvite: (payload: { invitationId: number }) => Promise<{ success: boolean; target?: ISiteJoinTarget; error?: string }>;
-    dismissSiteInvite: (payload: { invitationId: number }) => Promise<{ success: boolean }>;
+    dismissSiteInvite: (payload: { invitationId: number }) => Promise<{ success: boolean; error?: string }>;
     getGithubOrgs: () => Promise<{ success: boolean; orgs?: Array<{ login: string }>; error?: string }>;
     getGithubReports: (payload?: { owner?: string; repo?: string; branch?: string }) => Promise<{ success: boolean; reports?: any[]; error?: string }>;
     deleteGithubReports: (payload: { ids: string[]; owner?: string; repo?: string; branch?: string }) => Promise<{ success: boolean; removed?: string[]; error?: string }>;
