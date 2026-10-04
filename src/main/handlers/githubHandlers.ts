@@ -19,6 +19,7 @@ import { encodeGitPath, getRepoPermissions, getViewerLogin, GITHUB_API_IDLE_TIME
 import {
     buildIndexPayload,
     parseSiteIndex,
+    removeFromSiteIndex,
     resolveSiteAppearance,
     shouldWriteViewer,
     type ParsedSiteIndex
@@ -1682,115 +1683,71 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const pagesPath = await resolveEffectivePagesPath(owner, repo, branch, token, isOverride);
             const pagesPrefix = pagesPath ? `${pagesPath}/` : '';
 
-            const headRef = await getGithubRef(owner, repo, branch, token);
-            const headSha = headRef?.object?.sha;
-            if (!headSha) {
-                throw new Error('Unable to resolve repository branch head.');
-            }
-            const headCommit = await getGithubCommit(owner, repo, headSha, token);
-            const baseTreeSha = headCommit?.tree?.sha;
-            if (!baseTreeSha) {
-                throw new Error('Unable to resolve repository tree.');
-            }
-            const treeData = await getGithubTree(owner, repo, baseTreeSha, token);
-            const treeEntries = Array.isArray(treeData?.tree) ? treeData.tree : [];
-            const deleteEntries: Array<{ path: string; sha: string | null }> = [];
-            treeEntries.forEach((entry: any) => {
-                if (!entry?.path || entry?.type !== 'blob') return;
-                for (const id of ids) {
-                    if (entry.path.startsWith(`${pagesPrefix}reports/${id}/`)) {
-                        deleteEntries.push({ path: entry.path, sha: null });
-                        break;
-                    }
-                }
-            });
-
-            let existingEntries: any[] = [];
-            let existingIndexSiteTheme: any = null;
-            try {
-                const existing = await getGithubFile(owner, repo, withPagesPath(pagesPath, 'reports/index.json'), branch, token);
-                if (existing?.content) {
-                    const decoded = Buffer.from(existing.content, 'base64').toString('utf8');
-                    const parsed = JSON.parse(decoded);
-                    existingEntries = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.entries) ? parsed.entries : []);
-                    existingIndexSiteTheme = Array.isArray(parsed) ? null : (parsed?.siteTheme || null);
-                }
-            } catch {
-                existingEntries = [];
-            }
-            const filteredEntries = ids.length > 0
-                ? existingEntries.filter((entry: any) => !ids.includes(entry?.id))
-                : existingEntries;
-            const deletedIndexPayload = existingIndexSiteTheme
-                ? { siteTheme: existingIndexSiteTheme, entries: filteredEntries }
-                : filteredEntries;
-            const indexContent = Buffer.from(JSON.stringify(deletedIndexPayload, null, 2)).toString('base64');
-            const indexBlob = await createGithubBlob(owner, repo, token, indexContent, withPagesPath(pagesPath, 'reports/index.json'));
-
-            const commitEntries = [
-                ...deleteEntries,
-                { path: withPagesPath(pagesPath, 'reports/index.json'), sha: indexBlob.sha }
-            ];
-
-            // Keep the precomputed rollup consistent: drop sources for deleted reports.
-            try {
-                const rollupRepoPath = withPagesPath(pagesPath, 'reports/rollup.json');
-                const rollupEntry = treeEntries.find(
-                    (entry: any) => entry?.path === rollupRepoPath && entry?.type === 'blob' && entry?.sha
-                );
-                if (rollupEntry) {
-                    const blob = await getGithubBlob(owner, repo, rollupEntry.sha, token);
-                    const parsed = blob?.content
-                        ? parseRollupSourcesFile(JSON.parse(Buffer.from(blob.content, 'base64').toString('utf8')))
-                        : null;
-                    if (parsed) {
-                        const rollupFile = removeRollupSources(parsed, ids);
-                        const rollupBlob = await createGithubBlob(
-                            owner,
-                            repo,
-                            token,
-                            Buffer.from(JSON.stringify(rollupFile), 'utf8').toString('base64'),
-                            rollupRepoPath
-                        );
-                        commitEntries.push({ path: rollupRepoPath, sha: rollupBlob.sha });
-                    }
-                }
-            } catch (err) {
-                log.warn('[Main] Failed to update rollup.json after delete (non-blocking):', err);
-            }
-
-            // Keep the attendance history consistent: drop raids for deleted reports.
-            try {
-                const attendanceRepoPath = withPagesPath(pagesPath, 'reports/attendance.json');
-                const attendanceEntry = treeEntries.find(
-                    (entry: any) => entry?.path === attendanceRepoPath && entry?.type === 'blob' && entry?.sha
-                );
-                if (attendanceEntry) {
-                    const blob = await getGithubBlob(owner, repo, attendanceEntry.sha, token);
-                    const parsed = blob?.content
-                        ? parseAttendanceFile(JSON.parse(Buffer.from(blob.content, 'base64').toString('utf8')))
-                        : null;
-                    if (parsed) {
-                        const deletedSet = new Set(ids.map((id: any) => String(id || '').trim()));
-                        const keptRaids = parsed.raids.filter((r) => !deletedSet.has(String(r.id).trim()));
-                        const attendanceBlob = await createGithubBlob(
-                            owner,
-                            repo,
-                            token,
-                            Buffer.from(JSON.stringify({ ...parsed, raids: keptRaids }), 'utf8').toString('base64'),
-                            attendanceRepoPath
-                        );
-                        commitEntries.push({ path: attendanceRepoPath, sha: attendanceBlob.sha });
-                    }
-                }
-            } catch (err) {
-                log.warn('[Main] Failed to update attendance.json after delete (non-blocking):', err);
-            }
-
-            const newTree = await createGithubTree(owner, repo, token, baseTreeSha, commitEntries);
             const commitMessage = `Delete ${ids.length} report${ids.length === 1 ? '' : 's'}`;
-            const newCommit = await createGithubCommit(owner, repo, token, commitMessage, newTree.sha, headSha);
-            await updateGithubRef(owner, repo, branch, token, newCommit.sha);
+            const writeJsonBlob = async (repoPath: string, value: unknown, pretty = false) => {
+                const json = pretty ? JSON.stringify(value, null, 2) : JSON.stringify(value);
+                const blob = await createGithubBlob(owner, repo, token, Buffer.from(json, 'utf8').toString('base64'), repoPath);
+                return { path: repoPath, sha: String(blob.sha) };
+            };
+            try {
+                await commitWithRebase({
+                    readBase: () => readGitBase(owner, repo, branch, token),
+                    commit: makeGitCommitter(owner, repo, branch, token, commitMessage),
+                    build: async ({ treeEntries, treeMap }) => {
+                        const commitEntries: CommitEntry[] = [];
+                        treeEntries.forEach((entry: any) => {
+                            if (!entry?.path || entry?.type !== 'blob') return;
+                            if (ids.some((id) => entry.path.startsWith(`${pagesPrefix}reports/${id}/`))) {
+                                commitEntries.push({ path: entry.path, sha: null });
+                            }
+                        });
+
+                        // A corrupt index throws here on purpose: never rewrite it from nothing.
+                        const indexRepoPath = withPagesPath(pagesPath, 'reports/index.json');
+                        const rawIndex = await readSiteIndexRaw(owner, repo, token, treeMap, pagesPath);
+                        if (rawIndex !== null) {
+                            commitEntries.push(await writeJsonBlob(indexRepoPath, removeFromSiteIndex(rawIndex, ids), true));
+                        }
+
+                        // Keep the precomputed rollup consistent: drop sources for deleted reports.
+                        try {
+                            const rollupRepoPath = withPagesPath(pagesPath, 'reports/rollup.json');
+                            const rollupSha = treeMap.get(rollupRepoPath);
+                            if (rollupSha) {
+                                const blob = await getGithubBlob(owner, repo, rollupSha, token);
+                                const parsed = blob?.content
+                                    ? parseRollupSourcesFile(JSON.parse(Buffer.from(blob.content, 'base64').toString('utf8')))
+                                    : null;
+                                if (parsed) commitEntries.push(await writeJsonBlob(rollupRepoPath, removeRollupSources(parsed, ids)));
+                            }
+                        } catch (err) {
+                            log.warn('[Main] Failed to update rollup.json after delete (non-blocking):', err);
+                        }
+
+                        // Keep the attendance history consistent: drop raids for deleted reports.
+                        try {
+                            const attendanceRepoPath = withPagesPath(pagesPath, 'reports/attendance.json');
+                            const attendanceSha = treeMap.get(attendanceRepoPath);
+                            if (attendanceSha) {
+                                const blob = await getGithubBlob(owner, repo, attendanceSha, token);
+                                const parsed = blob?.content
+                                    ? parseAttendanceFile(JSON.parse(Buffer.from(blob.content, 'base64').toString('utf8')))
+                                    : null;
+                                if (parsed) {
+                                    const deletedSet = new Set(ids.map((id: any) => String(id || '').trim()));
+                                    const keptRaids = parsed.raids.filter((r) => !deletedSet.has(String(r.id).trim()));
+                                    commitEntries.push(await writeJsonBlob(attendanceRepoPath, { ...parsed, raids: keptRaids }));
+                                }
+                            }
+                        } catch (err) {
+                            log.warn('[Main] Failed to update attendance.json after delete (non-blocking):', err);
+                        }
+                        return { entries: commitEntries, result: null };
+                    }
+                });
+            } catch (err) {
+                throw toPushAccessError(err, owner, repo);
+            }
 
             // Best-effort: delete replay objects from R2 if configured
             const { uploader: r2 } = resolveR2Uploader(store);
@@ -1916,27 +1873,17 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             }
             const pagesPrefix = pagesPath ? `${pagesPath}/` : '';
 
-            const headRef = await getGithubRef(owner, repo, branch, token);
-            const headSha = headRef?.object?.sha;
-            if (!headSha) {
-                throw new Error('Unable to resolve repository branch head.');
+            const base = await readGitBase(owner, repo, branch, token);
+            const site = parseSiteIndex(await readSiteIndexRaw(owner, repo, token, base.treeMap, pagesPath));
+            if (!shouldWriteViewer(app.getVersion(), site.generator)) {
+                return { success: true, updated: false, skipped: 'viewer-newer' };
             }
-            const headCommit = await getGithubCommit(owner, repo, headSha, token);
-            const baseTreeSha = headCommit?.tree?.sha;
-            if (!baseTreeSha) {
-                throw new Error('Unable to resolve repository tree.');
-            }
-            const treeData = await getGithubTree(owner, repo, baseTreeSha, token);
-            const treeEntries = Array.isArray(treeData?.tree) ? treeData.tree : [];
-            const treeMap = new Map<string, string>();
+            const treeMap = base.treeMap;
             let hasIndex = false;
             let hasAssets = false;
-            treeEntries.forEach((entry: any) => {
-                if (entry?.path && entry?.sha && entry?.type === 'blob') {
-                    treeMap.set(entry.path, entry.sha);
-                    if (entry.path === `${pagesPrefix}index.html`) hasIndex = true;
-                    if (entry.path.startsWith(`${pagesPrefix}assets/`)) hasAssets = true;
-                }
+            treeMap.forEach((_sha, entryPath) => {
+                if (entryPath === `${pagesPrefix}index.html`) hasIndex = true;
+                if (entryPath.startsWith(`${pagesPrefix}assets/`)) hasAssets = true;
             });
 
             if (hasIndex && hasAssets) {
@@ -1996,10 +1943,12 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 blobEntries.push({ path: entry.path, sha: blob.sha });
             }
 
-            const newTree = await createGithubTree(owner, repo, token, baseTreeSha, blobEntries);
-            const commitMessage = 'Add web template';
-            const newCommit = await createGithubCommit(owner, repo, token, commitMessage, newTree.sha, headSha);
-            await updateGithubRef(owner, repo, branch, token, newCommit.sha);
+            await commitWithRebase({
+                readBase: async () => base,
+                build: async () => ({ entries: blobEntries, result: null }),
+                commit: makeGitCommitter(owner, repo, branch, token, 'Add web template'),
+                maxAttempts: 1
+            });
 
             return { success: true, updated: true };
         } catch (err: any) {
@@ -2023,6 +1972,10 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             if (!logoPath || !fs.existsSync(logoPath)) {
                 return { success: false, error: 'Logo file not found.' };
             }
+            const permissions = await getRepoPermissions(owner, repo, token);
+            if (!permissions.admin) {
+                return { success: false, error: 'Only a repo admin can change the site logo.' };
+            }
             let pagesPath = getStoredPagesPath();
             try {
                 const resolved = await resolvePagesSource(owner, repo, branch, token);
@@ -2031,24 +1984,8 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 pagesPath = getStoredPagesPath();
             }
 
-            const headRef = await getGithubRef(owner, repo, branch, token);
-            const headSha = headRef?.object?.sha;
-            if (!headSha) {
-                throw new Error('Unable to resolve repository branch head.');
-            }
-            const headCommit = await getGithubCommit(owner, repo, headSha, token);
-            const baseTreeSha = headCommit?.tree?.sha;
-            if (!baseTreeSha) {
-                throw new Error('Unable to resolve repository tree.');
-            }
-            const treeData = await getGithubTree(owner, repo, baseTreeSha, token);
-            const treeEntries = Array.isArray(treeData?.tree) ? treeData.tree : [];
-            const treeMap = new Map<string, string>();
-            treeEntries.forEach((entry: any) => {
-                if (entry?.path && entry?.sha && entry?.type === 'blob') {
-                    treeMap.set(entry.path, entry.sha);
-                }
-            });
+            const base = await readGitBase(owner, repo, branch, token);
+            const treeMap = base.treeMap;
 
             const pendingEntries: Array<{ path: string; contentBase64: string; blobSha: string }> = [];
             const queueFile = (repoPath: string, content: Buffer) => {
@@ -2083,10 +2020,12 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 blobEntries.push({ path: entry.path, sha: blob.sha });
             }
 
-            const newTree = await createGithubTree(owner, repo, token, baseTreeSha, blobEntries);
-            const commitMessage = 'Update logo';
-            const newCommit = await createGithubCommit(owner, repo, token, commitMessage, newTree.sha, headSha);
-            await updateGithubRef(owner, repo, branch, token, newCommit.sha);
+            await commitWithRebase({
+                readBase: async () => base,
+                build: async () => ({ entries: blobEntries, result: null }),
+                commit: makeGitCommitter(owner, repo, branch, token, 'Update logo'),
+                maxAttempts: 1
+            });
 
             return { success: true, updated: true };
         } catch (err: any) {
