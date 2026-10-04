@@ -3,7 +3,6 @@
  * publishes to. Pure — the publish handlers feed these the repo's current
  * reports/index.json and act on the answer.
  */
-import { asAxiTheme, type AxiTheme } from '../shared/webThemes';
 import { compareVersion, parseVersion } from './versionUtils';
 
 export interface SiteGenerator { app: 'axibridge'; version: string }
@@ -11,11 +10,16 @@ export interface SiteGenerator { app: 'axibridge'; version: string }
 export interface ParsedSiteIndex {
     entries: any[];
     colorPalette: string | null;
-    axiTheme: AxiTheme | null;
+    /**
+     * Verbatim, NOT coerced to a theme this version knows: the index is
+     * written back, and an older app must not reset a newer admin's theme.
+     * Coerce (asAxiTheme) only where a renderable theme is needed.
+     */
+    axiTheme: string | null;
     generator: SiteGenerator | null;
 }
 
-export interface SiteAppearance { colorPalette: string; axiTheme: AxiTheme }
+export interface SiteAppearance { colorPalette: string; axiTheme: string }
 
 export const parseSiteIndex = (raw: unknown): ParsedSiteIndex => {
     if (Array.isArray(raw)) return { entries: raw, colorPalette: null, axiTheme: null, generator: null };
@@ -23,7 +27,7 @@ export const parseSiteIndex = (raw: unknown): ParsedSiteIndex => {
     return {
         entries: Array.isArray(obj.entries) ? obj.entries : [],
         colorPalette: typeof obj.colorPalette === 'string' && obj.colorPalette ? obj.colorPalette : null,
-        axiTheme: typeof obj.axiTheme === 'string' && obj.axiTheme ? asAxiTheme(obj.axiTheme) : null,
+        axiTheme: typeof obj.axiTheme === 'string' && obj.axiTheme ? obj.axiTheme : null,
         generator: obj.generator && typeof obj.generator.version === 'string'
             ? { app: 'axibridge', version: obj.generator.version }
             : null

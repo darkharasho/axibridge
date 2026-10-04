@@ -23,6 +23,9 @@ describe('parseSiteIndex', () => {
         expect(parsed.axiTheme).toBe('flat');
         expect(parsed.generator).toEqual({ app: 'axibridge', version: '3.21.0' });
     });
+    it('keeps a theme this version does not know, verbatim', () => {
+        expect(parseSiteIndex({ axiTheme: 'some-future-theme', entries: [] }).axiTheme).toBe('some-future-theme');
+    });
     it('treats null / garbage as an empty site', () => {
         expect(parseSiteIndex(null).entries).toEqual([]);
         expect(parseSiteIndex('nope').entries).toEqual([]);
@@ -36,6 +39,13 @@ describe('resolveSiteAppearance', () => {
     });
     it('non-admin carries the site appearance', () => {
         expect(resolveSiteAppearance({ isAdmin: false, local, site })).toEqual({ colorPalette: 'ember', axiTheme: 'flat' });
+    });
+    it('non-admin carries an unknown site theme through to the index payload', () => {
+        const future = parseSiteIndex({ colorPalette: 'ember', axiTheme: 'some-future-theme', entries: [] });
+        const appearance = resolveSiteAppearance({ isAdmin: false, local, site: future });
+        expect(appearance.axiTheme).toBe('some-future-theme');
+        const { payload } = buildIndexPayload({ entry: { id: 'x' }, site: future, appearance, generator: null });
+        expect(payload.axiTheme).toBe('some-future-theme');
     });
     it('non-admin falls back to local when the site has none', () => {
         expect(resolveSiteAppearance({ isAdmin: false, local, site: parseSiteIndex([]) })).toEqual(local);

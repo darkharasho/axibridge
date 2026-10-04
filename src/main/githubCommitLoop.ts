@@ -53,6 +53,23 @@ export const toPushAccessError = (err: unknown, owner: string, repo: string): un
     return err;
 };
 
+/**
+ * Apply toPushAccessError to a WRITE (blob/tree/commit creation, ref update)
+ * only. A 403 on a read is a rate limit or a visibility problem, and calling
+ * it "no push access" sends the user to the wrong person.
+ */
+export const withPushAccessErrors = <A extends unknown[], R>(
+    write: (...args: A) => Promise<R>,
+    owner: string,
+    repo: string
+) => async (...args: A): Promise<R> => {
+    try {
+        return await write(...args);
+    } catch (err) {
+        throw toPushAccessError(err, owner, repo);
+    }
+};
+
 export interface CommitLoopOptions<T> {
     readBase: () => Promise<CommitBase>;
     build: (base: CommitBase, attempt: number) => Promise<{ entries: CommitEntry[]; result: T }>;
