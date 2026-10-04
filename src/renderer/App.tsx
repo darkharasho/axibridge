@@ -31,6 +31,8 @@ import { DetailsCache } from './cache/DetailsCache';
 import { DetailsCacheProvider } from './cache/DetailsCacheContext';
 import { resolveWebhookSaveIntent, reconcileEnabledWebhookIds, toggleEnabledWebhookId, summarizeEnabledDestinations, enabledDestinationsNeedingRelink, describeRelinkWarning } from './app/webhookSaveIntent';
 import type { Webhook } from './WebhookModal';
+import { SiteInviteBanner } from './app/SiteInviteBanner';
+import { useSiteInvites } from './app/hooks/useSiteInvites';
 import { CrashRecoveryBanner, type CrashRecoveryNotice } from './app/CrashRecoveryBanner';
 import { toCrashSnapshot, restoreFromCrashSnapshot } from './app/crashRecovery';
 
@@ -43,6 +45,7 @@ const stripDetailsFromEntries = (entries: ILogData[]): ILogData[] =>
 function App() {
     const [logs, setLogs] = useState<ILogData[]>([]);
     /** Set when this renderer replaced one that died; drives the recovery notice. */
+    const siteInvites = useSiteInvites();
     const [crashNotice, setCrashNotice] = useState<CrashRecoveryNotice | null>(null);
     /** Holds aggregation off restored logs until the user asks for it. */
     const [statsPausedAfterCrash, setStatsPausedAfterCrash] = useState(false);
@@ -1098,6 +1101,15 @@ function App() {
                 }
             }}
         >
+            <SiteInviteBanner
+                invites={siteInvites.invites}
+                joined={siteInvites.joined}
+                error={siteInvites.error}
+                busy={siteInvites.busy}
+                onJoin={(id) => void siteInvites.join(id)}
+                onDismiss={(id) => void siteInvites.dismiss(id)}
+                onClose={siteInvites.clear}
+            />
             <CrashRecoveryBanner
                 notice={crashNotice}
                 onRecompute={handleCrashRecompute}
