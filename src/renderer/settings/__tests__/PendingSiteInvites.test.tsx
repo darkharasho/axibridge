@@ -27,4 +27,15 @@ describe('PendingSiteInvites', () => {
         await new Promise((r) => setTimeout(r, 0));
         expect(container).toBeEmptyDOMElement();
     });
+
+    it('keeps the row and shows the error when a join fails', async () => {
+        (window as any).electronAPI.acceptSiteInvite = vi.fn(async () => ({ success: false, error: 'Invite expired.' }));
+        const onJoined = vi.fn();
+        render(<PendingSiteInvites onJoined={onJoined} />);
+        await userEvent.click(await screen.findByRole('button', { name: 'Join guild/site' }));
+        expect(await screen.findByText('Invite expired.')).toBeInTheDocument();
+        expect(screen.getByText('guild/site')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Join guild/site' })).toBeEnabled();
+        expect(onJoined).not.toHaveBeenCalled();
+    });
 });

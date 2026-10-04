@@ -19,11 +19,18 @@ export const PendingSiteInvites = ({ onJoined }: { onJoined: (target: ISiteJoinT
     if (invites.length === 0 && !message) return null;
 
     const join = async (invite: ISiteInvite) => {
+        if (joiningId !== null) return;
         setJoiningId(invite.id);
-        const res = await window.electronAPI.acceptSiteInvite({ invitationId: invite.id });
-        setJoiningId(null);
-        setInvites((prev) => prev.filter((i) => i.id !== invite.id));
+        let res;
+        try {
+            res = await window.electronAPI.acceptSiteInvite({ invitationId: invite.id });
+        } catch (err) {
+            res = { success: false, error: err instanceof Error ? err.message : undefined } as const;
+        } finally {
+            setJoiningId(null);
+        }
         if (res?.success && res.target) {
+            setInvites((prev) => prev.filter((i) => i.id !== invite.id));
             onJoined(res.target);
             setMessage({ kind: 'ok', text: `You can now publish to ${res.target.fullName}.` });
         } else {
@@ -38,7 +45,7 @@ export const PendingSiteInvites = ({ onJoined }: { onJoined: (target: ISiteJoinT
                 {invites.map((i) => (
                     <li key={i.id} className="flex items-center justify-between text-sm">
                         <span><span className="axi-ink-plain">{i.fullName}</span> <span className="text-xs axi-ink-faint">from {i.inviter}</span></span>
-                        <button onClick={() => void join(i)} disabled={joiningId === i.id} className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule">
+                        <button onClick={() => void join(i)} disabled={joiningId !== null} aria-label={`Join ${i.fullName}`} className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule">
                             Join
                         </button>
                     </li>

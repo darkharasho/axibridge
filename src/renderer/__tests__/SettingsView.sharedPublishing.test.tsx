@@ -43,7 +43,8 @@ describe('SettingsView shared publishing', () => {
         );
         fireEvent.click(await screen.findByRole('button', { name: 'Web Report' }));
         expect(await screen.findByText(/Set by guild/)).toBeInTheDocument();
-        await new Promise((r) => setTimeout(r, 600));
+        await waitFor(() => expect(api.getRepoPublishers).toHaveBeenCalled());
+        await new Promise((r) => setTimeout(r, 600)); // outlast the 400ms sync debounce
         expect(api.applyGithubLogo).not.toHaveBeenCalled();
     });
 
@@ -54,10 +55,28 @@ describe('SettingsView shared publishing', () => {
             acceptSiteInvite: vi.fn(async () => ({ success: true, target }))
         });
         fireEvent.click(await screen.findByRole('button', { name: 'Web Report' }));
-        await userEvent.click(await screen.findByRole('button', { name: 'Join' }));
+        await userEvent.click(await screen.findByRole('button', { name: 'Join guild/site' }));
         await waitFor(() => {
             const saved = api.saveSettings.mock.calls.at(-1)?.[0];
             expect(saved?.githubFavoriteRepos).toContain('guild/site');
         }, { timeout: 2000 });
+    });
+
+    it('does not auto-sync the logo while admin status is unknown', async () => {
+        const api = renderSettings(
+            { githubToken: 'tok', githubRepoOwner: 'guild', githubRepoName: 'site', githubLogoPath: '/x/logo.png' },
+            { getRepoPublishers: vi.fn(() => new Promise(() => {})) }
+        );
+        await waitFor(() => expect(api.getRepoPublishers).toHaveBeenCalled());
+        await new Promise((r) => setTimeout(r, 600));
+        expect(api.applyGithubLogo).not.toHaveBeenCalled();
+    });
+
+    it('syncs the logo once the user is a confirmed admin', async () => {
+        const api = renderSettings(
+            { githubToken: 'tok', githubRepoOwner: 'guild', githubRepoName: 'site', githubLogoPath: '/x/logo.png' },
+            { getRepoPublishers: vi.fn(async () => ({ success: true, canAdmin: true, ownerType: 'User', collaborators: [], invites: [] })) }
+        );
+        await waitFor(() => expect(api.applyGithubLogo).toHaveBeenCalled(), { timeout: 2000 });
     });
 });

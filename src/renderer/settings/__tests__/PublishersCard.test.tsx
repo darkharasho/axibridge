@@ -67,4 +67,41 @@ describe('PublishersCard', () => {
         await userEvent.click(screen.getByRole('button', { name: /^Remove kyra/ }));
         expect(await screen.findByText("The repo owner can't be removed.")).toBeInTheDocument();
     });
+
+    it('only shows the latest repo when responses arrive out of order', async () => {
+        let resolveA: (v: any) => void = () => {};
+        let resolveB: (v: any) => void = () => {};
+        api.getRepoPublishers = vi.fn(({ repo }: any) => new Promise((r) => { (repo === 'a' ? (resolveA = r) : (resolveB = r)); }));
+        const onAdminKnown = vi.fn();
+        const { rerender } = render(<PublishersCard repoOwner="guild" repoName="a" onAdminKnown={onAdminKnown} />);
+        rerender(<PublishersCard repoOwner="guild" repoName="b" onAdminKnown={onAdminKnown} />);
+        resolveB({ success: true, canAdmin: false, ownerType: 'User', collaborators: [], invites: [] });
+        expect(await screen.findByText(/Only a repo admin can add publishers/i)).toBeInTheDocument();
+        resolveA({ success: true, canAdmin: true, ownerType: 'User', collaborators: [{ login: 'fromA', avatarUrl: null }], invites: [] });
+        await new Promise((r) => setTimeout(r, 20));
+        expect(screen.queryByText('fromA')).not.toBeInTheDocument();
+        expect(screen.getByText(/Only a repo admin can add publishers/i)).toBeInTheDocument();
+        expect(onAdminKnown).toHaveBeenCalledTimes(1);
+        expect(onAdminKnown).toHaveBeenLastCalledWith(false);
+    });
+
+    it('clears the previous repo data while the next one loads or fails', async () => {
+        const { rerender } = render(<PublishersCard repoOwner="guild" repoName="site" />);
+        await screen.findByText('kyra');
+        api.getRepoPublishers = vi.fn(async () => ({ success: false, error: 'boom' }));
+        rerender(<PublishersCard repoOwner="guild" repoName="other" />);
+        expect(await screen.findByText('boom')).toBeInTheDocument();
+        expect(screen.queryByText('kyra')).not.toBeInTheDocument();
+    });
+
+    it('submits once on two quick Enter presses', async () => {
+        let release: (v: any) => void = () => {};
+        api.addRepoPublisher = vi.fn(() => new Promise((r) => { release = r; }));
+        render(<PublishersCard repoOwner="guild" repoName="site" />);
+        await screen.findByText('kyra');
+        await userEvent.type(screen.getByRole('textbox', { name: 'GitHub username' }), 'raider{Enter}{Enter}');
+        expect(api.addRepoPublisher).toHaveBeenCalledTimes(1);
+        release({ success: true, status: 'invited' });
+        await screen.findByText(/They'll see a Join prompt/i);
+    });
 });

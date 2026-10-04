@@ -285,6 +285,9 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [githubLogoPath, setGithubLogoPath] = useState<string | null>(null);
     // null = unknown (not loaded / no repo). Only `false` gates the logo.
     const [siteCanAdmin, setSiteCanAdmin] = useState<boolean | null>(null);
+    useEffect(() => {
+        setSiteCanAdmin(null);
+    }, [githubRepoOwner, githubRepoName, githubAuthStatus]);
     const handleAdminKnown = useCallback((canAdmin: boolean) => setSiteCanAdmin(canAdmin), []);
     const handleSiteJoined = useCallback((target: ISiteJoinTarget) => {
         // SettingsView saves its whole state, so a join must land here too or
@@ -1318,7 +1321,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     };
 
     useEffect(() => {
-        if (siteCanAdmin === false) return;
+        // Only a confirmed admin may sync; unknown would hit the main-side refusal.
+        if (siteCanAdmin !== true) return;
         if (!hasLoaded) return;
         if (!githubLogoPath) return;
         if (githubAuthStatus !== 'connected') return;

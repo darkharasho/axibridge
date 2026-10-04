@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { IRepoCollaborator, IRepoInvite } from '../global.d';
 
 type Props = { repoOwner: string; repoName: string; onAdminKnown?: (canAdmin: boolean) => void };
@@ -19,35 +19,61 @@ export const PublishersCard = ({ repoOwner, repoName, onAdminKnown }: Props) => 
     const [busy, setBusy] = useState(false);
     const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
+    const busyRef = useRef(false);
+    const requestIdRef = useRef(0);
+
     const load = useCallback(async () => {
         const api = window.electronAPI;
         if (!api?.getRepoPublishers) return;
+        const requestId = ++requestIdRef.current;
         setLoading(true);
-        const res = await api.getRepoPublishers({ owner: repoOwner, repo: repoName });
-        setLoading(false);
-        if (!res?.success) {
-            setMessage({ kind: 'error', text: res?.error || 'Failed to load publishers.' });
-            return;
+        try {
+            const res = await api.getRepoPublishers({ owner: repoOwner, repo: repoName });
+            if (requestId !== requestIdRef.current) return;
+            if (!res?.success) {
+                setMessage({ kind: 'error', text: res?.error || 'Failed to load publishers.' });
+                return;
+            }
+            setCanAdmin(!!res.canAdmin);
+            setOwnerType(res.ownerType ?? null);
+            setCollaborators(res.collaborators ?? []);
+            setInvites(res.invites ?? []);
+            onAdminKnown?.(!!res.canAdmin);
+        } catch (err) {
+            if (requestId !== requestIdRef.current) return;
+            setMessage({ kind: 'error', text: err instanceof Error ? err.message : 'Failed to load publishers.' });
+        } finally {
+            if (requestId === requestIdRef.current) setLoading(false);
         }
-        setCanAdmin(!!res.canAdmin);
-        setOwnerType(res.ownerType ?? null);
-        setCollaborators(res.collaborators ?? []);
-        setInvites(res.invites ?? []);
-        onAdminKnown?.(!!res.canAdmin);
     }, [repoOwner, repoName, onAdminKnown]);
 
+    // A different repo must never show the previous repo's data.
+    useEffect(() => {
+        setCanAdmin(false);
+        setOwnerType(null);
+        setCollaborators([]);
+        setInvites([]);
+        setMessage(null);
+    }, [repoOwner, repoName]);
     useEffect(() => { void load(); }, [load]);
+    useEffect(() => () => { requestIdRef.current += 1; }, []);
     useEffect(() => {
         void window.electronAPI?.getGithubViewerLogin?.().then((r) => setViewer(r?.success ? r.login ?? null : null));
     }, []);
 
     const handleAdd = async () => {
         const name = username.trim();
-        if (!name) return;
+        if (!name || busyRef.current) return;
+        busyRef.current = true;
         setBusy(true);
         setMessage(null);
-        const res = await window.electronAPI.addRepoPublisher({ owner: repoOwner, repo: repoName, username: name });
-        setBusy(false);
+        let res;
+        try {
+            res = await window.electronAPI.addRepoPublisher({ owner: repoOwner, repo: repoName, username: name });
+        } finally {
+            busyRef.current = false;
+            setBusy(false);
+        }
         if (!res?.success) {
             setMessage({ kind: 'error', text: res?.error || 'Failed to add publisher.' });
             return;
@@ -63,17 +89,33 @@ export const PublishersCard = ({ repoOwner, repoName, onAdminKnown }: Props) => 
     };
 
     const handleRemove = async (login: string) => {
+        if (busyRef.current) return;
         if (!window.confirm(`Remove ${login}'s access to ${repoOwner}/${repoName}?`)) return;
-        const res = await window.electronAPI.removeRepoPublisher({ owner: repoOwner, repo: repoName, username: login });
-        setMessage(res?.success ? null : { kind: 'error', text: res?.error || 'Failed to remove publisher.' });
-        await load();
+        busyRef.current = true;
+        setBusy(true);
+        try {
+            const res = await window.electronAPI.removeRepoPublisher({ owner: repoOwner, repo: repoName, username: login });
+            setMessage(res?.success ? null : { kind: 'error', text: res?.error || 'Failed to remove publisher.' });
+            await load();
+        } finally {
+            busyRef.current = false;
+            setBusy(false);
+        }
     };
 
     const handleCancel = async (invite: IRepoInvite) => {
+        if (busyRef.current) return;
         if (!window.confirm(`Cancel the invite for ${invite.login}?`)) return;
-        const res = await window.electronAPI.cancelRepoInvite({ owner: repoOwner, repo: repoName, invitationId: invite.id });
-        setMessage(res?.success ? null : { kind: 'error', text: res?.error || 'Failed to cancel invite.' });
-        await load();
+        busyRef.current = true;
+        setBusy(true);
+        try {
+            const res = await window.electronAPI.cancelRepoInvite({ owner: repoOwner, repo: repoName, invitationId: invite.id });
+            setMessage(res?.success ? null : { kind: 'error', text: res?.error || 'Failed to cancel invite.' });
+            await load();
+        } finally {
+            busyRef.current = false;
+            setBusy(false);
+        }
     };
 
     return (
@@ -99,6 +141,7 @@ export const PublishersCard = ({ repoOwner, repoName, onAdminKnown }: Props) => 
                             onChange={(e) => setUsername(e.target.value)}
                             onKeyDown={(e) => { if (e.key === 'Enter') void handleAdd(); }}
                             placeholder="GitHub username"
+                            aria-label="GitHub username"
                             className="axi-input flex-1 text-sm"
                         />
                         <button onClick={() => void handleAdd()} disabled={busy || !username.trim()} className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule">
@@ -110,7 +153,7 @@ export const PublishersCard = ({ repoOwner, repoName, onAdminKnown }: Props) => 
                             <li key={c.login} className="flex items-center justify-between text-sm">
                                 <span className="axi-ink-plain">{c.login}</span>
                                 {viewer?.toLowerCase() !== c.login.toLowerCase() && (
-                                    <button onClick={() => void handleRemove(c.login)} className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule" aria-label={`Remove ${c.login}`}>
+                                    <button onClick={() => void handleRemove(c.login)} disabled={busy} className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule" aria-label={`Remove ${c.login}`}>
                                         Remove
                                     </button>
                                 )}
@@ -119,7 +162,7 @@ export const PublishersCard = ({ repoOwner, repoName, onAdminKnown }: Props) => 
                         {invites.map((i) => (
                             <li key={i.id} className="flex items-center justify-between text-sm">
                                 <span><span className="axi-ink-plain">{i.login}</span> <span className="text-xs axi-ink-faint">invited</span></span>
-                                <button onClick={() => void handleCancel(i)} className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule" aria-label={`Cancel invite for ${i.login}`}>
+                                <button onClick={() => void handleCancel(i)} disabled={busy} className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule" aria-label={`Cancel invite for ${i.login}`}>
                                     Cancel
                                 </button>
                             </li>
