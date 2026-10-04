@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { ParticleHover } from './particles';
 import type { ReportIndexEntry, ReportPayload } from '../shared/reportTypes';
+import { buildDeleteConfirmText } from '../shared/publishedBy';
 import { normalizeReportPayload } from '../shared/reportNormalization';
 import { StatsView } from './StatsView';
 import { CategoryBar } from './stats/CategoryBar';
@@ -139,6 +140,12 @@ export function FightReportHistoryView() {
     const [repoOptions, setRepoOptions] = useState<HistoryRepoOption[]>([]);
     const [selectedRepoKey, setSelectedRepoKey] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
+    const [viewerLogin, setViewerLogin] = useState<string | null>(null);
+    useEffect(() => {
+        void window.electronAPI?.getGithubViewerLogin?.()
+            .then((r) => setViewerLogin(r?.success ? r.login ?? null : null))
+            .catch(() => setViewerLogin(null));
+    }, []);
     const [indexEntries, setIndexEntries] = useState<ReportIndexEntry[]>([]);
     const [indexLoading, setIndexLoading] = useState(false);
     const [tabs, setTabs] = useState<HistoryTab[]>([]);
@@ -350,7 +357,11 @@ export function FightReportHistoryView() {
         const ids = Array.from(selectedForDelete);
         if (ids.length === 0) return;
         const confirmed = window.confirm(
-            `Delete ${ids.length} report${ids.length === 1 ? '' : 's'} from GitHub? This cannot be undone.`
+            buildDeleteConfirmText(
+                `Delete ${ids.length} report${ids.length === 1 ? '' : 's'} from GitHub? This cannot be undone.`,
+                indexEntries.filter((e) => selectedForDelete.has(e.id)),
+                viewerLogin
+            )
         );
         if (!confirmed) return;
         setDeleteLoading(true);
@@ -380,7 +391,7 @@ export function FightReportHistoryView() {
     const handleDeleteOne = async (entry: ReportIndexEntry) => {
         setMenuOpenId(null);
         const confirmed = window.confirm(
-            `Delete "${entry.title}" from GitHub? This cannot be undone.`
+            buildDeleteConfirmText(`Delete "${entry.title}" from GitHub? This cannot be undone.`, [entry], viewerLogin)
         );
         if (!confirmed) return;
         setDeleteLoading(true);
@@ -725,6 +736,11 @@ export function FightReportHistoryView() {
                                     {entry.commanders?.length > 0 && (
                                         <div className="text-[11px] mt-1" style={{ color: 'var(--axi-accent)' }}>
                                             {entry.commanders.join(', ')}
+                                        </div>
+                                    )}
+                                    {entry.publishedBy && (
+                                        <div className="text-[10px] mt-1" style={{ color: 'var(--axi-text-faint)' }}>
+                                            by {entry.publishedBy}
                                         </div>
                                     )}
                                     {entry.summary && (

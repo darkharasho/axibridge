@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo, useRef, useState, useEffect, type CSSProperties } from 'react';
+import { buildDeleteConfirmText } from '../shared/publishedBy';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Swords, Shield, Hammer, Wind, MessageSquare, FolderOpen } from 'lucide-react';
 import { PublishersCard } from './settings/PublishersCard';
@@ -1187,7 +1188,14 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         if (!window.electronAPI?.deleteGithubReports) return;
         const ids = Array.from(githubReportsSelected);
         if (ids.length === 0) return;
-        const confirmed = window.confirm(`Delete ${ids.length} report${ids.length === 1 ? '' : 's'} from GitHub Pages? This cannot be undone.`);
+        const viewer = await window.electronAPI.getGithubViewerLogin?.()
+            .then((r) => (r?.success ? r.login ?? null : null))
+            .catch(() => null);
+        const confirmed = window.confirm(buildDeleteConfirmText(
+            `Delete ${ids.length} report${ids.length === 1 ? '' : 's'} from GitHub Pages? This cannot be undone.`,
+            githubReports.filter((report) => ids.includes(report?.id)),
+            viewer ?? null
+        ));
         if (!confirmed) return;
         setGithubReportsDeleting(true);
         setGithubReportsStatus(null);

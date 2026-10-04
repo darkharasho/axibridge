@@ -30,6 +30,7 @@ export interface ReportIndexEntry {
     dateEnd: string;
     dateLabel: string;
     url: string;
+    publishedBy?: string | null;
     guild?: ReportGuild | null;
     summary?: {
         borderlandsPct?: number | null;

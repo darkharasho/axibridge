@@ -2556,6 +2556,9 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                 <Users className="w-4 h-4 shrink-0 text-[color:var(--axi-accent)]" />
                                                 <span className="truncate">
                                                     {entry.commanders.length ? entry.commanders.join(', ') : 'No Commanders'}
+                                                    {entry.publishedBy && (
+                                                        <span className="axi-ink-faint"> · by {entry.publishedBy}</span>
+                                                    )}
                                                 </span>
                                             </div>
                                         </div>
