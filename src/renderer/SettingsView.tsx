@@ -1,6 +1,9 @@
 import { memo, useCallback, useMemo, useRef, useState, useEffect, type CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Swords, Shield, Hammer, Wind, MessageSquare, FolderOpen } from 'lucide-react';
+import { PublishersCard } from './settings/PublishersCard';
+import { PendingSiteInvites } from './settings/PendingSiteInvites';
+import type { ISiteJoinTarget } from './global.d';
 import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeightProfiles, DEFAULT_MVP_WEIGHT_PROFILES, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, IParserSettings, IParserStatus } from './global.d';
 import { normalizeMvpWeightProfiles } from './stats/mvpWeightProfiles';
 import { ReportWebhooksCard } from './ReportWebhooksCard';
@@ -280,6 +283,18 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [githubTemplateStatusKind, setGithubTemplateStatusKind] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
     const lastEnsuredRepoRef = useRef<string | null>(null);
     const [githubLogoPath, setGithubLogoPath] = useState<string | null>(null);
+    // null = unknown (not loaded / no repo). Only `false` gates the logo.
+    const [siteCanAdmin, setSiteCanAdmin] = useState<boolean | null>(null);
+    const handleAdminKnown = useCallback((canAdmin: boolean) => setSiteCanAdmin(canAdmin), []);
+    const handleSiteJoined = useCallback((target: ISiteJoinTarget) => {
+        // SettingsView saves its whole state, so a join must land here too or
+        // the next save would revert it.
+        setGithubFavoriteRepos(target.favorites);
+        if (target.madeDefault) {
+            setGithubRepoOwner(target.owner);
+            setGithubRepoName(target.repo);
+        }
+    }, []);
     const [r2AccountId, setR2AccountId] = useState('');
     const [r2AccessKeyId, setR2AccessKeyId] = useState('');
     const [r2SecretAccessKey, setR2SecretAccessKey] = useState('');
@@ -1303,6 +1318,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     };
 
     useEffect(() => {
+        if (siteCanAdmin === false) return;
         if (!hasLoaded) return;
         if (!githubLogoPath) return;
         if (githubAuthStatus !== 'connected') return;
@@ -1318,7 +1334,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             runLogoSync(githubLogoPath);
         }, 400);
         return () => clearTimeout(timeout);
-    }, [githubLogoPath, githubAuthStatus, githubRepoName, githubToken, hasLoaded]);
+    }, [githubLogoPath, githubAuthStatus, githubRepoName, githubToken, hasLoaded, siteCanAdmin]);
 
     // Stable callbacks — useCallback with [] is safe here because all updaters use the
     // functional form (setX(prev => ...)) which never captures stale state.
@@ -2104,8 +2120,17 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                             </div>
 
                         </div>
+                        <PendingSiteInvites onJoined={handleSiteJoined} />
+                        {githubRepoOwner && githubRepoName && githubAuthStatus === 'connected' && (
+                            <PublishersCard repoOwner={githubRepoOwner} repoName={githubRepoName} onAdminKnown={handleAdminKnown} />
+                        )}
                         <div className="axi-well axi-well--sm mb-4" style={{ '--axi-well-pad': '16px' } as React.CSSProperties}>
                             <div className="text-xs uppercase tracking-widest axi-ink-faint mb-3">Logo</div>
+                            {siteCanAdmin === false && (
+                                <p className="text-xs axi-ink-faint mb-3">
+                                    Set by {githubRepoOwner}. The site's logo, colours and theme come from its admin; your reports publish in the site's look.
+                                </p>
+                            )}
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={async () => {
@@ -2115,6 +2140,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                             setGithubLogoPath(path);
                                         }
                                     }}
+                                    disabled={siteCanAdmin === false}
                                     className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule"
                                 >
                                     {githubLogoPath ? 'Replace Logo' : 'Choose Logo'}
@@ -2122,6 +2148,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 {githubLogoPath && (
                                     <button
                                         onClick={() => setGithubLogoPath(null)}
+                                        disabled={siteCanAdmin === false}
                                         className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule"
                                     >
                                         Remove

@@ -1,0 +1,70 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { PublishersCard } from '../PublishersCard';
+
+const api: any = {};
+beforeEach(() => {
+    Object.assign(api, {
+        getRepoPublishers: vi.fn(async () => ({ success: true, canAdmin: true, ownerType: 'User', collaborators: [{ login: 'kyra', avatarUrl: null }], invites: [{ id: 7, login: 'newbie', avatarUrl: null, createdAt: '2026-10-01T00:00:00Z' }] })),
+        addRepoPublisher: vi.fn(async () => ({ success: true, status: 'invited' })),
+        removeRepoPublisher: vi.fn(async () => ({ success: true })),
+        cancelRepoInvite: vi.fn(async () => ({ success: true })),
+        getGithubViewerLogin: vi.fn(async () => ({ success: true, login: 'boss' }))
+    });
+    (window as any).electronAPI = api;
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+});
+
+describe('PublishersCard', () => {
+    it('lists publishers and pending invites for an admin', async () => {
+        const onAdminKnown = vi.fn();
+        render(<PublishersCard repoOwner="guild" repoName="site" onAdminKnown={onAdminKnown} />);
+        expect(await screen.findByText('kyra')).toBeInTheDocument();
+        expect(screen.getByText('newbie')).toBeInTheDocument();
+        expect(onAdminKnown).toHaveBeenCalledWith(true);
+    });
+
+    it('explains and links to GitHub for a non-admin', async () => {
+        api.getRepoPublishers.mockResolvedValueOnce({ success: true, canAdmin: false, ownerType: 'Organization', collaborators: [], invites: [] });
+        const onAdminKnown = vi.fn();
+        render(<PublishersCard repoOwner="guild" repoName="site" onAdminKnown={onAdminKnown} />);
+        expect(await screen.findByText(/Only a repo admin can add publishers/i)).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /manage access on GitHub/i })).toHaveAttribute('href', 'https://github.com/guild/site/settings/access');
+        expect(onAdminKnown).toHaveBeenCalledWith(false);
+    });
+
+    it('invites a username and reloads', async () => {
+        render(<PublishersCard repoOwner="guild" repoName="site" />);
+        await screen.findByText('kyra');
+        await userEvent.type(screen.getByPlaceholderText(/GitHub username/i), 'raider');
+        await userEvent.click(screen.getByRole('button', { name: /^Add$/ }));
+        expect(api.addRepoPublisher).toHaveBeenCalledWith({ owner: 'guild', repo: 'site', username: 'raider' });
+        expect(await screen.findByText(/They'll see a Join prompt/i)).toBeInTheDocument();
+        await waitFor(() => expect(api.getRepoPublishers).toHaveBeenCalledTimes(2));
+    });
+
+    it('says when the user already has access', async () => {
+        api.addRepoPublisher.mockResolvedValueOnce({ success: true, status: 'already-has-access' });
+        render(<PublishersCard repoOwner="guild" repoName="site" />);
+        await screen.findByText('kyra');
+        await userEvent.type(screen.getByPlaceholderText(/GitHub username/i), 'kyra');
+        await userEvent.click(screen.getByRole('button', { name: /^Add$/ }));
+        expect(await screen.findByText(/kyra already has access/i)).toBeInTheDocument();
+    });
+
+    it('does not offer Remove on the signed-in user', async () => {
+        api.getRepoPublishers.mockResolvedValueOnce({ success: true, canAdmin: true, ownerType: 'User', collaborators: [{ login: 'boss', avatarUrl: null }, { login: 'kyra', avatarUrl: null }], invites: [] });
+        render(<PublishersCard repoOwner="guild" repoName="site" />);
+        await screen.findByText('kyra');
+        expect(screen.getAllByRole('button', { name: /^Remove/ })).toHaveLength(1);
+    });
+
+    it('shows the error when a removal is refused', async () => {
+        api.removeRepoPublisher.mockResolvedValueOnce({ success: false, error: "The repo owner can't be removed." });
+        render(<PublishersCard repoOwner="guild" repoName="site" />);
+        await screen.findByText('kyra');
+        await userEvent.click(screen.getByRole('button', { name: /^Remove kyra/ }));
+        expect(await screen.findByText("The repo owner can't be removed.")).toBeInTheDocument();
+    });
+});
