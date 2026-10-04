@@ -436,7 +436,7 @@ head={
 rows={
                                 <>
                                     {sortedPlayerData.length === 0 ? (
-                                        <div className="axi-empty">No player data for this modifier</div>
+                                        <tr><td colSpan={6}><div className="axi-empty">No player data for this modifier</div></td></tr>
                                     ) : (
                                         sortedPlayerData.map((row, idx) => {
                                             const pctOfTotal = row.totalDamage > 0
@@ -449,16 +449,22 @@ rows={
                                                 ? (Math.abs(row.damageGain) / maxAbsGain) * 100
                                                 : 0;
                                             const isNegative = row.damageGain < 0;
+                                            const barColor = isNegative ? 'var(--axi-ok)' : incoming ? 'var(--axi-danger)' : 'var(--axi-meta)';
                                             return (
-                                                <div key={`${row.account}-${idx}`} className={`relative border-b border-[color:var(--axi-rule)] ${activeModIsHypothetical ? 'opacity-50' : ''}`}>
-                                                    {/* Bar overlay — negative grows from right, positive from left */}
-                                                    <div
-                                                        className={`row-quantity-bar absolute bottom-0 h-1 pointer-events-none ${isNegative ? 'right-0' : 'left-0'}`}
-                                                        data-sign={isNegative ? 'neg' : incoming ? 'incoming' : 'gain'}
-                                                        style={{ width: `${barWidthPct}%`, background: isNegative ? 'var(--axi-ok)' : incoming ? 'var(--axi-danger)' : 'var(--axi-meta)' }}
-                                                    />
-                                                    {/* Row content */}
-                                                    <tr>
+                                                // The bar is the row's own bottom-edge background: a table
+                                                // body takes only <tr>, so a wrapping div would be hoisted
+                                                // out of the grid and the cells would lose their columns.
+                                                // Negative grows from the right, positive from the left.
+                                                <tr
+                                                    key={`${row.account}-${idx}`}
+                                                    className={activeModIsHypothetical ? 'opacity-50' : undefined}
+                                                    style={{
+                                                        backgroundImage: `linear-gradient(${barColor}, ${barColor})`,
+                                                        backgroundRepeat: 'no-repeat',
+                                                        backgroundSize: `${barWidthPct}% 4px`,
+                                                        backgroundPosition: isNegative ? 'right bottom' : 'left bottom',
+                                                    }}
+                                                >
 <td className="text-[color:var(--axi-text-faint)]">{idx + 1}</td>
 <th scope="row"><span className="axi-table__who">{renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
                                                             <span className="truncate">{row.account}</span></span></th>
@@ -467,7 +473,6 @@ rows={
 <td className="text-[color:var(--axi-text-dim)]">{hitCoverage}</td>
 <td className="text-[color:var(--axi-text-dim)]">{row.totalFightMs ? `${(row.totalFightMs / 1000).toFixed(1)}s` : '—'}</td>
 </tr>
-                                                </div>
                                             );
                                         })
                                     )}

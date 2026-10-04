@@ -505,7 +505,7 @@ export const ConditionsSection = ({
                                             return String(a.account || '').localeCompare(String(b.account || ''));
                                         });
                                     if (rows.length === 0) {
-                                        return <div className="axi-empty">No condition data available</div>;
+                                        return <tr><td colSpan={conditionCols.length}><div className="axi-empty">No condition data available</div></td></tr>;
                                     }
                                     return rows.map((entry: any, idx: number) => {
                                         const conditionTotals = entry.conditions || {};
