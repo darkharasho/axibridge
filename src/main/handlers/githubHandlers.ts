@@ -1559,11 +1559,32 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
     };
 
     /**
+     * Where a repo other than the stored default serves Pages from, READ-ONLY:
+     * the Pages source branch and folder, else the repo's default branch at
+     * the root, else the stored branch. Never enables Pages, never writes the
+     * store (which describes the default repo only), never throws.
+     */
+    const readOverrideSource = async (owner: string, repo: string, token: string, explicitBranch?: string) => {
+        const repoPath = `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}`;
+        const pagesInfo: any = await githubApiRequest('GET', `${repoPath}/pages`, token)
+            .then((resp) => (resp.status === 200 ? resp.data : null))
+            .catch(() => null);
+        const pagesBranch = typeof pagesInfo?.source?.branch === 'string' ? pagesInfo.source.branch.trim() : '';
+        let branch = explicitBranch || pagesBranch;
+        if (!branch) {
+            const defaultBranch = await githubApiRequest('GET', repoPath, token)
+                .then((resp) => (resp.status === 200 && typeof resp.data?.default_branch === 'string' ? resp.data.default_branch.trim() : ''))
+                .catch(() => '');
+            branch = defaultBranch || getStoredBranch();
+        }
+        return { branch, pagesInfo, pagesPath: normalizePagesPath(pagesInfo?.source?.path) };
+    };
+
+    /**
      * Branch and Pages folder to write to. The stored default repo uses the
      * stored branch and keeps the stored Pages path current. Any other repo (a
-     * favorite or a joined site) has its own Pages branch and folder: read them
-     * from GitHub (falling back to the repo's default branch) and never write
-     * them to the store, which describes the default repo only.
+     * favorite or a joined site) uses readOverrideSource, enabling Pages on
+     * that branch if it is off, and never writes the store.
      */
     const resolveWriteTarget = async (owner: string, repo: string, token: string, explicitBranch?: string) => {
         if (isStoredDefaultRepo(owner, repo)) {
@@ -1571,45 +1592,31 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const { pagesInfo, pagesPath } = await resolvePagesSource(owner, repo, branch, token);
             return { isDefault: true, branch, pagesInfo, pagesPath };
         }
-        const repoPath = `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}`;
-        const pagesResp = await githubApiRequest('GET', `${repoPath}/pages`, token);
-        let pagesInfo: any = pagesResp.status === 200 ? pagesResp.data : null;
-        const pagesBranch = typeof pagesInfo?.source?.branch === 'string' ? pagesInfo.source.branch.trim() : '';
-        let branch = explicitBranch || pagesBranch;
-        if (!branch) {
-            const repoResp = await githubApiRequest('GET', repoPath, token);
-            const defaultBranch = repoResp.status === 200 && typeof repoResp.data?.default_branch === 'string'
-                ? repoResp.data.default_branch.trim()
-                : '';
-            branch = defaultBranch || getStoredBranch();
-        }
-        if (!pagesInfo) pagesInfo = await ensureGithubPages(owner, repo, branch, token);
-        return { isDefault: false, branch, pagesInfo, pagesPath: normalizePagesPath(pagesInfo?.source?.path) };
+        const source = await readOverrideSource(owner, repo, token, explicitBranch);
+        const pagesInfo = source.pagesInfo ?? await ensureGithubPages(owner, repo, source.branch, token);
+        return { isDefault: false, branch: source.branch, pagesInfo, pagesPath: normalizePagesPath(pagesInfo?.source?.path) };
     };
 
-    const resolveEffectivePagesPath = async (
-        effectiveOwner: string,
-        effectiveRepo: string,
-        effectiveBranch: string,
-        token: string,
-        isOverride: boolean
-    ): Promise<string> => {
-        if (!isOverride) {
-            const stored = getStoredPagesPath();
-            if (stored) return stored;
-            try {
-                const resolved = await resolvePagesSource(effectiveOwner, effectiveRepo, effectiveBranch, token);
-                return resolved.pagesPath;
-            } catch {
-                return '';
-            }
-        }
+    /** The stored default repo's Pages path: the stored value, else resolved (and stored). */
+    const resolveDefaultPagesPath = async (owner: string, repo: string, branch: string, token: string): Promise<string> => {
+        const stored = getStoredPagesPath();
+        if (stored) return stored;
         try {
-            const pagesInfo = await ensureGithubPages(effectiveOwner, effectiveRepo, effectiveBranch, token);
-            return normalizePagesPath(pagesInfo?.source?.path);
+            const resolved = await resolvePagesSource(owner, repo, branch, token);
+            return resolved.pagesPath;
         } catch {
             return '';
         }
+    };
+
+    /** Branch + Pages path for a read; overrides go through readOverrideSource. */
+    const resolveReadTarget = async (owner: string, repo: string, token: string, explicitBranch?: string) => {
+        if (!isStoredDefaultRepo(owner, repo)) {
+            const { branch, pagesPath } = await readOverrideSource(owner, repo, token, explicitBranch);
+            return { branch, pagesPath };
+        }
+        const branch = explicitBranch || getStoredBranch();
+        return { branch, pagesPath: await resolveDefaultPagesPath(owner, repo, branch, token) };
     };
 
     ipcMain.handle('get-github-repos', async () => {
@@ -1644,14 +1651,13 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const isOverride = !!(payload?.owner && payload?.repo);
             const owner = (isOverride ? payload!.owner! : store.get('githubRepoOwner') as string | undefined);
             const repo = (isOverride ? payload!.repo! : store.get('githubRepoName') as string | undefined);
-            const branch = payload?.branch || (store.get('githubBranch') as string | undefined) || 'main';
             if (!token) {
                 return { success: false, error: 'GitHub not connected.' };
             }
             if (!owner || !repo) {
                 return { success: false, error: 'Repository not configured.' };
             }
-            const pagesPath = await resolveEffectivePagesPath(owner, repo, branch, token, isOverride);
+            const { branch, pagesPath } = await resolveReadTarget(owner, repo, token, payload?.branch);
             const indexPath = withPagesPath(pagesPath, 'reports/index.json');
             const existing = await getGithubFile(owner, repo, indexPath, branch, token);
             if (!existing?.content) {
@@ -1684,11 +1690,10 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const isOverride = !!(payload?.owner && payload?.repo);
             const owner = isOverride ? payload.owner! : (store.get('githubRepoOwner') as string | undefined);
             const repo = isOverride ? payload.repo! : (store.get('githubRepoName') as string | undefined);
-            const branch = payload?.branch || (store.get('githubBranch') as string | undefined) || 'main';
             if (!owner || !repo) {
                 return { success: false, error: 'Repository not configured.' };
             }
-            const pagesPath = await resolveEffectivePagesPath(owner, repo, branch, token, isOverride);
+            const { branch, pagesPath } = await resolveReadTarget(owner, repo, token, payload?.branch);
             const filePath = withPagesPath(pagesPath, `reports/${reportId}/report.json`);
             const reportBuffer = await readGithubFileBuffer(owner, repo, filePath, branch, token);
             if (!reportBuffer) {
@@ -1726,7 +1731,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             let pagesPath: string;
             if (isStoredDefaultRepo(owner, repo)) {
                 branch = payload?.branch || getStoredBranch();
-                pagesPath = await resolveEffectivePagesPath(owner, repo, branch, token, false);
+                pagesPath = await resolveDefaultPagesPath(owner, repo, branch, token);
             } else {
                 ({ branch, pagesPath } = await resolveWriteTarget(owner, repo, token, payload?.branch));
             }

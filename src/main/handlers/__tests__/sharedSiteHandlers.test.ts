@@ -339,3 +339,40 @@ describe('push-access errors', () => {
         expect(result).toEqual({ success: false, error: "You don't have push access to guild/site. Ask the site admin to add you." });
     });
 });
+
+describe('reading an override site', () => {
+    it('reads its index from its Pages branch and folder without enabling Pages or touching the store', async () => {
+        const s = registerWith({ githubRepoOwner: 'guild', githubRepoName: 'site', githubBranch: 'main', githubPagesSourcePath: 'stored' });
+        const calls = installHttpsMock((c) => {
+            if (c.path === '/repos/guild/friends/pages' && c.method === 'GET') {
+                return { status: 200, body: { html_url: 'https://guild.github.io/friends/', source: { branch: 'gh-pages', path: '/docs' } } };
+            }
+            if (c.path.startsWith('/repos/guild/friends/contents/')) {
+                return c.path.includes('docs/reports/index.json') && c.path.endsWith('?ref=gh-pages')
+                    ? { status: 200, body: { content: b64({ entries: [{ id: 'gp', publishedBy: 'kyra' }] }), encoding: 'base64' } }
+                    : { status: 404 };
+            }
+            return { status: 404 };
+        });
+        const result = await handlers.get('get-github-reports')!({}, { owner: 'guild', repo: 'friends' });
+        expect(result).toEqual({ success: true, reports: [{ id: 'gp', publishedBy: 'kyra' }] });
+        expect(calls.some((c) => c.path.includes('/pages') && c.method !== 'GET')).toBe(false);
+        expect(calls.some((c) => c.path.includes('ref=main'))).toBe(false);
+        expect(s.set).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the default branch at the root when the override has no Pages, still without enabling it', async () => {
+        registerWith({ githubRepoOwner: 'guild', githubRepoName: 'site', githubBranch: 'main', githubPagesSourcePath: '' });
+        const calls = installHttpsMock((c) => {
+            if (c.path === '/repos/guild/friends') return { status: 200, body: { default_branch: 'trunk' } };
+            if (c.path.startsWith('/repos/guild/friends/contents/reports/') && c.path.includes('ref=trunk')) {
+                return { status: 200, body: { content: b64({ meta: { id: 'r1' }, stats: {} }), encoding: 'base64' } };
+            }
+            return { status: 404 };
+        });
+        const result = await handlers.get('get-github-report-detail')!({}, { reportId: 'r1', owner: 'guild', repo: 'friends' });
+        expect(result.success).toBe(true);
+        expect(result.report.meta.id).toBe('r1');
+        expect(calls.some((c) => c.path.includes('/pages') && c.method !== 'GET')).toBe(false);
+    });
+});
