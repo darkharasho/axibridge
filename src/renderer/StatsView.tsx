@@ -89,6 +89,8 @@ import { SquadTagDistanceDeathsSection } from './stats/sections/SquadTagDistance
 import { SquadDistanceToTagSection } from './stats/sections/SquadDistanceToTagSection';
 import { EnemyAttentionSection } from './stats/sections/EnemyAttentionSection';
 import { EMPTY_ENEMY_ATTENTION, type EnemyAttentionResult } from './stats/computeEnemyAttention';
+import { IncomingSkillsByPlayerSection } from './stats/sections/IncomingSkillsByPlayerSection';
+import { EMPTY_INCOMING_SKILLS_BY_PLAYER, type IncomingSkillsByPlayerResult } from './stats/computeIncomingSkillsByPlayer';
 import { PinPressureSection } from './stats/sections/PinPressureSection';
 import { EMPTY_PIN_PRESSURE, type PinPressureResult } from './stats/computePinPressure';
 import { SquadDistanceToTagVisualSection } from './stats/sections/SquadDistanceToTagVisualSection';
@@ -196,6 +198,7 @@ const ORDERED_SECTION_IDS = [
     'squad-distance-to-tag',
     'squad-distance-to-tag-visual',
     'enemy-attention',
+    'incoming-skills-by-player',
     'attendance-ledger',
     'squad-comp-fight',
     'fight-comp',
@@ -860,6 +863,11 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
     const enemyAttentionResult: EnemyAttentionResult = useMemo(() => {
         const v = (safeStats as any)?.enemyAttention;
         return v && Array.isArray(v.rows) ? v : EMPTY_ENEMY_ATTENTION;
+    }, [safeStats]);
+
+    const incomingSkillsByPlayerResult: IncomingSkillsByPlayerResult = useMemo(() => {
+        const v = (safeStats as any)?.incomingSkillsByPlayer;
+        return v && Array.isArray(v.players) ? v : EMPTY_INCOMING_SKILLS_BY_PLAYER;
     }, [safeStats]);
 
     const pinPressureResult: PinPressureResult = useMemo(() => {
@@ -5260,6 +5268,9 @@ type SpikeFight = {
                             /> },
                             { id: 'enemy-attention', element: <EnemyAttentionSection
                                 result={enemyAttentionResult}
+                            /> },
+                            { id: 'incoming-skills-by-player', element: <IncomingSkillsByPlayerSection
+                                result={incomingSkillsByPlayerResult}
                             /> },
                             { id: 'incoming-damage-modifiers', element: <DamageModifiersSection
                                 search={incomingDamageModSearch}

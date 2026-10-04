@@ -20,6 +20,7 @@ const EXPECTED_SECTION_IDS = [
     // defense
     'defense-detailed', 'revive-detail', 'incoming-strike-damage', 'incoming-damage-modifiers',
     'enemy-attention',
+    'incoming-skills-by-player',
     'defense-mitigation',
     // boons-strips
     'boon-output', 'boon-uptime', 'all-boons', 'boon-timeline', 'stab-performance',
