@@ -125,6 +125,33 @@ body.web-report .stats-view .max-h-80 {
     max-height: 28rem !important;
 }
 
+/* A sidebar table's body fills its split pane instead of stopping at its own
+   cap. The pane is a grid item, so it already stretches to the sidebar's
+   height; the table inside it did not, because it was capped separately - and
+   on the web report, where the rules above raise both caps alike, the sidebar
+   still came out taller by its label and search box. `contain: size` takes the
+   rows out of the pane's height, so the SIDEBAR sets the height and the table
+   scrolls inside it, never the other way round. The intrinsic size is the
+   floor for a short sidebar, matching the old cap. */
+.stats-view .stats-table-layout__content:has(> .axi-table__scroll) {
+    display: flex;
+    flex-direction: column;
+}
+
+/* (0,4,0), to out-rank the web report's `body.web-report .stats-view .max-h-*`
+   caps above at (0,3,1) - both are !important, so specificity decides. */
+.stats-view .stats-table-layout .stats-table-layout__content > .axi-table__scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none !important;
+    contain: size;
+    contain-intrinsic-size: 0 18rem;
+}
+
+body.web-report .stats-view .stats-table-layout .stats-table-layout__content > .axi-table__scroll {
+    contain-intrinsic-size: 0 26rem;
+}
+
 /* File picker: calendar selected cell (border all sides) and list selected item
    (border-bottom only).
 

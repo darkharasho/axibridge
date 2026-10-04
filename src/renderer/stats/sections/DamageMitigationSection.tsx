@@ -428,9 +428,9 @@ head={
 }
 rows={
                                             rows.length === 0 ? (
-                                                <div className="axi-empty">
+                                                <tr><td colSpan={4}><div className="axi-empty">
                                                     No {damageMitigationScope === 'minions' ? 'minion' : 'player'} mitigation stats available
-                                                </div>
+                                                </div></td></tr>
                                             ) : (
                                                 <>
                                                     {rows.map((row: any, idx: number) => (
