@@ -29,6 +29,7 @@ import { ingestLogFightDiffMode } from './computeFightDiffMode';
 import { ingestLogTagDistanceDeaths } from './computeTagDistanceDeaths';
 import { ingestLogDistanceToTag, finalizeDistanceToTag, type DistanceToTagResult } from './computeDistanceToTag';
 import { ingestLogEnemyAttention, finalizeEnemyAttention, type EnemyAttentionIngest, type EnemyAttentionResult } from './computeEnemyAttention';
+import { ingestLogIncomingSkillsByPlayer, finalizeIncomingSkillsByPlayer, type IncomingSkillsByPlayerIngest } from './computeIncomingSkillsByPlayer';
 import { finalizePinPressure, type PinPressureResult } from './computePinPressure';
 import { ingestLogOnTagReview, finalizeOnTagReview, type OnTagReviewResult } from './computeOnTagReview';
 import { ingestLogHealEffectiveness } from './computeHealEffectivenessData';
@@ -447,6 +448,14 @@ interface StoredEnemyAttentionIngest {
     ingest: EnemyAttentionIngest;
 }
 
+// Stored per-valid-log slices from ingestLogIncomingSkillsByPlayer. Kept for
+// every log for the same reason as above: `castsMeasurable: false` is the fact
+// that a fight could not say which skills were aimed at whom.
+interface StoredIncomingSkillsByPlayerIngest {
+    timestamp: number;
+    ingest: IncomingSkillsByPlayerIngest;
+}
+
 // Stored per-valid-log contributions from ingestLogOnTagReview
 interface StoredOnTagReviewContrib {
     timestamp: number;
@@ -679,6 +688,7 @@ export class IncrementalAggregator {
     private tagDistanceDeathsResults: StoredTagDistanceDeaths[] = [];
     private distanceToTagContribs: StoredDistanceToTagContrib[] = [];
     private enemyAttentionIngests: StoredEnemyAttentionIngest[] = [];
+    private incomingSkillsByPlayerIngests: StoredIncomingSkillsByPlayerIngest[] = [];
     private onTagReviewContribs: StoredOnTagReviewContrib[] = [];
     private incomingDamageEntries: StoredIncomingDamageEntry[] = [];
     private squadCompEntries: StoredSquadComp[] = [];
@@ -888,6 +898,12 @@ export class IncrementalAggregator {
             ingest: ingestLogEnemyAttention(log, idx),
         });
 
+        // Incoming skills by player (damage taken + casts aimed, per skill)
+        this.incomingSkillsByPlayerIngests.push({
+            timestamp,
+            ingest: ingestLogIncomingSkillsByPlayer(log),
+        });
+
         // On Tag Review (per-player death classification)
         this.onTagReviewContribs.push({
             timestamp,
@@ -1056,6 +1072,7 @@ export class IncrementalAggregator {
             tagDistanceDeathsResults: this.tagDistanceDeathsResults,
             distanceToTagContribs: this.distanceToTagContribs,
             enemyAttentionIngests: this.enemyAttentionIngests,
+            incomingSkillsByPlayerIngests: this.incomingSkillsByPlayerIngests,
             onTagReviewContribs: this.onTagReviewContribs,
             incomingDamageEntries: this.incomingDamageEntries,
             squadCompEntries: this.squadCompEntries,
@@ -1106,6 +1123,7 @@ export class IncrementalAggregator {
         appendIndexed(this.tagDistanceDeathsResults, frame.tagDistanceDeathsResults);
         appendIndexed(this.distanceToTagContribs, frame.distanceToTagContribs);
         appendIndexed(this.enemyAttentionIngests, frame.enemyAttentionIngests);
+        appendIndexed(this.incomingSkillsByPlayerIngests, frame.incomingSkillsByPlayerIngests);
         appendIndexed(this.onTagReviewContribs, frame.onTagReviewContribs);
         appendIndexed(this.incomingDamageEntries, frame.incomingDamageEntries);
         appendIndexed(this.squadCompEntries, frame.squadCompEntries);
@@ -1291,6 +1309,10 @@ export class IncrementalAggregator {
             .map(s => s.ingest)
             .filter(Boolean);
         const enemyAttention: EnemyAttentionResult = finalizeEnemyAttention(enemyAttentionSlices);
+
+        const incomingSkillsByPlayer = finalizeIncomingSkillsByPlayer(
+            this.incomingSkillsByPlayerIngests.map(s => s.ingest).filter(Boolean)
+        );
 
         // Pin pressure reads the SAME per-fight slices rather than re-walking the
         // logs: everything it needs (the tag's downs and pre-down casts, and the
@@ -1907,6 +1929,7 @@ export class IncrementalAggregator {
             tagDistanceDeaths,
             distanceToTag,
             enemyAttention,
+            incomingSkillsByPlayer,
             pinPressure,
             onTagReview,
             specialTables,
