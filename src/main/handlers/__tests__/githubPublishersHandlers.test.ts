@@ -180,7 +180,17 @@ describe('accept-site-invite', () => {
     });
     it('reports an expired invite', async () => {
         setup({}, responder({ status: 404 }));
-        expect(await invoke('accept-site-invite', { invitationId: 1 })).toEqual({ success: false, error: 'That invite is no longer valid.' });
+        expect(await invoke('accept-site-invite', { invitationId: 1 })).toEqual({ success: false, code: 'invalid', error: 'That invite is no longer valid.' });
+    });
+    it('reports an invite missing from the current list as invalid without accepting', async () => {
+        const calls = setup({}, responder({ status: 204 }));
+        expect(await invoke('accept-site-invite', { invitationId: 99 })).toEqual({ success: false, code: 'invalid', error: 'That invite is no longer valid.' });
+        expect(calls.some((c) => c.method === 'PATCH')).toBe(false);
+    });
+    it('does not mark other accept failures invalid', async () => {
+        setup({}, responder({ status: 500, body: { message: 'Server Error' } }));
+        const res = await invoke('accept-site-invite', { invitationId: 1 });
+        expect(res).toEqual({ success: false, error: 'Server Error' });
     });
 });
 

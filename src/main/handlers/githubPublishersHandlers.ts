@@ -28,6 +28,9 @@ const SITE_DESCRIPTION = 'AxiBridge Reports';
 const INVITE_CACHE_TTL_MS = 10 * 60_000;
 const GITHUB_LOGIN_RE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 
+/** `code: 'invalid'` tells the renderer to drop the row: the invite is gone for good. */
+const INVALID_INVITE = { success: false, code: 'invalid', error: 'That invite is no longer valid.' } as const;
+
 const normalizePagesPath = (value: unknown) => String(value || '').trim().replace(/^\/+|\/+$/g, '');
 
 /**
@@ -206,10 +209,10 @@ export function registerPublishersHandlers({ store }: PublishersHandlerOptions) 
             const id = Number(payload?.invitationId);
             const invite = (await loadInvites(token, false)).find((i) => i.id === id)
                 ?? (await loadInvites(token, true)).find((i) => i.id === id);
-            if (!invite) return { success: false, error: 'That invite is no longer valid.' };
+            if (!invite) return INVALID_INVITE;
             const resp = await githubApiRequest('PATCH', `/user/repository_invitations/${id}`, token);
             inviteCache = null;
-            if (resp.status === 404) return { success: false, error: 'That invite is no longer valid.' };
+            if (resp.status === 404) return INVALID_INVITE;
             if (resp.status >= 300) return { success: false, error: resp.data?.message || `GitHub API error (${resp.status}) accepting invite` };
             invalidateRepoPermissions(invite.owner, invite.repo);
 

@@ -25,7 +25,7 @@ export const useSiteInvites = () => {
 
     const mutate = useCallback(async (
         id: number,
-        call: () => Promise<{ success: boolean; error?: string; target?: ISiteJoinTarget }>,
+        call: () => Promise<{ success: boolean; error?: string; target?: ISiteJoinTarget; code?: 'invalid' }>,
         fallback: string,
         onSuccess?: (target?: ISiteJoinTarget) => void
     ) => {
@@ -41,6 +41,8 @@ export const useSiteInvites = () => {
                 setInvites((prev) => prev.filter((i) => i.id !== id));
                 onSuccess?.(res.target);
             } else {
+                // An expired/revoked invite can never succeed; other failures keep the row for a retry.
+                if (res?.code === 'invalid') setInvites((prev) => prev.filter((i) => i.id !== id));
                 setError(res?.error || fallback);
             }
         } catch (err) {

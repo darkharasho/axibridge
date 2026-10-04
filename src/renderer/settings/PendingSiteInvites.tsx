@@ -34,6 +34,8 @@ export const PendingSiteInvites = ({ onJoined }: { onJoined: (target: ISiteJoinT
             onJoined(res.target);
             setMessage({ kind: 'ok', text: `You can now publish to ${res.target.fullName}.` });
         } else {
+            // An expired/revoked invite can never succeed; other failures keep the row for a retry.
+            if (res && 'code' in res && res.code === 'invalid') setInvites((prev) => prev.filter((i) => i.id !== invite.id));
             setMessage({ kind: 'error', text: res?.error || 'Failed to join site.' });
         }
     };

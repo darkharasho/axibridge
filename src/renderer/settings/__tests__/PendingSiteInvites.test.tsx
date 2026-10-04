@@ -38,4 +38,14 @@ describe('PendingSiteInvites', () => {
         expect(screen.getByRole('button', { name: 'Join guild/site' })).toBeEnabled();
         expect(onJoined).not.toHaveBeenCalled();
     });
+
+    it('drops the row when the invite is no longer valid', async () => {
+        (window as any).electronAPI.acceptSiteInvite = vi.fn(async () => ({ success: false, code: 'invalid', error: 'That invite is no longer valid.' }));
+        const onJoined = vi.fn();
+        render(<PendingSiteInvites onJoined={onJoined} />);
+        await userEvent.click(await screen.findByRole('button', { name: 'Join guild/site' }));
+        expect(await screen.findByText('That invite is no longer valid.')).toBeInTheDocument();
+        expect(screen.queryByText('guild/site')).toBeNull();
+        expect(onJoined).not.toHaveBeenCalled();
+    });
 });

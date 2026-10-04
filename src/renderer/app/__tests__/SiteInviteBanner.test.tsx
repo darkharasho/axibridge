@@ -62,6 +62,15 @@ describe('useSiteInvites', () => {
         expect(result.current.invites).toHaveLength(1);
         expect(result.current.joined).toBeNull();
     });
+    it('an invalid (expired/revoked) invite is dropped from the list', async () => {
+        (window as any).electronAPI.acceptSiteInvite = vi.fn(async () => ({ success: false, code: 'invalid', error: 'That invite is no longer valid.' }));
+        const { result } = renderHook(() => useSiteInvites());
+        await waitFor(() => expect(result.current.invites).toHaveLength(1));
+        await act(() => result.current.join(1));
+        expect(result.current.invites).toHaveLength(0);
+        expect(result.current.error).toBe('That invite is no longer valid.');
+        expect(result.current.joined).toBeNull();
+    });
     it('a rejected join surfaces an error and does not throw', async () => {
         (window as any).electronAPI.acceptSiteInvite = vi.fn(async () => { throw new Error('ipc boom'); });
         const { result } = renderHook(() => useSiteInvites());
