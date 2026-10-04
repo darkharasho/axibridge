@@ -15,6 +15,7 @@ import {
 import { parseAttendanceFile, updateAttendanceForPublish, type AttendanceRaid } from '../../web/attendance';
 import { waitForPagesDeploy, describePagesDeploy } from '../githubPagesDeploy';
 import { startReportPost } from '../reportPostRunner';
+import { encodeGitPath, GITHUB_API_IDLE_TIMEOUT_MS, githubApiRequest } from '../githubApi';
 import { asAxiTheme, DEFAULT_AXI_THEME, type AxiTheme } from '../../shared/webThemes';
 import { type IReportWebhook, selectReportWebhooks } from '../../shared/reportWebhooks';
 import { buildReportCardModel } from '../../shared/reportCardModel';
@@ -191,59 +192,6 @@ const pollGithubDeviceToken = async (deviceCode: string, intervalSeconds: number
 };
 
 // ─── GitHub API helpers ────────────────────────────────────────────────────────
-
-const encodeGitPath = (value: string) =>
-    value.split('/').map((part) => encodeURIComponent(part)).join('/');
-
-// Socket INACTIVITY, not total duration — `request.setTimeout` arms the
-// socket's idle timer, so a 35 MB blob upload that is still streaming never
-// trips it, while a connection that has gone silent does. Without this every
-// call here could hang forever: share resolution is awaited on the ingest
-// critical path, so one dead socket stops the app processing logs at all and
-// leaves every card stuck on "pending".
-const GITHUB_API_IDLE_TIMEOUT_MS = 60_000;
-
-const githubApiRequest = (method: string, apiPath: string, token: string, body?: any): Promise<{ status: number; data: any }> => {
-    const payload = body ? JSON.stringify(body) : null;
-    return new Promise((resolve, reject) => {
-        const req = https.request(
-            {
-                method,
-                hostname: 'api.github.com',
-                path: apiPath,
-                headers: {
-                    'User-Agent': 'AxiBridge',
-                    'Accept': 'application/vnd.github+json',
-                    'Authorization': `Bearer ${token}`,
-                    ...(payload ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } : {})
-                }
-            },
-            (res) => {
-                let data = '';
-                res.setEncoding('utf8');
-                res.on('data', (chunk) => (data += chunk));
-                res.on('end', () => {
-                    try {
-                        const parsed = data ? JSON.parse(data) : null;
-                        resolve({ status: res.statusCode || 0, data: parsed });
-                    } catch {
-                        resolve({ status: res.statusCode || 0, data: null });
-                    }
-                });
-            }
-        );
-        req.on('error', (err) => reject(err));
-        // `destroy(err)` surfaces through the 'error' handler above, so the
-        // promise rejects rather than being abandoned unsettled.
-        req.setTimeout(GITHUB_API_IDLE_TIMEOUT_MS, () => {
-            req.destroy(new Error(
-                `GitHub API request timed out after ${GITHUB_API_IDLE_TIMEOUT_MS}ms of inactivity: ${method} ${apiPath}`
-            ));
-        });
-        if (payload) req.write(payload);
-        req.end();
-    });
-};
 
 const getGithubFile = async (owner: string, repo: string, filePath: string, branch: string, token: string) => {
     const apiPath = `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}/contents/${encodeGitPath(filePath)}?ref=${encodeURIComponent(branch)}`;
