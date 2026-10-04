@@ -10,7 +10,8 @@ beforeEach(() => {
         addRepoPublisher: vi.fn(async () => ({ success: true, status: 'invited' })),
         removeRepoPublisher: vi.fn(async () => ({ success: true })),
         cancelRepoInvite: vi.fn(async () => ({ success: true })),
-        getGithubViewerLogin: vi.fn(async () => ({ success: true, login: 'boss' }))
+        getGithubViewerLogin: vi.fn(async () => ({ success: true, login: 'boss' })),
+        openExternal: vi.fn(async () => ({ success: true }))
     });
     (window as any).electronAPI = api;
     vi.spyOn(window, 'confirm').mockReturnValue(true);
@@ -30,8 +31,20 @@ describe('PublishersCard', () => {
         const onAdminKnown = vi.fn();
         render(<PublishersCard repoOwner="guild" repoName="site" onAdminKnown={onAdminKnown} />);
         expect(await screen.findByText(/Only a repo admin can add publishers/i)).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /manage access on GitHub/i })).toHaveAttribute('href', 'https://github.com/guild/site/settings/access');
+        expect(screen.queryByRole('link', { name: /manage access on GitHub/i })).toBeNull();
+        await userEvent.click(screen.getByRole('button', { name: /manage access on GitHub/i }));
+        expect(api.openExternal).toHaveBeenCalledWith('https://github.com/guild/site/settings/access');
         expect(onAdminKnown).toHaveBeenCalledWith(false);
+    });
+
+    it('shows the message when the add IPC call rejects', async () => {
+        api.addRepoPublisher.mockRejectedValueOnce(new Error('IPC channel closed'));
+        render(<PublishersCard repoOwner="guild" repoName="site" />);
+        await screen.findByText('kyra');
+        await userEvent.type(screen.getByPlaceholderText(/GitHub username/i), 'raider');
+        await userEvent.click(screen.getByRole('button', { name: /^Add$/ }));
+        expect(await screen.findByText('IPC channel closed')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^Add$/ })).not.toBeDisabled();
     });
 
     it('invites a username and reloads', async () => {

@@ -70,6 +70,9 @@ export const PublishersCard = ({ repoOwner, repoName, onAdminKnown }: Props) => 
         let res;
         try {
             res = await window.electronAPI.addRepoPublisher({ owner: repoOwner, repo: repoName, username: name });
+        } catch (err) {
+            setMessage({ kind: 'error', text: err instanceof Error ? err.message : 'Failed to add publisher.' });
+            return;
         } finally {
             busyRef.current = false;
             setBusy(false);
@@ -125,9 +128,13 @@ export const PublishersCard = ({ repoOwner, repoName, onAdminKnown }: Props) => 
             {!loading && !canAdmin && (
                 <p className="text-xs axi-ink-dim">
                     Only a repo admin can add publishers. Ask {repoOwner}, or{' '}
-                    <a href={`https://github.com/${repoOwner}/${repoName}/settings/access`} target="_blank" rel="noreferrer" className="axi-ink-accent underline">
+                    <button
+                        type="button"
+                        onClick={() => void window.electronAPI?.openExternal?.(`https://github.com/${repoOwner}/${repoName}/settings/access`)}
+                        className="axi-ink-accent underline"
+                    >
                         manage access on GitHub
-                    </a>.
+                    </button>.
                 </p>
             )}
             {!loading && canAdmin && (
