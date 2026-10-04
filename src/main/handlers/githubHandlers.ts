@@ -2222,12 +2222,16 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                     log.warn('[Main] Could not read the site index for appearance (non-blocking):', err);
                 }
             }
+            const localAppearance = {
+                colorPalette: (store.get('colorPalette', 'electric-blue') as string) || 'electric-blue',
+                axiTheme: asAxiTheme(store.get('axiTheme', DEFAULT_AXI_THEME))
+            };
+            // Pre-flight appearance only styles report.json. The shared index takes
+            // its appearance from each attempt's own base (inside the commit loop),
+            // so a failed pre-flight can never write local colours over the site's.
             const appearance = resolveSiteAppearance({
                 isAdmin: permissions.admin,
-                local: {
-                    colorPalette: (store.get('colorPalette', 'electric-blue') as string) || 'electric-blue',
-                    axiTheme: asAxiTheme(store.get('axiTheme', DEFAULT_AXI_THEME))
-                },
+                local: localAppearance,
                 site: preflightSite
             });
             const paletteValue = appearance.colorPalette;
@@ -2486,6 +2490,14 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             // referenced again on attempt 2 without re-sending it.
             const uploadedBlobShas = new Set<string>();
             let viewerSkippedFor: string | null = null;
+            const warnIfViewerSkipped = () => {
+                if (!viewerSkippedFor) return;
+                sendWebUploadStatus(
+                    'Warning',
+                    `Site viewer is newer than your AxiBridge (v${viewerSkippedFor}). Update to change the viewer.`,
+                    93
+                );
+            };
 
             sendWebUploadStatus('Uploading', 'Preparing upload bundle...', 55);
             let publishedCommitSha = '';
@@ -2502,7 +2514,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                         const { payload: indexPayload, entries: mergedEntries } = buildIndexPayload({
                             entry: indexEntry,
                             site,
-                            appearance,
+                            appearance: resolveSiteAppearance({ isAdmin: permissions.admin, local: localAppearance, site }),
                             generator: writeViewer ? { app: 'axibridge', version: viewerVersion } : site.generator
                         });
 
@@ -2727,6 +2739,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                     }
                 });
                 if (!loop.commitSha) {
+                    warnIfViewerSkipped();
                     const replayDataUrl = (builtReport.payload.stats as any)?.replayDataUrl as string | undefined;
                     sendWebUploadStatus('Complete', 'No changes to upload.', 100);
                     return { success: true, url: reportUrl, replayDataUrl: replayDataUrl ?? null };
@@ -2735,13 +2748,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             } catch (err) {
                 throw toPushAccessError(err, owner, repo);
             }
-            if (viewerSkippedFor) {
-                sendWebUploadStatus(
-                    'Warning',
-                    `Site viewer is newer than your AxiBridge (v${viewerSkippedFor}). Update to change the viewer.`,
-                    93
-                );
-            }
+            warnIfViewerSkipped();
             const replayDataUrl = (builtReport.payload.stats as any)?.replayDataUrl as string | undefined;
 
             // The commit landing is not the report going live: GitHub still has
