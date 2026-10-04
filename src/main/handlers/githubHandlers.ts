@@ -15,7 +15,20 @@ import {
 import { parseAttendanceFile, updateAttendanceForPublish, type AttendanceRaid } from '../../web/attendance';
 import { waitForPagesDeploy, describePagesDeploy } from '../githubPagesDeploy';
 import { startReportPost } from '../reportPostRunner';
-import { encodeGitPath, GITHUB_API_IDLE_TIMEOUT_MS, githubApiRequest } from '../githubApi';
+import { encodeGitPath, getRepoPermissions, getViewerLogin, GITHUB_API_IDLE_TIMEOUT_MS, githubApiRequest } from '../githubApi';
+import {
+    buildIndexPayload,
+    parseSiteIndex,
+    resolveSiteAppearance,
+    shouldWriteViewer,
+    type ParsedSiteIndex
+} from '../sharedSitePolicy';
+import {
+    commitWithRebase,
+    toPushAccessError,
+    type CommitBase,
+    type CommitEntry
+} from '../githubCommitLoop';
 import { asAxiTheme, DEFAULT_AXI_THEME, type AxiTheme } from '../../shared/webThemes';
 import { type IReportWebhook, selectReportWebhooks } from '../../shared/reportWebhooks';
 import { buildReportCardModel } from '../../shared/reportCardModel';
@@ -552,6 +565,56 @@ const normalizePagesPath = (value?: string | null) => {
 const withPagesPath = (pagesPath: string, repoPath: string) => {
     if (!pagesPath) return repoPath;
     return `${pagesPath}/${repoPath}`.replace(/\/{2,}/g, '/');
+};
+
+// ─── Shared-site commit helpers ───────────────────────────────────────────────
+
+export const readGitBase = async (owner: string, repo: string, branch: string, token: string): Promise<CommitBase> => {
+    const headRef = await getGithubRef(owner, repo, branch, token);
+    const headSha = headRef?.object?.sha;
+    if (!headSha) throw new Error('Unable to resolve repository branch head.');
+    const headCommit = await getGithubCommit(owner, repo, headSha, token);
+    const treeSha = headCommit?.tree?.sha;
+    if (!treeSha) throw new Error('Unable to resolve repository tree.');
+    const treeData = await getGithubTree(owner, repo, treeSha, token);
+    const treeEntries = Array.isArray(treeData?.tree) ? treeData.tree : [];
+    const treeMap = new Map<string, string>();
+    treeEntries.forEach((entry: any) => {
+        if (entry?.path && entry?.sha && entry?.type === 'blob') treeMap.set(entry.path, entry.sha);
+    });
+    return { headSha, treeSha, treeEntries, treeMap };
+};
+
+export const makeGitCommitter = (owner: string, repo: string, branch: string, token: string, message: string) =>
+    async (base: CommitBase, entries: CommitEntry[]): Promise<string> => {
+        const newTree = await createGithubTree(owner, repo, token, base.treeSha, entries);
+        const newCommit = await createGithubCommit(owner, repo, token, message, newTree.sha, base.headSha);
+        await updateGithubRef(owner, repo, branch, token, newCommit.sha);
+        return String(newCommit.sha);
+    };
+
+/**
+ * reports/index.json at the given base, via the blob API (no 1 MB limit).
+ * A present-but-unreadable index THROWS: on a shared site, treating it as
+ * empty would publish an index holding only this report and erase
+ * everyone else's.
+ */
+export const readSiteIndexRaw = async (
+    owner: string,
+    repo: string,
+    token: string,
+    treeMap: Map<string, string>,
+    pagesPath: string
+): Promise<unknown | null> => {
+    const indexPath = withPagesPath(pagesPath, 'reports/index.json');
+    const sha = treeMap.get(indexPath);
+    if (!sha) return null;
+    const blob = await getGithubBlob(owner, repo, sha, token);
+    try {
+        return JSON.parse(Buffer.from(String(blob?.content || ''), 'base64').toString('utf8'));
+    } catch {
+        throw new Error(`Couldn't read ${indexPath} on ${owner}/${repo}; refusing to overwrite it.`);
+    }
 };
 
 // ─── Cloudflare R2 helpers ────────────────────────────────────────────────────
@@ -2147,8 +2210,29 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 (reportMeta as any).guild = await resolveGuild(detectedGuildId, store as any);
             }
 
-            const paletteValue = (store.get('colorPalette', 'electric-blue') as string) || 'electric-blue';
-            const axiThemeValue = asAxiTheme(store.get('axiTheme', DEFAULT_AXI_THEME));
+            // A shared site's look belongs to its admin: everyone else publishes
+            // in the colours already on the site (see resolveSiteAppearance).
+            const permissions = await getRepoPermissions(owner, repo, token);
+            let preflightSite: ParsedSiteIndex | null = null;
+            if (!permissions.admin) {
+                try {
+                    const preflightBase = await readGitBase(owner, repo, branch, token);
+                    preflightSite = parseSiteIndex(await readSiteIndexRaw(owner, repo, token, preflightBase.treeMap, pagesPath));
+                } catch (err) {
+                    log.warn('[Main] Could not read the site index for appearance (non-blocking):', err);
+                }
+            }
+            const appearance = resolveSiteAppearance({
+                isAdmin: permissions.admin,
+                local: {
+                    colorPalette: (store.get('colorPalette', 'electric-blue') as string) || 'electric-blue',
+                    axiTheme: asAxiTheme(store.get('axiTheme', DEFAULT_AXI_THEME))
+                },
+                site: preflightSite
+            });
+            const paletteValue = appearance.colorPalette;
+            const axiThemeValue = appearance.axiTheme;
+            const publishedBy = await getViewerLogin(token);
 
             // R2: if configured, strip replayFights from the main payload and upload separately.
             const { uploader: r2, missingFields: r2MissingFields, partiallyConfigured } = resolveR2Uploader(store);
@@ -2370,6 +2454,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 dateEnd: reportMeta.dateEnd,
                 dateLabel: reportMeta.dateLabel,
                 url: reportUrl,
+                ...(publishedBy ? { publishedBy } : {}),
                 summary: (() => {
                     const stats = payload?.stats || {};
                     const mapData = Array.isArray(stats.mapData) ? stats.mapData : [];
@@ -2395,286 +2480,269 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
                 })()
             };
 
-            let existingEntries: any[] = [];
-            try {
-                const existing = await getGithubFile(owner, repo, withPagesPath(pagesPath, 'reports/index.json'), branch, token);
-                if (existing?.content) {
-                    const decoded = Buffer.from(existing.content, 'base64').toString('utf8');
-                    const parsed = JSON.parse(decoded);
-                    // Support both old plain-array format and new object format.
-                    existingEntries = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.entries) ? parsed.entries : []);
-                }
-            } catch (err) {
-                existingEntries = [];
-            }
-
-            const mergedEntries = [indexEntry, ...existingEntries.filter((entry) => entry?.id !== reportMeta.id)];
-            const indexPayload = {
-                colorPalette: paletteValue,
-                axiTheme: axiThemeValue,
-                glass: axiThemeValue === 'glass',
-                glassSurfaces: axiThemeValue === 'glass',
-                entries: mergedEntries
-            };
+            const viewerVersion = app.getVersion();
+            const reportFiles = collectFiles(stagingRoot);
+            // Blob shas are content hashes, so a blob uploaded on attempt 1 can be
+            // referenced again on attempt 2 without re-sending it.
+            const uploadedBlobShas = new Set<string>();
+            let viewerSkippedFor: string | null = null;
 
             sendWebUploadStatus('Uploading', 'Preparing upload bundle...', 55);
-            const headRef = await getGithubRef(owner, repo, branch, token);
-            const headSha = headRef?.object?.sha;
-            if (!headSha) {
-                throw new Error('Unable to resolve repository branch head.');
-            }
-            const headCommit = await getGithubCommit(owner, repo, headSha, token);
-            const baseTreeSha = headCommit?.tree?.sha;
-            if (!baseTreeSha) {
-                throw new Error('Unable to resolve repository tree.');
-            }
-            const treeData = await getGithubTree(owner, repo, baseTreeSha, token);
-            const treeEntries = Array.isArray(treeData?.tree) ? treeData.tree : [];
-            const treeMap = new Map<string, string>();
-            let hasIndex = false;
-            let hasAssets = false;
-            treeEntries.forEach((entry: any) => {
-                if (entry?.path && entry?.sha && entry?.type === 'blob') {
-                    treeMap.set(entry.path, entry.sha);
-                    if (entry.path === withPagesPath(pagesPath, 'index.html')) hasIndex = true;
-                    if (entry.path.startsWith(withPagesPath(pagesPath, 'assets/'))) hasAssets = true;
-                }
-            });
-            const needsBaseTemplate = !hasIndex || !hasAssets;
-
-            const pendingEntries: Array<{ path: string; contentBase64: string; blobSha: string }> = [];
-            const queueFile = (repoPath: string, content: Buffer) => {
-                const blobSha = computeGitBlobSha(content);
-                const existingSha = treeMap.get(repoPath);
-                if (existingSha && existingSha === blobSha) return;
-                pendingEntries.push({
-                    path: repoPath,
-                    contentBase64: content.toString('base64'),
-                    blobSha
-                });
-            };
-
-            if (needsBaseTemplate) {
-                sendWebUploadStatus('Preparing', 'Restoring base web files...', 50);
-            }
-            ensureWebRootIndex(templateDir);
-            const rootIndexBuffer = getWebRootIndexBuffer(templateDir);
-            const rootFiles = collectFiles(templateDir);
-            // Recorded even when queueFile dedupes the file away: an unchanged
-            // asset is still a live one, and must not be swept below.
-            const publishedAssetPaths = new Set<string>();
-            for (const file of rootFiles) {
-                const repoPath = file.relPath;
-                const rawContent = fs.readFileSync(file.absPath);
-                const content = patchLegacyCustomIconUrls(file.relPath, rawContent);
-                const fullPath = withPagesPath(pagesPath, repoPath);
-                if (repoPath.startsWith('assets/')) publishedAssetPaths.add(fullPath);
-                queueFile(fullPath, content);
-            }
-            if (rootIndexBuffer) {
-                queueFile(withPagesPath(pagesPath, 'index.html'), rootIndexBuffer);
-            }
-            queueFile(withPagesPath(pagesPath, NOJEKYLL_FILENAME), NOJEKYLL_CONTENT);
-
-            const reportFiles = collectFiles(stagingRoot);
-            for (const file of reportFiles) {
-                const repoPath = withPagesPath(pagesPath, `reports/${reportMeta.id}/${file.relPath}`);
-                const content = fs.readFileSync(file.absPath);
-                queueFile(repoPath, content);
-            }
-
-            const indexBuffer = Buffer.from(JSON.stringify(indexPayload, null, 2));
-            queueFile(withPagesPath(pagesPath, 'reports/index.json'), indexBuffer);
-
-            // Maintain the precomputed rollup (reports/rollup.json) so the All Reports
-            // view loads one small file instead of every report.json. Non-blocking:
-            // the viewer falls back to per-report fetches when this file is stale or absent.
-            try {
-                const rollupRepoPath = withPagesPath(pagesPath, 'reports/rollup.json');
-                let existingSources: RollupReportPayload[] = [];
-                const existingRollupSha = treeMap.get(rollupRepoPath);
-                if (existingRollupSha) {
-                    try {
-                        const blob = await getGithubBlob(owner, repo, existingRollupSha, token);
-                        if (blob?.content) {
-                            const parsed = parseRollupSourcesFile(
-                                JSON.parse(Buffer.from(blob.content, 'base64').toString('utf8'))
-                            );
-                            if (parsed) existingSources = parsed.sources;
-                        }
-                    } catch (err) {
-                        log.warn('[Main] Could not read existing rollup.json, rebuilding from scratch:', err);
-                    }
-                }
-                // Backfill reports published before rollup.json existed from local staging copies.
-                const loadLocalReport = (id: string): RollupReportPayload | null =>
-                    readLocalReport(app.getPath('userData'), id);
-                const rollupFile = updateRollupSourcesForPublish({
-                    existingSources,
-                    currentReport: builtReport.payload as RollupReportPayload,
-                    validIds: mergedEntries.map((entry: any) => String(entry?.id || '')),
-                    loadLocalReport
-                });
-                queueFile(rollupRepoPath, Buffer.from(JSON.stringify(rollupFile), 'utf8'));
-            } catch (err) {
-                log.warn('[Main] Failed to build precomputed rollup (non-blocking):', err);
-            }
-
-            // Maintain the first-class attendance history (reports/attendance.json)
-            // so the roster's retention radar gets real per-raid time-series.
-            // Non-blocking: a failure here must not abort the publish.
-            try {
-                const attendanceRepoPath = withPagesPath(pagesPath, 'reports/attendance.json');
-                let existingRaids: AttendanceRaid[] = [];
-                const existingAttendanceSha = treeMap.get(attendanceRepoPath);
-                if (existingAttendanceSha) {
-                    try {
-                        const blob = await getGithubBlob(owner, repo, existingAttendanceSha, token);
-                        if (blob?.content) {
-                            const parsed = parseAttendanceFile(
-                                JSON.parse(Buffer.from(blob.content, 'base64').toString('utf8'))
-                            );
-                            if (parsed) existingRaids = parsed.raids;
-                        }
-                    } catch (err) {
-                        log.warn('[Main] Could not read existing attendance.json, rebuilding:', err);
-                    }
-                }
-                // Backfill raids predating attendance.json from local staging copies,
-                // so the first publish reconstructs the full history (mirrors rollup).
-                const loadLocalAttendanceReport = (id: string): RollupReportPayload | null =>
-                    readLocalReport(app.getPath('userData'), id);
-                const attendanceFile = updateAttendanceForPublish({
-                    existingRaids,
-                    currentReport: builtReport.payload as RollupReportPayload,
-                    validIds: mergedEntries.map((entry: any) => String(entry?.id || '')),
-                    generatedAt: new Date().toISOString(),
-                    loadLocalReport: loadLocalAttendanceReport
-                });
-                queueFile(attendanceRepoPath, Buffer.from(JSON.stringify(attendanceFile), 'utf8'));
-            } catch (err) {
-                log.warn('[Main] Failed to build attendance history (non-blocking):', err);
-            }
-
-            // Convert a slice of the reports published before the chunked-gzip
-            // format, riding the commit this publish is already making — no
-            // extra commit, so no extra Pages build. See selectReportsToCompact
-            // for why this is amortized rather than done in one pass.
-            // Best-effort throughout: compaction must never fail a publish.
-            try {
-                const toCompact = selectReportsToCompact(
-                    treeEntries,
-                    pagesPath,
-                    COMPACT_BUDGET_BYTES,
-                    new Set([reportMeta.id])
-                );
-                if (toCompact.length > 0) {
-                    sendWebUploadStatus('Preparing', `Compacting ${toCompact.length} older report(s)...`, 70);
-                }
-                let compacted = 0;
-                let sourceBytes = 0;
-                for (const target of toCompact) {
-                    try {
-                        const blobSha = treeMap.get(target.path);
-                        if (!blobSha) continue;
-                        const raw = await getGithubBlobRaw(owner, repo, blobSha, token);
-                        const payload = JSON.parse(raw.toString('utf8'));
-                        // Both are cheap guards against rewriting something that
-                        // is not a report payload — the site is live, and a bad
-                        // stub would blank a report for everyone who opens it.
-                        if (readPartsManifest(payload)) continue;
-                        if (!payload?.meta || !payload?.stats) continue;
-                        const { files } = buildReportPartFiles(raw, payload);
-                        for (const file of files) {
-                            queueFile(withPagesPath(pagesPath, `reports/${target.id}/${file.name}`), file.data);
-                        }
-                        compacted += 1;
-                        sourceBytes += raw.length;
-                    } catch (err) {
-                        log.warn(`[Main] Could not compact published report ${target.id} (non-blocking):`, err);
-                    }
-                }
-                if (compacted > 0) {
-                    log.info(`[Main] Compacted ${compacted} legacy report(s), ${(sourceBytes / 1048576).toFixed(1)} MB of source.`);
-                }
-            } catch (err) {
-                log.warn('[Main] Legacy report compaction failed (non-blocking):', err);
-            }
-
-            const deleteEntries: Array<{ path: string; sha: null }> = [];
-
-            // Sweep viewer bundles the current dist-web has superseded; see
-            // selectStaleAssetPaths. 156 MB / 212 files on one real report repo.
-            const staleAssets = selectStaleAssetPaths(treeMap.keys(), publishedAssetPaths, pagesPath);
-            staleAssets.forEach((repoPath) => deleteEntries.push({ path: repoPath, sha: null }));
-            if (staleAssets.length > 0) {
-                log.info(`[Main] Removing ${staleAssets.length} orphaned viewer asset(s) superseded by the current bundle.`);
-            }
-
-            ['theme.json', 'ui-theme.json'].forEach((legacyFile) => {
-                const repoPath = withPagesPath(pagesPath, legacyFile);
-                if (treeMap.has(repoPath)) {
-                    deleteEntries.push({ path: repoPath, sha: null });
-                }
-            });
-            const logoPath = store.get('githubLogoPath') as string | undefined;
-            if (logoPath && fs.existsSync(logoPath)) {
-                const logoBuffer = fs.readFileSync(logoPath);
-                queueFile(withPagesPath(pagesPath, 'logo.png'), logoBuffer);
-                const logoJson = Buffer.from(JSON.stringify({ path: 'logo.png', updatedAt: new Date().toISOString() }, null, 2));
-                queueFile(withPagesPath(pagesPath, 'logo.json'), logoJson);
-            }
-
-            const replayDataUrl = (builtReport.payload.stats as any)?.replayDataUrl as string | undefined;
-
-            if (pendingEntries.length === 0 && deleteEntries.length === 0) {
-                sendWebUploadStatus('Complete', 'No changes to upload.', 100);
-                return { success: true, url: reportUrl, replayDataUrl: replayDataUrl ?? null };
-            }
-
-            sendWebUploadStatus('Uploading', 'Uploading changes...', 75);
-            const blobEntries: Array<{ path: string; sha: string }> = [];
-            for (const entry of pendingEntries) {
-                const blob = await uploadBlobWithRetry(
-                    () => createGithubBlob(owner, repo, token, entry.contentBase64, entry.path),
-                    entry.path,
-                    Math.floor(entry.contentBase64.length * 3 / 4)
-                );
-                blobEntries.push({ path: entry.path, sha: blob.sha });
-            }
-            const commitEntries: Array<{ path: string; sha: string | null }> = [...blobEntries, ...deleteEntries];
-
-            const commitMessage = `Update web report ${reportMeta.id}`;
-            const publishCommit = async (treeBaseSha: string, parentSha: string): Promise<string> => {
-                const newTree = await createGithubTree(owner, repo, token, treeBaseSha, commitEntries);
-                const newCommit = await createGithubCommit(owner, repo, token, commitMessage, newTree.sha, parentSha);
-                await updateGithubRef(owner, repo, branch, token, newCommit.sha);
-                return String(newCommit.sha);
-            };
-
-            sendWebUploadStatus('Finalizing', 'Publishing commit...', 90);
             let publishedCommitSha = '';
             try {
-                publishedCommitSha = await publishCommit(baseTreeSha, headSha);
-            } catch (err: any) {
-                const message = String(err?.message || '');
-                const status = Number(err?.status);
-                if (status !== 422 && !message.includes('(422)')) {
-                    throw err;
+                const loop = await commitWithRebase({
+                    readBase: () => readGitBase(owner, repo, branch, token),
+                    onRetry: () => sendWebUploadStatus('Finalizing', 'Site changed while publishing — merging and retrying...', 92),
+                    commit: makeGitCommitter(owner, repo, branch, token, `Update web report ${reportMeta.id}`),
+                    build: async (base, attempt) => {
+                        const { treeEntries, treeMap } = base;
+                        const site = parseSiteIndex(await readSiteIndexRaw(owner, repo, token, treeMap, pagesPath));
+                        const writeViewer = shouldWriteViewer(viewerVersion, site.generator);
+                        viewerSkippedFor = writeViewer ? null : (site.generator?.version ?? null);
+                        const { payload: indexPayload, entries: mergedEntries } = buildIndexPayload({
+                            entry: indexEntry,
+                            site,
+                            appearance,
+                            generator: writeViewer ? { app: 'axibridge', version: viewerVersion } : site.generator
+                        });
+
+                        let hasIndex = false;
+                        let hasAssets = false;
+                        treeMap.forEach((_sha, entryPath) => {
+                            if (entryPath === withPagesPath(pagesPath, 'index.html')) hasIndex = true;
+                            if (entryPath.startsWith(withPagesPath(pagesPath, 'assets/'))) hasAssets = true;
+                        });
+                        const needsBaseTemplate = !hasIndex || !hasAssets;
+
+                        const pendingEntries: Array<{ path: string; contentBase64: string; blobSha: string }> = [];
+                        const queueFile = (repoPath: string, content: Buffer) => {
+                            const blobSha = computeGitBlobSha(content);
+                            const existingSha = treeMap.get(repoPath);
+                            if (existingSha && existingSha === blobSha) return;
+                            pendingEntries.push({
+                                path: repoPath,
+                                contentBase64: content.toString('base64'),
+                                blobSha
+                            });
+                        };
+
+                        // Recorded even when queueFile dedupes the file away: an unchanged
+                        // asset is still a live one, and must not be swept below.
+                        const publishedAssetPaths = new Set<string>();
+                        if (writeViewer) {
+                            if (needsBaseTemplate) {
+                                sendWebUploadStatus('Preparing', 'Restoring base web files...', 50);
+                            }
+                            ensureWebRootIndex(templateDir);
+                            const rootIndexBuffer = getWebRootIndexBuffer(templateDir);
+                            const rootFiles = collectFiles(templateDir);
+                            for (const file of rootFiles) {
+                                const repoPath = file.relPath;
+                                const rawContent = fs.readFileSync(file.absPath);
+                                const content = patchLegacyCustomIconUrls(file.relPath, rawContent);
+                                const fullPath = withPagesPath(pagesPath, repoPath);
+                                if (repoPath.startsWith('assets/')) publishedAssetPaths.add(fullPath);
+                                queueFile(fullPath, content);
+                            }
+                            if (rootIndexBuffer) {
+                                queueFile(withPagesPath(pagesPath, 'index.html'), rootIndexBuffer);
+                            }
+                        }
+                        queueFile(withPagesPath(pagesPath, NOJEKYLL_FILENAME), NOJEKYLL_CONTENT);
+
+                        for (const file of reportFiles) {
+                            const repoPath = withPagesPath(pagesPath, `reports/${reportMeta.id}/${file.relPath}`);
+                            queueFile(repoPath, fs.readFileSync(file.absPath));
+                        }
+
+                        const indexBuffer = Buffer.from(JSON.stringify(indexPayload, null, 2));
+                        queueFile(withPagesPath(pagesPath, 'reports/index.json'), indexBuffer);
+
+                        // Maintain the precomputed rollup (reports/rollup.json) so the All Reports
+                        // view loads one small file instead of every report.json. Non-blocking:
+                        // the viewer falls back to per-report fetches when this file is stale or absent.
+                        try {
+                            const rollupRepoPath = withPagesPath(pagesPath, 'reports/rollup.json');
+                            let existingSources: RollupReportPayload[] = [];
+                            const existingRollupSha = treeMap.get(rollupRepoPath);
+                            if (existingRollupSha) {
+                                try {
+                                    const blob = await getGithubBlob(owner, repo, existingRollupSha, token);
+                                    if (blob?.content) {
+                                        const parsed = parseRollupSourcesFile(
+                                            JSON.parse(Buffer.from(blob.content, 'base64').toString('utf8'))
+                                        );
+                                        if (parsed) existingSources = parsed.sources;
+                                    }
+                                } catch (err) {
+                                    log.warn('[Main] Could not read existing rollup.json, rebuilding from scratch:', err);
+                                }
+                            }
+                            // Backfill reports published before rollup.json existed from local staging copies.
+                            const loadLocalReport = (id: string): RollupReportPayload | null =>
+                                readLocalReport(app.getPath('userData'), id);
+                            const rollupFile = updateRollupSourcesForPublish({
+                                existingSources,
+                                currentReport: builtReport.payload as RollupReportPayload,
+                                validIds: mergedEntries.map((entry: any) => String(entry?.id || '')),
+                                loadLocalReport
+                            });
+                            queueFile(rollupRepoPath, Buffer.from(JSON.stringify(rollupFile), 'utf8'));
+                        } catch (err) {
+                            log.warn('[Main] Failed to build precomputed rollup (non-blocking):', err);
+                        }
+
+                        // Maintain the first-class attendance history (reports/attendance.json)
+                        // so the roster's retention radar gets real per-raid time-series.
+                        // Non-blocking: a failure here must not abort the publish.
+                        try {
+                            const attendanceRepoPath = withPagesPath(pagesPath, 'reports/attendance.json');
+                            let existingRaids: AttendanceRaid[] = [];
+                            const existingAttendanceSha = treeMap.get(attendanceRepoPath);
+                            if (existingAttendanceSha) {
+                                try {
+                                    const blob = await getGithubBlob(owner, repo, existingAttendanceSha, token);
+                                    if (blob?.content) {
+                                        const parsed = parseAttendanceFile(
+                                            JSON.parse(Buffer.from(blob.content, 'base64').toString('utf8'))
+                                        );
+                                        if (parsed) existingRaids = parsed.raids;
+                                    }
+                                } catch (err) {
+                                    log.warn('[Main] Could not read existing attendance.json, rebuilding:', err);
+                                }
+                            }
+                            // Backfill raids predating attendance.json from local staging copies,
+                            // so the first publish reconstructs the full history (mirrors rollup).
+                            const loadLocalAttendanceReport = (id: string): RollupReportPayload | null =>
+                                readLocalReport(app.getPath('userData'), id);
+                            const attendanceFile = updateAttendanceForPublish({
+                                existingRaids,
+                                currentReport: builtReport.payload as RollupReportPayload,
+                                validIds: mergedEntries.map((entry: any) => String(entry?.id || '')),
+                                generatedAt: new Date().toISOString(),
+                                loadLocalReport: loadLocalAttendanceReport
+                            });
+                            queueFile(attendanceRepoPath, Buffer.from(JSON.stringify(attendanceFile), 'utf8'));
+                        } catch (err) {
+                            log.warn('[Main] Failed to build attendance history (non-blocking):', err);
+                        }
+
+                        // Compaction downloads up to COMPACT_BUDGET_BYTES; a retry is about
+                        // getting the publish in, so it skips this opportunistic work.
+                        if (attempt === 1) {
+                            // Convert a slice of the reports published before the chunked-gzip
+                            // format, riding the commit this publish is already making — no
+                            // extra commit, so no extra Pages build. See selectReportsToCompact
+                            // for why this is amortized rather than done in one pass.
+                            // Best-effort throughout: compaction must never fail a publish.
+                            try {
+                                const toCompact = selectReportsToCompact(
+                                    treeEntries,
+                                    pagesPath,
+                                    COMPACT_BUDGET_BYTES,
+                                    new Set([reportMeta.id])
+                                );
+                                if (toCompact.length > 0) {
+                                    sendWebUploadStatus('Preparing', `Compacting ${toCompact.length} older report(s)...`, 70);
+                                }
+                                let compacted = 0;
+                                let sourceBytes = 0;
+                                for (const target of toCompact) {
+                                    try {
+                                        const blobSha = treeMap.get(target.path);
+                                        if (!blobSha) continue;
+                                        const raw = await getGithubBlobRaw(owner, repo, blobSha, token);
+                                        const payload = JSON.parse(raw.toString('utf8'));
+                                        // Both are cheap guards against rewriting something that
+                                        // is not a report payload — the site is live, and a bad
+                                        // stub would blank a report for everyone who opens it.
+                                        if (readPartsManifest(payload)) continue;
+                                        if (!payload?.meta || !payload?.stats) continue;
+                                        const { files } = buildReportPartFiles(raw, payload);
+                                        for (const file of files) {
+                                            queueFile(withPagesPath(pagesPath, `reports/${target.id}/${file.name}`), file.data);
+                                        }
+                                        compacted += 1;
+                                        sourceBytes += raw.length;
+                                    } catch (err) {
+                                        log.warn(`[Main] Could not compact published report ${target.id} (non-blocking):`, err);
+                                    }
+                                }
+                                if (compacted > 0) {
+                                    log.info(`[Main] Compacted ${compacted} legacy report(s), ${(sourceBytes / 1048576).toFixed(1)} MB of source.`);
+                                }
+                            } catch (err) {
+                                log.warn('[Main] Legacy report compaction failed (non-blocking):', err);
+                            }
+                        }
+
+                        const deleteEntries: Array<{ path: string; sha: null }> = [];
+                        if (writeViewer) {
+                            // Sweep viewer bundles the current dist-web has superseded; see
+                            // selectStaleAssetPaths. 156 MB / 212 files on one real report repo.
+                            const staleAssets = selectStaleAssetPaths(treeMap.keys(), publishedAssetPaths, pagesPath);
+                            staleAssets.forEach((repoPath) => deleteEntries.push({ path: repoPath, sha: null }));
+                            if (staleAssets.length > 0) {
+                                log.info(`[Main] Removing ${staleAssets.length} orphaned viewer asset(s) superseded by the current bundle.`);
+                            }
+                        }
+                        ['theme.json', 'ui-theme.json'].forEach((legacyFile) => {
+                            const repoPath = withPagesPath(pagesPath, legacyFile);
+                            if (treeMap.has(repoPath)) {
+                                deleteEntries.push({ path: repoPath, sha: null });
+                            }
+                        });
+                        if (permissions.admin) {
+                            const logoPath = store.get('githubLogoPath') as string | undefined;
+                            if (logoPath && fs.existsSync(logoPath)) {
+                                const logoBuffer = fs.readFileSync(logoPath);
+                                queueFile(withPagesPath(pagesPath, 'logo.png'), logoBuffer);
+                                const logoJson = Buffer.from(JSON.stringify({ path: 'logo.png', updatedAt: new Date().toISOString() }, null, 2));
+                                queueFile(withPagesPath(pagesPath, 'logo.json'), logoJson);
+                            }
+                        }
+
+                        if (pendingEntries.length === 0 && deleteEntries.length === 0) {
+                            return { entries: [], result: null };
+                        }
+
+                        sendWebUploadStatus('Uploading', 'Uploading changes...', 75);
+                        const blobEntries: CommitEntry[] = [];
+                        for (const entry of pendingEntries) {
+                            if (uploadedBlobShas.has(entry.blobSha)) {
+                                blobEntries.push({ path: entry.path, sha: entry.blobSha });
+                                continue;
+                            }
+                            const blob = await uploadBlobWithRetry(
+                                () => createGithubBlob(owner, repo, token, entry.contentBase64, entry.path),
+                                entry.path,
+                                Math.floor(entry.contentBase64.length * 3 / 4)
+                            );
+                            uploadedBlobShas.add(String(blob.sha));
+                            blobEntries.push({ path: entry.path, sha: blob.sha });
+                        }
+                        sendWebUploadStatus('Finalizing', 'Publishing commit...', 90);
+                        return { entries: [...blobEntries, ...deleteEntries], result: null };
+                    }
+                });
+                if (!loop.commitSha) {
+                    const replayDataUrl = (builtReport.payload.stats as any)?.replayDataUrl as string | undefined;
+                    sendWebUploadStatus('Complete', 'No changes to upload.', 100);
+                    return { success: true, url: reportUrl, replayDataUrl: replayDataUrl ?? null };
                 }
-                sendWebUploadStatus('Finalizing', 'Retrying publish after concurrent update...', 92);
-                const retryHeadRef = await getGithubRef(owner, repo, branch, token);
-                const retryHeadSha = retryHeadRef?.object?.sha;
-                if (!retryHeadSha) {
-                    throw err;
-                }
-                const retryHeadCommit = await getGithubCommit(owner, repo, retryHeadSha, token);
-                const retryBaseTreeSha = retryHeadCommit?.tree?.sha;
-                if (!retryBaseTreeSha) {
-                    throw err;
-                }
-                publishedCommitSha = await publishCommit(retryBaseTreeSha, retryHeadSha);
+                publishedCommitSha = loop.commitSha;
+            } catch (err) {
+                throw toPushAccessError(err, owner, repo);
             }
+            if (viewerSkippedFor) {
+                sendWebUploadStatus(
+                    'Warning',
+                    `Site viewer is newer than your AxiBridge (v${viewerSkippedFor}). Update to change the viewer.`,
+                    93
+                );
+            }
+            const replayDataUrl = (builtReport.payload.stats as any)?.replayDataUrl as string | undefined;
 
             // The commit landing is not the report going live: GitHub still has
             // to build Pages, and until it does the viewer answers

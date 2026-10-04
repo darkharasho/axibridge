@@ -20,10 +20,20 @@ export type CommitEntry = { path: string; sha: string | null };
 
 export const SITE_BUSY_MESSAGE = 'The site was updated by someone else while publishing. Try again.';
 
+/**
+ * `new Error(msg, { cause })` without the two-argument constructor: this file
+ * is also type-checked by the renderer tsconfig (via settingsHandlers →
+ * githubHandlers), whose ES2021 lib has no ErrorOptions. Defined the way the
+ * native constructor does it — an own, non-enumerable property.
+ */
+const withCause = <E extends Error>(error: E, cause: unknown): E =>
+    Object.defineProperty(error, 'cause', { value: cause, writable: true, configurable: true });
+
 export class SiteBusyError extends Error {
     constructor(cause?: unknown) {
-        super(SITE_BUSY_MESSAGE, { cause });
+        super(SITE_BUSY_MESSAGE);
         this.name = 'SiteBusyError';
+        withCause(this, cause);
     }
 }
 
@@ -38,7 +48,7 @@ export const toPushAccessError = (err: unknown, owner: string, repo: string): un
     if (Number(e?.status) === 403 || String(e?.message || '').includes('(403)')) {
         // Secondary rate limits also arrive as 403; those are not an access problem.
         if (/rate limit/i.test(String(e?.message || '')) || /rate limit/i.test(String(e?.data?.message || ''))) return err;
-        return new Error(`You don't have push access to ${owner}/${repo}. Ask the site admin to add you.`, { cause: err });
+        return withCause(new Error(`You don't have push access to ${owner}/${repo}. Ask the site admin to add you.`), err);
     }
     return err;
 };
