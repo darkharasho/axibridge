@@ -6,6 +6,7 @@ import type { ColorPalette, AxiTheme } from '../shared/webThemes';
 import { readPaletteFromReport } from './paletteReader';
 import { resolveMapAccentFromStats, MAP_ACCENT_CSS_VARS, type MapAccent } from '../shared/mapAccent';
 import { applyAxiTheme } from '../shared/applyAxiTheme';
+import { publishedByLogin } from '../shared/publishedBy';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import metricsSpecMarkdown from '../shared/metrics-spec.md?raw';
@@ -2556,8 +2557,8 @@ export function ReportApp({ injectedSource, assetBase }: {
                                                 <Users className="w-4 h-4 shrink-0 text-[color:var(--axi-accent)]" />
                                                 <span className="truncate">
                                                     {entry.commanders.length ? entry.commanders.join(', ') : 'No Commanders'}
-                                                    {entry.publishedBy && (
-                                                        <span className="axi-ink-faint"> · by {entry.publishedBy}</span>
+                                                    {publishedByLogin(entry) && (
+                                                        <span className="axi-ink-faint"> · by {publishedByLogin(entry)}</span>
                                                     )}
                                                 </span>
                                             </div>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildDeleteConfirmText, othersPublishedBy } from '../publishedBy';
+import { buildDeleteConfirmText, othersPublishedBy, publishedByLogin } from '../publishedBy';
 
 describe('othersPublishedBy', () => {
     it('ignores own (case-insensitive) and legacy entries', () => {
@@ -23,5 +23,16 @@ describe('buildDeleteConfirmText', () => {
             .toBe('Delete 3 reports?\n\n2 of these were published by kyra. Delete anyway?');
         expect(buildDeleteConfirmText('Delete "X"?', [{ publishedBy: 'kyra' }], 'me'))
             .toBe('Delete "X"?\n\nThis was published by kyra. Delete anyway?');
+    });
+});
+
+describe('publishedByLogin', () => {
+    it('returns a trimmed login only for non-empty strings', () => {
+        expect(publishedByLogin({ publishedBy: ' kyra ' })).toBe('kyra');
+        expect(publishedByLogin({ publishedBy: '  ' })).toBeNull();
+        expect(publishedByLogin({ publishedBy: null })).toBeNull();
+        expect(publishedByLogin({ publishedBy: { login: 'x' } as any })).toBeNull();
+        expect(publishedByLogin({ publishedBy: 42 as any })).toBeNull();
+        expect(publishedByLogin(undefined)).toBeNull();
     });
 });

@@ -1,6 +1,15 @@
 type Attributed = { publishedBy?: string | null } | null | undefined;
 
 /**
+ * The publisher login of an index entry, or null. index.json is shared and
+ * hand-editable, so a non-string value must never reach React.
+ */
+export const publishedByLogin = (entry: Attributed): string | null => {
+    const by: unknown = entry?.publishedBy;
+    return typeof by === 'string' && by.trim() ? by.trim() : null;
+};
+
+/**
  * Reports in `entries` published by someone other than the viewer. Entries
  * from before publishedBy existed are not counted. An unknown viewer counts
  * every attributed entry — over-warning beats a silent delete.
@@ -10,7 +19,7 @@ export const othersPublishedBy = (entries: Attributed[], viewerLogin: string | n
     const logins: string[] = [];
     let count = 0;
     for (const entry of entries) {
-        const by = typeof entry?.publishedBy === 'string' ? entry.publishedBy.trim() : '';
+        const by = publishedByLogin(entry);
         if (!by) continue;
         if (viewer && by.toLowerCase() === viewer) continue;
         count += 1;

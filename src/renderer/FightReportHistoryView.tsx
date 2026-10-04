@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { ParticleHover } from './particles';
 import type { ReportIndexEntry, ReportPayload } from '../shared/reportTypes';
-import { buildDeleteConfirmText } from '../shared/publishedBy';
+import { buildDeleteConfirmText, publishedByLogin } from '../shared/publishedBy';
 import { normalizeReportPayload } from '../shared/reportNormalization';
 import { StatsView } from './StatsView';
 import { CategoryBar } from './stats/CategoryBar';
@@ -738,9 +738,9 @@ export function FightReportHistoryView() {
                                             {entry.commanders.join(', ')}
                                         </div>
                                     )}
-                                    {entry.publishedBy && (
+                                    {publishedByLogin(entry) && (
                                         <div className="text-[10px] mt-1" style={{ color: 'var(--axi-text-faint)' }}>
-                                            by {entry.publishedBy}
+                                            by {publishedByLogin(entry)}
                                         </div>
                                     )}
                                     {entry.summary && (
