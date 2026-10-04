@@ -2,6 +2,11 @@ import type { ColorPalette } from '../shared/webThemes';
 import type { IReportWebhook } from '../shared/reportWebhooks';
 import type { SliceSidecar } from './stats/slice/sliceTypes';
 
+export interface IRepoCollaborator { login: string; avatarUrl: string | null }
+export interface IRepoInvite { id: number; login: string; avatarUrl: string | null; createdAt: string }
+export interface ISiteInvite { id: number; owner: string; repo: string; fullName: string; inviter: string; createdAt: string; dismissed: boolean }
+export interface ISiteJoinTarget { owner: string; repo: string; fullName: string; branch: string; pagesUrl: string; pagesSourcePath: string; madeDefault: boolean; favorites: string[] }
+
 export interface IWebhook {
     id: string;
     name: string;
@@ -487,13 +492,21 @@ export interface IElectronAPI {
     startGithubOAuth: () => Promise<{ success: boolean; error?: string; userCode?: string; verificationUri?: string }>;
     onGithubAuthComplete: (callback: (data: { success: boolean; token?: string; error?: string }) => void) => () => void;
     getGithubRepos: () => Promise<{ success: boolean; repos?: Array<{ full_name: string; name: string; owner: string }>; error?: string }>;
+    getGithubViewerLogin: () => Promise<{ success: boolean; login?: string; error?: string }>;
+    getRepoPublishers: (payload?: { owner?: string; repo?: string }) => Promise<{ success: boolean; canAdmin?: boolean; ownerType?: 'User' | 'Organization' | null; collaborators?: IRepoCollaborator[]; invites?: IRepoInvite[]; error?: string }>;
+    addRepoPublisher: (payload: { owner?: string; repo?: string; username: string }) => Promise<{ success: boolean; status?: 'invited' | 'already-has-access'; error?: string }>;
+    removeRepoPublisher: (payload: { owner?: string; repo?: string; username: string }) => Promise<{ success: boolean; error?: string }>;
+    cancelRepoInvite: (payload: { owner?: string; repo?: string; invitationId: number }) => Promise<{ success: boolean; error?: string }>;
+    getPendingSiteInvites: (payload?: { force?: boolean }) => Promise<{ success: boolean; invites?: ISiteInvite[]; error?: string }>;
+    acceptSiteInvite: (payload: { invitationId: number }) => Promise<{ success: boolean; target?: ISiteJoinTarget; error?: string }>;
+    dismissSiteInvite: (payload: { invitationId: number }) => Promise<{ success: boolean }>;
     getGithubOrgs: () => Promise<{ success: boolean; orgs?: Array<{ login: string }>; error?: string }>;
     getGithubReports: (payload?: { owner?: string; repo?: string; branch?: string }) => Promise<{ success: boolean; reports?: any[]; error?: string }>;
     deleteGithubReports: (payload: { ids: string[]; owner?: string; repo?: string; branch?: string }) => Promise<{ success: boolean; removed?: string[]; error?: string }>;
     getGithubReportDetail: (payload: { reportId: string; owner?: string; repo?: string; branch?: string }) => Promise<{ success: boolean; report?: any; error?: string }>;
     listLogFiles: (payload: { dir: string; allowJson?: boolean }) => Promise<{ success: boolean; files?: Array<{ path: string; name: string; relativePath: string; mtimeMs: number; size: number }>; error?: string }>;
     createGithubRepo: (params: { name: string; branch?: string; owner?: string }) => Promise<{ success: boolean; repo?: { full_name: string; owner: string; name: string; pagesUrl?: string }; error?: string }>;
-    ensureGithubTemplate: () => Promise<{ success: boolean; updated?: boolean; error?: string }>;
+    ensureGithubTemplate: () => Promise<{ success: boolean; updated?: boolean; skipped?: 'viewer-newer'; error?: string }>;
     selectGithubLogo: () => Promise<string | null>;
     applyGithubLogo: (payload?: { logoPath?: string }) => Promise<{ success: boolean; updated?: boolean; error?: string }>;
     uploadWebReport: (payload: { meta: any; statsJson: string; repoFullName?: string; repoOwner?: string; repoName?: string; reportWebhookIds?: string[]; sliceSidecarJson?: string; sliceSidecarMeta?: { frameCount: number; settingsHash?: string } }) => Promise<{ success: boolean; url?: string; replayDataUrl?: string | null; error?: string; errorDetail?: string }>;

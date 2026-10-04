@@ -91,6 +91,7 @@ import {
 } from './handlers/settingsHandlers';
 import { registerUploadHandlers } from './handlers/uploadHandlers';
 import { registerGithubHandlers, resolveShareTarget, shouldUploadToDpsReport } from './handlers/githubHandlers';
+import { registerPublishersHandlers } from './handlers/githubPublishersHandlers';
 import { registerCloudflareHandlers } from './handlers/cloudflareHandlers';
 import { registerParserHandlers } from './handlers/parserHandlers';
 import { registerReparseHandlers, reparseLogDetails, type ReparseHandlerOptions } from './handlers/reparseHandlers';
@@ -2139,6 +2140,7 @@ if (!gotTheLock) {
             store,
             getWindow: () => win,
         });
+        registerPublishersHandlers({ store });
         registerCloudflareHandlers({
             store,
             getWindow: () => win,
