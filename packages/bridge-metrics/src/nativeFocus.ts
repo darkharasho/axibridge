@@ -39,6 +39,12 @@ export interface NativeFocusRow {
     downs: number;
     /** Aimed casts inside the pre-down window before each of this player's downs. */
     preDownCasts: number;
+    /**
+     * {@link castsDrawn} split by enemy skill id; sums to it exactly. Empty
+     * on axilog < 1.16.0, which did not emit the split -- check
+     * {@link hasCastsBySkill} before reading an empty list as "no casts".
+     */
+    castsBySkill: Array<{ skill: number; casts: number }>;
 }
 
 export interface NativeFocusLog {
@@ -102,6 +108,11 @@ export const getFocusLog = (details: any): NativeFocusLog | null => {
             castsDrawnMinions: num(value?.casts_drawn_minions),
             downs: num(value?.downs),
             preDownCasts: num(value?.pre_down_casts),
+            castsBySkill: Array.isArray(value?.casts_by_skill)
+                ? value.casts_by_skill
+                    .map((r: any) => ({ skill: num(r?.skill), casts: num(r?.casts) }))
+                    .filter((r: { skill: number; casts: number }) => r.skill > 0 && r.casts > 0)
+                : [],
         });
     }
     return {
@@ -110,6 +121,25 @@ export const getFocusLog = (details: any): NativeFocusLog | null => {
         preDownWindowMs: num(block.pre_down_window_ms),
         rows,
     };
+};
+
+/**
+ * Whether this focus log carries the per-skill split at all.
+ *
+ * axilog < 1.16.0 emitted `casts_drawn` without `casts_by_skill`, so on those
+ * parses every split is empty even for a player who drew casts. The split is
+ * omitted only for a player with zero casts, so ANY row with casts but no
+ * split means the parser predates it.
+ */
+export const hasCastsBySkill = (log: NativeFocusLog): boolean => {
+    let anyCasts = false;
+    for (const row of log.rows.values()) {
+        if (row.castsDrawn <= 0) continue;
+        anyCasts = true;
+        if (row.castsBySkill.length > 0) return true;
+    }
+    // No casts at all: nothing to split, and nothing to misreport either.
+    return !anyCasts;
 };
 
 /**
