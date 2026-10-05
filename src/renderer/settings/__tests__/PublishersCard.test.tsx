@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PublishersCard } from '../PublishersCard';
 
@@ -30,8 +30,7 @@ describe('PublishersCard', () => {
         api.getRepoPublishers.mockResolvedValueOnce({ success: true, canAdmin: false, ownerType: 'Organization', collaborators: [], invites: [] });
         const onAdminKnown = vi.fn();
         render(<PublishersCard repoOwner="guild" repoName="site" onAdminKnown={onAdminKnown} />);
-        expect(await screen.findByText(/Only a repo admin can add publishers/i)).toBeInTheDocument();
-        expect(screen.queryByRole('link', { name: /manage access on GitHub/i })).toBeNull();
+        expect(await screen.findByText('Only a repo admin can add or remove members.')).toBeInTheDocument();
         await userEvent.click(screen.getByRole('button', { name: /manage access on GitHub/i }));
         expect(api.openExternal).toHaveBeenCalledWith('https://github.com/guild/site/settings/access');
         expect(onAdminKnown).toHaveBeenCalledWith(false);
@@ -89,11 +88,11 @@ describe('PublishersCard', () => {
         const { rerender } = render(<PublishersCard repoOwner="guild" repoName="a" onAdminKnown={onAdminKnown} />);
         rerender(<PublishersCard repoOwner="guild" repoName="b" onAdminKnown={onAdminKnown} />);
         resolveB({ success: true, canAdmin: false, ownerType: 'User', collaborators: [], invites: [] });
-        expect(await screen.findByText(/Only a repo admin can add publishers/i)).toBeInTheDocument();
+        expect(await screen.findByText('Only a repo admin can add or remove members.')).toBeInTheDocument();
         resolveA({ success: true, canAdmin: true, ownerType: 'User', collaborators: [{ login: 'fromA', avatarUrl: null }], invites: [] });
         await new Promise((r) => setTimeout(r, 20));
         expect(screen.queryByText('fromA')).not.toBeInTheDocument();
-        expect(screen.getByText(/Only a repo admin can add publishers/i)).toBeInTheDocument();
+        expect(screen.getByText('Only a repo admin can add or remove members.')).toBeInTheDocument();
         expect(onAdminKnown).toHaveBeenCalledTimes(1);
         expect(onAdminKnown).toHaveBeenLastCalledWith(false);
     });
@@ -116,5 +115,31 @@ describe('PublishersCard', () => {
         expect(api.addRepoPublisher).toHaveBeenCalledTimes(1);
         release({ success: true, status: 'invited' });
         await screen.findByText(/They'll see a Join prompt/i);
+    });
+
+    it('titles the card Members with a count and links to GitHub access settings', async () => {
+        api.getRepoPublishers.mockResolvedValueOnce({ success: true, canAdmin: true, ownerType: 'User', collaborators: [{ login: 'a', avatarUrl: null }, { login: 'b', avatarUrl: null }], invites: [] });
+        render(<PublishersCard repoOwner="guild" repoName="site" />);
+        expect(await screen.findByText('Members · 2')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Manage access on GitHub ↗' }));
+        expect(window.electronAPI.openExternal).toHaveBeenCalledWith('https://github.com/guild/site/settings/access');
+        expect(screen.getByText(/Anyone with write access to/)).toHaveTextContent('Anyone with write access to guild/site can publish here.');
+    });
+    it('shows publishers the list read-only', async () => {
+        api.getRepoPublishers.mockResolvedValueOnce({ success: true, canAdmin: false, ownerType: 'Organization', collaborators: [{ login: 'kyra', avatarUrl: null }], invites: [] });
+        render(<PublishersCard repoOwner="guild" repoName="site" />);
+        expect(await screen.findByText('kyra')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Remove kyra' })).toBeNull();
+        expect(screen.queryByLabelText('GitHub username')).toBeNull();
+        expect(screen.getByText('Only a repo admin can add or remove members.')).toBeInTheDocument();
+    });
+    it('links to the org setting when GitHub blocks the invite', async () => {
+        api.addRepoPublisher.mockResolvedValueOnce({ success: false, error: "Couldn't invite kyra: blocked", helpUrl: 'https://github.com/organizations/guild/settings/member_privileges' });
+        render(<PublishersCard repoOwner="guild" repoName="site" />);
+        await screen.findByText('kyra');
+        await userEvent.type(screen.getByLabelText('GitHub username'), 'kyra');
+        await userEvent.click(screen.getByRole('button', { name: /^Add$/ }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Org settings ↗' }));
+        expect(window.electronAPI.openExternal).toHaveBeenCalledWith('https://github.com/organizations/guild/settings/member_privileges');
     });
 });

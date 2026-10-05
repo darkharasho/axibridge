@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { IRepoCollaborator, IRepoInvite } from '../global.d';
 
 type Props = { repoOwner: string; repoName: string; onAdminKnown?: (canAdmin: boolean) => void };
@@ -17,7 +17,7 @@ export const PublishersCard = ({ repoOwner, repoName, onAdminKnown }: Props) => 
     const [viewer, setViewer] = useState<string | null>(null);
     const [username, setUsername] = useState('');
     const [busy, setBusy] = useState(false);
-    const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+    const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string; helpUrl?: string } | null>(null);
 
     const busyRef = useRef(false);
     const requestIdRef = useRef(0);
@@ -78,7 +78,7 @@ export const PublishersCard = ({ repoOwner, repoName, onAdminKnown }: Props) => 
             setBusy(false);
         }
         if (!res?.success) {
-            setMessage({ kind: 'error', text: res?.error || 'Failed to add publisher.' });
+            setMessage({ kind: 'error', text: res?.error || 'Failed to add publisher.', helpUrl: res?.helpUrl });
             return;
         }
         setUsername('');
@@ -121,67 +121,82 @@ export const PublishersCard = ({ repoOwner, repoName, onAdminKnown }: Props) => 
         }
     };
 
+    const manageUrl = `https://github.com/${repoOwner}/${repoName}/settings/access`;
+    const openExternal = (url: string) => void window.electronAPI?.openExternal?.(url);
+
     return (
-        <div className="axi-well axi-well--sm mb-4" style={{ '--axi-well-pad': '16px' } as CSSProperties} data-testid="publishers-card">
-            <div className="text-xs uppercase tracking-widest axi-ink-faint mb-3">Publishers</div>
+        <div data-testid="publishers-card">
+            <div className="flex items-center justify-between mb-2">
+                <div className="text-xs uppercase tracking-widest axi-ink-faint">
+                    {collaborators.length > 0 ? `Members · ${collaborators.length}` : 'Members'}
+                </div>
+                <button type="button" onClick={() => openExternal(manageUrl)} className="text-xs axi-ink-accent underline">
+                    Manage access on GitHub ↗
+                </button>
+            </div>
+            <p className="text-xs axi-ink-dim mb-3">
+                Anyone with write access to <span className="axi-ink-plain">{repoOwner}/{repoName}</span> can publish here.
+                {canAdmin && ' Adding someone sends them a GitHub invite; they join from AxiBridge.'}
+            </p>
             {loading && <div className="text-xs axi-ink-meta">Loading…</div>}
-            {!loading && !canAdmin && (
-                <p className="text-xs axi-ink-dim">
-                    Only a repo admin can add publishers. Ask {repoOwner}, or{' '}
-                    <button
-                        type="button"
-                        onClick={() => void window.electronAPI?.openExternal?.(`https://github.com/${repoOwner}/${repoName}/settings/access`)}
-                        className="axi-ink-accent underline"
-                    >
-                        manage access on GitHub
-                    </button>.
-                </p>
-            )}
             {!loading && canAdmin && (
-                <>
-                    <p className="text-xs axi-ink-dim mb-3">
-                        Publishers can post their own raids to this site. They need a GitHub account and AxiBridge.
-                    </p>
-                    <div className="flex items-center gap-2 mb-3">
-                        <input
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') void handleAdd(); }}
-                            placeholder="GitHub username"
-                            aria-label="GitHub username"
-                            className="axi-input flex-1 text-sm"
-                        />
-                        <button onClick={() => void handleAdd()} disabled={busy || !username.trim()} className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule">
-                            Add
-                        </button>
-                    </div>
-                    <ul className="space-y-1">
-                        {collaborators.map((c) => (
-                            <li key={c.login} className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2 mb-3">
+                    <input
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') void handleAdd(); }}
+                        placeholder="GitHub username"
+                        aria-label="GitHub username"
+                        className="axi-input flex-1 text-sm"
+                    />
+                    <button onClick={() => void handleAdd()} disabled={busy || !username.trim()} className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule">
+                        Add
+                    </button>
+                </div>
+            )}
+            {!loading && (
+                <ul className="space-y-1">
+                    {collaborators.map((c) => (
+                        <li key={c.login} className="flex items-center justify-between text-sm">
+                            <span className="flex items-center gap-2">
+                                {c.avatarUrl && <img src={c.avatarUrl} alt="" className="w-5 h-5 rounded-full" />}
                                 <span className="axi-ink-plain">{c.login}</span>
-                                {viewer?.toLowerCase() !== c.login.toLowerCase() && (
-                                    <button onClick={() => void handleRemove(c.login)} disabled={busy} className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule" aria-label={`Remove ${c.login}`}>
-                                        Remove
-                                    </button>
-                                )}
-                            </li>
-                        ))}
-                        {invites.map((i) => (
-                            <li key={i.id} className="flex items-center justify-between text-sm">
-                                <span><span className="axi-ink-plain">{i.login}</span> <span className="text-xs axi-ink-faint">invited</span></span>
-                                <button onClick={() => void handleCancel(i)} disabled={busy} className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule" aria-label={`Cancel invite for ${i.login}`}>
-                                    Cancel
+                            </span>
+                            {canAdmin && viewer?.toLowerCase() !== c.login.toLowerCase() && (
+                                <button onClick={() => void handleRemove(c.login)} disabled={busy} className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule" aria-label={`Remove ${c.login}`}>
+                                    Remove
                                 </button>
-                            </li>
-                        ))}
-                    </ul>
-                    {ownerType === 'Organization' && (
-                        <p className="mt-3 text-xs axi-ink-faint">Org members with access through teams aren't listed here.</p>
-                    )}
-                </>
+                            )}
+                        </li>
+                    ))}
+                    {invites.map((i) => (
+                        <li key={i.id} className="flex items-center justify-between text-sm">
+                            <span><span className="axi-ink-plain">{i.login}</span> <span className="text-xs axi-ink-faint">invited</span></span>
+                            <button onClick={() => void handleCancel(i)} disabled={busy} className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule" aria-label={`Cancel invite for ${i.login}`}>
+                                Cancel
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            )}
+            {!loading && !canAdmin && (
+                <p className="mt-3 text-xs axi-ink-faint">Only a repo admin can add or remove members.</p>
+            )}
+            {!loading && ownerType === 'Organization' && (
+                <p className="mt-3 text-xs axi-ink-faint">Org members with access through teams aren't listed here.</p>
             )}
             {message && (
-                <div className={`mt-3 text-xs ${message.kind === 'ok' ? 'axi-ink-ok' : 'axi-ink-danger'}`}>{message.text}</div>
+                <div className={`mt-3 text-xs ${message.kind === 'ok' ? 'axi-ink-ok' : 'axi-ink-danger'}`}>
+                    {message.text}
+                    {message.helpUrl && (
+                        <>
+                            {' '}
+                            <button type="button" onClick={() => openExternal(message.helpUrl!)} className="axi-ink-accent underline">
+                                {message.helpUrl.includes('/settings/member_privileges') ? 'Org settings ↗' : 'Open settings ↗'}
+                            </button>
+                        </>
+                    )}
+                </div>
             )}
         </div>
     );
