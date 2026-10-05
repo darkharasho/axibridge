@@ -1549,7 +1549,6 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
         const pagesInfo = await ensureGithubPages(owner, repo, branch, token);
         const pagesPath = normalizePagesPath(pagesInfo?.source?.path);
         store.set('githubPagesSourcePath', pagesPath);
-        store.set('githubBranch', branch);
         return { pagesInfo, pagesPath };
     };
 
