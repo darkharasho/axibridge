@@ -4,11 +4,12 @@
  * only the user's bookmarks plus live lookups.
  */
 import { ipcMain } from 'electron';
-import { encodeGitPath, githubApiRequest } from '../githubApi';
+import { encodeGitPath, getMemberCount, githubApiRequest } from '../githubApi';
+import { SITE_DESCRIPTION } from './githubPublishersHandlers';
 import { getDefaultSiteKey, readSites, writeSites } from '../githubSitesStore';
 import {
-    addSite, inferredPagesUrl, normalizeSiteKey, parseSiteFullName, removeSite, setDefaultSite,
-    type SiteAddedVia, type SiteRef
+    addSite, inferredPagesUrl, mergeFoundSites, normalizeSiteKey, parseSiteFullName, removeSite, setDefaultSite,
+    type ISiteDetails, type SiteAddedVia, type SiteRef
 } from '../../shared/githubSites';
 
 const normalizePagesPath = (value: unknown) => String(value || '').trim().replace(/^\/+|\/+$/g, '');
@@ -19,6 +20,39 @@ const toRef = (payload: unknown): SiteRef | null => {
 };
 const INVALID = { success: false, error: 'Not a valid owner/repo.' } as const;
 const USER_ADDED: SiteAddedVia[] = ['manual', 'found'];
+
+const FIND_PAGE_LIMIT = 5;
+
+/** `role: null` = couldn't tell (network, 5xx, rate limit): callers fail open. */
+const lookupSiteDetails = async (ref: SiteRef, token: string | undefined): Promise<ISiteDetails> => {
+    const unknown: ISiteDetails = {
+        role: null, ownerType: null, ownerAvatarUrl: null, pagesUrl: inferredPagesUrl(ref), memberCount: getMemberCount(ref.owner, ref.repo)
+    };
+    if (!token) return unknown;
+    const path = repoPath(ref.owner, ref.repo);
+    let resp: { status: number; data: any };
+    try {
+        resp = await githubApiRequest('GET', path, token);
+    } catch {
+        return unknown;
+    }
+    const rateLimited = resp.status === 403 && /rate limit/i.test(String(resp.data?.message || ''));
+    if (resp.status === 404 || (resp.status === 403 && !rateLimited)) return { ...unknown, role: 'none' };
+    if (resp.status !== 200) return unknown;
+    const perms = resp.data?.permissions ?? {};
+    const role = perms.admin === true ? 'admin' : perms.push === true ? 'publisher' : 'none';
+    const ownerTypeRaw = resp.data?.owner?.type;
+    const details: ISiteDetails = {
+        ...unknown,
+        role,
+        ownerType: ownerTypeRaw === 'Organization' || ownerTypeRaw === 'User' ? ownerTypeRaw : null,
+        ownerAvatarUrl: typeof resp.data?.owner?.avatar_url === 'string' ? resp.data.owner.avatar_url : null
+    };
+    if (role === 'none') return details;
+    const pages = await githubApiRequest('GET', `${path}/pages`, token).catch(() => null);
+    if (pages?.status === 200 && typeof pages.data?.html_url === 'string' && pages.data.html_url) details.pagesUrl = pages.data.html_url;
+    return details;
+};
 
 export interface SitesHandlerOptions { store: any }
 
@@ -79,5 +113,36 @@ export function registerSitesHandlers({ store }: SitesHandlerOptions) {
         store.set('githubPagesBaseUrl', pagesUrl);
         store.set('githubPagesSourcePath', normalizePagesPath(pages?.source?.path));
         return { success: true, sites, defaultKey: normalizeSiteKey(ref.owner, ref.repo), pagesUrl };
+    });
+
+    ipcMain.handle('get-github-site-details', async (_e, payload: unknown) => {
+        const refs = (Array.isArray(payload) ? payload : []).map(toRef).filter((r): r is SiteRef => !!r);
+        const token = getToken();
+        const entries = await Promise.all(refs.map(async (ref) => [normalizeSiteKey(ref.owner, ref.repo), await lookupSiteDetails(ref, token)] as const));
+        return { success: true, details: Object.fromEntries(entries) };
+    });
+
+    ipcMain.handle('find-github-sites', async () => {
+        const token = getToken();
+        if (!token) return { success: false, error: 'GitHub not connected.' };
+        try {
+            const candidates: SiteRef[] = [];
+            for (let page = 1; page <= FIND_PAGE_LIMIT; page += 1) {
+                const resp = await githubApiRequest('GET', `/user/repos?per_page=100&page=${page}`, token);
+                if (resp.status >= 300) throw new Error(`GitHub API error (${resp.status}) loading repos`);
+                const rows = Array.isArray(resp.data) ? resp.data : [];
+                for (const r of rows) {
+                    const owner = r?.owner?.login;
+                    if (typeof owner !== 'string' || typeof r?.name !== 'string') continue;
+                    if (r?.permissions?.push !== true) continue;
+                    if (typeof r.description !== 'string' || r.description.trim() !== SITE_DESCRIPTION) continue;
+                    candidates.push({ owner, repo: r.name });
+                }
+                if (rows.length < 100) break;
+            }
+            return { success: true, found: mergeFoundSites(readSites(store), candidates) };
+        } catch (err: any) {
+            return { success: false, error: err?.message || 'Failed to search your repos.' };
+        }
     });
 }

@@ -110,7 +110,16 @@ export const invalidateRepoPermissions = (owner: string, repo: string) => {
     permissionsCache.delete(permissionsKey(owner, repo));
 };
 
+/** Push collaborators per repo, recorded whenever a members list loads this session. */
+const memberCounts = new Map<string, number>();
+export const recordMemberCount = (owner: string, repo: string, count: number) => {
+    memberCounts.set(permissionsKey(owner, repo), count);
+};
+export const getMemberCount = (owner: string, repo: string): number | null =>
+    memberCounts.get(permissionsKey(owner, repo)) ?? null;
+
 export const resetGithubApiCaches = () => {
+    memberCounts.clear();
     viewerLoginCache.clear();
     permissionsCache.clear();
 };

@@ -5,7 +5,7 @@ vi.mock('electron', () => ({ ipcMain: { handle: vi.fn((ch: string, fn: any) => h
 vi.mock('electron-log', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 
 import { installHttpsMock, type MockResponse, type RecordedCall } from '../../__tests__/githubHttpsMock';
-import { resetGithubApiCaches } from '../../githubApi';
+import { recordMemberCount, resetGithubApiCaches } from '../../githubApi';
 import { readSites } from '../../githubSitesStore';
 import { registerSitesHandlers } from '../githubSitesHandlers';
 
@@ -113,5 +113,75 @@ describe('set-default-github-site', () => {
         store = makeStore({});
         registerSitesHandlers({ store });
         expect(await invoke('set-default-github-site', { owner: 'guild', repo: 'site' })).toMatchObject({ success: false, error: 'GitHub not connected.' });
+    });
+});
+
+describe('get-github-site-details', () => {
+    const repoBody = (permissions: Record<string, boolean>, type = 'Organization') => ({
+        status: 200, body: { owner: { type, avatar_url: 'a.png' }, permissions }
+    });
+    it('maps admin / push / 404 / 403 / rate limit / network error', async () => {
+        setup({}, (c) => {
+            if (c.path === '/repos/o/admin') return repoBody({ admin: true, push: true });
+            if (c.path === '/repos/o/pub') return repoBody({ push: true }, 'User');
+            if (c.path === '/repos/o/read') return repoBody({ pull: true });
+            if (c.path === '/repos/o/gone') return { status: 404 };
+            if (c.path === '/repos/o/denied') return { status: 403, body: { message: 'Must have push access' } };
+            if (c.path === '/repos/o/limited') return { status: 403, body: { message: 'API rate limit exceeded for user' } };
+            if (c.path === '/repos/o/admin/pages') return { status: 200, body: { html_url: 'https://custom.example/' } };
+            if (c.path === '/repos/o/boom') return { status: 502 };
+            return { status: 404 };
+        });
+        recordMemberCount('O', 'Admin', 4);
+        const names = ['admin', 'pub', 'read', 'gone', 'denied', 'limited', 'boom'];
+        const res = await invoke('get-github-site-details', names.map((repo) => ({ owner: 'o', repo })));
+        const d = res.details;
+        expect(d['o/admin']).toEqual({ role: 'admin', ownerType: 'Organization', ownerAvatarUrl: 'a.png', pagesUrl: 'https://custom.example/', memberCount: 4 });
+        expect(d['o/pub']).toMatchObject({ role: 'publisher', ownerType: 'User', pagesUrl: 'https://o.github.io/pub', memberCount: null });
+        expect(d['o/read'].role).toBe('none');
+        expect(d['o/gone'].role).toBe('none');
+        expect(d['o/denied'].role).toBe('none');
+        expect(d['o/limited'].role).toBeNull();
+        expect(d['o/boom']).toEqual({ role: null, ownerType: null, ownerAvatarUrl: null, pagesUrl: 'https://o.github.io/boom', memberCount: null });
+    });
+    it('skips the Pages lookup for a site with no access', async () => {
+        const calls = setup({}, () => ({ status: 404 }));
+        await invoke('get-github-site-details', [{ owner: 'o', repo: 'gone' }]);
+        expect(calls.map((c) => c.path)).toEqual(['/repos/o/gone']);
+    });
+    it('ignores malformed entries and works without a token', async () => {
+        handlers.clear();
+        store = makeStore({});
+        registerSitesHandlers({ store });
+        const res = await invoke('get-github-site-details', [{ owner: 'a b', repo: 'x' }, { owner: 'o', repo: 'r' }]);
+        expect(Object.keys(res.details)).toEqual(['o/r']);
+        expect(res.details['o/r'].role).toBeNull();
+    });
+});
+
+describe('find-github-sites', () => {
+    const page = (n: number, extra: any[] = []) => [
+        ...Array.from({ length: n }, (_, i) => ({ name: `r${i}`, owner: { login: 'filler' }, description: 'x', permissions: { push: true } })),
+        ...extra
+    ];
+    it('keeps pushable AxiBridge sites not already listed, across pages', async () => {
+        setup({ githubSites: [{ owner: 'guild', repo: 'known', addedVia: 'manual', addedAt: '' }] }, (c) => {
+            if (c.path === '/user/repos?per_page=100&page=1') return { status: 200, body: page(98, [
+                { name: 'known', owner: { login: 'guild' }, description: 'AxiBridge Reports', permissions: { push: true } },
+                { name: 'site', owner: { login: 'guild' }, description: ' AxiBridge Reports ', permissions: { push: true } }
+            ]) };
+            if (c.path === '/user/repos?per_page=100&page=2') return { status: 200, body: [
+                { name: 'readonly', owner: { login: 'x' }, description: 'AxiBridge Reports', permissions: { push: false } },
+                { name: 'other', owner: { login: 'me' }, description: 'AxiBridge Reports', permissions: { admin: true, push: true } }
+            ] };
+            return { status: 404 };
+        });
+        const res = await invoke('find-github-sites');
+        expect(res).toEqual({ success: true, found: [{ owner: 'guild', repo: 'site' }, { owner: 'me', repo: 'other' }] });
+        expect(keys(store.data.githubSites as any[])).toEqual(['guild/known:manual']); // never adds
+    });
+    it('reports a failure', async () => {
+        setup({}, () => ({ status: 500 }));
+        expect(await invoke('find-github-sites')).toMatchObject({ success: false });
     });
 });

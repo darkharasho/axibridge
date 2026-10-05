@@ -24,7 +24,7 @@ export interface SiteJoinTarget {
     pagesUrl: string; pagesSourcePath: string; madeDefault: boolean; favorites: string[];
 }
 
-const SITE_DESCRIPTION = 'AxiBridge Reports';
+export const SITE_DESCRIPTION = 'AxiBridge Reports';
 const INVITE_CACHE_TTL_MS = 10 * 60_000;
 const GITHUB_LOGIN_RE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 
