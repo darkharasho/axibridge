@@ -1,6 +1,9 @@
 import type { ColorPalette } from '../shared/webThemes';
 import type { IReportWebhook } from '../shared/reportWebhooks';
 import type { SliceSidecar } from './stats/slice/sliceTypes';
+import type { IGithubSite, ISiteDetails, SiteRef } from '../shared/githubSites';
+
+export type { IGithubSite, ISiteDetails, SiteRef };
 
 export interface IRepoCollaborator { login: string; avatarUrl: string | null }
 export interface IRepoInvite { id: number; login: string; avatarUrl: string | null; createdAt: string }
@@ -376,7 +379,9 @@ export interface IElectronAPI {
         githubPagesBaseUrl?: string | null;
         githubToken?: string | null;
         githubLogoPath?: string | null;
+        /** Frozen at migration; read only by the one-time migration in main. */
         githubFavoriteRepos?: string[] | null;
+        githubSites?: IGithubSite[];
         walkthroughSeen?: boolean;
         allowLocalJson?: boolean;
         r2AccountId?: string | null;
@@ -431,7 +436,9 @@ export interface IElectronAPI {
         githubPagesBaseUrl?: string | null;
         githubToken?: string | null;
         githubLogoPath?: string | null;
+        /** Frozen at migration; read only by the one-time migration in main. */
         githubFavoriteRepos?: string[] | null;
+        githubSites?: IGithubSite[];
         walkthroughSeen?: boolean;
         allowLocalJson?: boolean;
         r2AccountId?: string | null;
@@ -501,6 +508,12 @@ export interface IElectronAPI {
     /** `code: 'invalid'` = the invite expired or was revoked; drop it from any list. */
     acceptSiteInvite: (payload: { invitationId: number }) => Promise<{ success: boolean; target?: ISiteJoinTarget; error?: string; code?: 'invalid' }>;
     dismissSiteInvite: (payload: { invitationId: number }) => Promise<{ success: boolean; error?: string }>;
+    getGithubSites: () => Promise<{ success: boolean; sites: IGithubSite[]; defaultKey: string | null }>;
+    addGithubSite: (payload: { owner: string; repo: string; addedVia: 'manual' | 'found' }) => Promise<{ success: boolean; sites: IGithubSite[]; error?: string }>;
+    removeGithubSite: (payload: { owner: string; repo: string }) => Promise<{ success: boolean; sites: IGithubSite[]; error?: string }>;
+    setDefaultGithubSite: (payload: { owner: string; repo: string }) => Promise<{ success: boolean; sites: IGithubSite[]; defaultKey?: string; pagesUrl?: string; error?: string }>;
+    getGithubSiteDetails: (sites: SiteRef[]) => Promise<{ success: boolean; details?: Record<string, ISiteDetails>; error?: string }>;
+    findGithubSites: () => Promise<{ success: boolean; found?: SiteRef[]; error?: string }>;
     getGithubOrgs: () => Promise<{ success: boolean; orgs?: Array<{ login: string }>; error?: string }>;
     getGithubReports: (payload?: { owner?: string; repo?: string; branch?: string }) => Promise<{ success: boolean; reports?: any[]; error?: string }>;
     deleteGithubReports: (payload: { ids: string[]; owner?: string; repo?: string; branch?: string }) => Promise<{ success: boolean; removed?: string[]; error?: string }>;

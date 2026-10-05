@@ -6,6 +6,7 @@ import path from 'node:path';
 import { LEGACY_THEME_TO_PALETTE, DEFAULT_AXI_THEME } from '../../shared/webThemes';
 import { collapseGlassKeys } from '../glassSettingMigration';
 import { DEFAULT_DISRUPTION_METHOD } from '../../shared/metricsSettings';
+import { readSites } from '../githubSitesStore';
 import { isR2SliceEnabled } from './githubHandlers';
 import { parseMaybeGzippedJson } from '../cloudflare/replaySidecar';
 import { resolvePartsJson } from '../partsReader';
@@ -213,7 +214,7 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             githubPagesBaseUrl: store.get('githubPagesBaseUrl', null),
             githubToken: store.get('githubToken', null),
             githubLogoPath: store.get('githubLogoPath', null),
-            githubFavoriteRepos: store.get('githubFavoriteRepos', []),
+            githubSites: readSites(store),
             walkthroughSeen: store.get('walkthroughSeen', false),
             allowLocalJson: store.get('allowLocalJson', false),
             r2AccountId: store.get('r2AccountId', null),
@@ -295,7 +296,7 @@ export function registerSettingsHandlers(opts: SettingsHandlerOptions) {
             githubPagesBaseUrl: store.get('githubPagesBaseUrl', null),
             githubToken: store.get('githubToken', null),
             githubLogoPath: store.get('githubLogoPath', null),
-            githubFavoriteRepos: store.get('githubFavoriteRepos', []),
+            githubSites: readSites(store),
             walkthroughSeen: store.get('walkthroughSeen', false),
             allowLocalJson: store.get('allowLocalJson', false),
             r2AccountId: store.get('r2AccountId', null),
