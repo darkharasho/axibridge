@@ -8,6 +8,7 @@ import { normalizeReportPayload } from '../shared/reportNormalization';
 import { StatsView } from './StatsView';
 import { CategoryBar } from './stats/CategoryBar';
 import { useStatsStore } from './stats/statsStore';
+import { inferredPagesUrl, normalizeSiteKey, sortSitesDefaultFirst, type IGithubSite } from '../shared/githubSites';
 
 type HistoryRepoOption = {
     key: string;
@@ -47,7 +48,7 @@ const parseRepoFullName = (fullName: string): { owner: string; repo: string } | 
     return { owner: owner.trim(), repo };
 };
 
-const buildRepoOptions = (settings: any): HistoryRepoOption[] => {
+export const buildRepoOptions = (settings: any): HistoryRepoOption[] => {
     const defaultBaseUrl = resolveReportsIndexUrl(settings);
     const defaultOwner = typeof settings?.githubRepoOwner === 'string'
         ? settings.githubRepoOwner.trim()
@@ -58,33 +59,17 @@ const buildRepoOptions = (settings: any): HistoryRepoOption[] => {
     const defaultFullName = defaultOwner && defaultRepo
         ? `${defaultOwner}/${defaultRepo}`
         : '';
-    const seen = new Set<string>();
     const options: HistoryRepoOption[] = [];
-
-    const pushOption = (fullName: string, label: string, explicitBaseUrl?: string | null) => {
-        const repo = parseRepoFullName(fullName);
-        if (!repo || seen.has(fullName)) return;
-        const baseUrl = explicitBaseUrl?.trim() || `https://${repo.owner}.github.io/${repo.repo}`;
-        seen.add(fullName);
-        options.push({
-            key: fullName,
-            label,
-            indexUrl: baseUrl
-        });
-    };
-
+    const defaultKey = defaultFullName ? normalizeSiteKey(defaultOwner, defaultRepo) : null;
     if (defaultFullName && defaultBaseUrl) {
-        pushOption(defaultFullName, `${defaultFullName} (Default)`, defaultBaseUrl);
+        options.push({ key: defaultFullName, label: `${defaultFullName} (Default)`, indexUrl: defaultBaseUrl });
     }
-
-    const favorites: string[] = Array.isArray(settings?.githubFavoriteRepos)
-        ? settings.githubFavoriteRepos.filter((entry: unknown): entry is string => typeof entry === 'string' && entry.trim().length > 0)
-        : [];
-
-    favorites.forEach((fullName) => {
-        pushOption(fullName.trim(), fullName.trim());
+    const sites: IGithubSite[] = Array.isArray(settings?.githubSites) ? settings.githubSites : [];
+    sortSitesDefaultFirst(sites, defaultKey).forEach((site) => {
+        if (normalizeSiteKey(site.owner, site.repo) === defaultKey) return;
+        const fullName = `${site.owner}/${site.repo}`;
+        options.push({ key: fullName, label: fullName, indexUrl: inferredPagesUrl(site) });
     });
-
     return options;
 };
 
