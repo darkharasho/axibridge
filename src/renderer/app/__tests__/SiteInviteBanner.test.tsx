@@ -5,7 +5,7 @@ import { SiteInviteBanner } from '../SiteInviteBanner';
 import { useSiteInvites } from '../hooks/useSiteInvites';
 
 const invite = { id: 1, owner: 'guild', repo: 'site', fullName: 'guild/site', inviter: 'boss', createdAt: '', dismissed: false };
-const target = { owner: 'guild', repo: 'site', fullName: 'guild/site', branch: 'main', pagesUrl: 'u', pagesSourcePath: '', madeDefault: true, favorites: ['guild/site'] };
+const target = { owner: 'guild', repo: 'site', fullName: 'guild/site', branch: 'main', pagesUrl: 'u', pagesSourcePath: '', madeDefault: true, sites: [] };
 const noop = () => {};
 
 describe('SiteInviteBanner', () => {

@@ -5,7 +5,7 @@ vi.mock('electron', () => ({ ipcMain: { handle: vi.fn((ch: string, fn: any) => h
 vi.mock('electron-log', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 
 import { installHttpsMock, type MockResponse, type RecordedCall } from '../../__tests__/githubHttpsMock';
-import { resetGithubApiCaches } from '../../githubApi';
+import { getMemberCount, resetGithubApiCaches } from '../../githubApi';
 import { registerPublishersHandlers } from '../githubPublishersHandlers';
 
 const makeStore = (values: Record<string, unknown>) => {
@@ -26,10 +26,32 @@ const setup = (values: Record<string, unknown>, responder: (c: RecordedCall) => 
 beforeEach(() => { vi.restoreAllMocks(); resetGithubApiCaches(); });
 
 describe('get-repo-publishers', () => {
-    it('reports canAdmin=false without listing for a non-admin', async () => {
-        const calls = setup({ githubRepoOwner: 'guild', githubRepoName: 'site' }, () => ({ status: 200, body: { owner: { type: 'Organization' }, permissions: { push: true } } }));
-        expect(await invoke('get-repo-publishers')).toEqual({ success: true, canAdmin: false, ownerType: 'Organization', collaborators: [], invites: [] });
+    it('lists collaborators read-only for a push user, without invites', async () => {
+        const calls = setup({ githubRepoOwner: 'guild', githubRepoName: 'site' }, (c) => {
+            if (c.path === '/repos/guild/site') return { status: 200, body: { owner: { type: 'Organization' }, permissions: { push: true } } };
+            if (c.path.startsWith('/repos/guild/site/collaborators')) return { status: 200, body: [{ login: 'kyra', avatar_url: 'k.png', permissions: { push: true } }] };
+            return { status: 404 };
+        });
+        expect(await invoke('get-repo-publishers')).toEqual({
+            success: true, canAdmin: false, ownerType: 'Organization', collaborators: [{ login: 'kyra', avatarUrl: 'k.png' }], invites: []
+        });
+        expect(calls.some((c) => c.path.includes('/invitations'))).toBe(false);
+    });
+    it('does not list for a user without push', async () => {
+        const calls = setup({ githubRepoOwner: 'guild', githubRepoName: 'site' }, () => ({ status: 200, body: { owner: { type: 'User' }, permissions: { pull: true } } }));
+        expect(await invoke('get-repo-publishers')).toEqual({ success: true, canAdmin: false, ownerType: 'User', collaborators: [], invites: [] });
         expect(calls).toHaveLength(1);
+    });
+    it('records the member count for site details', async () => {
+        setup({ githubRepoOwner: 'guild', githubRepoName: 'site' }, (c) => {
+            if (c.path === '/repos/guild/site') return ADMIN;
+            if (c.path.startsWith('/repos/guild/site/collaborators')) return { status: 200, body: [
+                { login: 'a', permissions: { push: true } }, { login: 'b', permissions: { push: true } }
+            ] };
+            return { status: 200, body: [] };
+        });
+        await invoke('get-repo-publishers');
+        expect(getMemberCount('guild', 'site')).toBe(2);
     });
     it('lists push collaborators and pending invites for an admin', async () => {
         setup({ githubRepoOwner: 'guild', githubRepoName: 'site' }, (c) => {
@@ -73,6 +95,35 @@ describe('add-repo-publisher', () => {
     it('surfaces GitHub\'s message on 403', async () => {
         setup({ githubRepoOwner: 'guild', githubRepoName: 'site' }, base({ status: 403, body: { message: 'Organization policy forbids outside collaborators' } }));
         expect(await invoke('add-repo-publisher', { username: 'kyra' })).toEqual({ success: false, error: 'Organization policy forbids outside collaborators' });
+    });
+});
+
+describe('add-repo-publisher org errors', () => {
+    const respond = (ownerType: string, put: MockResponse) => (c: RecordedCall): MockResponse => {
+        if (c.path === '/users/kyra') return { status: 200, body: { login: 'kyra' } };
+        if (c.path === '/repos/guild/site') return { status: 200, body: { owner: { type: ownerType }, permissions: { admin: true, push: true } } };
+        if (c.method === 'PUT') return put;
+        return { status: 404 };
+    };
+    it('explains an org that blocks outside collaborators', async () => {
+        setup({ githubRepoOwner: 'guild', githubRepoName: 'site' }, respond('Organization', { status: 403, body: { message: 'Outside collaborators are not allowed for this organization' } }));
+        expect(await invoke('add-repo-publisher', { username: 'kyra' })).toEqual({
+            success: false,
+            error: "Couldn't invite kyra: the guild org only lets owners add outside collaborators. Ask an org owner to add them, or to allow repo admins to invite.",
+            helpUrl: 'https://github.com/organizations/guild/settings/member_privileges'
+        });
+    });
+    it('explains OAuth app restrictions', async () => {
+        setup({ githubRepoOwner: 'guild', githubRepoName: 'site' }, respond('Organization', { status: 403, body: { message: 'Although you appear to have the correct authorization credentials, the `guild` organization has enabled OAuth App access restrictions' } }));
+        expect(await invoke('add-repo-publisher', { username: 'kyra' })).toEqual({
+            success: false,
+            error: "guild hasn't approved AxiBridge. An org owner must approve it under the org's third-party access settings.",
+            helpUrl: 'https://github.com/organizations/guild/settings/oauth_application_policy'
+        });
+    });
+    it('keeps GitHub\'s message for a personal repo', async () => {
+        setup({ githubRepoOwner: 'guild', githubRepoName: 'site' }, respond('User', { status: 403, body: { message: 'Not allowed' } }));
+        expect(await invoke('add-repo-publisher', { username: 'kyra' })).toEqual({ success: false, error: 'Not allowed' });
     });
 });
 
@@ -149,21 +200,24 @@ describe('accept-site-invite', () => {
         return { status: 404 };
     };
     it('sets the default target when none is configured', async () => {
-        setup({ githubFavoriteRepos: [] }, responder({ status: 204 }));
+        setup({}, responder({ status: 204 }));
         const res = await invoke('accept-site-invite', { invitationId: 1 });
         expect(res.target).toEqual({
             owner: 'guild', repo: 'site', fullName: 'guild/site', branch: 'gh-pages',
-            pagesUrl: 'https://guild.github.io/site/', pagesSourcePath: 'docs', madeDefault: true, favorites: ['guild/site']
+            pagesUrl: 'https://guild.github.io/site/', pagesSourcePath: 'docs', madeDefault: true,
+            sites: [expect.objectContaining({ owner: 'guild', repo: 'site', addedVia: 'joined' })]
         });
         expect(store.data.githubRepoOwner).toBe('guild');
         expect(store.data.githubBranch).toBe('gh-pages');
         expect(store.data.githubPagesSourcePath).toBe('docs');
+        expect((store.data.githubSites as any[]).map((s) => `${s.owner}/${s.repo}:${s.addedVia}`)).toEqual(['guild/site:joined']);
     });
-    it('only adds a favorite when a default exists, deduped', async () => {
-        setup({ githubRepoOwner: 'me', githubRepoName: 'mine', githubFavoriteRepos: ['guild/site'] }, responder({ status: 204 }));
+    it('adds the joined site to the list without taking over the default', async () => {
+        setup({ githubRepoOwner: 'me', githubRepoName: 'mine' }, responder({ status: 204 }));
         const res = await invoke('accept-site-invite', { invitationId: 1 });
         expect(res.target.madeDefault).toBe(false);
-        expect(store.data.githubFavoriteRepos).toEqual(['guild/site']);
+        expect(store.data.githubFavoriteRepos).toBeUndefined();
+        expect((store.data.githubSites as any[]).map((s) => `${s.owner}/${s.repo}:${s.addedVia}`)).toEqual(['me/mine:default', 'guild/site:joined']);
         expect(store.data.githubRepoOwner).toBe('me');
     });
     it('prefers the Pages source branch over the default branch', async () => {

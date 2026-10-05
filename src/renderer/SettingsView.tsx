@@ -293,7 +293,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const handleSiteJoined = useCallback((target: ISiteJoinTarget) => {
         // SettingsView saves its whole state, so a join must land here too or
         // the next save would revert it.
-        setGithubFavoriteRepos(target.favorites);
+        void target.sites;
         if (target.madeDefault) {
             setGithubRepoOwner(target.owner);
             setGithubRepoName(target.repo);

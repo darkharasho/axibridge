@@ -74,6 +74,8 @@ import {
 import { readPartsManifest } from '../../shared/chunkedGzip';
 import { resolvePartsJson } from '../partsReader';
 import { PARSER_SETTINGS_STORE_KEY, resolveParserSettings, type ParserSettings } from '../parserSettings';
+import { readSites, writeSites } from '../githubSitesStore';
+import { addSite } from '../../shared/githubSites';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 // GitHub 422s a single blob somewhere between 38 MB and 40 MB raw (probed
@@ -1547,6 +1549,7 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
         const pagesInfo = await ensureGithubPages(owner, repo, branch, token);
         const pagesPath = normalizePagesPath(pagesInfo?.source?.path);
         store.set('githubPagesSourcePath', pagesPath);
+        store.set('githubBranch', branch);
         return { pagesInfo, pagesPath };
     };
 
@@ -1835,10 +1838,13 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             const branch = params.branch || 'main';
             const { pagesInfo, pagesPath } = await resolvePagesSource(owner, repoName, branch, token);
             const pagesUrl = pagesInfo?.html_url || `https://${owner}.github.io/${repoName}`;
+            // Before the default keys change, so readSites keeps the old default listed.
+            writeSites(store, addSite(readSites(store), { owner, repo: repoName }, 'manual'));
             store.set('githubRepoOwner', owner);
             store.set('githubRepoName', repoName);
             store.set('githubPagesBaseUrl', pagesUrl);
             store.set('githubPagesSourcePath', pagesPath);
+            store.set('githubBranch', branch);
             return {
                 success: true,
                 repo: {

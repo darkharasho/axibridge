@@ -8,7 +8,7 @@ export type { IGithubSite, ISiteDetails, SiteRef };
 export interface IRepoCollaborator { login: string; avatarUrl: string | null }
 export interface IRepoInvite { id: number; login: string; avatarUrl: string | null; createdAt: string }
 export interface ISiteInvite { id: number; owner: string; repo: string; fullName: string; inviter: string; createdAt: string; dismissed: boolean }
-export interface ISiteJoinTarget { owner: string; repo: string; fullName: string; branch: string; pagesUrl: string; pagesSourcePath: string; madeDefault: boolean; favorites: string[] }
+export interface ISiteJoinTarget { owner: string; repo: string; fullName: string; branch: string; pagesUrl: string; pagesSourcePath: string; madeDefault: boolean; sites: IGithubSite[] }
 
 export interface IWebhook {
     id: string;
@@ -501,7 +501,7 @@ export interface IElectronAPI {
     getGithubRepos: () => Promise<{ success: boolean; repos?: Array<{ full_name: string; name: string; owner: string }>; error?: string }>;
     getGithubViewerLogin: () => Promise<{ success: boolean; login?: string; error?: string }>;
     getRepoPublishers: (payload?: { owner?: string; repo?: string }) => Promise<{ success: boolean; canAdmin?: boolean; ownerType?: 'User' | 'Organization' | null; collaborators?: IRepoCollaborator[]; invites?: IRepoInvite[]; error?: string }>;
-    addRepoPublisher: (payload: { owner?: string; repo?: string; username: string }) => Promise<{ success: boolean; status?: 'invited' | 'already-has-access'; error?: string }>;
+    addRepoPublisher: (payload: { owner?: string; repo?: string; username: string }) => Promise<{ success: boolean; status?: 'invited' | 'already-has-access'; error?: string; helpUrl?: string }>;
     removeRepoPublisher: (payload: { owner?: string; repo?: string; username: string }) => Promise<{ success: boolean; error?: string }>;
     cancelRepoInvite: (payload: { owner?: string; repo?: string; invitationId: number }) => Promise<{ success: boolean; error?: string }>;
     getPendingSiteInvites: (payload?: { force?: boolean }) => Promise<{ success: boolean; invites?: ISiteInvite[]; error?: string }>;

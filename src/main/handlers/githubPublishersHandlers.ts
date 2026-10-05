@@ -11,8 +11,11 @@ import {
     getRepoPermissions,
     getViewerLogin,
     githubApiRequest,
-    invalidateRepoPermissions
+    invalidateRepoPermissions,
+    recordMemberCount
 } from '../githubApi';
+import { readSites, writeSites } from '../githubSitesStore';
+import { addSite, type IGithubSite } from '../../shared/githubSites';
 
 export interface RepoCollaborator { login: string; avatarUrl: string | null }
 export interface RepoInvite { id: number; login: string; avatarUrl: string | null; createdAt: string }
@@ -21,7 +24,7 @@ export interface SiteInvite {
 }
 export interface SiteJoinTarget {
     owner: string; repo: string; fullName: string; branch: string;
-    pagesUrl: string; pagesSourcePath: string; madeDefault: boolean; favorites: string[];
+    pagesUrl: string; pagesSourcePath: string; madeDefault: boolean; sites: IGithubSite[];
 }
 
 export const SITE_DESCRIPTION = 'AxiBridge Reports';
@@ -30,6 +33,26 @@ const GITHUB_LOGIN_RE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 
 /** `code: 'invalid'` tells the renderer to drop the row: the invite is gone for good. */
 const INVALID_INVITE = { success: false, code: 'invalid', error: 'That invite is no longer valid.' } as const;
+
+/** Org policy failures get an explanation and a link; anything else keeps GitHub's words. */
+export const describeCollaboratorError = (
+    status: number, data: any, owner: string, ownerType: 'User' | 'Organization' | null, username: string
+): { error: string; helpUrl?: string } => {
+    const message = String(data?.errors?.[0]?.message || data?.message || '');
+    if (/OAuth App access restrictions/i.test(message)) {
+        return {
+            error: `${owner} hasn't approved AxiBridge. An org owner must approve it under the org's third-party access settings.`,
+            helpUrl: `https://github.com/organizations/${owner}/settings/oauth_application_policy`
+        };
+    }
+    if (ownerType === 'Organization' && (status === 403 || status === 422) && /outside collaborator|not allowed|forbid/i.test(message)) {
+        return {
+            error: `Couldn't invite ${username}: the ${owner} org only lets owners add outside collaborators. Ask an org owner to add them, or to allow repo admins to invite.`,
+            helpUrl: `https://github.com/organizations/${owner}/settings/member_privileges`
+        };
+    }
+    return { error: message || `GitHub API error (${status}) adding ${username}` };
+};
 
 const normalizePagesPath = (value: unknown) => String(value || '').trim().replace(/^\/+|\/+$/g, '');
 
@@ -111,12 +134,15 @@ export function registerPublishersHandlers({ store }: PublishersHandlerOptions) 
             const { owner, repo } = resolveRepo(payload);
             if (!owner || !repo) return { success: false, error: 'Repository not configured.' };
             const perms = await getRepoPermissions(owner, repo, token);
-            if (!perms.admin) {
+            if (!perms.push) {
                 return { success: true, canAdmin: false, ownerType: perms.ownerType, collaborators: [], invites: [] };
             }
+            // Push users may list collaborators; only admins may see invitations.
             const [collabResp, inviteResp] = await Promise.all([
                 githubApiRequest('GET', `${repoPath(owner, repo)}/collaborators?affiliation=direct&per_page=100`, token),
-                githubApiRequest('GET', `${repoPath(owner, repo)}/invitations?per_page=100`, token)
+                perms.admin
+                    ? githubApiRequest('GET', `${repoPath(owner, repo)}/invitations?per_page=100`, token)
+                    : Promise.resolve({ status: 200, data: [] })
             ]);
             if (collabResp.status >= 300) throw new Error(`GitHub API error (${collabResp.status}) loading collaborators`);
             if (inviteResp.status >= 300) throw new Error(`GitHub API error (${inviteResp.status}) loading invitations`);
@@ -126,7 +152,8 @@ export function registerPublishersHandlers({ store }: PublishersHandlerOptions) 
             const invites: RepoInvite[] = (Array.isArray(inviteResp.data) ? inviteResp.data : [])
                 .filter((i: any) => typeof i?.id === 'number' && typeof i?.invitee?.login === 'string')
                 .map((i: any) => ({ id: i.id, login: i.invitee.login, avatarUrl: i.invitee.avatar_url ?? null, createdAt: i.created_at ?? '' }));
-            return { success: true, canAdmin: true, ownerType: perms.ownerType, collaborators, invites };
+            recordMemberCount(owner, repo, collaborators.length);
+            return { success: true, canAdmin: perms.admin, ownerType: perms.ownerType, collaborators, invites };
         } catch (err: any) {
             return { success: false, error: err?.message || 'Failed to load publishers.' };
         }
@@ -146,7 +173,8 @@ export function registerPublishersHandlers({ store }: PublishersHandlerOptions) 
             const resp = await githubApiRequest('PUT', `${repoPath(owner, repo)}/collaborators/${encodeGitPath(username)}`, token, { permission: 'push' });
             if (resp.status === 201) return { success: true, status: 'invited' };
             if (resp.status === 204) return { success: true, status: 'already-has-access' };
-            return { success: false, error: resp.data?.errors?.[0]?.message || resp.data?.message || `GitHub API error (${resp.status}) adding ${username}` };
+            const perms = await getRepoPermissions(owner, repo, token);
+            return { success: false, ...describeCollaboratorError(resp.status, resp.data, owner, perms.ownerType, username) };
         } catch (err: any) {
             return { success: false, error: err?.message || 'Failed to add publisher.' };
         }
@@ -227,9 +255,8 @@ export function registerPublishersHandlers({ store }: PublishersHandlerOptions) 
                 : invite.branch;
             const pagesSourcePath = pages.status === 200 ? normalizePagesPath(pages.data?.source?.path) : '';
 
-            const existing = store.get('githubFavoriteRepos', []);
-            const favorites = Array.from(new Set([...(Array.isArray(existing) ? existing : []), invite.fullName]));
-            store.set('githubFavoriteRepos', favorites);
+            const sites = addSite(readSites(store), { owner: invite.owner, repo: invite.repo }, 'joined');
+            writeSites(store, sites);
             const madeDefault = !store.get('githubRepoOwner') || !store.get('githubRepoName');
             if (madeDefault) {
                 store.set('githubRepoOwner', invite.owner);
@@ -240,7 +267,7 @@ export function registerPublishersHandlers({ store }: PublishersHandlerOptions) 
             }
             const target: SiteJoinTarget = {
                 owner: invite.owner, repo: invite.repo, fullName: invite.fullName, branch,
-                pagesUrl, pagesSourcePath, madeDefault, favorites
+                pagesUrl, pagesSourcePath, madeDefault, sites
             };
             return { success: true, target };
         } catch (err: any) {
