@@ -30,6 +30,7 @@ import { BoonGlyph } from './ui/BoonGlyph';
 import { HistoryReparseCard } from './settings/HistoryReparseCard';
 import { CloudflareConnect } from './settings/CloudflareConnect';
 import { SettingsNav } from './settings/SettingsNav';
+import { validateRepoName } from './settings/validateRepoName';
 import {
     SETTINGS_CATEGORIES,
     FLATTENED_SECTIONS,
@@ -61,13 +62,7 @@ export function extractHeadingText(node: React.ReactNode): string {
     return '';
 }
 
-export function validateRepoName(value: string): string | null {
-    if (!value) return 'Repository name is required.';
-    if (!/^[A-Za-z0-9._-]+$/.test(value)) return 'Use letters, numbers, ., _, or - only.';
-    if (value.startsWith('.') || value.endsWith('.')) return 'Name cannot start or end with a dot.';
-    if (value.endsWith('.git')) return 'Name cannot end with .git.';
-    return null;
-}
+export { validateRepoName } from './settings/validateRepoName';
 
 export function formatWeight(value: number) { return value.toFixed(2); }
 
