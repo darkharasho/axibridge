@@ -1,10 +1,11 @@
 import { memo, useCallback, useMemo, useRef, useState, useEffect, type CSSProperties } from 'react';
 import { buildDeleteConfirmText } from '../shared/publishedBy';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Plus, Trash2, ExternalLink, Zap, Star, Download, Upload, ChevronDown, Search, Swords, Shield, Hammer, Wind, MessageSquare, FolderOpen } from 'lucide-react';
+import { Settings, Key, X as CloseIcon, Minimize, BarChart3, Users, Sparkles, Compass, BookOpen, Cloud, Link as LinkIcon, RefreshCw, Trash2, ExternalLink, Zap, Download, Upload, ChevronDown, Search, Swords, Shield, Hammer, Wind, MessageSquare, FolderOpen } from 'lucide-react';
 import { PublishersCard } from './settings/PublishersCard';
-import { PendingSiteInvites } from './settings/PendingSiteInvites';
-import type { ISiteJoinTarget } from './global.d';
+import { PublishingSiteCard, type SitePanelMode } from './settings/PublishingSiteCard';
+import { SiteListPanel } from './settings/SiteListPanel';
+import { normalizeSiteKey, type IGithubSite, type ISiteDetails } from '../shared/githubSites';
 import { IEmbedStatSettings, DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS, DEFAULT_EMBED_STATS, DEFAULT_STATS_VIEW_SETTINGS, IMvpWeightProfiles, DEFAULT_MVP_WEIGHT_PROFILES, DisruptionMethod, DEFAULT_DISRUPTION_METHOD, IStatsViewSettings, IParserSettings, IParserStatus } from './global.d';
 import { normalizeMvpWeightProfiles } from './stats/mvpWeightProfiles';
 import { ReportWebhooksCard } from './ReportWebhooksCard';
@@ -30,7 +31,6 @@ import { BoonGlyph } from './ui/BoonGlyph';
 import { HistoryReparseCard } from './settings/HistoryReparseCard';
 import { CloudflareConnect } from './settings/CloudflareConnect';
 import { SettingsNav } from './settings/SettingsNav';
-import { validateRepoName } from './settings/validateRepoName';
 import {
     SETTINGS_CATEGORIES,
     FLATTENED_SECTIONS,
@@ -245,20 +245,10 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [githubRepoName, setGithubRepoName] = useState('');
     const [githubRepoOwner, setGithubRepoOwner] = useState('');
     const [githubToken, setGithubToken] = useState('');
-    const [githubFavoriteRepos, setGithubFavoriteRepos] = useState<string[]>([]);
     const [githubAuthStatus, setGithubAuthStatus] = useState<'idle' | 'pending' | 'connected' | 'error'>('idle');
     const [githubAuthMessage, setGithubAuthMessage] = useState<string | null>(null);
     const [githubUserCode, setGithubUserCode] = useState<string | null>(null);
     const [githubVerificationUri, setGithubVerificationUri] = useState<string | null>(null);
-    const [githubRepos, setGithubRepos] = useState<Array<{ full_name: string; name: string; owner: string }>>([]);
-    const [githubOrgs, setGithubOrgs] = useState<Array<{ login: string }>>([]);
-    const [githubCreateOwner, setGithubCreateOwner] = useState('');
-    const [githubRepoSearch, setGithubRepoSearch] = useState('');
-    const [githubRepoMode, setGithubRepoMode] = useState<'select' | 'create'>('select');
-    const [loadingRepos, setLoadingRepos] = useState(false);
-    const [githubRepoError, setGithubRepoError] = useState<string | null>(null);
-    const [creatingRepo, setCreatingRepo] = useState(false);
-    const [githubRepoStatus, setGithubRepoStatus] = useState<string | null>(null);
     const [githubManageOpen, setGithubManageOpen] = useState(false);
     const [githubReports, setGithubReports] = useState<any[]>([]);
     const [githubReportsLoading, setGithubReportsLoading] = useState(false);
@@ -266,8 +256,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const [githubReportsSelected, setGithubReportsSelected] = useState<Set<string>>(new Set());
     const [githubReportsDeleting, setGithubReportsDeleting] = useState(false);
     const [githubReportsStatus, setGithubReportsStatus] = useState<string | null>(null);
-    const [pagesUrlCopied, setPagesUrlCopied] = useState(false);
-    const [githubRepoStatusKind, setGithubRepoStatusKind] = useState<'idle' | 'success' | 'error' | 'pending'>('idle');
     const [isSaving, setIsSaving] = useState(false);
     const [hasLoaded, setHasLoaded] = useState(false);
     const [showSaved, setShowSaved] = useState(false);
@@ -285,14 +273,38 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         setSiteCanAdmin(null);
     }, [githubRepoOwner, githubRepoName, githubAuthStatus]);
     const handleAdminKnown = useCallback((canAdmin: boolean) => setSiteCanAdmin(canAdmin), []);
-    const handleSiteJoined = useCallback((target: ISiteJoinTarget) => {
-        // SettingsView saves its whole state, so a join must land here too or
-        // the next save would revert it.
-        void target.sites;
-        if (target.madeDefault) {
-            setGithubRepoOwner(target.owner);
-            setGithubRepoName(target.repo);
-        }
+    const [githubSites, setGithubSites] = useState<IGithubSite[]>([]);
+    const [siteDetails, setSiteDetails] = useState<Record<string, ISiteDetails>>({});
+    const [sitePanelMode, setSitePanelMode] = useState<SitePanelMode | null>(null);
+    const [siteInviteCount, setSiteInviteCount] = useState(0);
+    const sitePanelOpen = sitePanelMode !== null;
+    const defaultSiteKey = githubRepoOwner && githubRepoName ? normalizeSiteKey(githubRepoOwner, githubRepoName) : null;
+
+    // Details for the default always; for every site while the panel is open.
+    useEffect(() => {
+        if (githubAuthStatus !== 'connected' || !window.electronAPI?.getGithubSiteDetails) return;
+        const refs = sitePanelOpen
+            ? githubSites.map(({ owner, repo }) => ({ owner, repo }))
+            : (githubRepoOwner && githubRepoName ? [{ owner: githubRepoOwner, repo: githubRepoName }] : []);
+        if (refs.length === 0) return;
+        let cancelled = false;
+        void window.electronAPI.getGithubSiteDetails(refs)
+            .then((res) => { if (!cancelled && res?.success && res.details) setSiteDetails((prev) => ({ ...prev, ...res.details })); })
+            .catch(() => { /* fail open: no badges */ });
+        return () => { cancelled = true; };
+    }, [githubAuthStatus, githubRepoOwner, githubRepoName, sitePanelOpen, githubSites]);
+
+    useEffect(() => {
+        if (githubAuthStatus !== 'connected') return;
+        void window.electronAPI?.getPendingSiteInvites?.().then((res) => {
+            if (res?.success) setSiteInviteCount((res.invites ?? []).length);
+        }).catch(() => {});
+    }, [githubAuthStatus]);
+
+    // SettingsView saves its whole state; the default must land here or the next save reverts it.
+    const handleDefaultChanged = useCallback((owner: string, repo: string) => {
+        setGithubRepoOwner(owner);
+        setGithubRepoName(repo);
     }, []);
     const [r2AccountId, setR2AccountId] = useState('');
     const [r2AccessKeyId, setR2AccessKeyId] = useState('');
@@ -347,16 +359,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const lastHelpUpdatesFocusTriggerRef = useRef<number>(0);
     const lastParserSettingsFocusTriggerRef = useRef<number>(0);
     const lastHowToTriggerRef = useRef<number>(0);
-    const inferredPagesUrl = githubRepoOwner && githubRepoName
-        ? `https://${githubRepoOwner}.github.io/${githubRepoName}`
-        : '';
-    const selectedGithubRepoKey = githubRepoOwner && githubRepoName
-        ? `${githubRepoOwner}/${githubRepoName}`
-        : '';
-    const lastSavedPagesUrlRef = useRef<string | null>(null);
     const logoSyncInFlightRef = useRef(false);
     const queuedLogoPathRef = useRef<string | null>(null);
-    const favoriteRepoSet = useMemo(() => new Set(githubFavoriteRepos), [githubFavoriteRepos]);
     const metricsSpecContentRef = useRef<HTMLDivElement | null>(null);
 
     const metricsSpecHeadingCountsRef = useRef<Map<string, number>>(new Map());
@@ -597,11 +601,10 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             setCommanderThresholds({ ...DEFAULT_COMMANDER_THRESHOLDS, ...loadedCommanderThresholds });
         }
         setGithubRepoOwner(settings.githubRepoOwner || '');
-        setGithubCreateOwner('');
         setGithubRepoName(settings.githubRepoName || '');
         setGithubToken(settings.githubToken || '');
         setGithubLogoPath(settings.githubLogoPath || null);
-        setGithubFavoriteRepos(Array.isArray(settings.githubFavoriteRepos) ? settings.githubFavoriteRepos : []);
+        setGithubSites(Array.isArray(settings.githubSites) ? settings.githubSites : []);
         if (settings.githubToken) {
             setGithubAuthStatus('connected');
         }
@@ -862,8 +865,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         githubRepoOwner,
         githubRepoName,
         githubToken,
-        githubLogoPath,
-        githubFavoriteRepos
+        githubLogoPath
     });
 
     const confirmImportSettings = async () => {
@@ -1035,7 +1037,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             githubRepoOwner: githubRepoOwner || null,
             githubToken: githubToken || null,
             githubLogoPath: githubLogoPath || null,
-            githubFavoriteRepos,
             allowLocalJson,
             r2AccountId: r2AccountId.trim() || null,
             r2AccessKeyId: r2AccessKeyId.trim() || null,
@@ -1085,7 +1086,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         githubRepoOwner,
         githubToken,
         githubLogoPath,
-        githubFavoriteRepos,
         r2AccountId,
         r2AccessKeyId,
         r2SecretAccessKey,
@@ -1117,36 +1117,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         return unsubscribe;
     }, []);
 
-    const refreshGithubRepos = async () => {
-        if (!window.electronAPI?.getGithubRepos) return;
-        setLoadingRepos(true);
-        try {
-            const [reposResult, orgsResult] = await Promise.all([
-                window.electronAPI.getGithubRepos(),
-                window.electronAPI.getGithubOrgs ? window.electronAPI.getGithubOrgs() : Promise.resolve(null)
-            ]);
-            if (reposResult?.success && reposResult.repos) {
-                setGithubRepos(reposResult.repos);
-            }
-            const nextOrgs = orgsResult?.success && Array.isArray(orgsResult.orgs) ? orgsResult.orgs : [];
-            setGithubOrgs(nextOrgs);
-            setGithubCreateOwner((prev) => {
-                if (prev && nextOrgs.some((org) => org.login === prev)) return prev;
-                if (githubRepoOwner && nextOrgs.some((org) => org.login === githubRepoOwner)) return githubRepoOwner;
-                return '';
-            });
-        } finally {
-            setLoadingRepos(false);
-        }
-    };
-
-    const toggleFavoriteRepo = (fullName: string) => {
-        setGithubFavoriteRepos((prev) => (
-            prev.includes(fullName)
-                ? prev.filter((name) => name !== fullName)
-                : [...prev, fullName]
-        ));
-    };
 
     const loadGithubReports = async () => {
         if (!window.electronAPI?.getGithubReports) return;
@@ -1210,74 +1180,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         }
     };
 
-
-    const handleCreateGithubRepo = async () => {
-        if (!window.electronAPI?.createGithubRepo) return;
-        if (githubAuthStatus !== 'connected') {
-            setGithubRepoError('Connect GitHub first.');
-            return;
-        }
-        const error = validateRepoName(githubRepoName);
-        if (error) {
-            setGithubRepoError(error);
-            return;
-        }
-        setCreatingRepo(true);
-        setGithubRepoStatusKind('pending');
-        setGithubRepoStatus('Creating repository...');
-        const result = await window.electronAPI.createGithubRepo({
-            name: githubRepoName,
-            branch: 'main',
-            owner: githubCreateOwner || undefined
-        });
-        const createdRepo = result?.repo;
-        if (result?.success && createdRepo) {
-            setGithubRepoError(null);
-            setGithubRepoMode('select');
-            setGithubRepoOwner(createdRepo.owner || '');
-            setGithubCreateOwner(githubOrgs.some((org) => org.login === createdRepo.owner) ? createdRepo.owner : '');
-            // Pages URL inferred from repo settings; no manual override.
-            await refreshGithubRepos();
-            setGithubRepoStatusKind('success');
-            setGithubRepoStatus(`Created ${createdRepo.full_name}`);
-        } else {
-            const message = result?.error || 'Failed to create repository.';
-            setGithubRepoError(message);
-            setGithubRepoStatusKind('error');
-            setGithubRepoStatus(message);
-        }
-        setCreatingRepo(false);
-        setTimeout(() => {
-            setGithubRepoStatus(null);
-            setGithubRepoStatusKind('idle');
-        }, 3000);
-    };
-
-    const handleCopyPagesUrl = async () => {
-        if (!inferredPagesUrl) return;
-        try {
-            await navigator.clipboard.writeText(inferredPagesUrl);
-            setPagesUrlCopied(true);
-            setTimeout(() => setPagesUrlCopied(false), 2000);
-        } catch {
-            setPagesUrlCopied(false);
-        }
-    };
-
-    useEffect(() => {
-        if (githubAuthStatus === 'connected') {
-            refreshGithubRepos();
-        }
-    }, [githubAuthStatus]);
-
-    useEffect(() => {
-        if (!hasLoaded) return;
-        if (!inferredPagesUrl) return;
-        if (!window.electronAPI?.saveSettings) return;
-        if (lastSavedPagesUrlRef.current === inferredPagesUrl) return;
-        lastSavedPagesUrlRef.current = inferredPagesUrl;
-        window.electronAPI.saveSettings({ githubPagesBaseUrl: inferredPagesUrl });
-    }, [inferredPagesUrl, hasLoaded]);
 
     useEffect(() => {
         if (!hasLoaded) return;
@@ -1920,7 +1822,6 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                         setGithubToken('');
                                         setGithubAuthStatus('idle');
                                         setGithubAuthMessage('Disconnected from GitHub.');
-                                        setGithubRepos([]);
                                         setGithubRepoName('');
                                     }}
                                     className="axi-btn axi-ink-dim axi-edge-rule"
@@ -1947,189 +1848,36 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 <div className="text-xs axi-ink-faint mt-1">{githubVerificationUri}</div>
                             </div>
                         )}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                            <div className="md:col-span-2 axi-well axi-well--sm">
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="text-xs uppercase tracking-widest axi-ink-faint">Repository</div>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => setGithubRepoMode('select')}
-                                            aria-pressed={githubRepoMode === 'select'} className={`axi-pill axi-pill--xs text-[10px]`.trim()}
-                                        >
-                                            Choose Existing
-                                        </button>
-                                        <button
-                                            onClick={() => setGithubRepoMode('create')}
-                                            aria-pressed={githubRepoMode === 'create'} className={`axi-pill axi-pill--xs text-[10px]`.trim()}
-                                        >
-                                            Create New
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {githubRepoMode === 'select' ? (
-                                    <>
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <input
-                                                type="text"
-                                                value={githubRepoSearch}
-                                                onChange={(e) => setGithubRepoSearch(e.target.value)}
-                                                placeholder="Search repositories..."
-                                                className="axi-input flex-1" style={{ '--axi-input-pad': '5px 8px', '--axi-input-size': '12px' } as React.CSSProperties}
-                                            />
-                                            <button
-                                                onClick={refreshGithubRepos}
-                                                className="axi-btn axi-btn--icon axi-edge-rule axi-ink-dim"
-                                                title="Refresh repos"
-                                            >
-                                                <RefreshCw className={`w-4 h-4 ${loadingRepos ? 'animate-spin' : ''}`} />
-                                            </button>
-                                        </div>
-                                        <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
-                                            {(githubRepos.length ? githubRepos : [{ full_name: '', name: '', owner: '' }])
-                                                .filter((repo) => repo.full_name.toLowerCase().includes(githubRepoSearch.trim().toLowerCase()))
-                                                .sort((a, b) => {
-                                                    const aFav = favoriteRepoSet.has(a.full_name);
-                                                    const bFav = favoriteRepoSet.has(b.full_name);
-                                                    if (aFav !== bFav) return aFav ? -1 : 1;
-                                                    if (a.full_name === selectedGithubRepoKey) return -1;
-                                                    if (b.full_name === selectedGithubRepoKey) return 1;
-                                                    return a.full_name.localeCompare(b.full_name);
-                                                })
-                                                .map((repo, idx) => {
-                                                    const isFavorite = favoriteRepoSet.has(repo.full_name);
-                                                    return (
-                                                        <div
-                                                            key={`${repo.full_name}-${idx}`}
-                                                            role="button"
-                                                            tabIndex={0}
-                                                            onClick={() => {
-                                                                setGithubRepoName(repo.name);
-                                                                setGithubRepoOwner(repo.owner || '');
-                                                                setGithubCreateOwner(githubOrgs.some((org) => org.login === repo.owner) ? repo.owner : '');
-                                                            }}
-                                                            onKeyDown={(event) => {
-                                                                if (event.key === 'Enter' || event.key === ' ') {
-                                                                    event.preventDefault();
-                                                                    setGithubRepoName(repo.name);
-                                                                    setGithubRepoOwner(repo.owner || '');
-                                                                    setGithubCreateOwner(githubOrgs.some((org) => org.login === repo.owner) ? repo.owner : '');
-                                                                }
-                                                            }}
-                                                            aria-pressed={selectedGithubRepoKey === repo.full_name} className={`axi-pill axi-pill--xs w-full text-left ] flex items-center justify-between gap-2 cursor-pointer`.trim()}
-                                                        >
-                                                            <span className="truncate">{repo.full_name || 'No repos loaded'}</span>
-                                                            {repo.full_name ? (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={(event) => {
-                                                                        event.stopPropagation();
-                                                                        toggleFavoriteRepo(repo.full_name);
-                                                                    }}
-                                                                    className={`axi-action axi-action--glyph p-1 ${isFavorite ?'axi-ink-warn' : 'axi-ink-faint'}`}
-                                                                    title={isFavorite ? 'Remove favorite' : 'Favorite repo'}
-                                                                >
-                                                                    <Star className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current' : 'fill-transparent'}`} />
-                                                                </button>
-                                                            ) : null}
-                                                        </div>
-                                                    );
-                                                })}
-                                        </div>
-                                        <div className="mt-2 text-[11px] axi-ink-faint">
-                                            The selected repo is your default `Upload to Web` target. Starred repos show up in the upload dropdown as alternate targets.
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="flex items-center gap-2">
-                                        {githubOrgs.length > 0 && (
-                                            <div className="relative w-52 shrink-0">
-                                                <select
-                                                    value={githubCreateOwner}
-                                                    onChange={(event) => setGithubCreateOwner(event.target.value)}
-                                                    className="axi-select w-full h-full"
-                                                    aria-label="Repository owner"
-                                                >
-                                                    <option value="">Personal account</option>
-                                                    {githubOrgs.map((org) => (
-                                                        <option key={org.login} value={org.login}>{org.login}</option>
-                                                    ))}
-                                                </select>
-                                                <ChevronDown className="w-3.5 h-3.5 axi-ink-dim pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
-                                            </div>
-                                        )}
-                                        <input
-                                            type="text"
-                                            value={githubRepoName}
-                                            onChange={(e) => {
-                                                const next = e.target.value.trim();
-                                                setGithubRepoName(next);
-                                                setGithubRepoError(validateRepoName(next));
-                                            }}
-                                            placeholder="New repository name"
-                                            className={`axi-input flex-1 ${githubRepoError ? 'axi-edge-danger' : ''}`}
-                                        />
-                                        <div className="text-xs axi-ink-faint flex items-center gap-1">
-                                            <Plus className="w-4 h-4 axi-ink-meta" />
-                                        </div>
-                                        <button
-                                            onClick={handleCreateGithubRepo}
-                                            disabled={creatingRepo || !!githubRepoError || githubAuthStatus !== 'connected'}
-                                            className="axi-btn axi-btn--sm axi-ink-meta axi-edge-meta"
-                                        >
-                                            {creatingRepo ? 'Creating...' : 'Create Now'}
-                                        </button>
-                                    </div>
+                        {githubAuthStatus === 'connected' && (
+                            <PublishingSiteCard
+                                owner={githubRepoOwner || null}
+                                repo={githubRepoName || null}
+                                details={defaultSiteKey ? siteDetails[defaultSiteKey] ?? null : null}
+                                inviteCount={siteInviteCount}
+                                onOpenPanel={setSitePanelMode}
+                            >
+                                {githubRepoOwner && githubRepoName && (
+                                    <PublishersCard repoOwner={githubRepoOwner} repoName={githubRepoName} onAdminKnown={handleAdminKnown} />
                                 )}
-                                {githubRepoMode === 'create' && githubRepoError && (
-                                    <div className="text-xs axi-ink-danger mt-2">{githubRepoError}</div>
-                                )}
-                                {githubRepoMode === 'create' && githubRepoStatus && (
-                                    <div className={`text-xs mt-2 ${githubRepoStatusKind === 'success'
-                                        ? 'axi-ink-ok'
-                                        : githubRepoStatusKind === 'error'
-                                            ? 'axi-ink-danger'
-                                            : 'axi-ink-meta'
-                                        }`}
-                                    >
-                                        {githubRepoStatus}
-                                    </div>
-                                )}
-                                {githubRepoMode === 'select' && githubTemplateStatus && (
-                                    <div className={`text-xs mt-2 ${githubTemplateStatusKind === 'success'
-                                        ? 'axi-ink-ok'
-                                        : githubTemplateStatusKind === 'error'
-                                            ? 'axi-ink-danger'
-                                            : 'axi-ink-meta'
-                                        }`}
-                                    >
-                                        {githubTemplateStatus}
-                                    </div>
-                                )}
-                                <div className="github-pages-url-card axi-well axi-well--sm flex items-center gap-3 mt-3" style={{ '--axi-well-pad': '12px 16px' } as React.CSSProperties}>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-xs uppercase tracking-widest axi-ink-faint mb-1">GitHub Pages URL</div>
-                                        <input
-                                            type="text"
-                                            value={inferredPagesUrl || 'Connect GitHub and select a repo'}
-                                            readOnly
-                                            className="github-pages-url-value w-full bg-transparent text-sm axi-ink-plain focus:outline-none"
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={handleCopyPagesUrl}
-                                        disabled={!inferredPagesUrl}
-                                        className="axi-btn axi-btn--sm github-pages-url-copy axi-ink-plain axi-edge-rule"
-                                    >
-                                        {pagesUrlCopied ? 'Copied' : 'Copy'}
-                                    </button>
-                                </div>
+                            </PublishingSiteCard>
+                        )}
+                        {githubAuthStatus === 'connected' && sitePanelMode && (
+                            <SiteListPanel
+                                mode={sitePanelMode}
+                                sites={githubSites}
+                                defaultKey={defaultSiteKey}
+                                details={siteDetails}
+                                onModeChange={setSitePanelMode}
+                                onClose={() => setSitePanelMode(null)}
+                                onSitesChanged={setGithubSites}
+                                onDefaultChanged={handleDefaultChanged}
+                                onInvitesChanged={setSiteInviteCount}
+                            />
+                        )}
+                        {githubTemplateStatus && (
+                            <div className={`text-xs mb-4 ${githubTemplateStatusKind === 'success' ? 'axi-ink-ok' : githubTemplateStatusKind === 'error' ? 'axi-ink-danger' : 'axi-ink-meta'}`}>
+                                {githubTemplateStatus}
                             </div>
-
-                        </div>
-                        <PendingSiteInvites onJoined={handleSiteJoined} />
-                        {githubRepoOwner && githubRepoName && githubAuthStatus === 'connected' && (
-                            <PublishersCard repoOwner={githubRepoOwner} repoName={githubRepoName} onAdminKnown={handleAdminKnown} />
                         )}
                         <div className="axi-well axi-well--sm mb-4" style={{ '--axi-well-pad': '16px' } as React.CSSProperties}>
                             <div className="text-xs uppercase tracking-widest axi-ink-faint mb-3">Logo</div>

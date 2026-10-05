@@ -386,6 +386,30 @@ export function createElectronAPIMock(overrides?: ElectronAPIMockOverrides): voi
             log('getGithubRepos', args)
             return Promise.resolve(o.githubRepos ?? [])
         },
+        getGithubSites: (...args: any[]) => {
+            log('getGithubSites', args)
+            return Promise.resolve({ success: true, sites: [], defaultKey: null })
+        },
+        getGithubSiteDetails: (...args: any[]) => {
+            log('getGithubSiteDetails', args)
+            return Promise.resolve({ success: true, details: {} })
+        },
+        findGithubSites: (...args: any[]) => {
+            log('findGithubSites', args)
+            return Promise.resolve({ success: true, found: [] })
+        },
+        addGithubSite: (...args: any[]) => {
+            log('addGithubSite', args)
+            return Promise.resolve({ success: true, sites: [] })
+        },
+        removeGithubSite: (...args: any[]) => {
+            log('removeGithubSite', args)
+            return Promise.resolve({ success: true, sites: [] })
+        },
+        setDefaultGithubSite: (...args: any[]) => {
+            log('setDefaultGithubSite', args)
+            return Promise.resolve({ success: true, sites: [] })
+        },
         getGithubOrgs: (...args: any[]) => {
             log('getGithubOrgs', args)
             return Promise.resolve(o.githubOrgs ?? [])
