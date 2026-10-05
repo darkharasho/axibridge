@@ -103,13 +103,14 @@ export function registerSitesHandlers({ store }: SitesHandlerOptions) {
                 .then((r) => (r.status === 200 && typeof r.data?.default_branch === 'string' ? r.data.default_branch.trim() : ''))
                 .catch(() => '');
         }
+        if (!branch) return { success: false, error: "Couldn't reach GitHub to switch sites.", sites: readSites(store) };
         const pagesUrl = typeof pages?.html_url === 'string' && pages.html_url ? pages.html_url as string : inferredPagesUrl(ref);
         // List first: readSites re-adds whatever default the store holds.
         const sites = setDefaultSite(readSites(store), ref);
         writeSites(store, sites);
         store.set('githubRepoOwner', ref.owner);
         store.set('githubRepoName', ref.repo);
-        store.set('githubBranch', branch || getStoredBranch());
+        store.set('githubBranch', branch);
         store.set('githubPagesBaseUrl', pagesUrl);
         store.set('githubPagesSourcePath', normalizePagesPath(pages?.source?.path));
         return { success: true, sites, defaultKey: normalizeSiteKey(ref.owner, ref.repo), pagesUrl };

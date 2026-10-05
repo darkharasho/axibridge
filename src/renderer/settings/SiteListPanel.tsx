@@ -30,6 +30,7 @@ export const SiteListPanel = ({ mode, sites, defaultKey, details, onModeChange, 
     const [note, setNote] = useState<Note>(null);
     const [busy, setBusy] = useState(false);
     const [invites, setInvites] = useState<ISiteInvite[]>([]);
+    const [invitesLoaded, setInvitesLoaded] = useState(false);
 
     const [found, setFound] = useState<SiteRef[] | null>(null);
     const [findError, setFindError] = useState<string | null>(null);
@@ -46,9 +47,9 @@ export const SiteListPanel = ({ mode, sites, defaultKey, details, onModeChange, 
     useEffect(() => {
         void api?.getPendingSiteInvites?.({ force: true }).then((res) => {
             if (res?.success) setInvites(res.invites ?? []);
-        }).catch(() => { /* invites are optional here */ });
+        }).catch(() => { /* invites are optional here */ }).finally(() => setInvitesLoaded(true));
     }, []);
-    useEffect(() => { onInvitesChanged?.(invites.length); }, [invites, onInvitesChanged]);
+    useEffect(() => { if (invitesLoaded) onInvitesChanged?.(invites.length); }, [invites, invitesLoaded, onInvitesChanged]);
 
     const keepNote = useRef(false);
     useEffect(() => {
@@ -119,6 +120,12 @@ export const SiteListPanel = ({ mode, sites, defaultKey, details, onModeChange, 
         onSitesChanged(res.sites);
         if (addedVia === 'found') setFound((prev) => (prev ?? []).filter((f) => normalizeSiteKey(f.owner, f.repo) !== normalizeSiteKey(ref.owner, ref.repo)));
     });
+
+    // With no default yet, a found site becomes the default, like "Use existing".
+    const addFound = async (ref: SiteRef) => {
+        if (defaultKey) { await add(ref, 'found'); return; }
+        if (await makeDefault(ref)) setFound((prev) => (prev ?? []).filter((f) => normalizeSiteKey(f.owner, f.repo) !== normalizeSiteKey(ref.owner, ref.repo)));
+    };
 
     const pickExisting = async (repo: RepoRow) => {
         const ref = { owner: repo.owner, repo: repo.name };
@@ -271,7 +278,7 @@ export const SiteListPanel = ({ mode, sites, defaultKey, details, onModeChange, 
                         {(found ?? []).map((f) => (
                             <li key={`${f.owner}/${f.repo}`} className="flex items-center justify-between text-sm">
                                 <span className="axi-ink-plain">{f.owner}/{f.repo}</span>
-                                <button onClick={() => void add(f, 'found')} disabled={busy} aria-label={`Add ${f.owner}/${f.repo}`} className={BTN}>Add</button>
+                                <button onClick={() => void addFound(f)} disabled={busy} aria-label={`Add ${f.owner}/${f.repo}`} className={BTN}>Add</button>
                             </li>
                         ))}
                     </ul>

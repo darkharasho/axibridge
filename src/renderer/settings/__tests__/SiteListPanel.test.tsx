@@ -103,6 +103,21 @@ describe('SiteListPanel — footer modes', () => {
         await waitFor(() => expect(api.addGithubSite).toHaveBeenCalledWith({ owner: 'me', repo: 'found', addedVia: 'found' }));
         expect(props.onSitesChanged).toHaveBeenCalled();
     });
+    it('find with no default makes the added site the default', async () => {
+        const props = renderPanel({ mode: 'find', sites: [], defaultKey: null, details: {} });
+        fireEvent.click(await screen.findByRole('button', { name: 'Add me/found' }));
+        await waitFor(() => expect(props.onDefaultChanged).toHaveBeenCalledWith('me', 'found'));
+        expect(api.setDefaultGithubSite).toHaveBeenCalledWith({ owner: 'me', repo: 'found' });
+        expect(api.addGithubSite).not.toHaveBeenCalled();
+    });
+    it('does not report an invite count before the fetch resolves', async () => {
+        let resolve: (v: any) => void = () => {};
+        api.getPendingSiteInvites.mockReturnValue(new Promise((r) => { resolve = r; }));
+        const props = renderPanel();
+        expect(props.onInvitesChanged).not.toHaveBeenCalled();
+        resolve({ success: true, invites: [] });
+        await waitFor(() => expect(props.onInvitesChanged).toHaveBeenCalledWith(0));
+    });
     it('find shows the empty state and errors', async () => {
         api.findGithubSites.mockResolvedValueOnce({ success: true, found: [] });
         renderPanel({ mode: 'find' });

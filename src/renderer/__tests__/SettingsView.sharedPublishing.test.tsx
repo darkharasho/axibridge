@@ -120,4 +120,22 @@ describe('SettingsView shared publishing', () => {
         );
         await waitFor(() => expect(api.applyGithubLogo).toHaveBeenCalled(), { timeout: 2000 });
     });
+
+    it('switching the default site does not re-push the unchanged logo to it', async () => {
+        const sites = [{ owner: 'guild', repo: 'site', addedVia: 'default', addedAt: '' }, { owner: 'x', repo: 'other', addedVia: 'manual', addedAt: '' }];
+        const api = renderSettings(
+            { githubToken: 'tok', githubRepoOwner: 'guild', githubRepoName: 'site', githubSites: sites, githubLogoPath: '/x/logo.png' },
+            {
+                getRepoPublishers: vi.fn(async () => ({ success: true, canAdmin: true, ownerType: 'User', collaborators: [], invites: [] })),
+                setDefaultGithubSite: vi.fn(async () => ({ success: true, sites, defaultKey: 'x/other', pagesUrl: 'https://x.github.io/other' }))
+            }
+        );
+        await waitFor(() => expect(api.applyGithubLogo).toHaveBeenCalledTimes(1), { timeout: 2000 });
+        fireEvent.click(await screen.findByRole('button', { name: 'Web Report' }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Switch site' }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Use x/other' }));
+        await waitFor(() => expect(api.saveSettings.mock.calls.at(-1)?.[0]).toMatchObject({ githubRepoOwner: 'x' }), { timeout: 2000 });
+        await new Promise((r) => setTimeout(r, 700));
+        expect(api.applyGithubLogo).toHaveBeenCalledTimes(1);
+    });
 });

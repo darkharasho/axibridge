@@ -360,6 +360,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const lastParserSettingsFocusTriggerRef = useRef<number>(0);
     const lastHowToTriggerRef = useRef<number>(0);
     const logoSyncInFlightRef = useRef(false);
+    // Last logo path pushed (or queued); a site switch alone must not re-push it to the new site.
+    const lastSyncedLogoPathRef = useRef<string | null>(null);
     const queuedLogoPathRef = useRef<string | null>(null);
     const metricsSpecContentRef = useRef<HTMLDivElement | null>(null);
 
@@ -1241,13 +1243,16 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         if (githubAuthStatus !== 'connected') return;
         if (!githubRepoName || !githubToken) return;
         if (!window.electronAPI?.applyGithubLogo) return;
+        if (lastSyncedLogoPathRef.current === githubLogoPath) return;
         if (logoSyncInFlightRef.current) {
+            lastSyncedLogoPathRef.current = githubLogoPath;
             queuedLogoPathRef.current = githubLogoPath;
             setGithubLogoStatusKind('pending');
             setGithubLogoStatus('Logo change queued...');
             return;
         }
         const timeout = setTimeout(() => {
+            lastSyncedLogoPathRef.current = githubLogoPath;
             runLogoSync(githubLogoPath);
         }, 400);
         return () => clearTimeout(timeout);

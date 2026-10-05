@@ -103,10 +103,12 @@ describe('set-default-github-site', () => {
         await invoke('set-default-github-site', { owner: 'guild', repo: 'site' });
         expect(store.data).toMatchObject({ githubBranch: 'trunk', githubPagesBaseUrl: 'https://guild.github.io/site', githubPagesSourcePath: '' });
     });
-    it('keeps the stored branch when both lookups fail', async () => {
-        setup({ githubBranch: 'gh-pages' }, () => ({ status: 500 }));
-        await invoke('set-default-github-site', { owner: 'guild', repo: 'site' });
-        expect(store.data.githubBranch).toBe('gh-pages');
+    it('fails and writes nothing when both lookups fail', async () => {
+        setup({ githubBranch: 'gh-pages', githubRepoOwner: 'old', githubRepoName: 'one' }, () => ({ status: 500 }));
+        const res = await invoke('set-default-github-site', { owner: 'guild', repo: 'site' });
+        expect(res).toMatchObject({ success: false, error: "Couldn't reach GitHub to switch sites." });
+        expect(store.data).toMatchObject({ githubBranch: 'gh-pages', githubRepoOwner: 'old', githubRepoName: 'one' });
+        expect(JSON.stringify(store.data.githubSites ?? [])).not.toContain('guild');
     });
     it('needs a token', async () => {
         handlers.clear();
