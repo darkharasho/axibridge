@@ -865,7 +865,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         githubRepoOwner,
         githubRepoName,
         githubToken,
-        githubLogoPath
+        githubLogoPath,
+        githubSites
     });
 
     const confirmImportSettings = async () => {
@@ -881,12 +882,19 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             setSettingsTransferStatus({ kind: 'error', message: 'No settings selected.' });
             return;
         }
-        window.electronAPI?.saveSettings?.(patch);
+        await window.electronAPI?.saveSettings?.(patch);
         const merged = {
             ...getCurrentSettingsSnapshot(),
             ...patch
         };
         applySettingsToState(merged);
+        // Never trust the merged list: main sanitized whatever was imported.
+        try {
+            const res = await window.electronAPI?.getGithubSites?.();
+            if (res?.success) setGithubSites(res.sites);
+        } catch {
+            // Keep what is shown.
+        }
         setImportModalOpen(false);
         setImportPreviewSettings(null);
         setSettingsTransferStatus({ kind: 'success', message: 'Settings imported.' });

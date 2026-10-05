@@ -14,12 +14,6 @@ describe('applyImportedSites', () => {
         const saved = store.data.githubSites as any[];
         expect(saved.map((s) => `${s.owner}/${s.repo}`)).toEqual(['guild/site', 'x/y']);
     });
-    it('folds favourites from an old export into the current list', () => {
-        const store = makeStore({ ...base, githubSites: [{ owner: 'guild', repo: 'site', addedVia: 'default', addedAt: 'a' }] });
-        applyImportedSites(store, { githubFavoriteRepos: ['x/y', 'bad'] });
-        expect((store.data.githubSites as any[]).map((s) => `${s.owner}/${s.repo}`)).toEqual(['guild/site', 'x/y']);
-        expect(store.data).not.toHaveProperty('githubFavoriteRepos');
-    });
     it('does nothing without either key', () => {
         const store = makeStore(base);
         applyImportedSites(store, {});

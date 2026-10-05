@@ -204,3 +204,19 @@ describe('normalizeImportedSettings', () => {
         expect(settings.axiTheme).toBe('default');
     });
 });
+
+describe('normalizeImportedSettings: legacy favourites', () => {
+    it('turns githubFavoriteRepos into githubSites and drops the key', () => {
+        const settings: Record<string, any> = { githubRepoOwner: 'guild', githubRepoName: 'site', githubFavoriteRepos: ['x/y', 'bad'] };
+        normalizeImportedSettings(settings);
+        expect(settings).not.toHaveProperty('githubFavoriteRepos');
+        expect(settings.githubSites.map((x: any) => `${x.owner}/${x.repo}`)).toEqual(['guild/site', 'x/y']);
+    });
+    it('keeps an existing githubSites and still drops the favourites', () => {
+        const sites = [{ owner: 'a', repo: 'b', addedVia: 'manual', addedAt: '' }];
+        const settings: Record<string, any> = { githubSites: sites, githubFavoriteRepos: ['x/y'] };
+        normalizeImportedSettings(settings);
+        expect(settings.githubSites).toBe(sites);
+        expect(settings).not.toHaveProperty('githubFavoriteRepos');
+    });
+});

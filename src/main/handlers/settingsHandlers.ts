@@ -7,6 +7,7 @@ import { LEGACY_THEME_TO_PALETTE, DEFAULT_AXI_THEME } from '../../shared/webThem
 import { collapseGlassKeys } from '../glassSettingMigration';
 import { DEFAULT_DISRUPTION_METHOD } from '../../shared/metricsSettings';
 import { readSites } from '../githubSitesStore';
+import { migrateFavoritesToSites } from '../../shared/githubSites';
 import { isR2SliceEnabled } from './githubHandlers';
 import { parseMaybeGzippedJson } from '../cloudflare/replaySidecar';
 import { resolvePartsJson } from '../partsReader';
@@ -121,6 +122,16 @@ export const DEFAULT_DISCORD_ENEMY_SPLIT_SETTINGS = {
  * first.
  */
 export function normalizeImportedSettings(settings: Record<string, any>): void {
+    // Exports from before the site list carry `githubFavoriteRepos`; turn them into
+    // `githubSites` so the import offers "Publishing Sites" like a new export does.
+    if ('githubFavoriteRepos' in settings) {
+        if (settings.githubSites === undefined) {
+            const owner = typeof settings.githubRepoOwner === 'string' ? settings.githubRepoOwner : '';
+            const repo = typeof settings.githubRepoName === 'string' ? settings.githubRepoName : '';
+            settings.githubSites = migrateFavoritesToSites(owner, repo, settings.githubFavoriteRepos);
+        }
+        delete settings.githubFavoriteRepos;
+    }
     if (settings.uiTheme && !settings.colorPalette) {
         const mapping = LEGACY_THEME_TO_PALETTE[settings.uiTheme] ?? { palette: 'electric-blue', glass: false };
         settings.colorPalette = mapping.palette;

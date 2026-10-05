@@ -1,5 +1,5 @@
 import {
-    addSite, migrateFavoritesToSites, normalizeSiteKey, parseSiteFullName, sanitizeSites, withDefault, type IGithubSite
+    migrateFavoritesToSites, normalizeSiteKey, sanitizeSites, withDefault, type IGithubSite
 } from '../shared/githubSites';
 
 const storedDefault = (store: any) => ({
@@ -34,21 +34,12 @@ export const writeSites = (store: any, sites: IGithubSite[]) => {
 
 /**
  * Applies the site list from an imported/saved settings patch. `githubSites` is
- * sanitized (never written raw) and the default stays present. An old export
- * that carries only `githubFavoriteRepos` has those folded into the current list.
+ * sanitized (never written raw) and the default stays present. Legacy favourites
+ * are converted to `githubSites` earlier, in normalizeImportedSettings.
  * Call after the default owner/repo keys in the same patch have been stored.
  */
-export const applyImportedSites = (store: any, patch: { githubSites?: unknown; githubFavoriteRepos?: unknown }) => {
-    const hasSites = patch.githubSites !== undefined;
-    const favorites = Array.isArray(patch.githubFavoriteRepos) ? patch.githubFavoriteRepos : null;
-    if (!hasSites && !favorites) return;
+export const applyImportedSites = (store: any, patch: { githubSites?: unknown }) => {
+    if (patch.githubSites === undefined) return;
     const { owner, repo } = storedDefault(store);
-    let sites = hasSites ? sanitizeSites(patch.githubSites) : readSites(store);
-    if (!hasSites && favorites) {
-        for (const fav of favorites) {
-            const ref = parseSiteFullName(fav);
-            if (ref) sites = addSite(sites, ref, 'manual');
-        }
-    }
-    writeSites(store, withDefault(sites, owner, repo));
+    writeSites(store, withDefault(sanitizeSites(patch.githubSites), owner, repo));
 };
