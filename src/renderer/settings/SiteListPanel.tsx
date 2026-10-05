@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { X } from 'lucide-react';
 import type { ISiteInvite } from '../global.d';
 import {
@@ -34,6 +34,7 @@ export const SiteListPanel = ({ mode, sites, defaultKey, details, onModeChange, 
     const [found, setFound] = useState<SiteRef[] | null>(null);
     const [findError, setFindError] = useState<string | null>(null);
     const [repos, setRepos] = useState<RepoRow[] | null>(null);
+    const [reposError, setReposError] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [orgs, setOrgs] = useState<Array<{ login: string }>>([]);
     const [createOwner, setCreateOwner] = useState('');
@@ -49,31 +50,50 @@ export const SiteListPanel = ({ mode, sites, defaultKey, details, onModeChange, 
     }, []);
     useEffect(() => { onInvitesChanged?.(invites.length); }, [invites, onInvitesChanged]);
 
+    const keepNote = useRef(false);
     useEffect(() => {
+        if (keepNote.current) keepNote.current = false;
+        else setNote(null);
+        let ignore = false;
+        const errText = (err: unknown, fallback: string) => (err instanceof Error && err.message ? err.message : fallback);
         if (mode === 'find') {
             setFound(null);
             setFindError(null);
-            void api.findGithubSites().then((res) => {
+            void Promise.resolve().then(() => api.findGithubSites()).then((res) => {
+                if (ignore) return;
                 if (res?.success) setFound(res.found ?? []);
                 else setFindError(res?.error || 'Failed to search your repos.');
-            }).catch((err: unknown) => setFindError(err instanceof Error ? err.message : 'Failed to search your repos.'));
+            }).catch((err: unknown) => { if (!ignore) setFindError(errText(err, 'Failed to search your repos.')); });
         }
         if (mode === 'existing' && repos === null) {
-            void api.getGithubRepos().then((res) => setRepos(res?.success ? res.repos ?? [] : []));
+            setReposError(null);
+            void Promise.resolve().then(() => api.getGithubRepos()).then((res) => {
+                if (ignore) return;
+                if (res?.success) setRepos(res.repos ?? []);
+                else { setReposError(res?.error || 'Failed to load your repositories.'); setRepos([]); }
+            }).catch((err: unknown) => {
+                if (ignore) return;
+                setReposError(errText(err, 'Failed to load your repositories.'));
+                setRepos([]);
+            });
         }
         if (mode === 'create') {
-            void api.getGithubOrgs?.().then((res) => setOrgs(res?.success ? res.orgs ?? [] : []));
+            void Promise.resolve().then(() => api.getGithubOrgs?.()).then((res) => {
+                if (!ignore) setOrgs(res?.success ? res.orgs ?? [] : []);
+            }).catch(() => { if (!ignore) setOrgs([]); });
         }
+        return () => { ignore = true; };
     }, [mode]);
 
-    const run = async (fn: () => Promise<void>) => {
-        if (busy) return;
+    const run = async (fn: () => Promise<boolean | void>): Promise<boolean> => {
+        if (busy) return false;
         setBusy(true);
         setNote(null);
         try {
-            await fn();
+            return (await fn()) !== false;
         } catch (err) {
             setNote({ kind: 'error', text: err instanceof Error ? err.message : 'Something went wrong.' });
+            return false;
         } finally {
             setBusy(false);
         }
@@ -81,40 +101,45 @@ export const SiteListPanel = ({ mode, sites, defaultKey, details, onModeChange, 
 
     const makeDefault = (ref: SiteRef) => run(async () => {
         const res = await api.setDefaultGithubSite(ref);
-        if (!res?.success) { setNote({ kind: 'error', text: res?.error || 'Failed to switch site.' }); return; }
+        if (!res?.success) { setNote({ kind: 'error', text: res?.error || 'Failed to switch site.' }); return false; }
         onSitesChanged(res.sites);
         onDefaultChanged(ref.owner, ref.repo);
+        return true;
     });
 
     const remove = (ref: SiteRef) => run(async () => {
-        const res = await api.removeGithubSite(ref);
-        if (!res?.success) { setNote({ kind: 'error', text: res?.error || 'Failed to remove site.' }); return; }
+        const res = await api.removeGithubSite({ owner: ref.owner, repo: ref.repo });
+        if (!res?.success) { setNote({ kind: 'error', text: res?.error || 'Failed to remove site.' }); return false; }
         onSitesChanged(res.sites);
     });
 
     const add = (ref: SiteRef, addedVia: 'manual' | 'found') => run(async () => {
-        const res = await api.addGithubSite({ ...ref, addedVia });
-        if (!res?.success) { setNote({ kind: 'error', text: res?.error || 'Failed to add site.' }); return; }
+        const res = await api.addGithubSite({ owner: ref.owner, repo: ref.repo, addedVia });
+        if (!res?.success) { setNote({ kind: 'error', text: res?.error || 'Failed to add site.' }); return false; }
         onSitesChanged(res.sites);
         if (addedVia === 'found') setFound((prev) => (prev ?? []).filter((f) => normalizeSiteKey(f.owner, f.repo) !== normalizeSiteKey(ref.owner, ref.repo)));
     });
 
     const pickExisting = async (repo: RepoRow) => {
         const ref = { owner: repo.owner, repo: repo.name };
-        if (!defaultKey) await makeDefault(ref);
-        else await add(ref, 'manual');
-        onModeChange('list');
+        const ok = !defaultKey ? await makeDefault(ref) : await add(ref, 'manual');
+        if (ok) onModeChange('list');
     };
 
     const create = () => run(async () => {
         const res = await api.createGithubRepo({ name: createName, branch: 'main', owner: createOwner || undefined });
         if (!res?.success || !res.repo) { setNote({ kind: 'error', text: res?.error || 'Failed to create repository.' }); return; }
-        const list = await api.getGithubSites();
-        if (list?.success) onSitesChanged(list.sites);
+        let listed = false;
+        try {
+            const list = await api.getGithubSites();
+            if (list?.success) { onSitesChanged(list.sites); listed = true; }
+        } catch { /* repo exists; the list refresh is best-effort */ }
         onDefaultChanged(res.repo.owner, res.repo.name);
         setCreateName('');
+        keepNote.current = true;
         onModeChange('list');
-        setNote({ kind: 'ok', text: `Created ${res.repo.full_name}.` });
+        setNote({ kind: 'ok', text: listed ? `Created ${res.repo.full_name}.` : `Created ${res.repo.full_name}, but the site list could not be refreshed.` });
+        return true;
     });
 
     const join = (invite: ISiteInvite) => run(async () => {
@@ -220,6 +245,7 @@ export const SiteListPanel = ({ mode, sites, defaultKey, details, onModeChange, 
                 <div className="mt-4">
                     <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search repositories..." className="axi-input w-full mb-2" />
                     {repos === null && <div className="text-xs axi-ink-meta">Loading…</div>}
+                    {reposError && <div className="text-xs axi-ink-danger mb-2">{reposError}</div>}
                     <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
                         {(repos ?? [])
                             .filter((r) => r.full_name.toLowerCase().includes(search.trim().toLowerCase()))
@@ -253,6 +279,7 @@ export const SiteListPanel = ({ mode, sites, defaultKey, details, onModeChange, 
             )}
 
             <div className="flex flex-wrap gap-2 mt-4">
+                {mode !== 'list' && <button onClick={() => onModeChange('list')} aria-label="Back to site list" className={BTN}>Back</button>}
                 <button onClick={() => onModeChange('create')} aria-pressed={mode === 'create'} className={BTN}>+ Create new site</button>
                 <button onClick={() => onModeChange('existing')} aria-pressed={mode === 'existing'} className={BTN}>Use existing repo…</button>
                 <button onClick={() => onModeChange('find')} aria-pressed={mode === 'find'} className={BTN}>Find my sites</button>

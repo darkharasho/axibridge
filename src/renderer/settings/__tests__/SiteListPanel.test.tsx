@@ -142,3 +142,60 @@ describe('SiteListPanel — footer modes', () => {
         expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled();
     });
 });
+
+describe('SiteListPanel — fix round 1', () => {
+    it('Back returns to list mode only outside list mode', () => {
+        const props = renderPanel({ mode: 'find' });
+        fireEvent.click(screen.getByRole('button', { name: 'Back to site list' }));
+        expect(props.onModeChange).toHaveBeenCalledWith('list');
+    });
+    it('no Back button in list mode', () => {
+        renderPanel();
+        expect(screen.queryByRole('button', { name: 'Back to site list' })).toBeNull();
+    });
+    it('shows a repo load error and clears Loading', async () => {
+        api.getGithubRepos.mockResolvedValueOnce({ success: false, error: 'nope' });
+        renderPanel({ mode: 'existing' });
+        expect(await screen.findByText('nope')).toBeInTheDocument();
+        expect(screen.queryByText('Loading…')).toBeNull();
+    });
+    it('handles repo load and orgs rejections', async () => {
+        api.getGithubRepos.mockRejectedValueOnce(new Error('boom'));
+        api.getGithubOrgs.mockRejectedValue(new Error('x'));
+        renderPanel({ mode: 'existing' });
+        expect(await screen.findByText('boom')).toBeInTheDocument();
+    });
+    it('stays in existing mode when add fails', async () => {
+        api.addGithubSite.mockResolvedValueOnce({ success: false, error: 'bad' });
+        const props = renderPanel({ mode: 'existing' });
+        fireEvent.click(await screen.findByRole('button', { name: /me\/repo/ }));
+        expect(await screen.findByText('bad')).toBeInTheDocument();
+        expect(props.onModeChange).not.toHaveBeenCalled();
+    });
+    it('create still sets default when the list refresh fails', async () => {
+        api.getGithubSites.mockRejectedValueOnce(new Error('x'));
+        const props = renderPanel({ mode: 'create' });
+        await userEvent.type(screen.getByPlaceholderText('New repository name'), 'new');
+        fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+        await waitFor(() => expect(props.onDefaultChanged).toHaveBeenCalledWith('me', 'new'));
+        expect(props.onSitesChanged).not.toHaveBeenCalled();
+        expect(await screen.findByText(/Created me\/new/)).toBeInTheDocument();
+    });
+    it('remove passes only owner and repo', async () => {
+        renderPanel();
+        fireEvent.click(screen.getByRole('button', { name: 'Remove x/other' }));
+        await waitFor(() => expect(api.removeGithubSite).toHaveBeenCalledWith({ owner: 'x', repo: 'other' }));
+    });
+    it('clears the note when the mode changes', async () => {
+        api.setDefaultGithubSite.mockResolvedValueOnce({ success: false, error: 'fail1', sites: SITES });
+        const props = {
+            mode: 'list' as const, sites: SITES, defaultKey: 'guild/site', details: DETAILS,
+            onModeChange: vi.fn(), onClose: vi.fn(), onSitesChanged: vi.fn(), onDefaultChanged: vi.fn()
+        };
+        const view = render(<SiteListPanel {...props} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Use x/other' }));
+        expect(await screen.findByText('fail1')).toBeInTheDocument();
+        view.rerender(<SiteListPanel {...props} mode="find" />);
+        await waitFor(() => expect(screen.queryByText('fail1')).toBeNull());
+    });
+});
