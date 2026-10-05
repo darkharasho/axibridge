@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SiteListPanel } from '../SiteListPanel';
@@ -212,5 +212,12 @@ describe('SiteListPanel — fix round 1', () => {
         expect(await screen.findByText('fail1')).toBeInTheDocument();
         view.rerender(<SiteListPanel {...props} mode="find" />);
         await waitFor(() => expect(screen.queryByText('fail1')).toBeNull());
+    });
+    it('shows the close X only when given onClose', () => {
+        renderPanel({ onClose: undefined });
+        expect(screen.queryByRole('button', { name: 'Close site list' })).toBeNull();
+        cleanup();
+        renderPanel();
+        expect(screen.getByRole('button', { name: 'Close site list' })).toBeInTheDocument();
     });
 });

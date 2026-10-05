@@ -4,7 +4,7 @@ import type { ISiteInvite } from '../global.d';
 import {
     normalizeSiteKey, sortSitesDefaultFirst, hasSite, type IGithubSite, type ISiteDetails, type SiteRef
 } from '../../shared/githubSites';
-import { roleLabel, type SitePanelMode } from './PublishingSiteCard';
+import { roleLabel, SiteAvatar, type SitePanelMode } from './PublishingSiteCard';
 import { validateRepoName } from './validateRepoName';
 
 type Props = {
@@ -13,7 +13,8 @@ type Props = {
     defaultKey: string | null;
     details: Record<string, ISiteDetails>;
     onModeChange: (mode: SitePanelMode) => void;
-    onClose: () => void;
+    /** Shown as an X only when nothing else closes the panel (no current site, so no Switch site bar). */
+    onClose?: () => void;
     onSitesChanged: (sites: IGithubSite[]) => void;
     onDefaultChanged: (owner: string, repo: string) => void;
     onInvitesChanged?: (count: number) => void;
@@ -167,9 +168,9 @@ export const SiteListPanel = ({ mode, sites, defaultKey, details, onModeChange, 
         <div className="axi-well axi-well--sm mb-4" style={WELL} data-testid="site-list-panel">
             <div className="flex items-center justify-between mb-3">
                 <div className="text-xs uppercase tracking-widest axi-ink-faint">Your sites</div>
-                <button onClick={onClose} aria-label="Close site list" className="axi-action axi-action--glyph p-1 axi-ink-faint">
+                {onClose && <button onClick={onClose} aria-label="Close site list" className="axi-action axi-action--glyph p-1 axi-ink-faint">
                     <X className="w-3.5 h-3.5" />
-                </button>
+                </button>}
             </div>
             <ul className="space-y-1">
                 {ordered.length === 0 && <li className="text-xs axi-ink-faint">No sites yet.</li>}
@@ -183,9 +184,7 @@ export const SiteListPanel = ({ mode, sites, defaultKey, details, onModeChange, 
                     const ownerKind = d?.ownerType === 'Organization' ? 'org' : d?.ownerType === 'User' ? 'personal' : null;
                     const label = (
                         <span className="flex items-center gap-2 min-w-0">
-                            {d?.ownerAvatarUrl
-                                ? <img src={d.ownerAvatarUrl} alt="" className="w-5 h-5 rounded shrink-0" />
-                                : <span className="w-5 h-5 rounded shrink-0 axi-edge-rule" aria-hidden="true" />}
+                            <SiteAvatar owner={site.owner} url={d?.ownerAvatarUrl} size="sm" />
                             <span className="truncate axi-ink-plain">{full}</span>
                             {ownerKind && <span className="text-[10px] axi-ink-faint">{ownerKind}</span>}
                             {role && <span className={`text-[10px] ${noAccess ? 'axi-ink-danger' : 'axi-ink-meta'}`}>{role}</span>}
@@ -194,13 +193,12 @@ export const SiteListPanel = ({ mode, sites, defaultKey, details, onModeChange, 
                     );
                     return (
                         <li key={key} data-testid="site-row" className={`flex items-center justify-between gap-2 text-sm ${noAccess ? 'opacity-50' : ''}`}>
-                            {isDefault || noAccess || mode !== 'list'
-                                ? <div className="flex-1 min-w-0 px-2 py-1">{label}</div>
-                                : (
-                                    <button type="button" disabled={busy} onClick={() => void makeDefault({ owner: site.owner, repo: site.repo })} aria-label={`Use ${full}`} className="axi-pill axi-pill--xs flex-1 min-w-0 text-left">
-                                        {label}
-                                    </button>
-                                )}
+                            <div className="flex-1 min-w-0 px-2 py-1">{label}</div>
+                            {!isDefault && !noAccess && mode === 'list' && (
+                                <button type="button" disabled={busy} onClick={() => void makeDefault({ owner: site.owner, repo: site.repo })} aria-label={`Use ${full}`} className={BTN}>
+                                    Use
+                                </button>
+                            )}
                             {!isDefault && mode === 'list' && (
                                 <button type="button" disabled={busy} onClick={() => void remove(site)} aria-label={`Remove ${full}`} className="axi-action axi-action--glyph p-1 axi-ink-faint">
                                     <X className="w-3.5 h-3.5" />

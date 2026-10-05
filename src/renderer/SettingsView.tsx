@@ -1867,7 +1867,9 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 repo={githubRepoName || null}
                                 details={defaultSiteKey ? siteDetails[defaultSiteKey] ?? null : null}
                                 inviteCount={siteInviteCount}
+                                panelOpen={sitePanelMode !== null}
                                 onOpenPanel={setSitePanelMode}
+                                onClosePanel={() => setSitePanelMode(null)}
                             >
                                 {githubRepoOwner && githubRepoName && (
                                     <PublishersCard repoOwner={githubRepoOwner} repoName={githubRepoName} onAdminKnown={handleAdminKnown} />
@@ -1881,7 +1883,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                 defaultKey={defaultSiteKey}
                                 details={siteDetails}
                                 onModeChange={setSitePanelMode}
-                                onClose={() => setSitePanelMode(null)}
+                                onClose={githubRepoOwner && githubRepoName ? undefined : () => setSitePanelMode(null)}
                                 onSitesChanged={setGithubSites}
                                 onDefaultChanged={handleDefaultChanged}
                                 onInvitesChanged={setSiteInviteCount}

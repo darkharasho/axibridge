@@ -41,4 +41,15 @@ describe('PublishingSiteCard', () => {
         render(<PublishingSiteCard owner="guild" repo="site" details={null} inviteCount={0} onOpenPanel={vi.fn()}><div>members here</div></PublishingSiteCard>);
         expect(screen.getByText('members here')).toBeInTheDocument();
     });
+    it('puts Switch site below the members and toggles the open list closed', () => {
+        const onOpenPanel = vi.fn();
+        const onClosePanel = vi.fn();
+        render(<PublishingSiteCard owner="guild" repo="site" details={null} inviteCount={0} panelOpen onOpenPanel={onOpenPanel} onClosePanel={onClosePanel}><div>members here</div></PublishingSiteCard>);
+        const toggle = screen.getByRole('button', { name: 'Switch site' });
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        expect(screen.getByText('members here').compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        fireEvent.click(toggle);
+        expect(onClosePanel).toHaveBeenCalled();
+        expect(onOpenPanel).not.toHaveBeenCalled();
+    });
 });
