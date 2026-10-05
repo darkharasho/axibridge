@@ -129,4 +129,31 @@ describe('StatsHeader', () => {
         const button = screen.getByRole('button', { name: /Upload to Web/i });
         expect(button).not.toBeDisabled();
     });
+
+    it('names the default site on the publish button', () => {
+        render(
+            <StatsHeader embedded={false} totalLogs={4} devMockAvailable={false} devMockUploadState={{ uploading: false }} onDevMockUpload={() => {}}
+                uploadingWeb={false} onWebUpload={() => {}}
+                uploadTargets={[{ fullName: 'guild/site', label: 'guild/site (Default)', isDefault: true, pagesUrl: 'https://g/', memberCount: 4 }]} />
+        );
+        expect(screen.getByRole('button', { name: /Publish to guild\/site/ })).toBeInTheDocument();
+    });
+
+    it('shows where an alternate publish goes and uses it once', () => {
+        const onWebUploadToTarget = vi.fn();
+        render(
+            <StatsHeader embedded={false} totalLogs={4} devMockAvailable={false} devMockUploadState={{ uploading: false }} onDevMockUpload={() => {}}
+                uploadingWeb={false} onWebUpload={() => {}} onWebUploadToTarget={onWebUploadToTarget}
+                uploadTargets={[
+                    { fullName: 'guild/site', label: 'guild/site (Default)', isDefault: true, pagesUrl: 'https://g/', memberCount: 4 },
+                    { fullName: 'x/y', label: 'x/y', isDefault: false, pagesUrl: 'https://x/', memberCount: null }
+                ]} />
+        );
+        fireEvent.click(screen.getByTitle('Choose upload repository'));
+        expect(screen.getByText('Your report appears at https://g/, alongside reports from 3 other commanders.')).toBeInTheDocument();
+        expect(screen.getByText('https://x/')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /x\/y/ }));
+        expect(onWebUploadToTarget).toHaveBeenCalledWith('x/y');
+        expect(screen.getByRole('button', { name: /Publish to guild\/site/ })).toBeInTheDocument();
+    });
 });

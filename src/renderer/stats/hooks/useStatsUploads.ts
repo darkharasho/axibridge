@@ -8,6 +8,32 @@ import { computeInitialWebhookSelection } from '../utils/reportWebhookSelection'
 import { useStatsStore } from '../statsStore';
 import { buildSliceSidecar } from '../slice/buildSliceSidecar';
 import type { SliceSidecar } from '../slice/sliceTypes';
+import { inferredPagesUrl, normalizeSiteKey, sortSitesDefaultFirst, type IGithubSite, type ISiteDetails } from '../../../shared/githubSites';
+
+export type UploadTarget = { fullName: string; label: string; isDefault: boolean; pagesUrl: string; memberCount: number | null };
+
+/** Saved sites as publish targets, default first. Sites known to have lost access are dropped; unknown = kept. */
+export const buildUploadTargets = (
+    sites: IGithubSite[], defaultKey: string | null, details: Record<string, ISiteDetails> | null
+): UploadTarget[] => sortSitesDefaultFirst(sites, defaultKey)
+    .map((site) => {
+        const key = normalizeSiteKey(site.owner, site.repo);
+        const fullName = `${site.owner}/${site.repo}`;
+        const isDefault = key === defaultKey;
+        const d = details?.[key];
+        return {
+            target: {
+                fullName,
+                label: isDefault ? `${fullName} (Default)` : fullName,
+                isDefault,
+                pagesUrl: d?.pagesUrl || inferredPagesUrl(site),
+                memberCount: d?.memberCount ?? null
+            },
+            drop: !isDefault && d?.role === 'none'
+        };
+    })
+    .filter((x) => !x.drop)
+    .map((x) => x.target);
 
 export interface PublishWebhookOption {
     id: string;
@@ -62,7 +88,7 @@ export const useStatsUploads = ({
     }>({ uploading: false, message: null, url: null });
 
     const [webCopyStatus, setWebCopyStatus] = useState<'idle' | 'copied'>('idle');
-    const [webUploadTargets, setWebUploadTargets] = useState<Array<{ fullName: string; label: string; isDefault: boolean }>>([]);
+    const [webUploadTargets, setWebUploadTargets] = useState<UploadTarget[]>([]);
     const [reportWebhooks, setReportWebhooks] = useState<PublishWebhookOption[]>([]);
     const [initialWebhookSelection, setInitialWebhookSelection] = useState<string[]>([]);
 
@@ -83,27 +109,19 @@ export const useStatsUploads = ({
                 setInitialWebhookSelection(
                     computeInitialWebhookSelection(enabledHooks, settings?.reportWebhookSelection ?? null, settings?.reportWebhookSeen ?? null)
                 );
-                const defaultFullName = settings?.githubRepoOwner && settings?.githubRepoName
-                    ? `${settings.githubRepoOwner}/${settings.githubRepoName}`
-                    : '';
-                const favoriteRepos = Array.isArray(settings?.githubFavoriteRepos)
-                    ? settings.githubFavoriteRepos.filter((entry) => typeof entry === 'string')
-                    : [];
-                const seen = new Set<string>();
-                const nextTargets: Array<{ fullName: string; label: string; isDefault: boolean }> = [];
-                const pushTarget = (fullName: string, isDefault: boolean) => {
-                    const normalized = String(fullName || '').trim();
-                    if (!normalized || !/^[^/]+\/[^/]+$/.test(normalized) || seen.has(normalized)) return;
-                    seen.add(normalized);
-                    nextTargets.push({
-                        fullName: normalized,
-                        label: isDefault ? `${normalized} (Default)` : normalized,
-                        isDefault
-                    });
-                };
-                if (defaultFullName) pushTarget(defaultFullName, true);
-                favoriteRepos.forEach((fullName) => pushTarget(fullName, fullName === defaultFullName));
-                setWebUploadTargets(nextTargets);
+                const sites: IGithubSite[] = Array.isArray(settings?.githubSites) ? settings.githubSites : [];
+                const defaultKey = settings?.githubRepoOwner && settings?.githubRepoName
+                    ? normalizeSiteKey(settings.githubRepoOwner, settings.githubRepoName)
+                    : null;
+                setWebUploadTargets(buildUploadTargets(sites, defaultKey, null));
+                if (sites.length > 0 && window.electronAPI?.getGithubSiteDetails) {
+                    try {
+                        const res = await window.electronAPI.getGithubSiteDetails(sites.map(({ owner, repo }) => ({ owner, repo })));
+                        if (!cancelled && res?.success && res.details) setWebUploadTargets(buildUploadTargets(sites, defaultKey, res.details));
+                    } catch {
+                        // Fail open: the list from settings stays.
+                    }
+                }
             } catch {
                 if (!cancelled) setWebUploadTargets([]);
             }

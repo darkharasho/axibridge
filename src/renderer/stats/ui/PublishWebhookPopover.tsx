@@ -7,12 +7,13 @@ interface PublishWebhookPopoverProps {
     initialSelection: string[];
     onConfirm: (ids: string[]) => void;
     onCancel: () => void;
+    destinationNote?: string;
 }
 
 /** Per-publish webhook picker shown when clicking "Upload to Web" while report
  *  webhooks exist. Seeds its checkboxes from the remembered selection; confirming
  *  with none checked publishes the report without posting to Discord. */
-export const PublishWebhookPopover = ({ webhooks, initialSelection, onConfirm, onCancel }: PublishWebhookPopoverProps) => {
+export const PublishWebhookPopover = ({ webhooks, initialSelection, onConfirm, onCancel, destinationNote }: PublishWebhookPopoverProps) => {
     const [checked, setChecked] = useState<Set<string>>(() => new Set(initialSelection));
     const ref = useRef<HTMLDivElement | null>(null);
 
@@ -56,6 +57,7 @@ export const PublishWebhookPopover = ({ webhooks, initialSelection, onConfirm, o
                 <div>
                     <div className="text-sm font-bold" style={{ color: 'var(--axi-text)' }}>Publish report</div>
                     <div className="text-[11px] mt-0.5" style={{ color: 'var(--axi-text-dim)' }}>Post the report link to&hellip;</div>
+                    {destinationNote && <p className="text-[11px] mt-1" style={{ color: 'var(--axi-text-dim)' }}>{destinationNote}</p>}
                 </div>
                 <button type="button" onClick={toggleAll} className="axi-action text-[11px] font-semibold whitespace-nowrap" style={{ color: 'var(--axi-accent)' }}>
                     {allChecked ? 'Clear all' : 'Select all'}

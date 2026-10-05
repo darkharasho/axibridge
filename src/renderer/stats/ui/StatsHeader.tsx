@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronDown, Search, Sparkles, Trophy, UploadCloud } from 'lucide-react';
 import { PublishWebhookPopover } from './PublishWebhookPopover';
-import type { PublishWebhookOption } from '../hooks/useStatsUploads';
+import type { PublishWebhookOption, UploadTarget } from '../hooks/useStatsUploads';
+import { describeDestination } from '../../../shared/githubSites';
 import { FightSlicePill } from '../components/FightSliceTray';
 
 /* The trophy was set inline in the heading at axi-ink-warn, which the axi
@@ -34,7 +35,7 @@ type StatsHeaderProps = {
     onDevMockUpload: () => void;
     uploadingWeb: boolean;
     onWebUpload: (reportWebhookIds?: string[]) => void;
-    uploadTargets?: Array<{ fullName: string; label: string; isDefault: boolean }>;
+    uploadTargets?: UploadTarget[];
     onWebUploadToTarget?: (repoFullName: string, reportWebhookIds?: string[]) => void;
     reportWebhooks?: PublishWebhookOption[];
     initialWebhookSelection?: string[];
@@ -77,6 +78,11 @@ export const StatsHeader = ({
     const [publishTarget, setPublishTarget] = useState<string | null>(null);
     const uploadMenuRef = useRef<HTMLDivElement | null>(null);
     const alternateUploadTargets = uploadTargets.filter((target) => !target.isDefault);
+    const defaultUploadTarget = uploadTargets.find((target) => target.isDefault) ?? null;
+    const noteFor = (fullName: string | null) => {
+        const target = fullName ? uploadTargets.find((t) => t.fullName === fullName) : defaultUploadTarget;
+        return target ? describeDestination(target.pagesUrl, target.memberCount ?? null) : undefined;
+    };
 
     // Clicking upload opens the webhook picker; with no webhooks configured it
     // publishes immediately (unchanged behavior). `target` is a repo full name for
@@ -229,7 +235,9 @@ export const StatsHeader = ({
                                     : undefined}
                             >
                                 <UploadCloud className="w-4 h-4" />
-                                {uploadingWeb ? 'Uploading...' : 'Upload to Web'}
+                                <span className="truncate max-w-[16rem]">
+                                    {uploadingWeb ? 'Uploading...' : defaultUploadTarget ? `Publish to ${defaultUploadTarget.fullName}` : 'Upload to Web'}
+                                </span>
                             </button>
                             {alternateUploadTargets.length > 0 && (
                                 <button
@@ -248,6 +256,12 @@ export const StatsHeader = ({
                         </div>
                         {uploadMenuOpen && alternateUploadTargets.length > 0 && !uploadDisabled && (
                             <div className="app-dropdown axi-panel axi-panel--tile axi-panel--float absolute right-0 top-full mt-2 z-50 min-w-[240px] [--axi-panel-pad:4px]">
+                                {defaultUploadTarget && (
+                                    <div className="px-3 py-2 text-[11px]" style={{ color: 'var(--axi-text-dim)', borderBottom: 'var(--axi-border-control) solid var(--axi-rule)' }}>
+                                        {noteFor(null)}
+                                    </div>
+                                )}
+                                <div className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-widest" style={{ color: 'var(--axi-text-dim)' }}>Publish this one to</div>
                                 {alternateUploadTargets.map((target) => (
                                     <button
                                         key={target.fullName}
@@ -258,7 +272,8 @@ export const StatsHeader = ({
                                         onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--axi-surface-raised-paint)')}
                                         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                                     >
-                                        {target.label}
+                                        <span className="block">{target.label}</span>
+                                        <span className="block text-[10px]" style={{ color: 'var(--axi-text-dim)' }}>{target.pagesUrl}</span>
                                     </button>
                                 ))}
                             </div>
@@ -266,6 +281,7 @@ export const StatsHeader = ({
                         {publishOpen && !uploadDisabled && (
                             <PublishWebhookPopover
                                 webhooks={reportWebhooks}
+                                destinationNote={noteFor(publishTarget)}
                                 initialSelection={initialWebhookSelection}
                                 onConfirm={confirmPublish}
                                 onCancel={() => setPublishOpen(false)}
