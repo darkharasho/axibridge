@@ -92,7 +92,7 @@ const IMPORT_SETTING_META: Array<{ key: string; label: string; description: stri
     { key: 'githubPagesBaseUrl', label: 'GitHub Pages URL', description: 'Base URL for hosted reports.', section: 'Web Report' },
     { key: 'githubToken', label: 'GitHub Token', description: 'Token used for uploads.', section: 'Web Report' },
     { key: 'githubLogoPath', label: 'Web Logo', description: 'Logo path used for reports.', section: 'Web Report' },
-    { key: 'githubFavoriteRepos', label: 'Favorite Repos', description: 'Pinned repos list.', section: 'Web Report' }
+    { key: 'githubSites', label: 'Publishing Sites', description: 'Saved GitHub Pages sites.', section: 'Web Report' }
 ];
 
 /** Disk sizes, rounded to whole MB — precision no one reads past. */

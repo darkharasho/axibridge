@@ -8,7 +8,7 @@ import { computeInitialWebhookSelection } from '../utils/reportWebhookSelection'
 import { useStatsStore } from '../statsStore';
 import { buildSliceSidecar } from '../slice/buildSliceSidecar';
 import type { SliceSidecar } from '../slice/sliceTypes';
-import { inferredPagesUrl, normalizeSiteKey, sortSitesDefaultFirst, type IGithubSite, type ISiteDetails } from '../../../shared/githubSites';
+import { inferredPagesUrl, normalizeSiteKey, sortSitesDefaultFirst, withDefault, type IGithubSite, type ISiteDetails } from '../../../shared/githubSites';
 
 export type UploadTarget = { fullName: string; label: string; isDefault: boolean; pagesUrl: string; memberCount: number | null };
 
@@ -113,11 +113,12 @@ export const useStatsUploads = ({
                 const defaultKey = settings?.githubRepoOwner && settings?.githubRepoName
                     ? normalizeSiteKey(settings.githubRepoOwner, settings.githubRepoName)
                     : null;
-                setWebUploadTargets(buildUploadTargets(sites, defaultKey, null));
-                if (sites.length > 0 && window.electronAPI?.getGithubSiteDetails) {
+                const allSites = withDefault(sites, settings?.githubRepoOwner || '', settings?.githubRepoName || '');
+                setWebUploadTargets(buildUploadTargets(allSites, defaultKey, null));
+                if (allSites.length > 0 && window.electronAPI?.getGithubSiteDetails) {
                     try {
-                        const res = await window.electronAPI.getGithubSiteDetails(sites.map(({ owner, repo }) => ({ owner, repo })));
-                        if (!cancelled && res?.success && res.details) setWebUploadTargets(buildUploadTargets(sites, defaultKey, res.details));
+                        const res = await window.electronAPI.getGithubSiteDetails(allSites.map(({ owner, repo }) => ({ owner, repo })));
+                        if (!cancelled && res?.success && res.details) setWebUploadTargets(buildUploadTargets(allSites, defaultKey, res.details));
                     } catch {
                         // Fail open: the list from settings stays.
                     }
