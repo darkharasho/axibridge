@@ -63,7 +63,7 @@
         "worker:deploy": "wrangler deploy --config worker/wrangler.toml"
     },
     "dependencies": {
-        "@axiapps/axi-config": "^0.1.0",
+        "@axiapps/axi-config": "^0.1.1",
         "@axiapps/axi-design": "^1.46.0",
         "@axiapps/axilog": "1.16.0",
         "@axiapps/bridge-metrics": "^0.2.0",
