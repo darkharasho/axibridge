@@ -226,6 +226,8 @@ export const StatsHeader = ({
                                 onClick={() => startPublish(null)}
                                 disabled={uploadDisabled}
                                 aria-disabled={uploadDisabled}
+                                title={defaultUploadTarget && !uploadingWeb ? `Publish to ${defaultUploadTarget.fullName}` : undefined}
+                                aria-label={defaultUploadTarget && !uploadingWeb ? `Publish to ${defaultUploadTarget.fullName}` : undefined}
                                 className="axi-btn axi-btn--primary stats-action-upload"
                                 /* A split control is a shape this language has no
                                    word for, so the squared join is inline: a radius
@@ -236,7 +238,7 @@ export const StatsHeader = ({
                             >
                                 <UploadCloud className="w-4 h-4" />
                                 <span className="truncate max-w-[16rem]">
-                                    {uploadingWeb ? 'Uploading...' : defaultUploadTarget ? `Publish to ${defaultUploadTarget.fullName}` : 'Upload to Web'}
+                                    {uploadingWeb ? 'Uploading...' : defaultUploadTarget ? 'Publish' : 'Upload to Web'}
                                 </span>
                             </button>
                             {alternateUploadTargets.length > 0 && (

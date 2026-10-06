@@ -1,4 +1,4 @@
-import { forwardRef, memo, useEffect, useRef, useState } from 'react';
+import { forwardRef, memo, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useParticleEffect, PRESETS } from './particles';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EASE, DURATION } from './motion';
@@ -22,6 +22,10 @@ import { deriveReviveLogSummary, reviveePlayerKey, type ReviveLogSummary } from 
 // Track which logs have already played their arrival/success animations (survives virtualization remounts)
 const seenArrivalIds = new Set<string>();
 const seenSuccessIds = new Set<string>();
+
+// The squad/enemy summary tiles read a roomier pad than a tile's default; set
+// through the knob .axi-panel--tile reads, since a padding utility loses to it.
+const SUMMARY_TILE_STYLE = { '--axi-panel-pad': '14px 16px' } as CSSProperties;
 
 // `deriveReviveLogSummary` walks the whole roster's rotation/replay data --
 // skip it entirely when the Revives column is disabled.
@@ -1095,13 +1099,13 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                         <div className="p-4 space-y-4">
                             {(settings.showSquadSummary || settings.showEnemySummary) && (
                                 <div
-                                    className="grid gap-3 text-xs items-start"
+                                    className="grid gap-4 text-xs items-start"
                                     style={{ gridTemplateColumns: `repeat(${summaryColumnCount}, minmax(0, 1fr))` }}
                                 >
                                     {settings.showSquadSummary && (
-                                        <div className="axi-panel axi-panel--tile">
-                                            <h5 className="font-semibold axi-ink-ok mb-2 uppercase tracking-wider text-[10px]">Squad Summary</h5>
-                                            <div className="font-mono axi-ink-dim space-y-1">
+                                        <div className="axi-panel axi-panel--tile" style={SUMMARY_TILE_STYLE}>
+                                            <h5 className="font-semibold axi-ink-ok mb-3 uppercase tracking-wider text-[10px]">Squad Summary</h5>
+                                            <div className="font-mono axi-ink-dim space-y-1.5">
                                                 <div className="flex justify-between"><span>Count:</span> <span>{squadDisplayCount} {nonSquadDisplayCount > 0 ? `(+${nonSquadDisplayCount})` : ''}</span></div>
                                                 <div className="flex justify-between"><span>DMG:</span> <span>{squadDmg.toLocaleString()}</span></div>
                                                 <div className="flex justify-between"><span>DPS:</span> <span>{Math.round(squadDps).toLocaleString()}</span></div>
@@ -1111,9 +1115,9 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                         </div>
                                     )}
                                     {settings.showEnemySummary && (!splitEnemiesByTeam || enemyTeamSummaryStats.length === 0) && (
-                                        <div className="axi-panel axi-panel--tile">
-                                            <h5 className="font-semibold axi-ink-danger mb-2 uppercase tracking-wider text-[10px]">Enemy Summary</h5>
-                                            <div className="font-mono axi-ink-dim space-y-1">
+                                        <div className="axi-panel axi-panel--tile" style={SUMMARY_TILE_STYLE}>
+                                            <h5 className="font-semibold axi-ink-danger mb-3 uppercase tracking-wider text-[10px]">Enemy Summary</h5>
+                                            <div className="font-mono axi-ink-dim space-y-1.5">
                                                 <div className="flex justify-between"><span>Count:</span> <span>{enemyCount}</span></div>
                                                 <div className="flex justify-between"><span>DMG:</span> <span>{totalDmgTaken.toLocaleString()}</span></div>
                                                 <div className="flex justify-between"><span>DPS:</span> <span>{enemyDps.toLocaleString()}</span></div>
@@ -1123,9 +1127,9 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                                         </div>
                                     )}
                                     {settings.showEnemySummary && splitEnemiesByTeam && enemyTeamSummaryStats.map((team) => (
-                                        <div key={`expanded-team-summary-${team.teamId}`} className="axi-panel axi-panel--tile">
-                                            <h5 className="font-semibold mb-2 uppercase tracking-wider text-[10px]" style={{ color: WVW_TEAM_COLOR_META[team.color].hex }}>{`${WVW_TEAM_COLOR_META[team.color].label} team`}</h5>
-                                            <div className="font-mono axi-ink-dim space-y-1">
+                                        <div key={`expanded-team-summary-${team.teamId}`} className="axi-panel axi-panel--tile" style={SUMMARY_TILE_STYLE}>
+                                            <h5 className="font-semibold mb-3 uppercase tracking-wider text-[10px]" style={{ color: WVW_TEAM_COLOR_META[team.color].hex }}>{`${WVW_TEAM_COLOR_META[team.color].label} team`}</h5>
+                                            <div className="font-mono axi-ink-dim space-y-1.5">
                                                 <div className="flex justify-between"><span>Count:</span> <span>{team.count}</span></div>
                                                 <div className="flex justify-between"><span>DMG:</span> <span>{team.dmg.toLocaleString()}</span></div>
                                                 <div className="flex justify-between"><span>DPS:</span> <span>{team.dps.toLocaleString()}</span></div>
