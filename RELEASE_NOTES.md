@@ -1,5 +1,11 @@
 # Release Notes
 
+Version v3.22.1 — October 6, 2026
+
+## Fixes
+
+- If access is revoked and AxiBridge can't save that to disk, it now restarts straight into the block screen, so nothing keeps running behind it. Before, the block screen covered an app that was still running.
+
 Version v3.22.0 — October 5, 2026
 
 ## Access check
