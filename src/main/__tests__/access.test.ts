@@ -21,9 +21,13 @@ beforeEach(async () => {
   resetBlockScreenForTests()
 })
 afterEach(async () => {
-  for (const c of configs) c.close()
+  // Let any in-flight cache write settle before removing the directory.
+  for (const c of configs) {
+    await c.refresh()
+    c.close()
+  }
   configs = []
-  await rm(dir, { recursive: true, force: true })
+  await rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 })
 })
 
 function makeConfig(fetchImpl: typeof fetch) {

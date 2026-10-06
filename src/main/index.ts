@@ -1740,17 +1740,23 @@ if (!gotTheLock) {
 
     app.whenReady().then(async () => {
         fs.writeFileSync(path.join(app.getPath('userData'), 'axiom-version'), app.getVersion(), 'utf8')
-        const accessBoot = await startAccess({
-            electron: { app, BrowserWindow, shell } as unknown as Parameters<typeof startAccess>[0]['electron'],
-            readWebhookUrls: readAccessWebhookUrls,
-            headless: cliFlags.headless,
-        });
-        if (accessBoot.blocked) {
+        let accessBoot: AccessBoot | null = null;
+        try {
+            accessBoot = await startAccess({
+                electron: { app, BrowserWindow, shell } as unknown as Parameters<typeof startAccess>[0]['electron'],
+                readWebhookUrls: readAccessWebhookUrls,
+                headless: cliFlags.headless,
+            });
+        } catch {
+            // Fail open: a bug in the check must not take the app down.
+            console.warn('access check unavailable');
+        }
+        if (accessBoot?.blocked) {
             accessState.status = 'blocked';
             return;
         }
         accessState.status = 'ok';
-        accessState.gate = accessBoot.gate;
+        accessState.gate = accessBoot ? accessBoot.gate : null;
         if (process.defaultApp && process.argv.length >= 2) {
             app.setAsDefaultProtocolClient(GITHUB_PROTOCOL, process.execPath, [path.resolve(process.argv[1])]);
         } else {
@@ -1767,7 +1773,7 @@ if (!gotTheLock) {
             createWindow();
         }
         createTray();
-        void accessBoot.gate.recheck();
+        void accessBoot?.gate.recheck();
 
         nativeTheme.on('updated', () => {
             const icon = getAppIcon();
