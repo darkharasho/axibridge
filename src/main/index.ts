@@ -23,6 +23,7 @@ import {
     handleDiscordSendResults as handleDiscordSendResultsFn
 } from './discordDestinationResolver';
 import { autoUpdater } from 'electron-updater';
+import { startAccess, recorderIdentities, type AccessBoot } from './access';
 import log from 'electron-log';
 import { DesktopIntegrator } from './integration';
 import {
@@ -232,6 +233,24 @@ const { setForwarding: setConsoleLogForwarding, getHistory: getConsoleLogHistory
 
 const Store = require('electron-store');
 const store = new Store();
+
+// Axi access check. Windows and services are only created when the boot check passed.
+const accessState: { status: 'pending' | 'blocked' | 'ok'; gate: Extract<AccessBoot, { blocked: false }>['gate'] | null } = { status: 'pending', gate: null };
+
+/** Discord webhook URLs the app is configured with (never logged). */
+const readAccessWebhookUrls = (): unknown[] => {
+    const urls: unknown[] = [];
+    const hooks = store.get('webhooks');
+    if (Array.isArray(hooks)) {
+        for (const h of hooks) if (h && h.kind === 'webhook') urls.push(h.url);
+    }
+    const reports = store.get('reportWebhooks');
+    if (Array.isArray(reports)) {
+        for (const r of reports) urls.push(r?.url);
+    }
+    urls.push(store.get('discordWebhookUrl'));
+    return urls;
+};
 
 // ─── Settings migration: legacy appearance keys → colorPalette + glass ────────
 migrateGlassSetting(store);
@@ -695,6 +714,7 @@ const runLogFile = async (filePath: string, fileId: string, options?: { retry?: 
 
             const hasUsableDetails = Boolean(jsonDetails && !jsonDetails.error && hasUsableFightDetails(jsonDetails));
             const prunedDetails = hasUsableDetails ? pruneDetailsForStats(jsonDetails, statsPruneOptions()) : null;
+            if (prunedDetails) void accessState.gate?.checkIdentities(recorderIdentities(prunedDetails));
             jsonDetails = null; // Release full JSON for GC
 
             const playerCount = Array.isArray(prunedDetails?.players) ? prunedDetails.players.length : undefined;
@@ -841,6 +861,7 @@ const runLogFile = async (filePath: string, fileId: string, options?: { retry?: 
             }
             const hasUsableDetails = Boolean(eiJson && !eiJson.error && hasUsableFightDetails(eiJson));
             const prunedDetails = hasUsableDetails ? pruneDetailsForStats(eiJson, statsPruneOptions()) : null;
+            if (prunedDetails) void accessState.gate?.checkIdentities(recorderIdentities(prunedDetails));
             eiJson = null; // Release full JSON for GC
 
             const playerCount = Array.isArray(prunedDetails?.players) ? prunedDetails.players.length : undefined;
@@ -1031,6 +1052,7 @@ const runLogFile = async (filePath: string, fileId: string, options?: { retry?: 
         }
         const hasUsableDetails = Boolean(cachedDetails && hasUsableFightDetails(cachedDetails));
         const prunedDetails = hasUsableDetails ? pruneDetailsForStats(cachedDetails, statsPruneOptions()) : null;
+        if (prunedDetails) void accessState.gate?.checkIdentities(recorderIdentities(prunedDetails));
         cachedDetails = null;
 
         let result = cached?.entry?.result || null;
@@ -1667,6 +1689,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('activate', () => {
+    if (accessState.status !== 'ok') return;
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
     } else {
@@ -1703,6 +1726,7 @@ if (!gotTheLock) {
 } else {
     // This is the first/primary instance
     app.on('second-instance', (_event, commandLine, _workingDirectory) => {
+        if (accessState.status !== 'ok') return;
         const secondWantsWindow = !parseCliFlags(commandLine).headless;
         if (win) {
             if (win.isMinimized()) win.restore();
@@ -1716,6 +1740,17 @@ if (!gotTheLock) {
 
     app.whenReady().then(async () => {
         fs.writeFileSync(path.join(app.getPath('userData'), 'axiom-version'), app.getVersion(), 'utf8')
+        const accessBoot = await startAccess({
+            electron: { app, BrowserWindow, shell } as unknown as Parameters<typeof startAccess>[0]['electron'],
+            readWebhookUrls: readAccessWebhookUrls,
+            headless: cliFlags.headless,
+        });
+        if (accessBoot.blocked) {
+            accessState.status = 'blocked';
+            return;
+        }
+        accessState.status = 'ok';
+        accessState.gate = accessBoot.gate;
         if (process.defaultApp && process.argv.length >= 2) {
             app.setAsDefaultProtocolClient(GITHUB_PROTOCOL, process.execPath, [path.resolve(process.argv[1])]);
         } else {
@@ -1732,6 +1767,7 @@ if (!gotTheLock) {
             createWindow();
         }
         createTray();
+        void accessBoot.gate.recheck();
 
         nativeTheme.on('updated', () => {
             const icon = getAppIcon();
@@ -1912,6 +1948,7 @@ if (!gotTheLock) {
             }
             if (settings.discordWebhookUrl !== undefined) {
                 store.set('discordWebhookUrl', settings.discordWebhookUrl);
+                void accessState.gate?.recheck();
                 applyDiscordDestinations();
             }
             if (settings.discordNotificationType !== undefined) {
@@ -1934,6 +1971,7 @@ if (!gotTheLock) {
             }
             if (settings.webhooks !== undefined) {
                 store.set('webhooks', settings.webhooks);
+                void accessState.gate?.recheck();
                 // The link flow appends a bridge entry and saves via
                 // `saveSettings({ webhooks })` alone, with no selectedWebhookId
                 // in the payload — re-derive here too, or a newly linked
@@ -1944,6 +1982,7 @@ if (!gotTheLock) {
             }
             if (settings.reportWebhooks !== undefined) {
                 store.set('reportWebhooks', settings.reportWebhooks);
+                void accessState.gate?.recheck();
             }
             if (settings.reportWebhookSelection !== undefined) {
                 store.set('reportWebhookSelection', settings.reportWebhookSelection);

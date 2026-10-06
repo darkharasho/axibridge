@@ -39,6 +39,10 @@ Grab the latest build from the [AxiBridge site](https://darkharasho.github.io/ax
 3. **Automatic Uploads**: AxiBridge watches the folder and processes new logs automatically.
 4. **Share Reports**: Open the full web report or post to Discord for your squad.
 
+## Access
+
+AxiBridge checks a public access list when it starts and every few hours, by downloading `https://config.axi.link/v1/manifest`. Access to the Axi apps can be revoked for accounts, guilds or Discord servers that violate the terms of use. The list holds only one-way SHA-256 hashes, and the comparison happens on your device: AxiBridge compares the Discord servers your webhooks post to and the account and guild that recorded each log against it and never sends them, or anything else about you, anywhere. If the list can't be reached, AxiBridge keeps working. If you believe your access was revoked by mistake, use the contact link on the block screen, or reach the author through https://github.com/darkharasho.
+
 ## 📄 License
 
 This project is licensed under GPL-3.0-only—see the LICENSE file for details.
