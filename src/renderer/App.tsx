@@ -204,7 +204,9 @@ function App() {
     // it by `permalink` alone missed every share-era log, which has none.
     const r2ReplayUrlsRef = useRef<Record<string, string>>({});
     useEffect(() => {
+        window.electronAPI?.bootMark?.('App mounted');
         window.electronAPI?.getSettings?.().then((s) => {
+            window.electronAPI?.bootMark?.('settings received');
             console.log('[App] r2ReplayUrls from store:', s?.r2ReplayUrls);
             if (!s?.r2ReplayUrls || typeof s.r2ReplayUrls !== 'object') return;
             r2ReplayUrlsRef.current = s.r2ReplayUrls;

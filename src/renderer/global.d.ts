@@ -556,6 +556,7 @@ export interface IElectronAPI {
 
     // Diagnostics
     reportRendererError: (payload: { source: string; message: string; stack?: string }) => void;
+    bootMark?: (label: string) => void;
     onRequestRendererDiagnostics: (callback: () => void) => () => void;
     sendRendererDiagnostics: (payload: { heapUsed: number; heapTotal: number; heapLimit: number; logCount: number }) => void;
 
