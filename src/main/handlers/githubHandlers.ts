@@ -15,7 +15,7 @@ import {
 import { parseAttendanceFile, updateAttendanceForPublish, type AttendanceRaid } from '../../web/attendance';
 import { waitForPagesDeploy, describePagesDeploy } from '../githubPagesDeploy';
 import { startReportPost } from '../reportPostRunner';
-import { encodeGitPath, getRepoPermissions, getViewerLogin, GITHUB_API_IDLE_TIMEOUT_MS, githubApiRequest } from '../githubApi';
+import { encodeGitPath, getRepoPermissions, getViewerLogin, GITHUB_API_IDLE_TIMEOUT_MS, githubApiRequest, withGithubTransportRetry } from '../githubApi';
 import {
     buildIndexPayload,
     parseSiteIndex,
@@ -238,7 +238,7 @@ const getGithubBlob = async (owner: string, repo: string, blobSha: string, token
  */
 const getGithubBlobRaw = (owner: string, repo: string, blobSha: string, token: string): Promise<Buffer> => {
     const apiPath = `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}/git/blobs/${encodeGitPath(blobSha)}`;
-    return new Promise((resolve, reject) => {
+    return withGithubTransportRetry('GET', apiPath, () => new Promise<Buffer>((resolve, reject) => {
         const req = https.request(
             {
                 method: 'GET',
@@ -268,7 +268,7 @@ const getGithubBlobRaw = (owner: string, repo: string, blobSha: string, token: s
             req.destroy(new Error(`GitHub API request timed out after ${GITHUB_API_IDLE_TIMEOUT_MS}ms of inactivity: GET ${apiPath}`));
         });
         req.end();
-    });
+    }));
 };
 
 const getGithubTree = async (owner: string, repo: string, treeSha: string, token: string) => {

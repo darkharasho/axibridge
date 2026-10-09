@@ -11,7 +11,83 @@ export const encodeGitPath = (value: string) =>
 // leaves every card stuck on "pending".
 export const GITHUB_API_IDLE_TIMEOUT_MS = 60_000;
 
-export const githubApiRequest = (method: string, apiPath: string, token: string, body?: any): Promise<{ status: number; data: any }> => {
+/**
+ * A failure below HTTP: the connection dropped, DNS failed, or the TLS session
+ * broke. The commonest on Windows is `SSLV3_ALERT_BAD_RECORD_MAC` — bytes were
+ * altered in transit, which in practice means antivirus HTTPS scanning, a VPN
+ * or proxy, or a flaky link, not GitHub and not AxiBridge.
+ */
+export const isTransportError = (err: unknown): boolean => {
+    const code = String((err as any)?.code ?? '');
+    if (code.startsWith('ERR_SSL_') || code.startsWith('ERR_TLS_')) return true;
+    if (['ECONNRESET', 'ECONNABORTED', 'ECONNREFUSED', 'EPIPE', 'EPROTO', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN', 'ENETUNREACH', 'EHOSTUNREACH'].includes(code)) return true;
+    return /\b(SSL|TLS)\b|BAD_RECORD_MAC|DECRYPTION_FAILED|socket hang up/i.test(String((err as any)?.message ?? ''));
+};
+
+/**
+ * What the user reads when a GitHub request fails below HTTP. Says plainly that
+ * the cause is on their side and what to try; the original error stays on
+ * `cause` and in the stack, which is what the publish dialog's detail box and
+ * main.log show, so the raw OpenSSL text still reaches us.
+ */
+export class GithubConnectionError extends Error {
+    readonly cause: unknown;
+
+    constructor(method: string, apiPath: string, cause: unknown, attempts: number) {
+        const tls = /\b(SSL|TLS)\b|BAD_RECORD_MAC|DECRYPTION_FAILED/i.test(String((cause as any)?.message ?? ''))
+            || /^ERR_(SSL|TLS)_/.test(String((cause as any)?.code ?? ''));
+        super(
+            (tls ? 'The secure connection to GitHub was broken in transit' : 'The connection to GitHub dropped')
+            + (attempts > 1 ? ', twice in a row. ' : '. ')
+            + 'This comes from this computer or its network, not from GitHub or AxiBridge: '
+            + 'usually antivirus "HTTPS/web scanning", a VPN or proxy, or an unstable connection. '
+            + 'Try publishing again; if it keeps failing, pause web scanning or the VPN and retry.'
+        );
+        this.name = 'GithubConnectionError';
+        this.cause = cause;
+        const original = (cause as any)?.stack || String(cause);
+        this.stack = `${this.stack}\nRequest: ${method} ${apiPath}\nCaused by: ${original}`;
+    }
+}
+
+export const GITHUB_TRANSPORT_RETRY_DELAY_MS = 1000;
+
+/**
+ * Requests that are safe to send twice when the first one's fate is unknown.
+ * Git data objects are content-addressed, so a duplicate blob/tree/commit is the
+ * same object (or a harmless dangling commit); the contents API and ref
+ * updates are left alone.
+ */
+const isSafeToRetry = (method: string, apiPath: string) =>
+    method === 'GET' || (method === 'POST' && /\/git\/(blobs|trees|commits)$/.test(apiPath));
+
+/**
+ * Run one GitHub request. A transport failure (see {@link isTransportError}) is
+ * retried once when {@link isSafeToRetry}; if it fails again, or cannot be
+ * retried, it surfaces as a {@link GithubConnectionError}. HTTP error statuses
+ * and our own idle timeout pass through untouched.
+ */
+export const withGithubTransportRetry = async <T>(method: string, apiPath: string, once: () => Promise<T>): Promise<T> => {
+    try {
+        return await once();
+    } catch (err) {
+        if (!isTransportError(err)) throw err;
+        if (!isSafeToRetry(method, apiPath)) throw new GithubConnectionError(method, apiPath, err, 1);
+        console.warn(`[GitHub] ${method} ${apiPath} failed at the connection (${(err as any)?.code || (err as any)?.message}); retrying once.`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, GITHUB_TRANSPORT_RETRY_DELAY_MS));
+    try {
+        return await once();
+    } catch (err) {
+        if (!isTransportError(err)) throw err;
+        throw new GithubConnectionError(method, apiPath, err, 2);
+    }
+};
+
+export const githubApiRequest = (method: string, apiPath: string, token: string, body?: any): Promise<{ status: number; data: any }> =>
+    withGithubTransportRetry(method, apiPath, () => githubApiRequestOnce(method, apiPath, token, body));
+
+const githubApiRequestOnce = (method: string, apiPath: string, token: string, body?: any): Promise<{ status: number; data: any }> => {
     const payload = body ? JSON.stringify(body) : null;
     return new Promise((resolve, reject) => {
         const req = https.request(
