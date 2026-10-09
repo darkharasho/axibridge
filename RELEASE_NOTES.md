@@ -1,5 +1,13 @@
 # Release Notes
 
+Version v3.22.2 — October 8, 2026
+
+## Fixes
+
+- Fixed the long "Not Responding" freeze after launching on Windows. With a big arcdps log folder it could last up to two minutes and looked like a crash. The log folder watcher was setting up a separate OS watch for every existing log; it now uses a single watch for the whole folder.
+- Publishing to GitHub: if the connection breaks mid-upload (for example an SSL "BAD_RECORD_MAC" error), requests that are safe to repeat are now retried once automatically. If it still fails, the error now says the cause is on your computer or network and points at the usual suspects: antivirus HTTPS/web scanning, a VPN or proxy, or an unstable connection.
+- `main.log` now records a startup timeline and any freeze over 300ms, which makes slow launches easier to diagnose.
+
 Version v3.22.1 — October 6, 2026
 
 ## Fixes
