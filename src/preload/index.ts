@@ -214,6 +214,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
 
     // Diagnostics — renderer error reporting and memory monitoring
+    bootMark: (label: string) => ipcRenderer.send('boot-mark', label, Date.now()),
     reportRendererError: (payload: { source: string; message: string; stack?: string }) =>
         ipcRenderer.send('renderer-error', payload),
     onRequestRendererDiagnostics: (callback: () => void) => {

@@ -19,9 +19,9 @@ export interface ScannedLogFile {
 export interface ScanLogFilesOptions {
     allowJson?: boolean;
     /**
-     * Levels of subdirectory to descend, matching LogWatcher's chokidar
-     * `depth: 5`. A picker that listed logs the watcher would never see — or
-     * the reverse — is its own bug.
+     * Levels of subdirectory to descend, matching LogWatcher's `maxDepth`.
+     * A picker that listed logs the watcher would never see — or the
+     * reverse — is its own bug.
      */
     maxDepth?: number;
 }

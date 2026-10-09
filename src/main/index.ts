@@ -105,6 +105,7 @@ import { getSkillNameCache, initSkillNameCache } from './skillNameCache';
 import { removeEliteInsights } from './eliteInsightsRemoval';
 import { DEFAULT_PARSER_SETTINGS, PARSER_SETTINGS_STORE_KEY, resolveParserSettings, type ParserSettings } from './parserSettings';
 import { parseCliFlags } from './cliFlags';
+import { createBootTimeline } from './bootTimeline';
 
 const cliFlags = parseCliFlags(process.argv);
 
@@ -161,6 +162,11 @@ process.stderr?.on?.('error', (err: NodeJS.ErrnoException) => {
 // Configure autoUpdater logger
 log.transports.file.level = 'info';
 autoUpdater.logger = log;
+
+// Startup timeline — see bootTimeline.ts. The first mark covers loading every
+// module this file imports.
+const bootTimeline = createBootTimeline({ log: (message) => log.info(message) });
+bootTimeline.mark('main modules loaded');
 
 // Crash reporting — native dumps go to userData/Crashpad/, JS exceptions go to the electron-log file
 crashReporter.start({ uploadToServer: false });
@@ -233,6 +239,7 @@ const { setForwarding: setConsoleLogForwarding, getHistory: getConsoleLogHistory
 
 const Store = require('electron-store');
 const store = new Store();
+bootTimeline.mark('settings store opened');
 
 // Axi access check. Windows and services are only created when the boot check passed.
 const accessState: { status: 'pending' | 'blocked' | 'ok'; gate: Extract<AccessBoot, { blocked: false }>['gate'] | null } = { status: 'pending', gate: null };
@@ -1564,7 +1571,13 @@ function createWindow() {
         }
     });
 
+    bootTimeline.mark('window created');
+    win.once('ready-to-show', () => bootTimeline.mark('window ready-to-show'));
+    win.webContents.once('dom-ready', () => bootTimeline.mark('renderer dom-ready'));
+    win.webContents.once('did-finish-load', () => bootTimeline.mark('renderer did-finish-load'));
+
     initServices();
+    bootTimeline.mark('services initialized');
 
     win.webContents.on('did-finish-load', () => {
         win?.webContents.send('main-process-message', (new Date).toLocaleString())
@@ -1738,7 +1751,13 @@ if (!gotTheLock) {
         }
     });
 
+    ipcMain.on('boot-mark', (_event, label: unknown, atEpochMs: unknown) => {
+        if (typeof label !== 'string' || typeof atEpochMs !== 'number') return;
+        bootTimeline.markAt(`renderer: ${label}`, atEpochMs);
+    });
+
     app.whenReady().then(async () => {
+        bootTimeline.mark('app ready');
         fs.writeFileSync(path.join(app.getPath('userData'), 'axiom-version'), app.getVersion(), 'utf8')
         let accessBoot: AccessBoot | null = null;
         try {
@@ -1751,6 +1770,7 @@ if (!gotTheLock) {
             // Fail open: a bug in the check must not take the app down.
             console.warn('access check unavailable');
         }
+        bootTimeline.mark('access check done');
         if (accessBoot?.blocked) {
             accessState.status = 'blocked';
             return;
@@ -1765,7 +1785,9 @@ if (!gotTheLock) {
         migrateLegacySettings();
         migrateLegacyInstallName();
         migrateArcBridgeInstallName();
+        bootTimeline.mark('settings migrated');
         initSkillNameCacheFromDisk();
+        bootTimeline.mark('skill-name cache loaded');
         if (cliFlags.headless) {
             log.info('[Main] Starting in headless mode — watcher/uploader/publisher only.');
             initServices();
@@ -1773,6 +1795,7 @@ if (!gotTheLock) {
             createWindow();
         }
         createTray();
+        bootTimeline.mark('tray created');
         void accessBoot?.gate.recheck();
 
         nativeTheme.on('updated', () => {

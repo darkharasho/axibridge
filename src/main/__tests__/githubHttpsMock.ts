@@ -2,7 +2,8 @@ import { EventEmitter } from 'node:events';
 import https from 'node:https';
 import { vi } from 'vitest';
 
-export type MockResponse = { status: number; body?: unknown };
+/** A response, or `error` to fail the request at the transport layer (no status). */
+export type MockResponse = { status: number; body?: unknown } | { error: Error };
 export interface RecordedCall { method: string; path: string; body: unknown }
 
 /** Stub https.request; returns the live array of recorded calls. */
@@ -22,7 +23,12 @@ export function installHttpsMock(responder: (call: RecordedCall) => MockResponse
             };
             calls.push(call);
             queueMicrotask(() => {
-                const { status, body } = responder(call);
+                const response = responder(call);
+                if ('error' in response) {
+                    req.emit('error', response.error);
+                    return;
+                }
+                const { status, body } = response;
                 const res = new EventEmitter() as any;
                 res.statusCode = status;
                 res.setEncoding = () => {};
