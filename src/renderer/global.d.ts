@@ -506,7 +506,7 @@ export interface IElectronAPI {
     cancelRepoInvite: (payload: { owner?: string; repo?: string; invitationId: number }) => Promise<{ success: boolean; error?: string }>;
     getPendingSiteInvites: (payload?: { force?: boolean }) => Promise<{ success: boolean; invites?: ISiteInvite[]; error?: string }>;
     /** `code: 'invalid'` = the invite expired or was revoked; drop it from any list. */
-    acceptSiteInvite: (payload: { invitationId: number }) => Promise<{ success: boolean; target?: ISiteJoinTarget; error?: string; code?: 'invalid' }>;
+    acceptSiteInvite: (payload: { invitationId: number; owner?: string; repo?: string }) => Promise<{ success: boolean; target?: ISiteJoinTarget; error?: string; code?: 'invalid' }>;
     dismissSiteInvite: (payload: { invitationId: number }) => Promise<{ success: boolean; error?: string }>;
     getGithubSites: () => Promise<{ success: boolean; sites: IGithubSite[]; defaultKey: string | null }>;
     addGithubSite: (payload: { owner: string; repo: string; addedVia: 'manual' | 'found' }) => Promise<{ success: boolean; sites: IGithubSite[]; error?: string }>;

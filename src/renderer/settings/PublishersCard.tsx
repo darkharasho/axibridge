@@ -56,6 +56,12 @@ export const PublishersCard = ({ repoOwner, repoName, onAdminKnown }: Props) => 
         setMessage(null);
     }, [repoOwner, repoName]);
     useEffect(() => { void load(); }, [load]);
+    // Invitees accept elsewhere; coming back to the window shows who joined.
+    useEffect(() => {
+        const onFocus = () => { if (!busyRef.current) void load(); };
+        window.addEventListener('focus', onFocus);
+        return () => window.removeEventListener('focus', onFocus);
+    }, [load]);
     useEffect(() => () => { requestIdRef.current += 1; }, []);
     useEffect(() => {
         void window.electronAPI?.getGithubViewerLogin?.().then((r) => setViewer(r?.success ? r.login ?? null : null));

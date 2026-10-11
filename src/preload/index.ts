@@ -170,7 +170,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     removeRepoPublisher: (payload: { owner?: string; repo?: string; username: string }) => ipcRenderer.invoke('remove-repo-publisher', payload),
     cancelRepoInvite: (payload: { owner?: string; repo?: string; invitationId: number }) => ipcRenderer.invoke('cancel-repo-invite', payload),
     getPendingSiteInvites: (payload?: { force?: boolean }) => ipcRenderer.invoke('get-pending-site-invites', payload),
-    acceptSiteInvite: (payload: { invitationId: number }) => ipcRenderer.invoke('accept-site-invite', payload),
+    acceptSiteInvite: (payload: { invitationId: number; owner?: string; repo?: string }) => ipcRenderer.invoke('accept-site-invite', payload),
     dismissSiteInvite: (payload: { invitationId: number }) => ipcRenderer.invoke('dismiss-site-invite', payload),
     getGithubSites: () => ipcRenderer.invoke('get-github-sites'),
     addGithubSite: (payload: { owner: string; repo: string; addedVia: 'manual' | 'found' }) => ipcRenderer.invoke('add-github-site', payload),

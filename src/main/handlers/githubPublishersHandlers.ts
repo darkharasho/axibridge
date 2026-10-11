@@ -230,15 +230,29 @@ export function registerPublishersHandlers({ store }: PublishersHandlerOptions) 
         }
     });
 
-    ipcMain.handle('accept-site-invite', async (_e, payload: { invitationId: number }) => {
+    ipcMain.handle('accept-site-invite', async (_e, payload: { invitationId: number; owner?: string; repo?: string }) => {
         try {
             const token = getToken();
             if (!token) return { success: false, error: 'GitHub not connected.' };
             const id = Number(payload?.invitationId);
-            const invite = (await loadInvites(token, false)).find((i) => i.id === id)
-                ?? (await loadInvites(token, true)).find((i) => i.id === id);
+            const forRepo = (owner: string, repo: string) => (i: SiteInvite) =>
+                i.owner.toLowerCase() === owner.toLowerCase() && i.repo.toLowerCase() === repo.toLowerCase();
+            let invite = (await loadInvites(token, false)).find((i) => i.id === id);
+            if (!invite) {
+                // A cancelled-and-resent invite has a new id; the repo still identifies it.
+                const fresh = await loadInvites(token, true);
+                invite = fresh.find((i) => i.id === id)
+                    ?? (payload?.owner && payload?.repo ? fresh.find(forRepo(payload.owner, payload.repo)) : undefined);
+            }
             if (!invite) return INVALID_INVITE;
-            const resp = await githubApiRequest('PATCH', `/user/repository_invitations/${id}`, token);
+            let resp = await githubApiRequest('PATCH', `/user/repository_invitations/${invite.id}`, token);
+            if (resp.status === 404) {
+                const resent = (await loadInvites(token, true)).find((i) => i.id !== invite!.id && forRepo(invite!.owner, invite!.repo)(i));
+                if (resent) {
+                    invite = resent;
+                    resp = await githubApiRequest('PATCH', `/user/repository_invitations/${resent.id}`, token);
+                }
+            }
             inviteCache = null;
             if (resp.status === 404) return INVALID_INVITE;
             if (resp.status >= 300) return { success: false, error: resp.data?.message || `GitHub API error (${resp.status}) accepting invite` };

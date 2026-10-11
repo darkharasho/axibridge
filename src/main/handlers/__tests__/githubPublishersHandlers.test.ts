@@ -241,6 +241,26 @@ describe('accept-site-invite', () => {
         expect(await invoke('accept-site-invite', { invitationId: 99 })).toEqual({ success: false, code: 'invalid', error: 'That invite is no longer valid.' });
         expect(calls.some((c) => c.method === 'PATCH')).toBe(false);
     });
+    it('accepts the resent invite when the old one was cancelled', async () => {
+        let list = invitations;
+        const calls = setup({}, (c) => {
+            if (c.path.startsWith('/user/repository_invitations') && c.method === 'GET') return { status: 200, body: list };
+            if (c.method === 'PATCH') return c.path.endsWith('/2') ? { status: 204 } : { status: 404 };
+            if (c.path === '/repos/guild/site/pages') return { status: 200, body: { html_url: 'https://guild.github.io/site/', source: { path: '/docs' } } };
+            return { status: 404 };
+        });
+        await invoke('get-pending-site-invites');
+        list = [{ ...invitations[0], id: 2 }];
+        const res = await invoke('accept-site-invite', { invitationId: 1 });
+        expect(res.success).toBe(true);
+        expect(calls.filter((c) => c.method === 'PATCH').map((c) => c.path)).toEqual(['/user/repository_invitations/1', '/user/repository_invitations/2']);
+    });
+    it('finds the resent invite by repo when the old id is no longer listed', async () => {
+        const calls = setup({}, responder({ status: 204 }));
+        const res = await invoke('accept-site-invite', { invitationId: 99, owner: 'Guild', repo: 'site' });
+        expect(res.success).toBe(true);
+        expect(calls.find((c) => c.method === 'PATCH')?.path).toBe('/user/repository_invitations/1');
+    });
     it('does not mark other accept failures invalid', async () => {
         setup({}, responder({ status: 500, body: { message: 'Server Error' } }));
         const res = await invoke('accept-site-invite', { invitationId: 1 });
