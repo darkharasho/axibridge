@@ -25,9 +25,9 @@ describe('PublishingSiteCard', () => {
     it('opens the site list from Switch site and shows the invite count', () => {
         const onOpenPanel = vi.fn();
         render(<PublishingSiteCard owner="guild" repo="site" details={details()} inviteCount={2} onOpenPanel={onOpenPanel} />);
-        fireEvent.click(screen.getByRole('button', { name: /Switch site/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Switch or add site/ }));
         expect(onOpenPanel).toHaveBeenCalledWith('list');
-        expect(screen.getByRole('button', { name: /Switch site/ })).toHaveTextContent('2');
+        expect(screen.getByRole('button', { name: /Switch or add site/ })).toHaveTextContent('2');
     });
     it('offers create / use existing / find when there is no site', () => {
         const onOpenPanel = vi.fn();
@@ -45,7 +45,7 @@ describe('PublishingSiteCard', () => {
         const onOpenPanel = vi.fn();
         const onClosePanel = vi.fn();
         render(<PublishingSiteCard owner="guild" repo="site" details={null} inviteCount={0} panelOpen onOpenPanel={onOpenPanel} onClosePanel={onClosePanel}><div>members here</div></PublishingSiteCard>);
-        const toggle = screen.getByRole('button', { name: 'Switch site' });
+        const toggle = screen.getByRole('button', { name: 'Switch or add site' });
         expect(toggle).toHaveAttribute('aria-expanded', 'true');
         expect(screen.getByText('members here').compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         fireEvent.click(toggle);

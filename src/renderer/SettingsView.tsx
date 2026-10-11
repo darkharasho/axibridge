@@ -109,6 +109,9 @@ interface SettingsViewProps {
     onHelpUpdatesFocusConsumed?: (trigger: number) => void;
     parserSettingsFocusTrigger?: number;
     onParserSettingsFocusConsumed?: (trigger: number) => void;
+    /** Bumped to land on Web Reports with the site list open (publish menu → Add a site). */
+    publishingSitesTrigger?: number;
+    onPublishingSitesConsumed?: (trigger: number) => void;
     howToTrigger?: number;
     onHowToConsumed?: (trigger: number) => void;
     onMvpWeightsSaved?: (weights: IMvpWeightProfiles) => void;
@@ -223,7 +226,7 @@ function SettingsSection({ title, icon: Icon, children, delay = 0, action, secti
     );
 }
 
-export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onAxiThemeSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onParserSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2SliceEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, axiTheme: axiThemeProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed, getStoredLogs, webhooks, enabledWebhookIds, onSaveWebhooks, onSetDestinationEnabled, logDirectory, onChangeLogDirectory }: SettingsViewProps) {
+export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpenWhatsNew, onOpenWalkthrough, helpUpdatesFocusTrigger, onHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, onParserSettingsFocusConsumed, publishingSitesTrigger, onPublishingSitesConsumed, howToTrigger, onHowToConsumed, onMvpWeightsSaved, onStatsViewSettingsSaved, onDisruptionMethodSaved, onColorPaletteSaved, onAxiThemeSaved, onParticlesEnabledSaved, onAllowLocalJsonSaved, onParserSettingsSaved, onR2PreciseReplaySaved, onR2HostingEnabledSaved, onR2SliceEnabledSaved, onR2CredentialsChanged, colorPalette: colorPaletteProp, axiTheme: axiThemeProp, particlesEnabled: particlesEnabledProp, developerSettingsTrigger, isBulkUploadActive, onLogsHealed, getStoredLogs, webhooks, enabledWebhookIds, onSaveWebhooks, onSetDestinationEnabled, logDirectory, onChangeLogDirectory }: SettingsViewProps) {
 
     const [dpsReportToken, setDpsReportToken] = useState<string>('');
     const [dpsReportEnabled, setDpsReportEnabled] = useState<boolean>(true);
@@ -358,6 +361,7 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
     const parserSettingsRef = useRef<HTMLDivElement | null>(null);
     const lastHelpUpdatesFocusTriggerRef = useRef<number>(0);
     const lastParserSettingsFocusTriggerRef = useRef<number>(0);
+    const lastPublishingSitesTriggerRef = useRef<number>(0);
     const lastHowToTriggerRef = useRef<number>(0);
     const logoSyncInFlightRef = useRef(false);
     // Last logo path pushed (or queued); a site switch alone must not re-push it to the new site.
@@ -1015,6 +1019,15 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         }
         scrollToSettingsSection(id);
     };
+
+    useEffect(() => {
+        const trigger = publishingSitesTrigger || 0;
+        if (trigger <= lastPublishingSitesTriggerRef.current) return;
+        lastPublishingSitesTriggerRef.current = trigger;
+        setSitePanelMode('list');
+        navigateToSection('github-pages');
+        onPublishingSitesConsumed?.(trigger);
+    }, [publishingSitesTrigger, onPublishingSitesConsumed]);
 
     const stepSettingsSection = (direction: -1 | 1) => {
         const next = stepSectionId(activeSettingsSectionIdRef.current, direction);

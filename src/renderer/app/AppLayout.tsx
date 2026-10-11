@@ -75,6 +75,9 @@ export function AppLayout({ ctx }: { ctx: any }) {
         handleHelpUpdatesFocusConsumed,
         parserSettingsFocusTrigger,
         handleParserSettingsFocusConsumed,
+        publishingSitesTrigger,
+        handleOpenPublishingSites,
+        handlePublishingSitesConsumed,
         howToTrigger,
         handleHowToConsumed,
         setWalkthroughOpen,
@@ -410,6 +413,7 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                             onWebUpload={handleWebUpload}
                                             webUploadLogEntries={webUploadLogEntries}
                                             replayPublishing={replayPublishing}
+                                            onAddPublishingSite={handleOpenPublishingSites}
                                         />
                                     </StatsErrorBoundary>
                                 </div>
@@ -456,6 +460,8 @@ export function AppLayout({ ctx }: { ctx: any }) {
                                 logDirectory={logDirectory}
                                 onChangeLogDirectory={handleSelectDirectory}
                                 onParserSettingsFocusConsumed={handleParserSettingsFocusConsumed}
+                                publishingSitesTrigger={publishingSitesTrigger}
+                                onPublishingSitesConsumed={handlePublishingSitesConsumed}
                                 howToTrigger={howToTrigger}
                                 onHowToConsumed={handleHowToConsumed}
                                 onLogsHealed={handleLogsHealed}

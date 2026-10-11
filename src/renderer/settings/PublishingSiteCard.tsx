@@ -12,7 +12,7 @@ type Props = {
     repo: string | null;
     details: ISiteDetails | null;
     inviteCount: number;
-    /** The site list is showing; the Switch site bar then closes it. */
+    /** The site list is showing; the Switch or add site bar then closes it. */
     panelOpen?: boolean;
     onOpenPanel: (mode: SitePanelMode) => void;
     onClosePanel?: () => void;
@@ -91,10 +91,10 @@ export const PublishingSiteCard = ({ owner, repo, details, inviteCount, panelOpe
             <button
                 onClick={() => (panelOpen ? onClosePanel?.() : onOpenPanel('list'))}
                 aria-expanded={panelOpen}
-                aria-label={inviteCount > 0 ? `Switch site (${inviteCount} invites)` : 'Switch site'}
+                aria-label={inviteCount > 0 ? `Switch or add site (${inviteCount} invites)` : 'Switch or add site'}
                 className="axi-btn axi-btn--sm axi-ink-dim axi-edge-rule w-full justify-center mt-4"
             >
-                Switch site{inviteCount > 0 ? ` · ${inviteCount}` : ''}
+                Switch or add site{inviteCount > 0 ? ` · ${inviteCount}` : ''}
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${panelOpen ? 'rotate-180' : ''}`} />
             </button>
         </div>

@@ -99,3 +99,45 @@ describe('OAuth uploader CORS', () => {
         expect(JSON.parse(put![0].body.toString()).rules).toHaveLength(1);
     });
 });
+
+describe('CORS write refused (a collaborator on a shared bucket)', () => {
+    const refusePut = () => cloudflareJson.mockImplementation(async (opts: { method: string }) =>
+        opts.method === 'GET'
+            ? { ok: false, failure: { kind: 'http', message: 'HTTP 403 AccessDenied' } }
+            : { ok: false, failure: { kind: 'http', message: 'HTTP 403 AccessDenied' } }
+    );
+    const probeAnswering = (allowOrigin: string | null) => vi.fn(async () => ({ headers: { get: () => allowOrigin } }));
+    const uploaderWith = (corsProbe: ReturnType<typeof probeAnswering>) => createOAuthUploader({
+        accountId: 'acct', bucketName: 'b', publicUrl: 'https://pub-x.r2.dev/', getAccessToken: async () => 'tok', corsProbe
+    });
+
+    it('succeeds when the public bucket already allows the origin', async () => {
+        refusePut();
+        const probe = probeAnswering('https://bridge.axi.link');
+        const result = await uploaderWith(probe).ensureCors('https://bridge.axi.link');
+        expect(result).toEqual({ success: true });
+        expect(probe).toHaveBeenCalledWith('https://pub-x.r2.dev/.axibridge-cors-probe', expect.objectContaining({ headers: { Origin: 'https://bridge.axi.link' } }));
+    });
+
+    it('accepts a wildcard grant', async () => {
+        refusePut();
+        expect((await uploaderWith(probeAnswering('*')).ensureCors('https://bridge.axi.link')).success).toBe(true);
+    });
+
+    it('names the bucket owner as the fix when the origin is not allowed', async () => {
+        refusePut();
+        const result = await uploaderWith(probeAnswering(null)).ensureCors('https://bridge.axi.link');
+        expect(result.success).toBe(false);
+        expect(result.error).toMatch(/Admin Read & Write/);
+        expect(result.error).toMatch(/ask its owner to add that origin/);
+    });
+
+    it('treats an unreachable public URL as not allowed', async () => {
+        refusePut();
+        const probe = vi.fn(async () => { throw new Error('offline'); });
+        const result = await createOAuthUploader({
+            accountId: 'acct', bucketName: 'b', publicUrl: 'https://pub-x.r2.dev', getAccessToken: async () => 'tok', corsProbe: probe
+        }).ensureCors('https://bridge.axi.link');
+        expect(result.success).toBe(false);
+    });
+});

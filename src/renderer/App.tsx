@@ -189,6 +189,9 @@ function App() {
         handleHelpUpdatesFocusConsumed,
         parserSettingsFocusTrigger,
         handleParserSettingsFocusConsumed,
+        publishingSitesTrigger,
+        handleOpenPublishingSites,
+        handlePublishingSitesConsumed,
         howToTrigger,
         handleHowToConsumed,
     } = useAppNavigation({
@@ -1313,7 +1316,7 @@ function App() {
         ...filePickerState, logDirectory
     }), [filePickerState, logDirectory]);
     const appLayoutCtx = useMemo(() => ({
-        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, axilogCoverage, handleLogsHealed, getStoredLogs, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, axiTheme, setAxiTheme, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, setR2HostingEnabled, setR2SliceEnabled, refreshR2Status, setParserSettings, parserSettings, setParserSetting, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, howToTrigger, handleHowToConsumed, isBulkUploadActive, enabledWebhookIds, handleSetDestinationEnabled, handleSaveWebhooks, logDirectory, handleSelectDirectory
+        shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded, updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason, view, settingsUpdateCheckRef, versionClickTimesRef, versionClickTimeoutRef, setDeveloperSettingsTrigger, appVersion, setView, showTerminal, setShowTerminal, webUploadState, setWebUploadState, webUploadLogEntries, logsForStats, mvpWeights, disruptionMethod, statsViewSettings, computedStats, computedSkillUsageData, aggregationProgress, aggregationDiagnostics, axilogCoverage, handleLogsHealed, getStoredLogs, statsDataProgress, setStatsViewSettings, colorPalette, setColorPalette, axiTheme, setAxiTheme, particlesEnabled, setParticlesEnabled, handleWebUpload, selectedWebhookId, setEmbedStatSettings, setMvpWeights, setDisruptionMethod, setAllowLocalJson, setR2PreciseReplay, setR2HostingEnabled, setR2SliceEnabled, refreshR2Status, setParserSettings, parserSettings, setParserSetting, developerSettingsTrigger, helpUpdatesFocusTrigger, handleHelpUpdatesFocusConsumed, parserSettingsFocusTrigger, handleParserSettingsFocusConsumed, publishingSitesTrigger, handleOpenPublishingSites, handlePublishingSitesConsumed, setWalkthroughOpen, setWhatsNewOpen, activityPanel, configurationPanel, filePickerCtx, webhookDropdownOpen, webhookDropdownStyle, webhookDropdownPortalRef, webhooks, handleUpdateSettings, setSelectedWebhookId, setWebhookDropdownOpen, webhookModalOpen, setWebhookModalOpen, setWebhooks, showUpdateErrorModal, setShowUpdateErrorModal, updateError, whatsNewOpen, handleWhatsNewClose, whatsNewVersion, whatsNewNotes, walkthroughOpen, handleWalkthroughClose, handleWalkthroughLearnMore, howToTrigger, handleHowToConsumed, isBulkUploadActive, enabledWebhookIds, handleSetDestinationEnabled, handleSaveWebhooks, logDirectory, handleSelectDirectory
     }), [
         shellClassName, isDev, axibridgeLogoStyle, updateAvailable, updateDownloaded,
         updateProgress, updateStatus, autoUpdateSupported, autoUpdateDisabledReason,
@@ -1330,6 +1333,7 @@ function App() {
         whatsNewVersion, whatsNewNotes, walkthroughOpen, isBulkUploadActive,
         handleWebUpload, handleWhatsNewClose, handleWalkthroughClose,
         handleWalkthroughLearnMore, handleHelpUpdatesFocusConsumed, handleParserSettingsFocusConsumed,
+        publishingSitesTrigger, handleOpenPublishingSites, handlePublishingSitesConsumed,
         howToTrigger, handleHowToConsumed,
         enabledWebhookIds, handleSetDestinationEnabled, handleSaveWebhooks,
         logDirectory, handleSelectDirectory,

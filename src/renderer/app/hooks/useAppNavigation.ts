@@ -20,6 +20,7 @@ export function useAppNavigation({
     const [walkthroughOpen, setWalkthroughOpen] = useState(false);
     const [helpUpdatesFocusTrigger, setHelpUpdatesFocusTrigger] = useState(0);
     const [parserSettingsFocusTrigger, setParserSettingsFocusTrigger] = useState(0);
+    const [publishingSitesTrigger, setPublishingSitesTrigger] = useState(0);
     const [howToTrigger, setHowToTrigger] = useState(0);
 
     const [webhookModalOpen, setWebhookModalOpen] = useState(false);
@@ -167,6 +168,16 @@ export function useAppNavigation({
         setParserSettingsFocusTrigger((current) => (current === trigger ? 0 : current));
     }, []);
 
+    // Settings → Web Reports with the site list open, e.g. from the publish menu.
+    const handleOpenPublishingSites = useCallback(() => {
+        setView('settings');
+        setPublishingSitesTrigger((current) => current + 1);
+    }, []);
+
+    const handlePublishingSitesConsumed = useCallback((trigger: number) => {
+        setPublishingSitesTrigger((current) => (current === trigger ? 0 : current));
+    }, []);
+
     return {
         view, setView,
         viewRef,
@@ -189,6 +200,9 @@ export function useAppNavigation({
         handleHelpUpdatesFocusConsumed,
         parserSettingsFocusTrigger,
         handleParserSettingsFocusConsumed,
+        publishingSitesTrigger,
+        handleOpenPublishingSites,
+        handlePublishingSitesConsumed,
         howToTrigger,
         handleHowToConsumed,
     };

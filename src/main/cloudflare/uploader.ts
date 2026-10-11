@@ -41,15 +41,63 @@ export interface R2Uploader {
 
 const stripTrailingSlash = (value: string) => value.replace(/\/$/, '');
 
+type CorsProbeFetch = (url: string, init: { method: string; headers: Record<string, string>; signal?: AbortSignal }) => Promise<{ headers: { get(name: string): string | null } }>;
+
+/**
+ * Asks the bucket's public URL whether a browser at `origin` may read from it.
+ *
+ * Changing a bucket's CORS policy needs an Admin-level R2 key, but a bucket owner
+ * commonly hands collaborators an object-only key; reading the policy back is
+ * forbidden to that key too. The public endpoint answers with
+ * Access-Control-Allow-Origin even for a missing object, so this verifies the
+ * grant the owner already made without any credentials at all.
+ */
+export const probePublicCors = async (publicUrl: string, origin: string, fetchImpl: CorsProbeFetch = fetch): Promise<boolean> => {
+    try {
+        const res = await fetchImpl(`${stripTrailingSlash(publicUrl)}/.axibridge-cors-probe`, {
+            method: 'GET',
+            headers: { Origin: origin },
+            signal: AbortSignal.timeout(10_000)
+        });
+        const allowed = res.headers.get('access-control-allow-origin');
+        return allowed === origin || allowed === '*';
+    } catch {
+        return false;
+    }
+};
+
+const isPermissionError = (error: string | undefined) => /\b403\b|AccessDenied|Unauthorized|not authorized|forbidden/i.test(error ?? '');
+
+/**
+ * A failed CORS write is only a problem if the bucket doesn't already allow the
+ * origin. When it does (the owner set it up), succeed quietly; when it doesn't,
+ * say whose job it is, since a collaborator's key can never fix it.
+ */
+const settleCorsFailure = async (publicUrl: string, origin: string, failure: R2OperationResult, probe?: CorsProbeFetch): Promise<R2OperationResult> => {
+    if (publicUrl && await probePublicCors(publicUrl, origin, probe)) {
+        log.info(`[Main] R2 CORS could not be changed with this key, but the bucket already allows ${origin}`);
+        return { success: true };
+    }
+    if (!isPermissionError(failure.error)) return failure;
+    return {
+        success: false,
+        error: `${failure.error} — this R2 key can't change the bucket's CORS settings (that needs an Admin Read & Write token), `
+            + `and the bucket doesn't allow ${origin} yet. If the bucket is shared with you, ask its owner to add that origin`
+    };
+};
+
 // ─── Manual transport ─────────────────────────────────────────────────────────
 
-export const createManualUploader = (config: R2Config): R2Uploader => ({
+export const createManualUploader = (config: R2Config, corsProbe?: CorsProbeFetch): R2Uploader => ({
     mode: 'manual',
     bucketName: config.bucketName,
     publicUrl: stripTrailingSlash(config.publicUrl),
     putObject: (key, body, contentType) => r2PutObject(key, body, contentType, config),
     deleteObject: (key) => r2DeleteObject(key, config),
-    ensureCors: (origin) => r2EnsureBucketCors(config, origin)
+    ensureCors: async (origin) => {
+        const result = await r2EnsureBucketCors(config, origin);
+        return result.success ? result : settleCorsFailure(config.publicUrl, origin, result, corsProbe);
+    }
 });
 
 // ─── OAuth transport ──────────────────────────────────────────────────────────
@@ -64,6 +112,7 @@ export interface OAuthUploaderOptions {
      * would be five refresh races.
      */
     getAccessToken: () => Promise<string>;
+    corsProbe?: CorsProbeFetch;
 }
 
 /** Object keys carry slashes that must survive as path separators. */
@@ -143,7 +192,7 @@ export const createOAuthUploader = (options: OAuthUploaderOptions): R2Uploader =
                 contentType: 'application/json',
                 body: Buffer.from(JSON.stringify({ rules: updated }), 'utf-8')
             });
-            if (!put.ok) return failed(put.failure);
+            if (!put.ok) return settleCorsFailure(publicUrl, origin, failed(put.failure), options.corsProbe);
             log.info(`[Main] R2 CORS updated — added origin ${origin} to bucket ${options.bucketName}`);
             return { success: true };
         }
