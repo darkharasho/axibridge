@@ -47,6 +47,8 @@ type StatsHeaderProps = {
     onSearchClick?: () => void;
     /** Toggles the fight-slice tray. Unlike the rest of this row, this also renders when embedded. */
     onToggleSliceTray?: () => void;
+    /** Opens Settings with the site list, so more publish targets can be added. */
+    onAddSite?: () => void;
 };
 
 export const StatsHeader = ({
@@ -67,7 +69,8 @@ export const StatsHeader = ({
     actionsDisabled = false,
     publishBlockedReason = null,
     onSearchClick,
-    onToggleSliceTray
+    onToggleSliceTray,
+    onAddSite
 }: StatsHeaderProps) => {
     const uploadDisabled = uploadingWeb || actionsDisabled || !canUploadWeb || !!publishBlockedReason;
     const uploadDisabledReason = actionsDisabled
@@ -79,6 +82,8 @@ export const StatsHeader = ({
     const uploadMenuRef = useRef<HTMLDivElement | null>(null);
     const alternateUploadTargets = uploadTargets.filter((target) => !target.isDefault);
     const defaultUploadTarget = uploadTargets.find((target) => target.isDefault) ?? null;
+    // The menu also carries "Add a site", so it shows once there is a default to add beside.
+    const showUploadMenu = alternateUploadTargets.length > 0 || (!!onAddSite && !!defaultUploadTarget);
     const noteFor = (fullName: string | null) => {
         const target = fullName ? uploadTargets.find((t) => t.fullName === fullName) : defaultUploadTarget;
         return target ? describeDestination(target.pagesUrl, target.memberCount ?? null) : undefined;
@@ -232,7 +237,7 @@ export const StatsHeader = ({
                                 /* A split control is a shape this language has no
                                    word for, so the squared join is inline: a radius
                                    utility here would lose to .axi-btn's shorthand. */
-                                style={alternateUploadTargets.length > 0
+                                style={showUploadMenu
                                     ? { borderTopRightRadius: 0, borderBottomRightRadius: 0 }
                                     : undefined}
                             >
@@ -241,7 +246,7 @@ export const StatsHeader = ({
                                     {uploadingWeb ? 'Uploading...' : defaultUploadTarget ? 'Publish' : 'Upload to Web'}
                                 </span>
                             </button>
-                            {alternateUploadTargets.length > 0 && (
+                            {showUploadMenu && (
                                 <button
                                     type="button"
                                     onClick={() => setUploadMenuOpen((value) => !value)}
@@ -250,20 +255,22 @@ export const StatsHeader = ({
                                     aria-expanded={uploadMenuOpen}
                                     className="axi-btn axi-btn--primary axi-btn--icon stats-action-upload justify-center"
                                     style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: 'none' }}
-                                    title="Choose upload repository"
+                                    title="Choose or add a publishing site"
                                 >
                                     <ChevronDown className={`w-4 h-4 transition-transform ${uploadMenuOpen ? 'rotate-180' : ''}`} />
                                 </button>
                             )}
                         </div>
-                        {uploadMenuOpen && alternateUploadTargets.length > 0 && !uploadDisabled && (
+                        {uploadMenuOpen && showUploadMenu && !uploadDisabled && (
                             <div className="app-dropdown axi-panel axi-panel--tile axi-panel--float absolute right-0 top-full mt-2 z-50 min-w-[240px] [--axi-panel-pad:4px]">
                                 {defaultUploadTarget && (
                                     <div className="px-3 py-2 text-[11px]" style={{ color: 'var(--axi-text-dim)', borderBottom: 'var(--axi-border-control) solid var(--axi-rule)' }}>
                                         {noteFor(null)}
                                     </div>
                                 )}
-                                <div className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-widest" style={{ color: 'var(--axi-text-dim)' }}>Publish this one to</div>
+                                {alternateUploadTargets.length > 0 && (
+                                    <div className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-widest" style={{ color: 'var(--axi-text-dim)' }}>Publish this one to</div>
+                                )}
                                 {alternateUploadTargets.map((target) => (
                                     <button
                                         key={target.fullName}
@@ -278,6 +285,18 @@ export const StatsHeader = ({
                                         <span className="block text-[10px]" style={{ color: 'var(--axi-text-dim)' }}>{target.pagesUrl}</span>
                                     </button>
                                 ))}
+                                {onAddSite && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { setUploadMenuOpen(false); onAddSite(); }}
+                                        className="block w-full px-3 py-2 text-left text-xs transition-colors"
+                                        style={{ color: 'var(--axi-text-dim)', borderTop: alternateUploadTargets.length > 0 ? 'var(--axi-border-control) solid var(--axi-rule)' : undefined }}
+                                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--axi-surface-raised-paint)')}
+                                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                                    >
+                                        + Add a site…
+                                    </button>
+                                )}
                             </div>
                         )}
                         {publishOpen && !uploadDisabled && (

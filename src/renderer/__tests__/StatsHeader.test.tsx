@@ -149,11 +149,34 @@ describe('StatsHeader', () => {
                     { fullName: 'x/y', label: 'x/y', isDefault: false, pagesUrl: 'https://x/', memberCount: null }
                 ]} />
         );
-        fireEvent.click(screen.getByTitle('Choose upload repository'));
+        fireEvent.click(screen.getByTitle('Choose or add a publishing site'));
         expect(screen.getByText('Your report appears at https://g/, alongside reports from 3 other commanders.')).toBeInTheDocument();
         expect(screen.getByText('https://x/')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: /x\/y/ }));
         expect(onWebUploadToTarget).toHaveBeenCalledWith('x/y');
         expect(screen.getByRole('button', { name: /Publish to guild\/site/ })).toBeInTheDocument();
+    });
+
+    it('offers Add a site from the publish menu even with only a default site', () => {
+        const onAddSite = vi.fn();
+        render(
+            <StatsHeader embedded={false} totalLogs={4} devMockAvailable={false} devMockUploadState={{ uploading: false }} onDevMockUpload={() => {}}
+                uploadingWeb={false} onWebUpload={() => {}} onAddSite={onAddSite}
+                uploadTargets={[{ fullName: 'guild/site', label: 'guild/site (Default)', isDefault: true, pagesUrl: 'https://g/', memberCount: null }]} />
+        );
+        fireEvent.click(screen.getByTitle('Choose or add a publishing site'));
+        expect(screen.queryByText('Publish this one to')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /Add a site/ }));
+        expect(onAddSite).toHaveBeenCalledTimes(1);
+        expect(screen.queryByRole('button', { name: /Add a site/ })).not.toBeInTheDocument();
+    });
+
+    it('keeps the single publish button when there is nothing to add or switch to', () => {
+        render(
+            <StatsHeader embedded={false} totalLogs={4} devMockAvailable={false} devMockUploadState={{ uploading: false }} onDevMockUpload={() => {}}
+                uploadingWeb={false} onWebUpload={() => {}}
+                uploadTargets={[{ fullName: 'guild/site', label: 'guild/site (Default)', isDefault: true, pagesUrl: 'https://g/', memberCount: null }]} />
+        );
+        expect(screen.queryByTitle('Choose or add a publishing site')).not.toBeInTheDocument();
     });
 });

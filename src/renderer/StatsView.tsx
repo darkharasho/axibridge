@@ -160,6 +160,8 @@ interface StatsViewProps {
      *  would not, the Replay page says so. Unset (History, the web report)
      *  shows nothing. */
     replayPublishing?: { published: boolean; onEnable?: () => void };
+    /** Opens Settings → Web Reports with the site list, from the publish menu. */
+    onAddPublishingSite?: () => void;
     /** Published web report only: awaited before the tray opens, so the first
      *  open is what triggers the sidecar fetch (Task 18) rather than report load. */
     onOpenSliceTray?: () => Promise<unknown>;
@@ -303,7 +305,7 @@ function resolveReplayFights(stats: any): any[] {
 export const deriveStatsViewLogs = (logs: any[], excluded: Set<string>, embedded: boolean): any[] =>
     embedded ? logs : selectSlicedLogs(logs, excluded);
 
-export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, singleFight = false, onRequestCategory, onSearchAvailable, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult, onLogsHealed, sliceEnabled = false, onOpenSliceTray, onCopySliceLink, sliceUnavailable = false, replayPublishing }: StatsViewProps) {
+export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWeights, statsViewSettings, onStatsViewSettingsChange, webUploadState, onWebUpload, webUploadLogEntries, disruptionMethod, precomputedStats, embedded = false, sectionVisibility, singleFight = false, onRequestCategory, onSearchAvailable, dashboardTitle, statsDataProgress, aggregationResult: externalAggregationResult, onLogsHealed, sliceEnabled = false, onOpenSliceTray, onCopySliceLink, sliceUnavailable = false, replayPublishing, onAddPublishingSite }: StatsViewProps) {
     // Defer heavy section rendering by one frame so the header + progress bar can paint first.
     const [sectionsDeferred, setSectionsDeferred] = useState(!embedded);
     useEffect(() => {
@@ -4483,6 +4485,7 @@ type SpikeFight = {
                 onWebUpload={handleWebUpload}
                 uploadTargets={webUploadTargets}
                 onWebUploadToTarget={handleWebUploadToTarget}
+                onAddSite={embedded ? undefined : onAddPublishingSite}
                 reportWebhooks={reportWebhooks}
                 initialWebhookSelection={initialWebhookSelection}
                 canUploadWeb={canUploadWeb}

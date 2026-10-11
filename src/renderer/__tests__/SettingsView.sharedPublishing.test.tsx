@@ -76,7 +76,7 @@ describe('SettingsView shared publishing', () => {
             }
         );
         fireEvent.click(await screen.findByRole('button', { name: 'Web Report' }));
-        fireEvent.click(await screen.findByRole('button', { name: 'Switch site' }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Switch or add site' }));
         fireEvent.click(await screen.findByRole('button', { name: 'Use x/other' }));
         await waitFor(() => {
             const saved = api.saveSettings.mock.calls.at(-1)?.[0];
@@ -132,7 +132,7 @@ describe('SettingsView shared publishing', () => {
         );
         await waitFor(() => expect(api.applyGithubLogo).toHaveBeenCalledTimes(1), { timeout: 2000 });
         fireEvent.click(await screen.findByRole('button', { name: 'Web Report' }));
-        fireEvent.click(await screen.findByRole('button', { name: 'Switch site' }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Switch or add site' }));
         fireEvent.click(await screen.findByRole('button', { name: 'Use x/other' }));
         await waitFor(() => expect(api.saveSettings.mock.calls.at(-1)?.[0]).toMatchObject({ githubRepoOwner: 'x' }), { timeout: 2000 });
         await new Promise((r) => setTimeout(r, 700));
