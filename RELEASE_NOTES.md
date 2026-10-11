@@ -1,5 +1,11 @@
 # Release Notes
 
+Version v3.22.6 — October 11, 2026
+
+## QoL Improvements
+
+- Stats table headers now have more breathing room above and below the column names, so they're easier to read.
+
 Version v3.22.5 — October 10, 2026
 
 ## Shared publishing invites
