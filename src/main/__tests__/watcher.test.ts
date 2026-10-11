@@ -72,6 +72,45 @@ describe('LogWatcher', () => {
         expect(detected).toEqual([]);
     });
 
+    it('reports a log written into a folder created after start', async () => {
+        watcher.start(root);
+        await settle(50);
+        const folder = path.join(root, 'WvW (2)');
+        fs.mkdirSync(folder);
+        const log = path.join(folder, '20261010-184142.zevtc');
+        fs.writeFileSync(log, 'evtc');
+        await settle();
+        expect(detected).toEqual([log]);
+    });
+
+    // On Linux, Node's recursive fs.watch re-read the whole folder on every
+    // write to any file in it: one new log written in bursts next to ~4700
+    // old ones blocked the main thread for ~35s.
+    it('does not block the event loop while a log is written beside thousands of others', async () => {
+        for (let i = 0; i < 3000; i++) fs.writeFileSync(path.join(root, `old-${i}.zevtc`), '');
+        watcher.start(root);
+        await settle(50);
+        const log = path.join(root, 'new.zevtc');
+        const fd = fs.openSync(log, 'a');
+        await settle(50);
+
+        let peakLateMs = 0;
+        let expectedAt = Date.now() + 10;
+        const probe = setInterval(() => {
+            const now = Date.now();
+            peakLateMs = Math.max(peakLateMs, now - expectedAt);
+            expectedAt = now + 10;
+        }, 10);
+        const chunk = Buffer.alloc(4096, 1);
+        for (let i = 0; i < 2000; i++) fs.writeSync(fd, chunk);
+        fs.closeSync(fd);
+        await settle();
+        clearInterval(probe);
+
+        expect(peakLateMs).toBeLessThan(1000);
+        expect(detected).toEqual([log]);
+    }, 20_000);
+
     it('stops reporting after stop()', async () => {
         watcher.start(root);
         await settle(50);
