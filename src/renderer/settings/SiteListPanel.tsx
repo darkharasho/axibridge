@@ -44,6 +44,13 @@ export const SiteListPanel = ({ mode, sites, defaultKey, details, onModeChange, 
     const createError = createName ? validateRepoName(createName) : null;
 
     const ordered = useMemo(() => sortSitesDefaultFirst(sites, defaultKey), [sites, defaultKey]);
+    // An invite to a site already in the list is joined from that row, not repeated below it.
+    const rowInvites = useMemo(() => {
+        const byKey = new Map<string, ISiteInvite>();
+        for (const i of invites) if (hasSite(sites, i)) byKey.set(normalizeSiteKey(i.owner, i.repo), i);
+        return byKey;
+    }, [invites, sites]);
+    const otherInvites = invites.filter((i) => !rowInvites.has(normalizeSiteKey(i.owner, i.repo)));
 
     useEffect(() => {
         void api?.getPendingSiteInvites?.({ force: true }).then((res) => {
@@ -151,7 +158,7 @@ export const SiteListPanel = ({ mode, sites, defaultKey, details, onModeChange, 
     });
 
     const join = (invite: ISiteInvite) => run(async () => {
-        const res = await api.acceptSiteInvite({ invitationId: invite.id });
+        const res = await api.acceptSiteInvite({ invitationId: invite.id, owner: invite.owner, repo: invite.repo });
         if (res?.success && res.target) {
             setInvites((prev) => prev.filter((i) => i.id !== invite.id));
             onSitesChanged(res.target.sites);
@@ -179,8 +186,9 @@ export const SiteListPanel = ({ mode, sites, defaultKey, details, onModeChange, 
                     const full = `${site.owner}/${site.repo}`;
                     const d = details[key];
                     const isDefault = key === defaultKey;
-                    const noAccess = d?.role === 'none';
-                    const role = roleLabel(d?.role);
+                    const invite = rowInvites.get(key);
+                    const noAccess = d?.role === 'none' && !invite;
+                    const role = invite && d?.role === 'none' ? null : roleLabel(d?.role);
                     const ownerKind = d?.ownerType === 'Organization' ? 'org' : d?.ownerType === 'User' ? 'personal' : null;
                     const label = (
                         <span className="flex items-center gap-2 min-w-0">
@@ -188,13 +196,19 @@ export const SiteListPanel = ({ mode, sites, defaultKey, details, onModeChange, 
                             <span className="truncate axi-ink-plain">{full}</span>
                             {ownerKind && <span className="text-[10px] axi-ink-faint">{ownerKind}</span>}
                             {role && <span className={`text-[10px] ${noAccess ? 'axi-ink-danger' : 'axi-ink-meta'}`}>{role}</span>}
+                            {invite && <span className="text-[10px] axi-ink-accent">invited by {invite.inviter}</span>}
                             {isDefault && <span className="text-[10px] axi-ink-ok">✓ current</span>}
                         </span>
                     );
                     return (
                         <li key={key} data-testid="site-row" className={`flex items-center justify-between gap-2 text-sm ${noAccess ? 'opacity-50' : ''}`}>
                             <div className="flex-1 min-w-0 px-2 py-1">{label}</div>
-                            {!isDefault && !noAccess && mode === 'list' && (
+                            {invite && (
+                                <button type="button" disabled={busy} onClick={() => void join(invite)} aria-label={`Join ${full}`} className={BTN}>
+                                    Join
+                                </button>
+                            )}
+                            {!invite && !isDefault && !noAccess && mode === 'list' && (
                                 <button type="button" disabled={busy} onClick={() => void makeDefault({ owner: site.owner, repo: site.repo })} aria-label={`Use ${full}`} className={BTN}>
                                     Use
                                 </button>
@@ -209,11 +223,11 @@ export const SiteListPanel = ({ mode, sites, defaultKey, details, onModeChange, 
                 })}
             </ul>
 
-            {invites.length > 0 && (
+            {otherInvites.length > 0 && (
                 <>
                     <div className="text-xs uppercase tracking-widest axi-ink-faint mt-4 mb-2">Invites</div>
                     <ul className="space-y-1">
-                        {invites.map((i) => (
+                        {otherInvites.map((i) => (
                             <li key={i.id} className="flex items-center justify-between text-sm">
                                 <span><span className="axi-ink-plain">{i.fullName}</span> <span className="text-xs axi-ink-faint">from {i.inviter}</span></span>
                                 <button onClick={() => void join(i)} disabled={busy} aria-label={`Join ${i.fullName}`} className={BTN}>Join</button>

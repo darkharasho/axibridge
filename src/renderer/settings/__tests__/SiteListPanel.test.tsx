@@ -94,6 +94,16 @@ describe('SiteListPanel — invites', () => {
         expect(await screen.findByText('boom')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Join guild/two' })).toBeInTheDocument();
     });
+    it('offers Join on a listed no-access site that has an invite, not a second row', async () => {
+        api.getPendingSiteInvites.mockResolvedValue({ success: true, invites: [{ ...invite, owner: 'old', repo: 'gone', fullName: 'old/gone' }] });
+        api.acceptSiteInvite.mockResolvedValue({ success: false, error: 'boom' });
+        renderPanel();
+        await userEvent.click(await screen.findByRole('button', { name: 'Join old/gone' }));
+        expect(api.acceptSiteInvite).toHaveBeenCalledWith({ invitationId: 1, owner: 'old', repo: 'gone' });
+        expect(screen.getByText('invited by boss')).toBeInTheDocument();
+        expect(screen.queryByText('no access')).toBeNull();
+        expect(screen.queryByText('Invites')).toBeNull();
+    });
 });
 
 describe('SiteListPanel — footer modes', () => {

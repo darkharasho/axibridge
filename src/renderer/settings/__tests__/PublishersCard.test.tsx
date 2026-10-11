@@ -26,6 +26,15 @@ describe('PublishersCard', () => {
         expect(onAdminKnown).toHaveBeenCalledWith(true);
     });
 
+    it('reloads when the window regains focus, so accepted invites show up', async () => {
+        render(<PublishersCard repoOwner="guild" repoName="site" />);
+        await screen.findByText('kyra');
+        api.getRepoPublishers.mockResolvedValueOnce({ success: true, canAdmin: true, ownerType: 'User', collaborators: [{ login: 'kyra', avatarUrl: null }, { login: 'newbie', avatarUrl: null }], invites: [] });
+        fireEvent(window, new Event('focus'));
+        await waitFor(() => expect(screen.queryByText('invited')).toBeNull());
+        expect(screen.getByText('newbie')).toBeInTheDocument();
+    });
+
     it('explains and links to GitHub for a non-admin', async () => {
         api.getRepoPublishers.mockResolvedValueOnce({ success: true, canAdmin: false, ownerType: 'Organization', collaborators: [], invites: [] });
         const onAdminKnown = vi.fn();
