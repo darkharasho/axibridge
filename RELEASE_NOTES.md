@@ -1,5 +1,11 @@
 # Release Notes
 
+Version v3.22.3 — October 10, 2026
+
+## Fixes
+
+- Fixed AxiBridge freezing on Linux for 30 seconds or more after every fight. Since v3.22.2 the log folder watcher re-read your whole arcdps folder on every write while arcdps saved a new log, and with a few thousand logs that locked up the app until the log finished. It now watches folders only, so a new log costs the same however many logs you have.
+
 Version v3.22.2 — October 8, 2026
 
 ## Fixes
