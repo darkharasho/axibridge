@@ -1,5 +1,13 @@
 # Release Notes
 
+Version v3.22.5 — October 10, 2026
+
+## Shared publishing invites
+
+- Joining a site no longer fails if the admin cancelled your invite and sent a new one. Clicking Join on the old invite now accepts the new one.
+- If a site in your list says "no access" and you have an invite to it, the site row now shows **invited by …** with a **Join** button, so you can join from that row. The invite no longer shows up a second time under Invites.
+- Admins: the Members list now refreshes when you switch back to AxiBridge, so someone who just accepted shows up without reopening Settings.
+
 Version v3.22.4 — October 10, 2026
 
 ## Adding publishing sites
