@@ -1,5 +1,16 @@
 # Release Notes
 
+Version v3.22.4 — October 10, 2026
+
+## Adding publishing sites
+
+- The ▾ next to Publish now has **+ Add a site…** at the bottom. It opens Settings → Web Reports with your site list ready to add a repo. The ▾ now shows as soon as you have a default site, even before you've added a second one.
+- The Settings button that opens the site list now reads **Switch or add site**. "Switch site" made it look like you could only switch.
+
+## Fixes
+
+- Fixed the CORS warning on every share link for collaborators who publish to someone else's R2 bucket. A shared key usually can't change the bucket's settings, so AxiBridge warned even when the owner had already set things up. It now checks the bucket's public URL first and only warns if share links really can't load. The warning now says to ask the bucket owner to add `https://bridge.axi.link`.
+
 Version v3.22.3 — October 10, 2026
 
 ## Fixes
