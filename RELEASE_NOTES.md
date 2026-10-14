@@ -1,5 +1,15 @@
 # Release Notes
 
+Version v3.22.7 — October 14, 2026
+
+## Spike Damage and Max Hit
+
+- Fixed Spike Damage "Highest Damage" picking up hits on NPCs. Crits on keep lords, siege or random critters were showing up as 100k+ "hits" that didn't match any real player fight. It now only counts hits on enemy players again.
+- Player Breakdown's Min/Max Hit had the same problem and is fixed too, so the two now agree.
+- Highest Damage shows which skill landed the hit again.
+
+NOTE: This won't apply retroactively to reports you've already published. Republish them to get the corrected numbers.
+
 Version v3.22.6 — October 11, 2026
 
 ## QoL Improvements
