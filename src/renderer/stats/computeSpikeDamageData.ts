@@ -1,5 +1,5 @@
 import {
-    squadEntities, getEntityProfession,
+    squadEntities, enemyPlayerEntities, getEntityProfession,
     getEntityDamageSeries, getEntityTargetDamageSeries, getEntitySkillRows,
     getEntityDownContributionBySkill, type NativeSkillRow,
 } from '@axiapps/bridge-metrics';
@@ -31,15 +31,24 @@ const getHighestSingleHit = (details: any, entityId: number) => {
     // so the peak hit no longer needs EI's corrupted-entry guard: native's max
     // is a real observed hit, not a derived figure that could exceed the total.
     const entity = details?.native?.blocks?.damage?.by_entity?.[String(entityId)];
-    const targets = Object.values<any>(entity?.per_target ?? {});
+    // `per_target` keys every entity the player hit, NPCs included: lords,
+    // guards, siege, ambient critters. Those are not EI's curated targets, and
+    // a crit on a critter can read 150k. When the log has enemy players, only
+    // hits on them count — EI's `targetDamageDist` rule. A log with none (a
+    // golem, PvE) keeps every target so the peak is not zeroed.
+    const enemyIds = new Set(enemyPlayerEntities(details?.native).map((e: any) => String(e.id)));
+    const targets = Object.entries<any>(entity?.per_target ?? {})
+        .filter(([targetId]) => enemyIds.size === 0 || enemyIds.has(targetId))
+        .map(([, target]) => target);
+    const hasPerTarget = Object.keys(entity?.per_target ?? {}).length > 0;
     // When per-target slices exist they are the ONLY source of the peak, even
     // if `by_skill` reports a larger max for some skill: that larger figure is
     // damage against something the log did not curate, and EI's equivalent
     // rule existed because those totals carry known-bogus outliers.
-    const rows = getEntitySkillRows(details, entityId, { perTarget: targets.length > 0 })
+    const rows = getEntitySkillRows(details, entityId, { perTarget: hasPerTarget })
         .filter((r) => !r.indirect);
     const maxOf = (skillId: number): number => {
-        if (targets.length === 0) return Number(entity?.by_skill?.[String(skillId)]?.max ?? 0);
+        if (!hasPerTarget) return Number(entity?.by_skill?.[String(skillId)]?.max ?? 0);
         let best = 0;
         for (const target of targets) {
             best = Math.max(best, Number(target?.by_skill?.[String(skillId)]?.max ?? 0));

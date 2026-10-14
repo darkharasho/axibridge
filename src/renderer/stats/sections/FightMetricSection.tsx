@@ -18,6 +18,8 @@ export type FightMetricPlayer = {
     logs: number;
     value: number;
     peakFightLabel: string;
+    /** Names what produced the peak value (e.g. the skill behind a highest hit). */
+    peakDetail?: string;
 };
 
 export type FightMetricPoint = {
@@ -28,6 +30,8 @@ export type FightMetricPoint = {
     timestamp: number;
     value: number;
     maxValue: number;
+    /** Names what produced this fight's value (e.g. the skill behind a highest hit). */
+    detail?: string;
 };
 
 type FightMetricSectionProps = {
@@ -280,6 +284,9 @@ export const FightMetricSection = ({
                                     <span className="axi-ink-plain font-medium">{selectedPlayer.displayName}</span>
                                     <span className="axi-ink-faint">|</span>
                                     <span>{summaryValueLabel}: <strong className="axi-ink-meta">{formatValue(selectedPlayer.value)}</strong>{valueSuffix ? ` ${valueSuffix}` : ''}</span>
+                                    {selectedPlayer.peakDetail && (
+                                        <span className="axi-ink-plain">· {selectedPlayer.peakDetail}</span>
+                                    )}
                                     {selectedPlayer.peakFightLabel && (
                                         <span className="axi-ink-faint">in {sanitizeWvwLabel(selectedPlayer.peakFightLabel)}</span>
                                     )}
@@ -324,6 +331,7 @@ export const FightMetricSection = ({
                                                     <ChartTooltipBox>
                                                         <div className="axi-ink-plain font-medium mb-1">{sanitizeWvwLabel(data.fullLabel)}</div>
                                                         <div className="axi-ink-meta">{selectedPlayer?.displayName}: <strong>{formatValue(data.value)}</strong>{valueSuffix ? ` ${valueSuffix}` : ''}</div>
+                                                        {data.detail && <div className="axi-ink-dim">{data.detail}</div>}
                                                         <div className="axi-ink-faint">Fight Max: {formatValue(data.maxValue)}</div>
                                                     </ChartTooltipBox>
                                                 );

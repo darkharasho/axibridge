@@ -126,6 +126,9 @@ export const SpikeDamageSection = ({
     }>(null);
 
     const isDownContributionMode = damageBasis === 'downContribution';
+    // The skill name belongs to the single highest hit; burst windows and the
+    // down-contribution peak are not produced by one skill hit.
+    const showsHitSkill = !useTotalDamage && spikeMode === 'hit' && !isDownContributionMode;
 
     const peakValueForPlayer = (player: SpikeDamagePlayer) => (
         useTotalDamage
@@ -148,6 +151,7 @@ export const SpikeDamageSection = ({
             professionList: p.professionList, logs: p.logs,
             value: peakValueForPlayer(p),
             peakFightLabel: p.peakFightLabel,
+            peakDetail: showsHitSkill ? p.peakSkillName : undefined,
         })),
     }));
 
@@ -156,6 +160,7 @@ export const SpikeDamageSection = ({
         index: p.index, fightId: p.fightId, shortLabel: p.shortLabel,
         fullLabel: p.fullLabel, timestamp: p.timestamp,
         value: p.damage, maxValue: p.maxDamage,
+        detail: showsHitSkill && p.damage > 0 ? p.skillName : undefined,
     }));
 
     const mappedPlayer: FightMetricPlayer | null = selectedSpikePlayer ? {
@@ -167,6 +172,7 @@ export const SpikeDamageSection = ({
         logs: selectedSpikePlayer.logs,
         value: peakValueForPlayer(selectedSpikePlayer),
         peakFightLabel: selectedSpikePlayer.peakFightLabel,
+        peakDetail: showsHitSkill ? selectedSpikePlayer.peakSkillName : undefined,
     } : null;
 
     const selectedLineColor = selectedSpikePlayer

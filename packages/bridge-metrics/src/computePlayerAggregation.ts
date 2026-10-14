@@ -589,6 +589,19 @@ export const precomputeGlobalEnemySkillStats = (log: any, acc: PlayerAggregation
     });
 };
 
+const targetRowsByLog = new WeakMap<object, boolean>();
+/** Whether any player in the log has an enemy-target damage row. */
+const logHasTargetRows = (details: any): boolean => {
+    if (!details || typeof details !== 'object') return false;
+    const cached = targetRowsByLog.get(details);
+    if (cached !== undefined) return cached;
+    const has = (details.players ?? []).some((pl: any) =>
+        (pl?.targetDamageDist ?? []).some((group: any) =>
+            (group ?? []).some((list: any) => Array.isArray(list) && list.length > 0)));
+    targetRowsByLog.set(details, has);
+    return has;
+};
+
 export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators, options: PlayerAggregationOptions) => {
     const { method, skillDamageSource, splitPlayersByClass } = options;
     const details = log.details;
@@ -1333,6 +1346,28 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
             playerBreakdown.professionList.push(playerProfession);
         }
         playerBreakdown.totalFightMs += details.durationMS || 0;
+        // Min/Max Hit come from enemy-target rows only. `totalDamageDist` also
+        // counts hits on NPCs — lords, guards, siege, ambient critters — and a
+        // crit on a critter can read 150k+, so a total row (the 'total' source,
+        // or the supplement below) must not set them. The fallback is decided
+        // per LOG: a player who only hit NPCs in a log with enemy targets has
+        // no real max, but a log with no target rows at all (golem, PvE) keeps
+        // the total rows' min/max.
+        const targetHitRange = new Map<number, { min: number; max: number }>();
+        p.targetDamageDist?.forEach((targetGroup: any) => {
+            targetGroup?.forEach((list: any) => {
+                list?.forEach((entry: any) => {
+                    const id = Number(entry?.id);
+                    if (!Number.isFinite(id)) return;
+                    const range = targetHitRange.get(id) || { min: Infinity, max: 0 };
+                    const entryMin = Number(entry?.min);
+                    if (Number.isFinite(entryMin) && entryMin > 0) range.min = Math.min(range.min, entryMin);
+                    range.max = Math.max(range.max, Number(entry?.max || 0));
+                    targetHitRange.set(id, range);
+                });
+            });
+        });
+        const hasTargetRows = logHasTargetRows(details);
         const pushPlayerSkillEntry = (entry: any) => {
             if (!entry?.id) return;
             const { name, icon } = resolveSkillMeta(entry);
@@ -1347,11 +1382,12 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
             skillEntry.damage += Number(entry.totalDamage || 0);
             skillEntry.downContribution += Number(entry.downContribution || 0);
             skillEntry.hits += Number(entry.hits || 0);
-            const entryMin = Number(entry.min);
+            const range = hasTargetRows ? targetHitRange.get(Number(entry.id)) : undefined;
+            const entryMin = hasTargetRows ? Number(range?.min ?? Infinity) : Number(entry.min);
             if (Number.isFinite(entryMin) && entryMin > 0) {
                 skillEntry.min = Math.min(skillEntry.min, entryMin);
             }
-            skillEntry.max = Math.max(skillEntry.max, Number(entry.max || 0));
+            skillEntry.max = Math.max(skillEntry.max, hasTargetRows ? Number(range?.max ?? 0) : Number(entry.max || 0));
         };
         if (skillDamageSource === 'total') {
             p.totalDamageDist?.forEach((list: any) => {

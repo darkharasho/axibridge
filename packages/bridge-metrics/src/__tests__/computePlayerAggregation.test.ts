@@ -281,3 +281,45 @@ describe('incoming skill damage: player-sourced split', () => {
         expect(unmeasured[700].splitDamage).toBe(0);
     });
 });
+
+describe('player skill breakdown: min/max hit', () => {
+    // Ghastly Breach (42355) landed one 157,297 crit on an ambient Mosquito —
+    // a real log. Only the total row sees it; the enemy-target rows do not.
+    const player = (over: any = {}) => ({
+        account: 'Hitter.1234', name: 'Hitter', profession: 'Reaper', notInSquad: false,
+        activeTimes: [60000], dpsAll: [{ damage: 1000 }],
+        defenses: [{ downCount: 0, deadCount: 0, damageTaken: 0, dodgeCount: 0 }],
+        statsAll: [{ distToCom: 0, saved: 0 }], statsTargets: [[{ downed: 0, killed: 0 }]],
+        support: [{}], rotation: [],
+        totalDamageDist: [[
+            { id: 42355, totalDamage: 157_297, hits: 1, connectedHits: 1, min: 157_297, max: 157_297 },
+            { id: 29852, totalDamage: 12_000, hits: 2, connectedHits: 2, min: 3_000, max: 9_000 },
+        ]],
+        targetDamageDist: [[[
+            { id: 29852, totalDamage: 12_000, hits: 2, connectedHits: 2, min: 3_000, max: 9_000 },
+        ]]],
+        ...over,
+    });
+    const run = (p: any, skillDamageSource: string, others: any[] = []) => {
+        const log = { details: { durationMS: 60000, success: true, players: [p, ...others], targets: [], skillMap: {}, buffMap: {} } };
+        const result = computePlayerAggregation({ validLogs: [log], method: 'count', skillDamageSource, splitPlayersByClass: false });
+        return result.playerSkillBreakdownMap.get('Hitter.1234')!.skills;
+    };
+
+    it.each(['target', 'total'])('ignores hits only the total row saw (%s source)', (source) => {
+        const skills = run(player(), source);
+        expect(skills.get('s29852')!.max).toBe(9_000);
+        expect(skills.get('s29852')!.min).toBe(3_000);
+        expect(skills.get('s42355')?.max ?? 0).toBe(0);
+    });
+
+    it('gives a player who only hit NPCs no max when the log has enemy targets', () => {
+        const skills = run(player({ targetDamageDist: [] }), 'target', [player({ account: 'Other.5678', name: 'Other' })]);
+        expect(skills.get('s42355')?.max ?? 0).toBe(0);
+    });
+
+    it('keeps total-row hits in a log with no enemy-target rows at all', () => {
+        const skills = run(player({ targetDamageDist: [] }), 'total');
+        expect(skills.get('s42355')!.max).toBe(157_297);
+    });
+});
