@@ -19765,28 +19765,6 @@ const v7 = {
 }, UJ = /* @__PURE__ */ new Set([
   // Weapon swap.
   -2,
-  // Elementalist attunements, and Weaver's dual attunements (-5..-16 are
-  // EI-invented ids for the mixed pairs).
-  5492,
-  5493,
-  5494,
-  5495,
-  43470,
-  41166,
-  42264,
-  44857,
-  -5,
-  -6,
-  -7,
-  -8,
-  -9,
-  -10,
-  -11,
-  -12,
-  -13,
-  -14,
-  -15,
-  -16,
   // Revenant legend swaps.
   28134,
   28494,
@@ -73708,11 +73686,12 @@ Implementation: \`src/renderer/stats/computeSkillUsageData.ts\`.
 APM is derived from the Skill Usage Tracker data (rotation casts). For each
 player:
 - \`totalCasts = sum(rotationSkill.skills.length)\`, excluding pseudo-actions:
-  weapon swap, attunement and legend swaps, shroud/forge/avatar/unleash
-  enter and exit, engineer kits and firebrand tomes, and entries that are not
-  a press at all (pet spawned, relic/rune triggers, "Berserk (End)"). The id
-  list is in \`src/renderer/stats/utils/apmPseudoActions.ts\`. Skill Usage still
-  counts them.
+  weapon swap, legend swaps, shroud/forge/avatar/unleash enter and exit,
+  engineer kits and firebrand tomes, and entries that are not a press at all
+  (pet spawned, relic/rune triggers, "Berserk (End)"). Elementalist attunement
+  swaps (including Weaver dual attunements) do count. The id list is in
+  \`src/renderer/stats/utils/apmPseudoActions.ts\`. Skill Usage still counts
+  everything.
 - \`apm = totalCasts / (activeSeconds / 60)\`
 - \`aps = totalCasts / activeSeconds\`
 - Auto-attack counts are excluded for the "No Auto" variants.
