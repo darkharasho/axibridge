@@ -23,8 +23,9 @@ describe('wvwSectors generated data', () => {
     // rather than a full map, so it is the one entry with a non-750 height.
     const CONTESTED = Object.values(WvwMap).filter(m => m !== WvwMap.ObsidianSanctum);
 
-    it('has sectors, map ids and ref sizes for all four contested maps', () => {
-        expect(CONTESTED).toHaveLength(4);
+    it('has sectors, map ids and ref sizes for all five contested maps', () => {
+        // The four match maps plus Edge of the Mists.
+        expect(CONTESTED).toHaveLength(5);
         for (const map of CONTESTED) {
             expect(WVW_SECTORS[map].length).toBeGreaterThanOrEqual(15);
             expect(WVW_MAP_IDS[map]).toBeGreaterThan(0);

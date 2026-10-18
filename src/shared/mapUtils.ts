@@ -26,6 +26,7 @@ const MAP_ID_TO_KEY: Record<number, WvwMap> = {
     95: WvwMap.GreenBorderlands,
     96: WvwMap.BlueBorderlands,
     899: WvwMap.ObsidianSanctum,
+    968: WvwMap.EdgeOfTheMists,
     1099: WvwMap.RedBorderlands,
 };
 
@@ -35,10 +36,14 @@ const MAP_ID_TO_KEY: Record<number, WvwMap> = {
  */
 const hasWord = (clean: string, word: string) => new RegExp(`\\b${word}\\b`).test(clean);
 
+/** "Edge of the Mists" / "EotM". Not a bare `mists` match: every WvW map is "in the Mists". */
+const isEdgeOfTheMists = (clean: string) => clean.includes('edge of the mists') || clean === 'eotm';
+
 export function resolveMapFromZone(zone: string): WvwMap | null {
     const clean = stripPrefix(zone).toLowerCase();
     if (hasWord(clean, 'eternal') || clean === 'ebg') return WvwMap.EternalBattlegrounds;
     if (hasWord(clean, 'obsidian') || hasWord(clean, 'sanctum') || clean === 'os') return WvwMap.ObsidianSanctum;
+    if (isEdgeOfTheMists(clean)) return WvwMap.EdgeOfTheMists;
     if (hasWord(clean, 'green')) return WvwMap.GreenBorderlands;
     if (hasWord(clean, 'blue')) return WvwMap.BlueBorderlands;
     if (hasWord(clean, 'red')) return WvwMap.RedBorderlands;
@@ -63,6 +68,7 @@ export function normalizeMapName(zone: string): string {
     const clean = stripPrefix(zone).toLowerCase();
     if (hasWord(clean, 'eternal')) return 'Eternal Battlegrounds';
     if (hasWord(clean, 'obsidian') || hasWord(clean, 'sanctum')) return 'Obsidian Sanctum';
+    if (isEdgeOfTheMists(clean)) return 'Edge of the Mists';
     if (hasWord(clean, 'green')) return 'Green Borderlands';
     if (hasWord(clean, 'blue')) return 'Blue Borderlands';
     if (hasWord(clean, 'red')) return 'Red Borderlands';
@@ -73,6 +79,7 @@ export function normalizeMapNameShort(zone: string): string {
     const clean = stripPrefix(zone).toLowerCase();
     if (hasWord(clean, 'eternal') || clean === 'ebg') return 'EBG';
     if (hasWord(clean, 'obsidian') || hasWord(clean, 'sanctum')) return 'OS';
+    if (isEdgeOfTheMists(clean)) return 'EotM';
     if (hasWord(clean, 'green')) return 'Green BL';
     if (hasWord(clean, 'blue')) return 'Blue BL';
     if (hasWord(clean, 'red')) return 'Red BL';

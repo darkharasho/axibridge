@@ -143,11 +143,25 @@ function logFightTimeMs(log: ILogData): number {
     return Number.isFinite(ms) ? ms : 0;
 }
 
-/** Finished WvW logs fought within the match window that still need an ownership snapshot. */
+/**
+ * The maps `/v2/wvw/matches` reports objective owners for. Edge of the Mists
+ * and Obsidian Sanctum are WvW maps but not part of a match, so a snapshot
+ * would always come back empty -- and an empty snapshot leaves the log a
+ * candidate, refetched on every pass.
+ */
+const MATCH_MAPS: ReadonlySet<WvwMap> = new Set([
+    WvwMap.EternalBattlegrounds,
+    WvwMap.GreenBorderlands,
+    WvwMap.BlueBorderlands,
+    WvwMap.RedBorderlands,
+]);
+
+/** Finished match-map logs fought within the match window that still need an ownership snapshot. */
 export function pickSnapshotCandidates(logs: ILogData[], window: MatchWindow): ILogData[] {
     return logs.filter(log => {
         if (log.status !== 'success' || log.sectorOwners || !log.fightName) return false;
-        if (!resolveMapFromZone(log.fightName)) return false;
+        const map = resolveMapFromZone(log.fightName);
+        if (!map || !MATCH_MAPS.has(map)) return false;
         const fightMs = logFightTimeMs(log);
         return fightMs >= window.startMs && fightMs <= window.endMs;
     });

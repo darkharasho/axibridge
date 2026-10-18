@@ -17,6 +17,7 @@ const MAPS = {
     // empty sector list rather than tripping the guard below. Its rect frames
     // the amphitheatre, not the whole map; see WVW_TILE_DATA for the derivation.
     ObsidianSanctum:      { apiId: 899,  rect: [[11205, 12875], [11645, 13250]], size: [750, 639], offset: [0, 0], sectorless: true },
+    EdgeOfTheMists:       { apiId: 968,  rect: [[5994, 8446], [9066, 11518]],   size: [731, 750], offset: [0, 0] },
 };
 
 const floor = await (await fetch('https://api.guildwars2.com/v2/continents/2/floors/3')).json();

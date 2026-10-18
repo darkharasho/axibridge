@@ -6,13 +6,8 @@ import { resolveMapFromZone } from './mapUtils';
  * fights happened on.
  *
  * Only the three borderlands carry a colour of their own; Eternal Battlegrounds,
- * Obsidian Sanctum and Edge of the Mists are all white. That rule is why this
- * matches on the map *label* rather than on `WvwMap`: EotM has no enum member,
- * and adding one would have to be filled in for `WVW_TILE_DATA`,
- * `WVW_LANDMARKS`, `WVW_MAP_IDS`, `WVW_SECTOR_REF_SIZE` and `WVW_SECTORS` —
- * five exhaustive `Record<WvwMap, …>` tables with no EotM geometry to put in
- * them. Reading the name costs nothing and lands EotM on white for free, along
- * with every other zone that isn't a borderlands.
+ * Obsidian Sanctum and Edge of the Mists are all white, as is any zone that
+ * doesn't resolve to a `WvwMap` at all.
  *
  * The hexes are the ones the Map Distribution donut already uses
  * (`incrementalAggregation.ts`), so the accent agrees with the chart.
@@ -41,7 +36,7 @@ export function resolveMapAccentFromName(name: string): MapAccent {
             return buildAccent(MAP_ACCENT_HEX.green);
         case WvwMap.BlueBorderlands:
             return buildAccent(MAP_ACCENT_HEX.blue);
-        // EBG, Obsidian Sanctum, and — via the null case — Edge of the Mists and
+        // EBG, Obsidian Sanctum, Edge of the Mists, and — via the null case —
         // anything else that isn't a borderlands.
         default:
             return buildAccent(MAP_ACCENT_HEX.neutral);

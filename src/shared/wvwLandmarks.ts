@@ -4,6 +4,7 @@ export enum WvwMap {
     BlueBorderlands = 'BlueBorderlands',
     RedBorderlands = 'RedBorderlands',
     ObsidianSanctum = 'ObsidianSanctum',
+    EdgeOfTheMists = 'EdgeOfTheMists',
 }
 
 export interface WvwLandmark {
@@ -80,6 +81,28 @@ const RED_DESERT: WvwLandmark[] = [
     { name: "Tilly's Encampment", x: 369, y: 365, type: 'ruins' },
 ];
 
+// Edge of the Mists: `/v2/wvw/objectives` (map 968) projected through its
+// API `continent_rect` onto the 731x750 canvas. Keeps, towers and the supply
+// camps (the API's "Generic" type) only -- each "Resource" reactor shares its
+// keep/tower's coord, and the three spawn docks have none.
+const EDGE_OF_THE_MISTS: WvwLandmark[] = [
+    { name: 'Arid Fortress', x: 189, y: 481, type: 'keep' },
+    { name: 'Overgrown Fane', x: 361, y: 60, type: 'keep' },
+    { name: 'Thunder Hollow', x: 542, y: 481, type: 'keep' },
+    { name: "Inferno's Needle", x: 365, y: 445, type: 'tower' },
+    { name: 'Stonegaze Spire', x: 304, y: 340, type: 'tower' },
+    { name: 'Tytone Perch', x: 426, y: 343, type: 'tower' },
+    { name: 'Airport', x: 267, y: 473, type: 'camp' },
+    { name: 'Altar', x: 269, y: 190, type: 'camp' },
+    { name: 'Bell Tower', x: 500, y: 452, type: 'camp' },
+    { name: 'Forge', x: 514, y: 568, type: 'camp' },
+    { name: 'Observatory', x: 508, y: 143, type: 'camp' },
+    { name: 'Shrine', x: 668, y: 417, type: 'camp' },
+    { name: 'Statuary', x: 372, y: 231, type: 'camp' },
+    { name: 'Workshop', x: 204, y: 558, type: 'camp' },
+    { name: 'Wurm Tunnel', x: 175, y: 424, type: 'camp' },
+];
+
 export const WVW_LANDMARKS: Record<WvwMap, WvwLandmark[]> = {
     [WvwMap.EternalBattlegrounds]: [
         { name: 'Stonemist Castle', x: 370, y: 435, type: 'keep' },
@@ -116,6 +139,7 @@ export const WVW_LANDMARKS: Record<WvwMap, WvwLandmark[]> = {
     // those would label every OS fight after a point off the canvas. Empty
     // means `buildFightLabelV2` falls back to the bare map name.
     [WvwMap.ObsidianSanctum]: [],
+    [WvwMap.EdgeOfTheMists]: EDGE_OF_THE_MISTS,
 };
 
 export function findNearestLandmark(map: WvwMap, x: number, y: number): WvwLandmark | null {

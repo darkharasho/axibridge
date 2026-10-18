@@ -70,6 +70,22 @@ export const WVW_TILE_DATA: Record<WvwMap, WvwMapTileData> = {
         pixelOffset: [0, 0],
         maxZoom: MAX_TILE_ZOOM,
     },
+    // Edge of the Mists frames the whole map, straight from `/v2/maps/968`.
+    //
+    // axilog's EotM arena world rect IS the API `map_rect` (±36864), so the
+    // API `continent_rect` lines up with it exactly and needs no
+    // `pixelOffset`. Verified against 66k position samples from 32 real EotM
+    // logs: every one falls inside the rect, tracing the bridges between
+    // islands. `pixelSize` is `replayCanvas` of axilog's 3556x3646 arena image,
+    // not the square rect -- the canvas squeezes x by ~2.5%, and the tiles
+    // must squeeze with it or they slide off the dots toward the east edge.
+    // Capped at z7: the hi-res pack was never built for EotM.
+    [WvwMap.EdgeOfTheMists]: {
+        continentRect: [[5994, 8446], [9066, 11518]],
+        pixelSize: [731, 750],
+        pixelOffset: [0, 0],
+        maxZoom: MAX_TILE_ZOOM,
+    },
 };
 
 export interface TileInfo {
