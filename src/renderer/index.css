@@ -497,6 +497,14 @@ body:not(.web-report) .modal-pane button[aria-label^="Close "] {
     gap: 0.75rem;
 }
 
+/* Upstream left-aligns only the FIRST column; a table that leads with a rank
+   cell pushes the name `<th scope="row">` to second and it inherits the
+   numeric right-align, so two-line names (account + minion list) hug the
+   right edge. A row header is always a name. */
+.axi-table th[scope="row"] {
+    text-align: left;
+}
+
 /* Layout only. Everything this table LOOKS like - the surface it sits on, the
    head's lid, the pinned column's edge, the zebra that used to be here - comes
    from upstream's .axi-panel and .axi-table--sticky/--pinned/--dense. */
