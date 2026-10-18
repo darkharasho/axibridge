@@ -6,10 +6,13 @@
  * into a cast, and that includes things nobody would call an action: a relic
  * dropping its buff, Berserk running out, a pet being spawned. The swaps are
  * real key presses, but they change what the next press does rather than do
- * anything themselves, and they inflate the professions that have them - an
- * elementalist's attunement dance or a kit engineer roughly doubles in APM
- * against a class with one weapon swap. Skill Usage still lists all of them;
- * only APM drops them.
+ * anything themselves, and they inflate the professions that have them - a
+ * kit engineer roughly doubles in APM against a class with one weapon swap.
+ * Skill Usage still lists all of them; only APM drops them.
+ *
+ * Elementalist attunement swaps (5492-5495, Weaver's 43470/41166/42264/44857
+ * and EI's -5..-16 dual ids) are deliberately NOT here: attuning is core
+ * elementalist rotation, so it counts toward APM.
  *
  * Ids, not names: names vary by log and locale. The swap ids are EI's own
  * `SkillItem.IsSwap` set (as ported by axilog's `skill_map::is_swap`), listed
@@ -19,11 +22,6 @@
 const PSEUDO_ACTION_IDS: ReadonlySet<number> = new Set([
     // Weapon swap.
     -2,
-    // Elementalist attunements, and Weaver's dual attunements (-5..-16 are
-    // EI-invented ids for the mixed pairs).
-    5492, 5493, 5494, 5495,
-    43470, 41166, 42264, 44857,
-    -5, -6, -7, -8, -9, -10, -11, -12, -13, -14, -15, -16,
     // Revenant legend swaps.
     28134, 28494, 28419, 28195, 28085, 41858, 62749, 76610,
     // Shroud and other F-key transforms, entering and leaving.

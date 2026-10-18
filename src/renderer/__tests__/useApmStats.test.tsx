@@ -168,4 +168,32 @@ describe('useApmStats', () => {
         expect(bucket.playerRows[0].apm).toBe(10);
         expect(bucket.skills.map((s) => s.id)).toEqual(['s1']);
     });
+
+    it('counts elementalist attunement swaps toward APM', () => {
+        const data = {
+            logRecords: [],
+            skillOptions: [
+                { id: 's1', name: 'Burst Skill', total: 0 },
+                { id: 's5492', name: 'Fire Attunement', total: 0 },
+                { id: 's-5', name: 'Dual Fire Attunement', total: 0 },
+            ],
+            players: [
+                {
+                    key: 'acct8|Weaver',
+                    account: 'acct8',
+                    displayName: 'acct8',
+                    profession: 'Weaver',
+                    professionList: ['Weaver'],
+                    logs: 1,
+                    totalActiveSeconds: 60,
+                    skillTotals: { s1: 10, s5492: 6, 's-5': 4 }
+                }
+            ]
+        } as SkillUsageSummary;
+
+        const { result } = renderHook(() => useApmStats(data));
+        const bucket = result.current.apmSpecBuckets[0];
+        expect(bucket.playerRows[0].totalCasts).toBe(20);
+        expect(bucket.skills.map((s) => s.id).sort()).toEqual(['s-5', 's1', 's5492']);
+    });
 });

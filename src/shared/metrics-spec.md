@@ -705,11 +705,12 @@ Implementation: `src/renderer/stats/computeSkillUsageData.ts`.
 APM is derived from the Skill Usage Tracker data (rotation casts). For each
 player:
 - `totalCasts = sum(rotationSkill.skills.length)`, excluding pseudo-actions:
-  weapon swap, attunement and legend swaps, shroud/forge/avatar/unleash
-  enter and exit, engineer kits and firebrand tomes, and entries that are not
-  a press at all (pet spawned, relic/rune triggers, "Berserk (End)"). The id
-  list is in `src/renderer/stats/utils/apmPseudoActions.ts`. Skill Usage still
-  counts them.
+  weapon swap, legend swaps, shroud/forge/avatar/unleash enter and exit,
+  engineer kits and firebrand tomes, and entries that are not a press at all
+  (pet spawned, relic/rune triggers, "Berserk (End)"). Elementalist attunement
+  swaps (including Weaver dual attunements) do count. The id list is in
+  `src/renderer/stats/utils/apmPseudoActions.ts`. Skill Usage still counts
+  everything.
 - `apm = totalCasts / (activeSeconds / 60)`
 - `aps = totalCasts / activeSeconds`
 - Auto-attack counts are excluded for the "No Auto" variants.
