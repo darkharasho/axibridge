@@ -139,4 +139,33 @@ describe('useApmStats', () => {
         // s1 excluded (auto+proc), only s2 remains = 20
         expect(row.apmNoProcs).toBe(20);
     });
+    it('leaves swaps, kits and non-press entries out of APM and its skill list', () => {
+        const data = {
+            logRecords: [],
+            skillOptions: [
+                { id: 's1', name: 'Burst Skill', total: 0 },
+                { id: 's-2', name: 'Weapon Swap', total: 0 },
+                { id: 's5927', name: 'Flamethrower', total: 0 },
+                { id: 's-32', name: 'Relic of Fireworks (Buff Loss)', total: 0 },
+            ],
+            players: [
+                {
+                    key: 'acct9|Scrapper',
+                    account: 'acct9',
+                    displayName: 'acct9',
+                    profession: 'Scrapper',
+                    professionList: ['Scrapper'],
+                    logs: 1,
+                    totalActiveSeconds: 60,
+                    skillTotals: { s1: 10, 's-2': 6, s5927: 4, 's-32': 2 }
+                }
+            ]
+        } as SkillUsageSummary;
+
+        const { result } = renderHook(() => useApmStats(data));
+        const bucket = result.current.apmSpecBuckets[0];
+        expect(bucket.playerRows[0].totalCasts).toBe(10);
+        expect(bucket.playerRows[0].apm).toBe(10);
+        expect(bucket.skills.map((s) => s.id)).toEqual(['s1']);
+    });
 });

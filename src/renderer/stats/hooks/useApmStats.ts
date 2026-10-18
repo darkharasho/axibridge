@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { ApmSpecBucket, SkillUsageSummary, ApmPlayerRow, ApmSkillEntry } from '../statsTypes';
 import { isAutoAttackName } from '../utils/dashboardUtils';
+import { isApmPseudoAction } from '../utils/apmPseudoActions';
 
 export const useApmStats = (skillUsageData: SkillUsageSummary) => {
 
@@ -69,6 +70,7 @@ export const useApmStats = (skillUsageData: SkillUsageSummary) => {
             Object.entries(playerSkillTotals).forEach(([skillId, rawCount]) => {
                 const count = Number(rawCount);
                 if (!Number.isFinite(count) || count <= 0) return;
+                if (isApmPseudoAction(skillId)) return;
                 const option = skillOptionsById.get(skillId);
                 const skillName = option?.name || skillId;
                 const skillIcon = option?.icon;
