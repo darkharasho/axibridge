@@ -37,7 +37,26 @@ const TickReadout: React.FC<TickReadoutProps> = ({ tick, timeMs }) => {
     const value = tickRateAt(tick, timeMs);
     const window = useMemo(() => tickWindow(tick, timeMs, SPARK_SECONDS), [tick, timeMs]);
 
-    if (value === null) return null;
+    // No value yet (second 0 is usually unsampled) still renders, as a dash:
+    // the readout sits left of the flex:1 scrubber, so unmounting it widened
+    // the timeline under the cursor and a drag near the start jittered.
+    if (value === null) {
+        return (
+            <span
+                data-testid="tick-readout"
+                data-tone="none"
+                title="Server tick: no sample yet at this point in the fight."
+                style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    fontSize: 10.5, fontVariantNumeric: 'tabular-nums', color: 'var(--axi-text-faint)',
+                }}
+            >
+                <svg width={SPARK_W} height={SPARK_H} style={{ display: 'block' }} aria-hidden="true" />
+                <span style={{ display: 'inline-block', minWidth: '4ch', textAlign: 'center' }}>–</span>
+                <span style={{ fontSize: 9 }}>tick</span>
+            </span>
+        );
+    }
 
     const tone = tickTone(value);
     const color = TONE_COLOR[tone];
@@ -65,12 +84,13 @@ const TickReadout: React.FC<TickReadoutProps> = ({ tick, timeMs }) => {
                 fontSize: 10.5, fontVariantNumeric: 'tabular-nums', color,
             }}
         >
-            {window.length > 1 && (
-                <svg width={SPARK_W} height={SPARK_H} style={{ display: 'block', overflow: 'visible' }} aria-hidden="true">
+            {/* Always mounted, empty until there are two samples, for the same width reason. */}
+            <svg width={SPARK_W} height={SPARK_H} style={{ display: 'block', overflow: 'visible' }} aria-hidden="true">
+                {window.length > 1 && (
                     <polyline points={points} fill="none" stroke="currentColor" strokeOpacity={0.8} strokeWidth={1} />
-                </svg>
-            )}
-            {value.toFixed(1)}
+                )}
+            </svg>
+            <span style={{ display: 'inline-block', minWidth: '4ch', textAlign: 'right' }}>{value.toFixed(1)}</span>
             <span style={{ fontSize: 9, color: 'var(--axi-text-faint)' }}>tick</span>
         </span>
     );

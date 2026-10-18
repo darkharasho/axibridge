@@ -171,6 +171,19 @@ describe('TransportBar', () => {
         expect(readout.dataset.tone).toBe('bad');
     });
 
+    // The readout sits left of the flex:1 scrubber. Unmounting it at an
+    // unsampled second (second 0 nearly always is) widened the timeline under
+    // the cursor, so dragging near the start made the strip jump.
+    it('keeps the tick readout mounted at an unsampled second', () => {
+        const fight = makeFight();
+        fight.tickRate = { avg: 25.006, min: 16.5, perSecond: [0, 25.1, 24.9, 16.5, 25.2] };
+        useStatsStore.getState().setReplayPlayhead({ timeMs: 0 });
+        render(<TransportBar fight={fight} />);
+        const readout = screen.getByTestId('tick-readout');
+        expect(readout.dataset.tone).toBe('none');
+        expect(readout.querySelector('svg')).not.toBeNull();
+    });
+
     // jsdom does not run layout, so `getBoundingClientRect()` on the bar
     // would always read 0 — a real pixel-height assertion is not available
     // here. Instead we assert the svg `height` that drives it: 44 (the
