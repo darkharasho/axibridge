@@ -5,6 +5,8 @@ import { orderMembersForRender } from '../replaySelectors';
 import { recolorCommanderTag } from '../../../../shared/squadMarkers';
 import commanderTagRaw from '../../../../../public/svg/commander_tag.svg?raw';
 import type { SquadMemberMovement } from '../../../../shared/movementData';
+import { MarkGlyph } from '../MarkGlyph';
+import { markDef, type FightMarks } from '../replayMarks';
 
 const svgDataUri = (svg: string) =>
     `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
@@ -103,12 +105,14 @@ export interface MemberLayerProps {
     pollingRate: number;
     /** `account || name` of the followed member, or null. */
     followKey: string | null;
+    /** Right-click marks for this fight, by member id. */
+    marks?: FightMarks;
     onHover: (info: MemberHoverInfo) => void;
     onLeave: () => void;
 }
 
 export const MemberLayer: React.FC<MemberLayerProps> = ({
-    members, pollFrac, pollIndex, timeMs, scale, spotlightParty, showDead, pollingRate, followKey, onHover, onLeave,
+    members, pollFrac, pollIndex, timeMs, scale, spotlightParty, showDead, pollingRate, followKey, marks, onHover, onLeave,
 }) => (
     <>
         <defs>
@@ -122,7 +126,11 @@ export const MemberLayer: React.FC<MemberLayerProps> = ({
                 " />
             </filter>
         </defs>
-        {orderMembersForRender(members.filter(m => m.inSquad || m.isEnemy)).map(member => {
+        {/* Marked members paint last: the user marked them to find them, and
+            under a blob of 30 enemies a mark drawn first is a mark hidden. */}
+        {orderMembersForRender(members.filter(m => m.inSquad || m.isEnemy))
+            .sort((a, b) => Number(!!marks?.[a.id]) - Number(!!marks?.[b.id]))
+            .map(member => {
             const pos = sampleAt(member, pollFrac);
             if (!pos) return null;
             // A despawned member is not in the instance; nothing to draw, and
@@ -168,6 +176,7 @@ export const MemberLayer: React.FC<MemberLayerProps> = ({
             // own rather than a state on that player.
             const drawnR = member.isEnemy && !member.isCommander ? iconR * 0.75 : iconR;
             const ringR = 16 / s;        // follow ring radius
+            const mark = marks?.[member.id];
 
             // Base opacity: dead = very dim, down = half, enemies dim slightly, spotlight dim = faint
             const baseOpacity = isDead ? 0.12 : isDown ? 0.45 : dim ? 0.2 : member.isEnemy ? 0.75 : 1;
@@ -191,6 +200,8 @@ export const MemberLayer: React.FC<MemberLayerProps> = ({
                     {recent.length > 1 && <polyline points={recentStr} fill="none" stroke={color} strokeOpacity={0.6} strokeWidth={sw15} />}
                     {/* Follow ring */}
                     {isFollow && <circle cx={pos[0]} cy={pos[1]} r={ringR} fill="none" stroke="#fbbf24" strokeWidth={sw15} strokeOpacity={0.8} />}
+                    {/* Manual mark ring, so a marked enemy is findable in a blob. */}
+                    {mark && <circle data-mark-ring={mark} cx={pos[0]} cy={pos[1]} r={ringR * 0.85} fill="none" stroke={markDef(mark).color} strokeWidth={2 / s} />}
                     {/* Member icon — rendered in a counter-scaled group so the
                         <image> element always has fixed 20×20 local dimensions.
                         Without this, sub-pixel dimensions at high zoom cause
@@ -235,6 +246,13 @@ export const MemberLayer: React.FC<MemberLayerProps> = ({
                             >
                                 <title>{member.squadMarker.label}</title>
                             </image>
+                        )}
+                        {/* Manual mark, above the icon; beside the squad marker
+                            when the log already put one in that spot. */}
+                        {mark && (
+                            <g data-manual-mark={mark} transform={`translate(${member.squadMarker ? iconR * 1.3 : 0} ${-iconR * 1.6})`}>
+                                <MarkGlyph kind={mark} r={mark === 'tag' ? iconR * 0.8 : iconR * 0.6} />
+                            </g>
                         )}
                         {/* Downed indicator: orange cross over the icon.
                             Drawn for enemies too — a downed enemy is the single

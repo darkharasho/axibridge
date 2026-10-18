@@ -11,6 +11,7 @@ import type { ReplayFightPayload } from './replayTypes';
 import type { StatsStoreState } from '../statsStore';
 import type { HeatmapRaster } from './hooks/useHeatmapData';
 import type { MemberHoverInfo } from './layers/MemberLayer';
+import type { FightMarks } from './replayMarks';
 
 export interface ReplayMapContentProps {
     fight: ReplayFightPayload;
@@ -24,6 +25,7 @@ export interface ReplayMapContentProps {
     timeMs: number;
     spotlightParty: number | null;
     followKey: string | null;
+    marks?: FightMarks;
     onHover: (info: MemberHoverInfo) => void;
     onLeave: () => void;
 }
@@ -44,7 +46,7 @@ export interface ReplayMapContentProps {
  */
 const ReplayMapContentInner: React.FC<ReplayMapContentProps> = ({
     fight, layers, heatmap, mapWidth, mapHeight, scale,
-    pollFrac, pollIndex, timeMs, spotlightParty, followKey, onHover, onLeave,
+    pollFrac, pollIndex, timeMs, spotlightParty, followKey, marks, onHover, onLeave,
 }) => (
     <>
         {layers.zoneBorders && fight.mapKey && (
@@ -75,6 +77,7 @@ const ReplayMapContentInner: React.FC<ReplayMapContentProps> = ({
             showDead={layers.showDead}
             pollingRate={fight.movementData.pollingRate}
             followKey={followKey}
+            marks={marks}
             onHover={onHover}
             onLeave={onLeave}
         />

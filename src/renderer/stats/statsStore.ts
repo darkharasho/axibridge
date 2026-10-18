@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { AggregationProgressState, AggregationDiagnosticsState } from './hooks/useStatsAggregationWorker';
+import type { FightMarks } from './map/replayMarks';
 
 // Hash function moved from aggregationCache.ts — used by App.tsx store sync
 export function hashAggregationSettings(
@@ -87,6 +88,9 @@ export interface StatsStoreState {
         heatmap: 'off' | 'deaths' | 'time' | 'damage-taken';
     };
     replaySpotlightParty: number | null;
+    /** Right-click marks per replay fight id. Kept per fight so switching
+     *  fights and back keeps them; session-only, like the rest of replay state. */
+    replayMarks: Record<string, FightMarks>;
     /** Whether the CC/strip lanes band under the scrubber is expanded.
      *  Separate from the ccLane/stripLane layer toggles, which say which
      *  lanes exist at all. Collapsed by default: the band is a detail view. */
@@ -130,6 +134,7 @@ export interface StatsStoreState {
     setReplayLayer: (key: keyof Omit<StatsStoreState['replayLayers'], 'heatmap'>, value: boolean) => void;
     setReplayHeatmapMode: (mode: StatsStoreState['replayLayers']['heatmap']) => void;
     setReplaySpotlightParty: (party: number | null) => void;
+    setReplayMarks: (fightId: string, marks: FightMarks) => void;
     setReplayLanesExpanded: (expanded: boolean) => void;
     setReplayLegendExpanded: (expanded: boolean) => void;
     toggleReplayPartyCollapsed: (group: number) => void;
@@ -175,6 +180,7 @@ const initialState = {
         heatmap: 'off' as const,
     },
     replaySpotlightParty: null,
+    replayMarks: {},
     replayLanesExpanded: false,
     replayLegendExpanded: true,
     replayCollapsedParties: new Set<number>(),
@@ -237,6 +243,9 @@ export const useStatsStore = create<StatsStoreState>()((set) => ({
                 ? null
                 : Math.min(5, Math.floor(party)),
     }),
+    setReplayMarks: (fightId, marks) => set((state) => ({
+        replayMarks: { ...state.replayMarks, [fightId]: marks },
+    })),
     setReplayLanesExpanded: (expanded) => set({ replayLanesExpanded: expanded }),
     setReplayLegendExpanded: (expanded) => set({ replayLegendExpanded: expanded }),
     toggleReplayPartyCollapsed: (group) => set((state) => {

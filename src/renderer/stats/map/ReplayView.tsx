@@ -20,6 +20,9 @@ import { useMovementData } from './hooks/useMovementData';
 import { pickDefaultFightId, findClosestMember, firstPopulatedTimeMs, sortFightsNewestFirst } from './replaySelectors';
 import { sampleAt } from './layers/MemberLayer';
 import { ReplayMapContent } from './ReplayMapContent';
+import { MarkMenu, MARK_MENU_WIDTH } from './MarkMenu';
+import { TagMovementCard } from './TagMovementCard';
+import { applyMark, type FightMarks, type ReplayMarkKind } from './replayMarks';
 import type { MemberHoverInfo } from './layers/MemberLayer';
 import type { ReplayFightPayload } from './replayTypes';
 import type { SquadMemberMovement } from '../../../shared/movementData';
@@ -69,11 +72,14 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
     const layers = useStatsStore(state => state.replayLayers);
     const spotlightParty = useStatsStore(state => state.replaySpotlightParty);
     const setReplaySpotlightParty = useStatsStore(state => state.setReplaySpotlightParty);
+    const replayMarks = useStatsStore(state => state.replayMarks);
+    const setReplayMarks = useStatsStore(state => state.setReplayMarks);
 
     const [fullscreen, setFullscreen] = useState(false);
     const [pickerCollapsed, setPickerCollapsed] = useState(true);
     const [panelCollapsed, setPanelCollapsed] = useState(true);
     const [layersOpen, setLayersOpen] = useState(false);
+    const [markMenu, setMarkMenu] = useState<{ memberId: number; x: number; y: number } | null>(null);
     const [tooltip, setTooltip] = useState<{ name: string; account: string; status: 'down' | 'dead' | null; x: number; y: number } | null>(null);
     // When true the viewport auto-centers on the follow target each frame.
     // Set to false when the user manually pans; recenter button restores it.
@@ -265,16 +271,58 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
         if (pos) centerOn(pos[0], pos[1]);
     }, [followMember, pollFrac, centerOn, centeredOnFollow]);
 
+    /**
+     * The member under a pointer event. `screenToSvg` only undoes the
+     * viewBox letterboxing; members are drawn inside the pan/zoom group, so
+     * its translate and scale come off too. Without that, picking only hit
+     * at the default view and grabbed the wrong player once zoomed. The 24px
+     * radius is a screen distance, so it shrinks in map units as you zoom.
+     */
+    const memberAtEvent = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+        if (!selectedFight) return null;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const [sx, sy] = screenToSvg(e.clientX, e.clientY, rect);
+        const k = viewport.scale > 0 ? viewport.scale : 1;
+        const pickable = selectedFight.movementData.members.filter(m => m.inSquad || m.isEnemy);
+        return findClosestMember(pickable, pollIndex, (sx - viewport.tx) / k, (sy - viewport.ty) / k, 24 / k);
+    }, [selectedFight, pollIndex, screenToSvg, viewport.tx, viewport.ty, viewport.scale]);
+
     const onCanvasClick = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
         if (!selectedFight) return;
         if (draggedRef.current) { draggedRef.current = false; return; }
-        const svg = e.currentTarget;
-        const rect = svg.getBoundingClientRect();
-        // Account for preserveAspectRatio="xMidYMid meet" letterboxing
-        const [worldX, worldY] = screenToSvg(e.clientX, e.clientY, rect);
-        const hit = findClosestMember(selectedFight.movementData.members, pollIndex, worldX, worldY, 24);
+        const hit = memberAtEvent(e);
         if (hit && !hit.isEnemy) setReplayFollowTarget(hit.account || hit.name);
-    }, [selectedFight, pollIndex, screenToSvg, setReplayFollowTarget]);
+    }, [selectedFight, memberAtEvent, setReplayFollowTarget]);
+
+    const marks: FightMarks | undefined = selectedId ? replayMarks[selectedId] : undefined;
+    const closeMarkMenu = useCallback(() => setMarkMenu(null), []);
+    useEffect(() => { setMarkMenu(null); }, [selectedId]);
+
+    // Right-click marks any member, friend or foe; the hit test is the same
+    // one a left-click follow uses. A miss still swallows the native menu,
+    // which has nothing useful to offer over a map.
+    const onCanvasContextMenu = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+        e.preventDefault();
+        if (!selectedFight) return;
+        const hit = memberAtEvent(e);
+        if (!hit) { setMarkMenu(null); return; }
+        const box = mapContainerRef.current?.getBoundingClientRect();
+        if (!box) return;
+        // Keep the menu on screen near the right and bottom edges.
+        const x = Math.min(e.clientX - box.left, box.width - MARK_MENU_WIDTH - 8);
+        const y = Math.min(e.clientY - box.top, box.height - 220);
+        setMarkMenu({ memberId: hit.id, x: Math.max(8, x), y: Math.max(8, y) });
+    }, [selectedFight, memberAtEvent]);
+
+    const pickMark = useCallback((kind: ReplayMarkKind | null) => {
+        if (!selectedFight || !markMenu) return;
+        const current = useStatsStore.getState().replayMarks[selectedFight.fightId] ?? {};
+        setReplayMarks(selectedFight.fightId, applyMark(current, selectedFight.movementData.members, markMenu.memberId, kind));
+    }, [selectedFight, markMenu, setReplayMarks]);
+
+    const markMenuMember = markMenu && selectedFight
+        ? selectedFight.movementData.members.find(m => m.id === markMenu.memberId) ?? null
+        : null;
 
     /**
      * Playback keys. These are the whole reason the transport has no
@@ -344,6 +392,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                             viewBox={`0 0 ${mapWidth} ${mapHeight}`}
                             preserveAspectRatio="xMidYMid slice"
                             onClick={onCanvasClick}
+                            onContextMenu={onCanvasContextMenu}
                             style={{ width: '100%', height: '100%', background: '#0c1224', cursor: 'grab', display: 'block' }}
                         >
                             <g transform={`translate(${viewport.tx} ${viewport.ty}) scale(${viewport.scale})`}>
@@ -371,6 +420,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                     timeMs={playhead.timeMs}
                                     spotlightParty={spotlightParty}
                                     followKey={followMember ? (followMember.account || followMember.name) : null}
+                                    marks={marks}
                                     onHover={onMemberHover}
                                     onLeave={onMemberLeave}
                                 />
@@ -423,6 +473,18 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                     </div>
                                 )}
                             </div>
+                        )}
+
+                        {markMenu && markMenuMember && (
+                            <MarkMenu
+                                member={markMenuMember}
+                                current={marks?.[markMenuMember.id]}
+                                x={markMenu.x}
+                                y={markMenu.y}
+                                onPick={pickMark}
+                                onFollow={markMenuMember.isEnemy ? undefined : () => setReplayFollowTarget(markMenuMember.account || markMenuMember.name)}
+                                onClose={closeMarkMenu}
+                            />
                         )}
 
                         {/* 4. Fight identity, centred */}
@@ -491,6 +553,7 @@ export const ReplayView: React.FC<ReplayViewProps> = ({ fights, style }) => {
                                         </button>
                                     </div>
                                 )}
+                                <TagMovementCard fight={selectedFight} marks={marks} timeMs={playhead.timeMs} />
                             </div>
                         </div>
 
