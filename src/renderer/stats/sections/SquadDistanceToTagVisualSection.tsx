@@ -110,7 +110,7 @@ export const SquadDistanceToTagVisualSection = (props: Props) => {
     } = useStatsSharedContext();
     const sectionId = 'squad-distance-to-tag-visual';
     const isExpanded = expandedSection === sectionId;
-    const [metric, setMetric] = useState<MetricKey>('avg');
+    const [metric, setMetric] = useState<MetricKey>('median');
     const [hoverAccount, setHoverAccount] = useState<string | null>(null);
 
     const rows = useMemo(() => {

@@ -47,20 +47,20 @@ describe('SquadDistanceToTagVisualSection', () => {
         expect(chips).toHaveLength(3);
     });
 
-    it('starts on Avg metric and switches when toggle clicked', () => {
+    it('starts on Median metric and switches when toggle clicked', () => {
         render(<SquadDistanceToTagVisualSection result={result([row({ account: 'A.1' })])} />);
-        const avgBtn = screen.getByRole('button', { name: /avg/i });
+        const medianBtn = screen.getByRole('button', { name: /median/i });
         const p95Btn = screen.getByRole('button', { name: /p95/i });
-        expect(avgBtn).toHaveAttribute('aria-pressed', 'true');
+        expect(medianBtn).toHaveAttribute('aria-pressed', 'true');
         expect(p95Btn).toHaveAttribute('aria-pressed', 'false');
         fireEvent.click(p95Btn);
-        expect(avgBtn).toHaveAttribute('aria-pressed', 'false');
+        expect(medianBtn).toHaveAttribute('aria-pressed', 'false');
         expect(p95Btn).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('places a player with avg=300 inside the green zone radius', () => {
         // outerRadius=190, scale 1500 → r = 300/1500 * 190 = 38. Green zone runs 0..76 (600/1500*190).
-        render(<SquadDistanceToTagVisualSection result={result([row({ account: 'A.1', avg: 300 })])} />);
+        render(<SquadDistanceToTagVisualSection result={result([row({ account: 'A.1', median: 300 })])} />);
         const chip = document.querySelector('[data-chip-account="A.1"]') as SVGGElement | null;
         expect(chip).not.toBeNull();
         const r = Number(chip!.getAttribute('data-chip-radius'));
@@ -69,7 +69,7 @@ describe('SquadDistanceToTagVisualSection', () => {
     });
 
     it('clamps a player with very high distance to outer radius', () => {
-        render(<SquadDistanceToTagVisualSection result={result([row({ account: 'A.1', avg: 9999 })])} />);
+        render(<SquadDistanceToTagVisualSection result={result([row({ account: 'A.1', median: 9999 })])} />);
         const chip = document.querySelector('[data-chip-account="A.1"]') as SVGGElement | null;
         expect(chip).not.toBeNull();
         const r = Number(chip!.getAttribute('data-chip-radius'));

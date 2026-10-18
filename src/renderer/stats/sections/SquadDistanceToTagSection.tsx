@@ -29,7 +29,7 @@ export const SquadDistanceToTagSection = (props: Props) => {
     const sectionId = 'squad-distance-to-tag';
     const isExpanded = expandedSection === sectionId;
 
-    const [sortKey, setSortKey] = useState<SortKey>('avg');
+    const [sortKey, setSortKey] = useState<SortKey>('median');
     const [sortDir, setSortDir] = useState<SortDir>('desc');
     const [internalFilterEnabled, setInternalFilterEnabled] = useState(false);
     const [internalMinFights, setInternalMinFights] = useState(3);
