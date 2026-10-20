@@ -539,11 +539,18 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
 
         const targetIndexTeamId = new Map<number, number>();
         const seenTargetIdsByTeam = new Map<number, Set<string>>();
+        // Mirrors computeEnemyTeamBreakdown in discord.ts: one untagged enemy
+        // makes the per-team split incomplete, so fall back to the combined box.
+        let hasUntaggedEnemy = false;
         targets.forEach((target: any, index: number) => {
             if (target?.isFake) return;
             if (target?.enemyPlayer === false) return;
             const teamId = normalizeTeamId(target);
-            if (teamId === null || allyTeamIds.has(teamId)) return;
+            if (teamId === null) {
+                hasUntaggedEnemy = true;
+                return;
+            }
+            if (allyTeamIds.has(teamId)) return;
             targetIndexTeamId.set(index, teamId);
 
             const rawName = String(target?.name || `target-${index}`);
@@ -633,6 +640,7 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
                 };
             })
             .sort((a, b) => WVW_TEAM_COLOR_ORDER.indexOf(a.color) - WVW_TEAM_COLOR_ORDER.indexOf(b.color));
+        if (hasUntaggedEnemy) enemyTeamSummaryStats = [];
 
         enemyTeamClassSummaries = enemyTeamSummaryStats.map((entry) => {
             const classCounts = enemyTeamClassMap.get(entry.teamId) || {};

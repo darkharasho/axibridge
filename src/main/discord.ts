@@ -355,7 +355,7 @@ const resolveTargetProfession = (target: any): string => {
     return '';
 };
 
-const computeEnemyTeamBreakdown = (players: any[], targets: any[], durationSec: number, teamMap: WvwTeamMap | null) => {
+export const computeEnemyTeamBreakdown = (players: any[], targets: any[], durationSec: number, teamMap: WvwTeamMap | null) => {
     const allyTeamIds = new Set<number>();
     players.forEach((player: any) => {
         if (player?.notInSquad) return;
@@ -369,11 +369,20 @@ const computeEnemyTeamBreakdown = (players: any[], targets: any[], durationSec: 
     const enemyTeamDmgFallbackMap = new Map<number, number>();
     const enemyTeamClassMap = new Map<number, Record<string, number>>();
     const seenEnemyIdsByTeam = new Map<number, Set<string>>();
+    // An enemy with no team (arcdps 20261018 stamps team 0 on every non-squad
+    // player) would silently vanish from a per-team split -- 13 enemies posted
+    // as "Green team: 1". If any enemy is untagged the split is incomplete, so
+    // return none and let the caller show the combined Enemy Summary instead.
+    let hasUntaggedEnemy = false;
     targets.forEach((target: any, index: number) => {
         if (target?.isFake) return;
         if (target?.enemyPlayer === false) return;
         const teamId = normalizeTeamId(target);
-        if (teamId === null || allyTeamIds.has(teamId)) return;
+        if (teamId === null) {
+            hasUntaggedEnemy = true;
+            return;
+        }
+        if (allyTeamIds.has(teamId)) return;
         targetIndexTeamId.set(index, teamId);
         if (!seenEnemyIdsByTeam.has(teamId)) {
             seenEnemyIdsByTeam.set(teamId, new Set());
@@ -423,6 +432,8 @@ const computeEnemyTeamBreakdown = (players: any[], targets: any[], durationSec: 
             enemyTeamDmgMap.set(teamId, fallbackDamage);
         }
     });
+
+    if (hasUntaggedEnemy) return [];
 
     const enemyTeamDownsMap = new Map<number, number>();
     const enemyTeamKillsMap = new Map<number, number>();
