@@ -7,5 +7,5 @@ Version v3.22.10 — October 27, 2026
 - The class table has a new Casts column, and class totals now actually add up casts and hits.
 
 ## Fixes
-- Weapon swap no longer counts toward APM.
+- Weapon swap counts toward APM again, the same way elementalist attunement swaps do.
 - Fixed Discord posts showing something like "Green team: 1" for a 13-enemy fight. When enemies have no team info (the current arcdps build does this), you now get the combined Enemy Summary instead.
