@@ -1126,9 +1126,11 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
             const bucket = buckets.get(profession)!;
             bucket.players.push(player);
             player.skills.forEach((skill) => {
-                const existing = bucket.skills.get(skill.id) || { ...skill, damage: 0, downContribution: 0 };
+                const existing = bucket.skills.get(skill.id) || { ...skill, damage: 0, downContribution: 0, hits: 0, casts: 0 };
                 existing.damage += Number(skill.damage || 0);
                 existing.downContribution += Number(skill.downContribution || 0);
+                existing.hits += Number(skill.hits || 0);
+                existing.casts += Number(skill.casts || 0);
                 if (!existing.icon && skill.icon) existing.icon = skill.icon;
                 if (existing.name?.startsWith('Skill ') && !skill.name.startsWith('Skill ')) {
                     existing.name = skill.name;
@@ -1138,7 +1140,8 @@ export const StatsView = memo(function StatsView({ logs, onBack: _onBack, mvpWei
         });
         return Array.from(buckets.values())
             .map((bucket) => {
-                const skills = Array.from(bucket.skills.values()).sort((a, b) => b.damage - a.damage);
+                const skills = Array.from(bucket.skills.values())
+                    .sort((a, b) => (b.damage - a.damage) || (b.casts - a.casts));
                 const skillMap = skills.reduce<Record<string, PlayerSkillDamageEntry>>((acc, skill) => {
                     acc[skill.id] = skill;
                     return acc;

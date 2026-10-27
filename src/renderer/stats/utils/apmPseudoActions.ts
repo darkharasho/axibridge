@@ -1,6 +1,6 @@
 /**
- * Rotation entries APM does not count: swaps, bundle and mode toggles, and
- * entries that are not a button press at all.
+ * Rotation entries APM does not count: legend swaps, bundle and mode toggles,
+ * and entries that are not a button press at all.
  *
  * The rotation lists everything arcdps (or EI's instant-cast finders) turned
  * into a cast, and that includes things nobody would call an action: a relic
@@ -10,9 +10,10 @@
  * kit engineer roughly doubles in APM against a class with one weapon swap.
  * Skill Usage still lists all of them; only APM drops them.
  *
- * Elementalist attunement swaps (5492-5495, Weaver's 43470/41166/42264/44857
- * and EI's -5..-16 dual ids) are deliberately NOT here: attuning is core
- * elementalist rotation, so it counts toward APM.
+ * Weapon swap (-2) and elementalist attunement swaps (5492-5495, Weaver's
+ * 43470/41166/42264/44857 and EI's -5..-16 dual ids) are deliberately NOT
+ * here: every profession has weapon swap and attuning is core elementalist
+ * rotation, so both count toward APM.
  *
  * Ids, not names: names vary by log and locale. The swap ids are EI's own
  * `SkillItem.IsSwap` set (as ported by axilog's `skill_map::is_swap`), listed
@@ -20,8 +21,6 @@
  * flag existed are filtered the same way.
  */
 const PSEUDO_ACTION_IDS: ReadonlySet<number> = new Set([
-    // Weapon swap.
-    -2,
     // Revenant legend swaps.
     28134, 28494, 28419, 28195, 28085, 41858, 62749, 76610,
     // Shroud and other F-key transforms, entering and leaving.

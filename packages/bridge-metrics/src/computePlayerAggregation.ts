@@ -513,9 +513,9 @@ export interface PlayerAggregationAccumulators {
     mitigationMinionCumulativeCounts: Map<string, DamageMitigationTotals>;
     /**
      * Rotation cast counts that found no matching skill row when their log was
-     * ingested, keyed by player then skill. Write-only for the direct path; the
-     * slice merge replays them so a per-fight frame does not lose casts that a
-     * sequential ingest would have credited to an earlier fight's skill row.
+     * ingested, keyed by player then skill. Ingest no longer writes it (a
+     * cast-only skill now gets its own zero-damage row); it stays so the slice
+     * merge can still replay frames from sidecars built before that change.
      */
     pendingSkillCasts: Map<string, Map<string, number>>;
     wins: number;
@@ -1449,33 +1449,22 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
                 });
             }
         }
-        // Inject cast counts from rotation data
+        // Inject cast counts from rotation data. A skill that was cast but
+        // dealt no damage (weapon swap, utilities, heals, boon skills) gets a
+        // zero-damage row of its own, so the breakdown lists every cast.
         if (Array.isArray(p.rotation)) {
             p.rotation.forEach((rot: any) => {
                 if (!rot?.id) return;
                 const count = rot.skills?.length || 0;
                 if (count <= 0) return;
                 const skillId = `s${canonicalSkillId(details, rot.id)}`;
-                const skillEntry = playerBreakdown!.skills.get(skillId);
-                if (skillEntry) {
-                    skillEntry.casts += count;
-                } else {
-                    // A cast of a skill that dealt no damage in ANY log so far
-                    // has nowhere to land, and this line is order-dependent: in
-                    // a sequential ingest the entry may already exist from an
-                    // EARLIER log, so the cast counts. A per-fight slice frame
-                    // has no earlier log, so it would silently lose the cast.
-                    // Park it here instead; `mergePlayerAggregationAccumulators`
-                    // replays it against the entries the earlier fights created.
-                    // Nothing in the direct path reads this map, so the
-                    // non-sliced numbers are unchanged.
-                    let pending = acc.pendingSkillCasts.get(playerKey);
-                    if (!pending) {
-                        pending = new Map<string, number>();
-                        acc.pendingSkillCasts.set(playerKey, pending);
-                    }
-                    pending.set(skillId, (pending.get(skillId) || 0) + count);
+                let skillEntry = playerBreakdown!.skills.get(skillId);
+                if (!skillEntry) {
+                    const { name, icon } = resolveSkillMeta(rot);
+                    skillEntry = { id: skillId, name, icon, damage: 0, downContribution: 0, hits: 0, casts: 0, min: Infinity, max: 0 };
+                    playerBreakdown!.skills.set(skillId, skillEntry);
                 }
+                skillEntry.casts += count;
             });
         }
         if (p.totalDamageTaken) {

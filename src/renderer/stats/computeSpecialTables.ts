@@ -108,7 +108,8 @@ export function computeSpecialTables(
         .map((entry) => {
             const skills = Array.from(entry.skills.values())
                 .map((s) => s.min === Infinity ? { ...s, min: 0 } : s)
-                .sort((a, b) => b.damage - a.damage);
+                // Cast-only rows (zero damage) sort after every damaging skill.
+                .sort((a, b) => (b.damage - a.damage) || (b.casts - a.casts));
             const payload: any = {
                 key: entry.key,
                 account: entry.account,

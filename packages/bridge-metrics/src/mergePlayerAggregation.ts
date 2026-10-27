@@ -495,7 +495,8 @@ export function mergePlayerAggregationAccumulators(
     }, cloneDeep);
 
     // Rotation casts parked by ingest because their skill row did not exist in
-    // their own fight. A sequential ingest would have credited them to a row an
+    // their own fight. Only frames from sidecars built before cast-only skills
+    // got rows of their own carry any. A sequential ingest would have credited them to a row an
     // EARLIER fight created, so they are replayed against the target's rows —
     // which is exactly the set of rows the earlier fights contributed. Casts
     // that still find no row stay parked, matching the direct path, where they

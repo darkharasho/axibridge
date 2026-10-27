@@ -186,7 +186,9 @@ describe('player aggregation merge equivalence', () => {
         expect(Object.keys(acc.outgoingCondiTotals).length).toBeGreaterThan(0);
         expect(Object.keys(acc.incomingCondiTotals).length).toBeGreaterThan(0);
         expect(Object.keys(acc.enemyProfessionCounts).length).toBeGreaterThan(0);
-        expect(acc.pendingSkillCasts.size).toBeGreaterThan(0);
+        // Cast-only skills (weapon swap at minimum) get zero-damage rows.
+        expect([...acc.playerSkillBreakdownMap.values()].some((row) =>
+            [...row.skills.values()].some((skill) => skill.damage === 0 && skill.casts > 0))).toBe(true);
         // These fixtures carry real non-boon buffs (WvW Reinforced Armor /
         // Borderlands Bloodlust, food/utility effects, etc.) alongside the 12
         // boons, so the special-buff gate is exercised here too. The gate's

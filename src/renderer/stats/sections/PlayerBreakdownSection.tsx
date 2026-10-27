@@ -11,6 +11,8 @@ import type { PlayerSkillBreakdown, PlayerSkillDamageEntry } from '../statsTypes
 import { useStatsSharedContext } from '../StatsViewContext';
 import { expandedPaneProps } from './expandedPane';
 
+type ClassSortKey = 'down' | 'damage' | 'dps' | 'casts';
+
 type ClassSkillBreakdown = {
     profession: string;
     players: PlayerSkillBreakdown[];
@@ -70,7 +72,7 @@ export const PlayerBreakdownSection = ({
     const { expandedSection, expandedSectionClosing, openExpandedSection, closeExpandedSection, sidebarListClass, renderProfessionIcon, formatWithCommas } = useStatsSharedContext();
     const totalPlayerDamage = (activePlayerBreakdown?.skills || []).reduce((sum, skill) => sum + (skill.damage || 0), 0);
     const activeClassRows = activeClassBreakdown?.players || [];
-    const [classSort, setClassSort] = useState<{ key: 'down' | 'damage' | 'dps'; dir: 'asc' | 'desc' }>({
+    const [classSort, setClassSort] = useState<{ key: ClassSortKey; dir: 'asc' | 'desc' }>({
         key: 'down',
         dir: 'desc'
     });
@@ -86,6 +88,12 @@ export const PlayerBreakdownSection = ({
         if (mapEntry) return mapEntry;
         return player.skills.find((skill) => skill.id === skillId) || null;
     };
+    // Cast-only rows (weapon swap, utilities, heals) have casts but no damage,
+    // so their damage metrics read "—" rather than a misleading 0.
+    const isCastOnly = (skill: PlayerSkillDamageEntry | null | undefined) =>
+        !!skill && (skill.casts || 0) > 0 && !(skill.damage > 0) && !(skill.hits > 0) && !(skill.downContribution > 0);
+    const damageOrDash = (skill: PlayerSkillDamageEntry | null | undefined, value: string) =>
+        isCastOnly(skill) ? '—' : value;
     const sidebarBodyClass = isExpanded
         ? 'axi-rail__nav axi-rail__nav--quiet overflow-y-auto pr-1 flex-1 min-h-0'
         : `${sidebarListClass} max-h-72 overflow-y-auto`;
@@ -105,14 +113,15 @@ export const PlayerBreakdownSection = ({
             if (classSort.key === 'down') diff = aDown - bDown;
             if (classSort.key === 'damage') diff = aDamage - bDamage;
             if (classSort.key === 'dps') diff = aDps - bDps;
+            if (classSort.key === 'casts') diff = Number(aSkill?.casts || 0) - Number(bSkill?.casts || 0);
             return classSort.dir === 'asc' ? diff : -diff;
         });
         return rows;
     }, [activeClassBreakdown, activeClassRows, activeClassSkill, classSort]);
-    const classAriaSort = (key: 'down' | 'damage' | 'dps'): 'ascending' | 'descending' | undefined =>
+    const classAriaSort = (key: ClassSortKey): 'ascending' | 'descending' | undefined =>
         classSort.key !== key ? undefined : classSort.dir === 'asc' ? 'ascending' : 'descending';
 
-    const toggleClassSort = (key: 'down' | 'damage' | 'dps') => {
+    const toggleClassSort = (key: ClassSortKey) => {
         setClassSort((prev) => {
             if (prev.key !== key) return { key, dir: 'desc' };
             return { key, dir: prev.dir === 'desc' ? 'asc' : 'desc' };
@@ -469,18 +478,27 @@ export const PlayerBreakdownSection = ({
                                                 .map((player) => {
                                                     const values: Record<string, string> = {};
                                                     const numericValues: Record<string, number> = {};
+                                                    const castValues: Record<string, number> = {};
                                                     visibleSkills.forEach((skill) => {
                                                         const skillEntry = getPlayerSkillEntry(player, skill.id);
                                                         const damage = Number(skillEntry?.damage || 0);
+                                                        const casts = Number(skillEntry?.casts || 0);
                                                         numericValues[skill.id] = damage;
-                                                        values[skill.id] = formatTopStatValue(damage);
+                                                        castValues[skill.id] = casts;
+                                                        values[skill.id] = isCastOnly(skillEntry)
+                                                            ? `${formatTopStatValue(casts)} casts`
+                                                            : formatTopStatValue(damage);
                                                     });
-                                                    return { player, values, numericValues };
+                                                    return { player, values, numericValues, castValues };
                                                 })
                                                 .sort((a, b) => {
                                                     const aValue = a.numericValues[resolvedSortColumnId] ?? 0;
                                                     const bValue = b.numericValues[resolvedSortColumnId] ?? 0;
-                                                    const diff = denseSort.dir === 'desc' ? bValue - aValue : aValue - bValue;
+                                                    const aCasts = a.castValues[resolvedSortColumnId] ?? 0;
+                                                    const bCasts = b.castValues[resolvedSortColumnId] ?? 0;
+                                                    const diff = denseSort.dir === 'desc'
+                                                        ? (bValue - aValue) || (bCasts - aCasts)
+                                                        : (aValue - bValue) || (aCasts - bCasts);
                                                     return diff || String(a.player.displayName || '').localeCompare(String(b.player.displayName || ''));
                                                 });
                                             return (
@@ -551,32 +569,32 @@ export const PlayerBreakdownSection = ({
                                                     </thead>
                                                     <tbody>
                                                     {([
-                                                        { label: 'Down Contribution', value: formatTopStatValue(activePlayerSkill?.downContribution || 0) },
-                                                        { label: 'Total Damage', value: formatTopStatValue(activePlayerSkill?.damage || 0) },
+                                                        { label: 'Down Contribution', value: damageOrDash(activePlayerSkill, formatTopStatValue(activePlayerSkill?.downContribution || 0)) },
+                                                        { label: 'Total Damage', value: damageOrDash(activePlayerSkill, formatTopStatValue(activePlayerSkill?.damage || 0)) },
                                                         {
                                                             label: 'DPS',
-                                                            value: formatWithCommas(
+                                                            value: damageOrDash(activePlayerSkill, formatWithCommas(
                                                                 activePlayerBreakdown.totalFightMs > 0
                                                                     ? (activePlayerSkill?.damage || 0) / (activePlayerBreakdown.totalFightMs / 1000)
                                                                     : 0,
                                                                 1
-                                                            )
+                                                            ))
                                                         },
-                                                        { label: 'Min Hit', value: formatTopStatValue(activePlayerSkill?.min || 0) },
+                                                        { label: 'Min Hit', value: damageOrDash(activePlayerSkill, formatTopStatValue(activePlayerSkill?.min || 0)) },
                                                         {
                                                             label: 'Avg Hit',
-                                                            value: formatTopStatValue(
+                                                            value: damageOrDash(activePlayerSkill, formatTopStatValue(
                                                                 (activePlayerSkill?.hits || 0) > 0
                                                                     ? Math.round((activePlayerSkill?.damage || 0) / (activePlayerSkill?.hits || 1))
                                                                     : 0
-                                                            )
+                                                            ))
                                                         },
-                                                        { label: 'Max Hit', value: formatTopStatValue(activePlayerSkill?.max || 0) },
+                                                        { label: 'Max Hit', value: damageOrDash(activePlayerSkill, formatTopStatValue(activePlayerSkill?.max || 0)) },
                                                         { label: 'Casts', value: formatTopStatValue(activePlayerSkill?.casts || 0) },
-                                                        { label: 'Hits', value: formatTopStatValue(activePlayerSkill?.hits || 0) },
+                                                        { label: 'Hits', value: damageOrDash(activePlayerSkill, formatTopStatValue(activePlayerSkill?.hits || 0)) },
                                                         {
                                                             label: 'Hits / Cast',
-                                                            value: (activePlayerSkill?.casts || 0) > 0
+                                                            value: !isCastOnly(activePlayerSkill) && (activePlayerSkill?.casts || 0) > 0
                                                                 ? formatWithCommas((activePlayerSkill?.hits || 0) / (activePlayerSkill?.casts || 1), 2)
                                                                 : '—'
                                                         }
@@ -732,18 +750,27 @@ export const PlayerBreakdownSection = ({
                                                 .map((player) => {
                                                     const values: Record<string, string> = {};
                                                     const numericValues: Record<string, number> = {};
+                                                    const castValues: Record<string, number> = {};
                                                     visibleSkills.forEach((skill) => {
                                                         const skillEntry = getPlayerSkillEntry(player, skill.id);
                                                         const damage = Number(skillEntry?.damage || 0);
+                                                        const casts = Number(skillEntry?.casts || 0);
                                                         numericValues[skill.id] = damage;
-                                                        values[skill.id] = formatTopStatValue(damage);
+                                                        castValues[skill.id] = casts;
+                                                        values[skill.id] = isCastOnly(skillEntry)
+                                                            ? `${formatTopStatValue(casts)} casts`
+                                                            : formatTopStatValue(damage);
                                                     });
-                                                    return { player, values, numericValues };
+                                                    return { player, values, numericValues, castValues };
                                                 })
                                                 .sort((a, b) => {
                                                     const aValue = a.numericValues[resolvedSortColumnId] ?? 0;
                                                     const bValue = b.numericValues[resolvedSortColumnId] ?? 0;
-                                                    const diff = denseSort.dir === 'desc' ? bValue - aValue : aValue - bValue;
+                                                    const aCasts = a.castValues[resolvedSortColumnId] ?? 0;
+                                                    const bCasts = b.castValues[resolvedSortColumnId] ?? 0;
+                                                    const diff = denseSort.dir === 'desc'
+                                                        ? (bValue - aValue) || (bCasts - aCasts)
+                                                        : (aValue - bValue) || (aCasts - bCasts);
                                                     return diff || String(a.player.displayName || '').localeCompare(String(b.player.displayName || ''));
                                                 });
                                             return (
@@ -806,10 +833,11 @@ export const PlayerBreakdownSection = ({
                                                 <div className={`axi-table__scroll ${expandedSection === 'player-breakdown' ? 'flex-1 min-h-0' : 'max-h-72'}`}>
                                                 <table className="axi-table axi-table--fixed axi-table--sticky axi-table--dense">
                                                     <colgroup>
-                                                        <col style={{ width: '40%' }} />
-                                                        <col style={{ width: '20%' }} />
-                                                        <col style={{ width: '20%' }} />
-                                                        <col style={{ width: '20%' }} />
+                                                        <col style={{ width: '36%' }} />
+                                                        <col style={{ width: '16%' }} />
+                                                        <col style={{ width: '16%' }} />
+                                                        <col style={{ width: '16%' }} />
+                                                        <col style={{ width: '16%' }} />
                                                     </colgroup>
                                                     <thead>
                                                     <tr>
@@ -832,6 +860,12 @@ export const PlayerBreakdownSection = ({
                                                                 <span>{classSort.key === 'dps' ? (classSort.dir === 'desc' ? '↓' : '↑') : ''}</span>
                                                             </button>
                                                         </th>
+                                                        <th scope="col" aria-sort={classAriaSort('casts')}>
+                                                            <button type="button" className="axi-table__sort" onClick={() => toggleClassSort('casts')}>
+                                                                Casts
+                                                                <span>{classSort.key === 'casts' ? (classSort.dir === 'desc' ? '↓' : '↑') : ''}</span>
+                                                            </button>
+                                                        </th>
                                                     </tr>
                                                     </thead>
                                                     <tbody>
@@ -848,9 +882,10 @@ export const PlayerBreakdownSection = ({
                                                                         <span>{player.displayName}</span>
                                                                     </span>
                                                                 </th>
-                                                                <td className={classSort.key === 'down' ? 'axi-table__cell--sorted' : undefined}>{formatTopStatValue(downContribution)}</td>
-                                                                <td className={classSort.key === 'damage' ? 'axi-table__cell--sorted' : undefined}>{formatTopStatValue(damage)}</td>
-                                                                <td className={classSort.key === 'dps' ? 'axi-table__cell--sorted' : undefined}>{formatWithCommas(dps, 1)}</td>
+                                                                <td className={classSort.key === 'down' ? 'axi-table__cell--sorted' : undefined}>{damageOrDash(skillEntry, formatTopStatValue(downContribution))}</td>
+                                                                <td className={classSort.key === 'damage' ? 'axi-table__cell--sorted' : undefined}>{damageOrDash(skillEntry, formatTopStatValue(damage))}</td>
+                                                                <td className={classSort.key === 'dps' ? 'axi-table__cell--sorted' : undefined}>{damageOrDash(skillEntry, formatWithCommas(dps, 1))}</td>
+                                                                <td className={classSort.key === 'casts' ? 'axi-table__cell--sorted' : undefined}>{formatTopStatValue(Number(skillEntry?.casts || 0))}</td>
                                                             </tr>
                                                         );
                                                     })}

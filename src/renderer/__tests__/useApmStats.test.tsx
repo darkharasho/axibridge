@@ -139,7 +139,7 @@ describe('useApmStats', () => {
         // s1 excluded (auto+proc), only s2 remains = 20
         expect(row.apmNoProcs).toBe(20);
     });
-    it('leaves swaps, kits and non-press entries out of APM and its skill list', () => {
+    it('counts weapon swap but leaves kits and non-press entries out of APM and its skill list', () => {
         const data = {
             logRecords: [],
             skillOptions: [
@@ -164,9 +164,9 @@ describe('useApmStats', () => {
 
         const { result } = renderHook(() => useApmStats(data));
         const bucket = result.current.apmSpecBuckets[0];
-        expect(bucket.playerRows[0].totalCasts).toBe(10);
-        expect(bucket.playerRows[0].apm).toBe(10);
-        expect(bucket.skills.map((s) => s.id)).toEqual(['s1']);
+        expect(bucket.playerRows[0].totalCasts).toBe(16);
+        expect(bucket.playerRows[0].apm).toBe(16);
+        expect(bucket.skills.map((s) => s.id).sort()).toEqual(['s-2', 's1']);
     });
 
     it('counts elementalist attunement swaps toward APM', () => {

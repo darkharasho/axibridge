@@ -323,3 +323,33 @@ describe('player skill breakdown: min/max hit', () => {
         expect(skills.get('s42355')!.max).toBe(157_297);
     });
 });
+
+describe('player skill breakdown: cast-only skills', () => {
+    const player = {
+        account: 'Swapper.1234', name: 'Swapper', profession: 'Reaper', notInSquad: false,
+        activeTimes: [60000], dpsAll: [{ damage: 1000 }],
+        defenses: [{ downCount: 0, deadCount: 0, damageTaken: 0, dodgeCount: 0 }],
+        statsAll: [{ distToCom: 0, saved: 0 }], statsTargets: [[{ downed: 0, killed: 0 }]],
+        support: [{}],
+        rotation: [
+            { id: 29852, skills: [{ castTime: 1000 }, { castTime: 2000 }] },
+            { id: -2, skills: [{ castTime: 1500 }, { castTime: 3000 }, { castTime: 4500 }] },
+        ],
+        totalDamageDist: [[{ id: 29852, totalDamage: 12_000, hits: 2, connectedHits: 2, min: 3_000, max: 9_000 }]],
+        targetDamageDist: [[[{ id: 29852, totalDamage: 12_000, hits: 2, connectedHits: 2, min: 3_000, max: 9_000 }]]],
+    };
+    const log = {
+        details: {
+            durationMS: 60000, success: true, players: [player], targets: [], buffMap: {},
+            skillMap: { 's-2': { name: 'Weapon Swap', icon: 'swap.png' } },
+        },
+    };
+
+    it('lists a skill that was cast but dealt no damage', () => {
+        const result = computePlayerAggregation({ validLogs: [log], method: 'count', skillDamageSource: 'target', splitPlayersByClass: false });
+        const skills = result.playerSkillBreakdownMap.get('Swapper.1234')!.skills;
+        expect(skills.get('s29852')!.casts).toBe(2);
+        const swap = skills.get('s-2')!;
+        expect(swap).toMatchObject({ name: 'Weapon Swap', icon: 'swap.png', casts: 3, damage: 0, hits: 0 });
+    });
+});
