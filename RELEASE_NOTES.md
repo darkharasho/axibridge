@@ -1,6 +1,11 @@
 # Release Notes
 
-Version v3.22.9 — October 17, 2026
+Version v3.22.10 — October 27, 2026
+
+## Player Breakdown
+- Skills you cast that dealt no damage now get their own row (sorted last, damage columns shown as —), so utility and support casts finally show up.
+- The class table has a new Casts column, and class totals now actually add up casts and hits.
 
 ## Fixes
-- APM counts elementalist attunement swaps again, including Weaver's dual attunements. Attuning is core to how elementalists play, so 3.22.8 shouldn't have dropped them. Weapon swaps, legend swaps, shroud/forge toggles, kits, tomes and non-press entries are still left out.
+- Weapon swap no longer counts toward APM.
+- Fixed Discord posts showing something like "Green team: 1" for a 13-enemy fight. When enemies have no team info (the current arcdps build does this), you now get the combined Enemy Summary instead.
