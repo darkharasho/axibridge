@@ -125,7 +125,7 @@ describe('commander positions oracle — EI pixels vs native game units', () => 
             .toBeLessThan(data.cohesion.avgDistFromTag);
 
         // Where the outlier's pull on the centroid is still visible is matchup,
-        // which counts distinct people and so keeps all 38.
+        // which counts distinct people and so keeps all 37.
         expect(centroidRelative.matchup.inTagBubbleAtEngage)
             .toBeLessThan(data.matchup.inTagBubbleAtEngage);
     });
@@ -139,19 +139,21 @@ describe('commander positions oracle — EI pixels vs native game units', () => 
         expect(data.matchup.inTagBubbleAtEngage).toBeGreaterThan(0);
     });
 
-    it('leaves the one member who was never in this fight out of cohesion', () => {
-        // Pinned on the real fixture because the shape it guards against is a
-        // property of real logs and not of anything hand-built: 37 of these 38
-        // have a median distance from the tag between 0u and 392u, and the
-        // 38th sits at a 19,912u median for all 50 seconds. `combat_participant`
-        // does NOT separate them -- native reports it true for all 38 -- so
-        // geometry is the only available test.
-        expect(data.cohesion.detachedMembers).toBe(1);
+    it('has no member who was never in this fight, now that axilog drops them', () => {
+        // This fixture used to carry a 38th squad member who sat at a 19,912u
+        // median from the tag for all 50 seconds and never fought, and this
+        // test pinned cohesion's geometric exclusion of them, because native
+        // reported `combat_participant` true for all 38. axilog 1.16.2 drops
+        // idle squad members from the roster (as EI does), so that member is
+        // gone upstream and nobody here is detached. The exclusion rule itself
+        // is still pinned on a built fixture in cohesion.native.test.ts.
+        expect(native.entities.filter(e => e.role === 'squad')).toHaveLength(37);
+        expect(data.cohesion.detachedMembers).toBe(0);
 
-        // Every aggregate this member used to decide. Peak sigma against a
-        // `spreadBad` of 600 is the load-bearing one: at 5512u it pinned the
-        // `fragmentedAtBomb` detector at maximum severity for a fight whose
-        // squad was in fact stacked.
+        // The aggregates that member used to wreck stay sane. Peak sigma
+        // against a `spreadBad` of 600 is the load-bearing one: at 5512u it
+        // pinned the `fragmentedAtBomb` detector at maximum severity for a
+        // fight whose squad was in fact stacked.
         expect(data.cohesion.peakSpreadStdev).toBeLessThan(600);
         expect(data.cohesion.timeSpread900PlusSec).toBeLessThan(data.duration / 2);
     });

@@ -111,7 +111,10 @@ describe('unit 3 oracle — positioning, EI vs native', () => {
             .filter((v: any): v is number => typeof v === 'number' && v >= 0);
         expect(measured).toHaveLength(squadIds.length);
         expect(Math.min(...measured)).toBe(0);                 // the commander's own value
-        expect(Math.max(...measured)).toBeGreaterThan(2000);   // a genuine straggler
+        // A stacked squad. This fixture's only straggler (~20,000u out) was an
+        // idle member that axilog 1.16.2 drops from the roster, as EI does.
+        expect(Math.max(...measured)).toBeGreaterThan(0);
+        expect(Math.max(...measured)).toBeLessThan(2000);
     });
 
     it('has an arena for this map and lands every sample inside it', () => {

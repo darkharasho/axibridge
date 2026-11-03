@@ -64,7 +64,7 @@ describe('boons oracle -- EI shapes vs blocks.boons', () => {
 
         // A player earns a table row for a boon only when generation or wasted
         // is non-zero, so row counts are per-boon, not fixed at squad size --
-        // e.g. Might has 33 of 38 squad rows on this fixture (5 members
+        // e.g. Might has 33 of 37 squad rows on this fixture (4 members
         // generated zero Might all log). That set is derivable independently
         // of buildBoonTables' own aggregation loop by calling the same
         // low-level reader (getEntityBoonGenerationMs) directly per entity,
@@ -107,7 +107,8 @@ describe('boons oracle -- EI shapes vs blocks.boons', () => {
         // production caller yet, so this test cannot regress a real reader.
         // The rule, pinned against every buff/player pair rather than a sample:
         // EI's `uptime` is avg_stacks for intensity buffs and uptime_pct for
-        // duration ones. 504 pairs on this fixture.
+        // duration ones. 492 pairs on this fixture (504 before axilog 1.16.2
+        // dropped an idle squad member and its 12 buffs).
         const byAccount: Record<string, any> = {};
         for (const entity of native.entities) {
             const buffs = native.blocks.boons.by_entity[String(entity.id)];
@@ -127,7 +128,7 @@ describe('boons oracle -- EI shapes vs blocks.boons', () => {
                 compared++;
             }
         }
-        expect(compared).toBe(504);
+        expect(compared).toBe(492);
     });
 
     it('resolves every per-source key to a real entity', () => {
