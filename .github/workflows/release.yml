@@ -39,6 +39,9 @@ jobs:
       - name: Unit tests
         run: npm run test:unit
 
+  # Linux needs no code-signing. Windows is signed with Azure Artifact Signing
+  # (build.win.azureSignOptions in package.json); electron-builder reads the
+  # AZURE_* credentials from the environment.
   build:
     needs: [test]
     strategy:
@@ -70,10 +73,40 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=6144
 
+      # Without these electron-builder can't authenticate to Artifact Signing.
+      # Fail before the slow build instead of after it.
+      - name: Check the Windows signing secrets are set
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+        run: |
+          for v in AZURE_TENANT_ID AZURE_CLIENT_ID AZURE_CLIENT_SECRET; do
+            [ -n "${!v}" ] || { echo "::error::Secret $v is not set (run ~/.claude/templates/windows-signing/set-azure-signing-secrets.sh axibridge)."; exit 1; }
+          done
+
       - name: Build and publish Electron distributables
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         run: npx electron-builder ${{ matrix.args }} --publish always
+
+      # The release stays a draft if this fails, since publish needs every build.
+      - name: Verify the Windows installer is signed
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem dist_out -Filter 'AxiBridge-*-Setup.exe'
+          if (-not $files) { Write-Error "No installer found in dist_out/"; exit 1 }
+          foreach ($f in $files) {
+            $sig = Get-AuthenticodeSignature $f.FullName
+            Write-Host "$($f.Name): $($sig.Status) — $($sig.SignerCertificate.Subject)"
+            if ($sig.Status -ne 'Valid') { Write-Error "$($f.Name) is not validly signed"; exit 1 }
+          }
 
   # There is deliberately no Pages *deploy* job here.
   #

@@ -157,7 +157,13 @@
             "target": [
                 "nsis"
             ],
-            "icon": "public/img/AxiBridge-white.png"
+            "icon": "public/img/AxiBridge-white.png",
+            "azureSignOptions": {
+                "publisherName": "Michael Stephens",
+                "endpoint": "https://eus.codesigning.azure.net/",
+                "codeSigningAccountName": "darkharasho-signing",
+                "certificateProfileName": "public-trust"
+            }
         },
         "nsis": {
             "oneClick": true,
