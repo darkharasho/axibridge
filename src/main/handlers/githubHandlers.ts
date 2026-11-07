@@ -13,7 +13,7 @@ import {
     type RollupReportPayload
 } from '../../web/rollup';
 import { parseAttendanceFile, updateAttendanceForPublish, type AttendanceRaid } from '../../web/attendance';
-import { waitForPagesDeploy, describePagesDeploy } from '../githubPagesDeploy';
+import { watchPagesDeploy, describePagesDeploy, healPagesDeploy, type PagesDeployApi, type PagesDeploymentSnapshot, type PagesHealRecord } from '../githubPagesDeploy';
 import { startReportPost } from '../reportPostRunner';
 import { encodeGitPath, getRepoPermissions, getViewerLogin, GITHUB_API_IDLE_TIMEOUT_MS, githubApiRequest, withGithubTransportRetry } from '../githubApi';
 import {
@@ -26,6 +26,7 @@ import {
 } from '../sharedSitePolicy';
 import {
     commitWithRebase,
+    isRefConflict,
     withPushAccessErrors,
     type CommitBase,
     type CommitEntry
@@ -304,22 +305,6 @@ const getGithubPagesLatestBuild = async (owner: string, repo: string, token: str
     return resp.data;
 };
 
-/**
- * Ask GitHub to build Pages now.
- *
- * Used both when no build was ever queued for our commit and after a build
- * errors — in both cases the site keeps serving the previous tree, and this is
- * the documented way out. 409 means a build is already running, which is the
- * outcome we wanted anyway.
- */
-const requestGithubPagesBuild = async (owner: string, repo: string, token: string) => {
-    const resp = await githubApiRequest('POST', `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}/pages/builds`, token);
-    if (resp.status === 409) return;
-    if (resp.status >= 300) {
-        throw new Error(`GitHub API error (${resp.status}) requesting a Pages build`);
-    }
-};
-
 const createGithubBlob = async (owner: string, repo: string, token: string, contentBase64: string, blobPath?: string) => {
     const resp = await githubApiRequest('POST', `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}/git/blobs`, token, {
         content: contentBase64,
@@ -427,6 +412,128 @@ const updateGithubRef = async (owner: string, repo: string, branch: string, toke
         throw err;
     }
     return resp.data;
+};
+
+// ─── Pages deploy tracking (see githubPagesDeploy.ts for why) ─────────────────
+
+/** Newest github-pages deployment for `sha` (full sha) and its latest status. */
+const getPagesDeployment = async (owner: string, repo: string, token: string, sha: string): Promise<PagesDeploymentSnapshot | null> => {
+    const repoPath = `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}`;
+    const list = await githubApiRequest('GET', `${repoPath}/deployments?environment=github-pages&sha=${encodeURIComponent(sha)}&per_page=1`, token);
+    if (list.status >= 300) throw new Error(`GitHub API error (${list.status}) loading Pages deployments`);
+    const deployment = Array.isArray(list.data) ? list.data[0] : null;
+    if (!deployment?.id) return null;
+    const statuses = await githubApiRequest('GET', `${repoPath}/deployments/${deployment.id}/statuses?per_page=1`, token);
+    if (statuses.status >= 300) throw new Error(`GitHub API error (${statuses.status}) loading Pages deployment status`);
+    const latest = Array.isArray(statuses.data) ? statuses.data[0] : null;
+    return { state: typeof latest?.state === 'string' ? latest.state : null, createdAt: Date.parse(deployment.created_at) || Date.now() };
+};
+
+const hasAnyPagesDeployment = async (owner: string, repo: string, token: string) => {
+    const resp = await githubApiRequest('GET', `/repos/${encodeGitPath(owner)}/${encodeGitPath(repo)}/deployments?environment=github-pages&per_page=1`, token);
+    if (resp.status >= 300) throw new Error(`GitHub API error (${resp.status}) loading Pages deployments`);
+    return Array.isArray(resp.data) && resp.data.length > 0;
+};
+
+/**
+ * An empty commit (the parent's own tree) on top of `parentSha`. GitHub
+ * wedges deploys per commit, and a new sha is what gets one through; a
+ * rebuild of the same commit wedges again. Null when the branch moved first.
+ */
+const pushPagesRedeployCommit = async (owner: string, repo: string, branch: string, token: string, parentSha: string): Promise<string | null> => {
+    const parent = await getGithubCommit(owner, repo, parentSha, token);
+    const treeSha = parent?.tree?.sha;
+    if (!treeSha) throw new Error('Unable to resolve repository tree for redeploy.');
+    const message = `chore: redeploy GitHub Pages (deploy of ${parentSha.slice(0, 7)} failed)`;
+    const commit = await createGithubCommit(owner, repo, token, message, treeSha, parentSha);
+    try {
+        await updateGithubRef(owner, repo, branch, token, commit.sha);
+    } catch (err) {
+        if (isRefConflict(err)) return null;
+        throw err;
+    }
+    log.info(`[Main] Pages redeploy: pushed ${String(commit.sha).slice(0, 7)} over ${parentSha.slice(0, 7)} on ${owner}/${repo}`);
+    return String(commit.sha);
+};
+
+const makePagesDeployApi = (owner: string, repo: string, branch: string, token: string): PagesDeployApi => ({
+    getHeadSha: async () => String((await getGithubRef(owner, repo, branch, token))?.object?.sha || ''),
+    getDeployment: (sha) => getPagesDeployment(owner, repo, token, sha),
+    pushRedeployCommit: withPushAccessErrors(
+        (parentSha: string) => pushPagesRedeployCommit(owner, repo, branch, token, parentSha),
+        owner,
+        repo
+    ),
+});
+
+/**
+ * Repos this app published to, so a deploy left unfinished (the app quit,
+ * or GitHub wedged it after we stopped watching) is repaired on next start.
+ */
+const PAGES_DEPLOY_REPOS_KEY = 'githubPagesDeployRepos';
+const MAX_TRACKED_PAGES_REPOS = 5;
+
+interface TrackedPagesRepo {
+    owner: string;
+    repo: string;
+    branch: string;
+    heal?: PagesHealRecord | null;
+}
+
+const readTrackedPagesRepos = (store: any): TrackedPagesRepo[] => {
+    const raw = store.get(PAGES_DEPLOY_REPOS_KEY, []);
+    return Array.isArray(raw)
+        ? raw.filter((r: any) => r && typeof r.owner === 'string' && typeof r.repo === 'string' && typeof r.branch === 'string')
+        : [];
+};
+
+const sameRepo = (a: { owner: string; repo: string }, b: { owner: string; repo: string }) =>
+    a.owner.toLowerCase() === b.owner.toLowerCase() && a.repo.toLowerCase() === b.repo.toLowerCase();
+
+const trackPagesRepo = (store: any, entry: TrackedPagesRepo) => {
+    const rest = readTrackedPagesRepos(store).filter((r) => !sameRepo(r, entry));
+    store.set(PAGES_DEPLOY_REPOS_KEY, [entry, ...rest].slice(0, MAX_TRACKED_PAGES_REPOS));
+};
+
+/** Startup repair of every tracked repo. Never throws. */
+export const healTrackedPagesDeploys = async (store: any) => {
+    const token = store.get('githubToken') as string | undefined;
+    if (!token) return;
+    // The configured repo too, so a site that failed before this tracking
+    // existed is repaired on the first start after updating, not only after
+    // the next publish (which would fix it anyway).
+    const repos = readTrackedPagesRepos(store);
+    const defaultOwner = String(store.get('githubRepoOwner') || '').trim();
+    const defaultRepo = String(store.get('githubRepoName') || '').trim();
+    if (defaultOwner && defaultRepo && !repos.some((r) => sameRepo(r, { owner: defaultOwner, repo: defaultRepo }))) {
+        const branch = String(store.get('githubBranch') || '').trim() || 'main';
+        repos.push({ owner: defaultOwner, repo: defaultRepo, branch, heal: null });
+    }
+    for (const tracked of repos) {
+        const label = `${tracked.owner}/${tracked.repo}`;
+        try {
+            const api = makePagesDeployApi(tracked.owner, tracked.repo, tracked.branch, token);
+            const result = await healPagesDeploy({
+                ...api,
+                getCommitTime: async (sha) => {
+                    const commit = await getGithubCommit(tracked.owner, tracked.repo, sha, token);
+                    return Date.parse(commit?.committer?.date || '') || Date.now();
+                },
+                hasAnyDeployment: () => hasAnyPagesDeployment(tracked.owner, tracked.repo, token),
+                previous: tracked.heal,
+            });
+            if (result.action === 'redeployed') {
+                log.info(`[Main] Pages heal: ${label} head ${result.from.slice(0, 7)} ${result.reason}; redeployed as ${result.sha.slice(0, 7)}`);
+                trackPagesRepo(store, { ...tracked, heal: result.record });
+            } else if (result.action === 'skipped') {
+                log.warn(`[Main] Pages heal: ${label} needs a redeploy but skipped: ${result.reason}`);
+            } else {
+                log.info(`[Main] Pages heal: ${label} head ${result.sha.slice(0, 7)} ${result.action}`);
+            }
+        } catch (err: any) {
+            log.warn(`[Main] Pages heal: could not check ${label}:`, err?.message || err);
+        }
+    }
 };
 
 const computeGitBlobSha = (content: Buffer) => {
@@ -2746,17 +2853,24 @@ export function registerGithubHandlers(opts: GithubHandlerOptions) {
             // and say so, rather than handing over a URL that 404s. Detached for
             // the same reason the Discord post is — the renderer's upload modal
             // resolves on our return value and must not wait minutes for it.
+            trackPagesRepo(store, { owner, repo, branch, heal: null });
             void (async () => {
                 try {
-                    const deploy = await waitForPagesDeploy({
+                    const deploy = await watchPagesDeploy({
                         commitSha: publishedCommitSha,
-                        getLatestBuild: () => getGithubPagesLatestBuild(owner, repo, token),
-                        requestBuild: () => requestGithubPagesBuild(owner, repo, token),
-                        onProgress: ({ status }) => {
-                            if (status === 'built') return;
-                            sendWebUploadStatus('Deploying', `GitHub Pages build ${status}...`, 97, 'building');
+                        ...makePagesDeployApi(owner, repo, branch, token),
+                        onProgress: ({ phase, sha }) => {
+                            const message = phase === 'redeploying'
+                                ? 'GitHub Pages deploy failed; redeploying...'
+                                : phase === 'deploying' ? 'GitHub Pages deploying...' : 'Waiting for GitHub Pages...';
+                            log.info(`[Main] Pages deploy ${owner}/${repo}@${sha.slice(0, 7)}: ${phase}`);
+                            sendWebUploadStatus('Deploying', message, 97, 'building');
                         },
                     });
+                    const logLine = `[Main] Pages deploy ${owner}/${repo}@${deploy.sha.slice(0, 7)}: ${deploy.outcome}`
+                        + ` (redeploys: ${deploy.redeploys})${deploy.error ? ` - ${deploy.error}` : ''}`;
+                    if (deploy.outcome === 'built') log.info(logLine);
+                    else log.warn(logLine);
                     sendWebUploadStatus(
                         deploy.outcome === 'built' ? 'Complete' : 'Deploying',
                         describePagesDeploy(deploy),

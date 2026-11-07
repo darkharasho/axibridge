@@ -14,7 +14,8 @@ vi.mock('electron', () => ({
 vi.mock('electron-log', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 // Both run detached after upload-web-report returns; neither is under test here.
 vi.mock('../../githubPagesDeploy', () => ({
-    waitForPagesDeploy: vi.fn(async () => ({ outcome: 'built' })),
+    watchPagesDeploy: vi.fn(async () => ({ outcome: 'built', sha: 'x', redeploys: 0 })),
+    healPagesDeploy: vi.fn(async () => ({ action: 'healthy', sha: 'x' })),
     describePagesDeploy: vi.fn(() => '')
 }));
 vi.mock('../../reportPostRunner', () => ({ startReportPost: vi.fn(async () => undefined) }));

@@ -91,7 +91,7 @@ import {
     normalizeMvpWeights,
 } from './handlers/settingsHandlers';
 import { registerUploadHandlers } from './handlers/uploadHandlers';
-import { registerGithubHandlers, resolveShareTarget, shouldUploadToDpsReport } from './handlers/githubHandlers';
+import { healTrackedPagesDeploys, registerGithubHandlers, resolveShareTarget, shouldUploadToDpsReport } from './handlers/githubHandlers';
 import { registerPublishersHandlers } from './handlers/githubPublishersHandlers';
 import { applyImportedSites } from './githubSitesStore';
 import { registerSitesHandlers } from './handlers/githubSitesHandlers';
@@ -2208,6 +2208,10 @@ if (!gotTheLock) {
             store,
             getWindow: () => win,
         });
+        // A publish's Pages deploy can fail or wedge after the app stopped
+        // watching it (quit mid-deploy, or GitHub hung it past our watch).
+        // Re-check the repos we published to once things have settled.
+        setTimeout(() => { void healTrackedPagesDeploys(store); }, 60 * 1000);
         registerPublishersHandlers({ store });
         registerSitesHandlers({ store });
         registerCloudflareHandlers({
