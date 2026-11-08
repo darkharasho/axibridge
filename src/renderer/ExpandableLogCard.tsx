@@ -3,7 +3,7 @@ import { useParticleEffect, PRESETS } from './particles';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EASE, DURATION } from './motion';
 import { ChevronDown, ChevronUp, ExternalLink, Share2, Trash2 } from 'lucide-react';
-import { getPlayerDamage, getPlayerDps, getPlayerDownsTaken, getPlayerDeaths, getPlayerDamageTaken, getPlayerDodges, getPlayerMissed, getPlayerBlocked, getPlayerEvaded, getPlayerResurrects, createDistanceToTagResolver, getTargetStatTotal } from '../shared/dashboardMetrics';
+import { getPlayerDamage, getPlayerDps, getPlayerDownsTaken, getPlayerDeaths, getPlayerDamageTaken, getPlayerDodges, getPlayerMissed, getPlayerBlocked, getPlayerEvaded, getPlayerInvulned, getPlayerResurrects, createDistanceToTagResolver, getTargetStatTotal } from '../shared/dashboardMetrics';
 import { applySquadStabilityGeneration as applyStabilityGeneration, computeIncomingDisruptions as getIncomingDisruptions, computeDownContribution as getPlayerDownContribution, computeOutgoingCrowdControl as getPlayerOutgoingCrowdControl, computeSquadBarrier as getPlayerSquadBarrier, computeSquadHealing as getPlayerSquadHealing } from '../shared/combatMetrics';
 import { Player } from '../shared/dpsReportTypes';
 import { DEFAULT_DISRUPTION_METHOD, DEFAULT_EMBED_STATS, DisruptionMethod, IEmbedStatSettings } from './global.d';
@@ -955,6 +955,27 @@ const ExpandableLogCardBase = forwardRef<HTMLDivElement, ExpandableLogCardProps>
             title: "Dodges",
             sortFn: (a: any, b: any) => getDodges(b) - getDodges(a),
             valFn: (p: any) => getDodges(p),
+            fmtVal: (v: number) => v.toString()
+        },
+        {
+            enabled: settings.showBlocks,
+            title: "Blocks",
+            sortFn: (a: any, b: any) => getPlayerBlocked(b) - getPlayerBlocked(a),
+            valFn: (p: any) => getPlayerBlocked(p),
+            fmtVal: (v: number) => v.toString()
+        },
+        {
+            enabled: settings.showEvades,
+            title: "Evades",
+            sortFn: (a: any, b: any) => getPlayerEvaded(b) - getPlayerEvaded(a),
+            valFn: (p: any) => getPlayerEvaded(p),
+            fmtVal: (v: number) => v.toString()
+        },
+        {
+            enabled: settings.showInvulns,
+            title: "Invulns",
+            sortFn: (a: any, b: any) => getPlayerInvulned(b) - getPlayerInvulned(a),
+            valFn: (p: any) => getPlayerInvulned(p),
             fmtVal: (v: number) => v.toString()
         }
     ];

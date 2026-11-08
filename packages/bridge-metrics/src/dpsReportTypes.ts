@@ -161,6 +161,7 @@ export interface Defenses {
     missedCount: number;
     blockedCount: number;
     evadedCount: number;
+    invulnedCount?: number;
     dodgeCount: number;
     interruptedCount: number;
     damageTaken: number;

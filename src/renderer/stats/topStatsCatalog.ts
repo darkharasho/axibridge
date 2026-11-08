@@ -80,6 +80,7 @@ export const TOP_STATS_CATALOG: TopStatDef[] = [
   { id: 'revivesCompleted', label: 'Revives', category: 'defense', color: CAT_COLOR.defense, icon: 'HelpingHand', higherIsBetter: true, source: lb('revivesCompleted'), defaultOn: false, supportsRate: true, mvpWeightable: false },
   { id: 'blocks', label: 'Blocks', category: 'defense', color: '#2dd4bf', icon: 'ShieldHalf', higherIsBetter: true, source: lb('blocks'), defaultOn: false, supportsRate: false },
   { id: 'evades', label: 'Evades', category: 'defense', color: '#2dd4bf', icon: 'Footprints', higherIsBetter: true, source: lb('evades'), defaultOn: false, supportsRate: false },
+  { id: 'invulns', label: 'Invulns', category: 'defense', color: '#2dd4bf', icon: 'ShieldPlus', higherIsBetter: true, source: lb('invulns'), defaultOn: false, supportsRate: false },
   { id: 'misses', label: 'Enemy Misses Forced', category: 'defense', color: '#2dd4bf', icon: 'EyeOff', higherIsBetter: true, source: lb('misses'), defaultOn: false, supportsRate: false },
   { id: 'deaths', label: 'Fewest Deaths', category: 'defense', color: '#94a3b8', icon: 'Skull', higherIsBetter: false, source: lb('deaths'), defaultOn: false, supportsRate: false },
   { id: 'downsTaken', label: 'Fewest Downs', category: 'defense', color: '#94a3b8', icon: 'HeartCrack', higherIsBetter: false, source: lb('downsTaken'), defaultOn: false, supportsRate: false },

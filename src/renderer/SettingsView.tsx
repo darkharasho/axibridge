@@ -1399,6 +1399,9 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
             showDeaths: enabled,
             showDodges: enabled,
             showDamageMitigation: enabled,
+            showBlocks: enabled,
+            showEvades: enabled,
+            showInvulns: enabled,
         }));
     }, []);
 
@@ -1408,7 +1411,8 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
         embedStats.showResurrects && embedStats.showDistanceToTag &&
         embedStats.showKills && embedStats.showDowns &&
         embedStats.showBreakbarDamage && embedStats.showDamageTaken &&
-        embedStats.showDeaths && embedStats.showDodges && embedStats.showDamageMitigation;
+        embedStats.showDeaths && embedStats.showDodges && embedStats.showDamageMitigation &&
+        embedStats.showBlocks && embedStats.showEvades && embedStats.showInvulns;
 
     metricsSpecHeadingCountsRef.current = new Map();
 
@@ -1785,6 +1789,24 @@ export function SettingsView({ onBack: _onBack, onEmbedStatSettingsSaved, onOpen
                                     onChange={(v) => updateEmbedStat('showDamageMitigation', v)}
                                     label="Damage Mitigation"
                                     description="Estimated damage avoided via blocks, evades, misses, and invulns"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showBlocks}
+                                    onChange={(v) => updateEmbedStat('showBlocks', v)}
+                                    label="Blocks"
+                                    description="Enemy attacks blocked"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showEvades}
+                                    onChange={(v) => updateEmbedStat('showEvades', v)}
+                                    label="Evades"
+                                    description="Enemy attacks evaded"
+                                />
+                                <Toggle
+                                    enabled={embedStats.showInvulns}
+                                    onChange={(v) => updateEmbedStat('showInvulns', v)}
+                                    label="Invulns"
+                                    description="Enemy attacks absorbed while invulnerable"
                                 />
                             </div>
                         </div>

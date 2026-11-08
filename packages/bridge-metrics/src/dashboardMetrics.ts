@@ -148,6 +148,9 @@ export const getPlayerBlocked = (player: Player) =>
 export const getPlayerEvaded = (player: Player) =>
     player.defenses?.[0]?.evadedCount || 0;
 
+export const getPlayerInvulned = (player: Player) =>
+    player.defenses?.[0]?.invulnedCount || 0;
+
 export const getPlayerDownsTaken = (player: Player) =>
     player.defenses?.[0]?.downCount || 0;
 

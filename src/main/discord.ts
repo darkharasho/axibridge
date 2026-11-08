@@ -13,6 +13,7 @@ import {
     getPlayerMissed,
     getPlayerBlocked,
     getPlayerEvaded,
+    getPlayerInvulned,
     getPlayerStrips,
     getTargetStatTotal,
 } from '../shared/dashboardMetrics';
@@ -82,6 +83,9 @@ export interface IEmbedStatSettings {
     showDeaths: boolean;
     showDodges: boolean;
     showDamageMitigation: boolean;
+    showBlocks: boolean;
+    showEvades: boolean;
+    showInvulns: boolean;
     maxTopListRows: number;
     classDisplay: 'off' | 'short' | 'emoji';
     /** Attach a map slice showing where the fight happened. */
@@ -111,6 +115,9 @@ const DEFAULT_EMBED_STATS: IEmbedStatSettings = {
     showDeaths: false,
     showDodges: false,
     showDamageMitigation: false,
+    showBlocks: false,
+    showEvades: false,
+    showInvulns: false,
     maxTopListRows: 10,
     classDisplay: 'off',
     includeMapSlice: true,
@@ -1288,6 +1295,27 @@ export class DiscordNotifier {
                                 title: "Damage Mitigation",
                                 sortFn: (a: any, b: any) => getMitigation(b) - getMitigation(a),
                                 valFn: (p: any) => getMitigation(p),
+                        fmtVal: (v: any) => fmtInt(v)
+                            },
+                            {
+                                enabled: settings.showBlocks,
+                                title: "Blocks",
+                                sortFn: (a: any, b: any) => getPlayerBlocked(b) - getPlayerBlocked(a),
+                                valFn: (p: any) => getPlayerBlocked(p),
+                        fmtVal: (v: any) => fmtInt(v)
+                            },
+                            {
+                                enabled: settings.showEvades,
+                                title: "Evades",
+                                sortFn: (a: any, b: any) => getPlayerEvaded(b) - getPlayerEvaded(a),
+                                valFn: (p: any) => getPlayerEvaded(p),
+                        fmtVal: (v: any) => fmtInt(v)
+                            },
+                            {
+                                enabled: settings.showInvulns,
+                                title: "Invulns",
+                                sortFn: (a: any, b: any) => getPlayerInvulned(b) - getPlayerInvulned(a),
+                                valFn: (p: any) => getPlayerInvulned(p),
                         fmtVal: (v: any) => fmtInt(v)
                             }
                         ];

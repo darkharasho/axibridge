@@ -502,6 +502,9 @@ describe('SettingsView', () => {
                     showDeaths: true,
                     showDodges: true,
                     showDamageMitigation: true,
+                    showBlocks: true,
+                    showEvades: true,
+                    showInvulns: true,
                 },
             });
             await screen.findByRole('heading', { name: /Top Stats Lists/i });

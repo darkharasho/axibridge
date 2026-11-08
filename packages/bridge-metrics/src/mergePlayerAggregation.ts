@@ -102,6 +102,7 @@ export const PLAYER_STATS_MERGE_RULES: Readonly<Record<string, MergeRule>> = Obj
     blocks: 'sum',
     evades: 'sum',
     misses: 'sum',
+    invulns: 'sum',
     totalFightMs: 'sum',
     offenseTotals: 'recordSum',
     offenseRateWeights: 'recordSum',

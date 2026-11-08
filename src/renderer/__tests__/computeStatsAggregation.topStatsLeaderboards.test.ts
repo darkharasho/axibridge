@@ -9,6 +9,7 @@ type PlayerSpec = {
     blocks?: number;
     evades?: number;
     misses?: number;
+    invulns?: number;
     deaths?: number;
     downsTaken?: number;
     killed?: number;
@@ -38,6 +39,7 @@ function makeLog(id: string, players: PlayerSpec[]) {
                     blockedCount: p.blocks ?? 0,
                     evadedCount: p.evades ?? 0,
                     missedCount: p.misses ?? 0,
+                    invulnedCount: p.invulns ?? 0,
                 }],
             })),
             targets: [],
@@ -68,8 +70,8 @@ const top = (lb: any[]) => lb?.[0]?.account;
 
 describe('computeStatsAggregation — additional top-stats leaderboards', () => {
     const logs = [makeLog('log-1', [
-        { account: 'alpha.1', breakbar: 500, damageTaken: 100, blocks: 9, evades: 7, misses: 3, deaths: 0, downsTaken: 0, killed: 5, downed: 8 },
-        { account: 'bravo.2', breakbar: 200, damageTaken: 900, blocks: 2, evades: 1, misses: 1, deaths: 3, downsTaken: 4, killed: 1, downed: 2 },
+        { account: 'alpha.1', breakbar: 500, damageTaken: 100, blocks: 9, evades: 7, misses: 3, invulns: 6, deaths: 0, downsTaken: 0, killed: 5, downed: 8 },
+        { account: 'bravo.2', breakbar: 200, damageTaken: 900, blocks: 2, evades: 1, misses: 1, invulns: 2, deaths: 3, downsTaken: 4, killed: 1, downed: 2 },
     ])];
 
     const { stats } = computeStatsAggregation({ logs: logs as any[], statsViewSettings: settings });
@@ -81,6 +83,7 @@ describe('computeStatsAggregation — additional top-stats leaderboards', () => 
         expect(top(stats.leaderboards.blocks)).toBe('alpha.1');
         expect(top(stats.leaderboards.evades)).toBe('alpha.1');
         expect(top(stats.leaderboards.misses)).toBe('alpha.1');
+        expect(top(stats.leaderboards.invulns)).toBe('alpha.1');
     });
 
     it('ranks lower-is-better leaderboards by the fewest', () => {
@@ -88,6 +91,16 @@ describe('computeStatsAggregation — additional top-stats leaderboards', () => 
         expect(top(stats.leaderboards.deaths)).toBe('alpha.1');
         expect(top(stats.leaderboards.downsTaken)).toBe('alpha.1');
         expect(top(stats.leaderboards.damageTaken)).toBe('alpha.1');
+    });
+
+    it('sums invulns across fights', () => {
+        const twoFights = [
+            makeLog('log-a', [{ account: 'alpha.1', invulns: 4 }, { account: 'bravo.2', invulns: 5 }]),
+            makeLog('log-b', [{ account: 'alpha.1', invulns: 3 }, { account: 'bravo.2', invulns: 1 }]),
+        ];
+        const { stats: s2 } = computeStatsAggregation({ logs: twoFights as any[], statsViewSettings: settings });
+        expect(s2.leaderboards.invulns[0]).toMatchObject({ account: 'alpha.1', value: 7 });
+        expect(s2.leaderboards.invulns[1]).toMatchObject({ account: 'bravo.2', value: 6 });
     });
 
     it('captures the leader values', () => {

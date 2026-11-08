@@ -113,7 +113,7 @@ const allStatsOn = {
     showCleanses: true, showBoonStrips: true, showCC: true, showStability: true,
     showResurrects: true, showDistanceToTag: true, showKills: true, showDowns: true,
     showBreakbarDamage: true, showDamageTaken: true, showDeaths: true, showDodges: true,
-    showDamageMitigation: true,
+    showDamageMitigation: true, showBlocks: true, showEvades: true, showInvulns: true,
 };
 
 const logData = { permalink: 'https://dps.report/abcd', id: 'log-1', filePath: '/tmp/fight.zevtc', mode: 'embed' as const };

@@ -1496,6 +1496,7 @@ export class IncrementalAggregator {
                 case 'blocks': return s.blocks;
                 case 'evades': return s.evades;
                 case 'misses': return s.misses;
+                case 'invulns': return s.invulns;
                 case 'deaths': return s.deaths;
                 case 'downsTaken': return s.downs;
                 case 'condiDamage': return Object.values(s.outgoingConditions).reduce((sum: number, c: any) => sum + (Number(c?.damage) || 0), 0);
@@ -1535,6 +1536,7 @@ export class IncrementalAggregator {
             blocks: createLB('blocks', true),
             evades: createLB('evades', true),
             misses: createLB('misses', true),
+            invulns: createLB('invulns', true),
             deaths: createLB('deaths', false),
             downsTaken: createLB('downsTaken', false),
             damageTaken: createLB('damageTaken', false)

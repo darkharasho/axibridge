@@ -59,6 +59,9 @@ export interface IEmbedStatSettings {
     showDeaths: boolean;
     showDodges: boolean;
     showDamageMitigation: boolean;
+    showBlocks: boolean;
+    showEvades: boolean;
+    showInvulns: boolean;
     maxTopListRows: number;
     classDisplay: 'off' | 'short' | 'emoji';
     /** Attach a map slice showing where the fight happened. */
@@ -197,6 +200,9 @@ export const DEFAULT_EMBED_STATS: IEmbedStatSettings = {
     showDeaths: false,
     showDodges: false,
     showDamageMitigation: false,
+    showBlocks: false,
+    showEvades: false,
+    showInvulns: false,
     maxTopListRows: 10,
     classDisplay: 'off',
     includeMapSlice: true,

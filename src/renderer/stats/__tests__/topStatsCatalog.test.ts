@@ -8,8 +8,8 @@ import {
 import { DEFAULT_STATS_VIEW_SETTINGS } from '../../global.d';
 
 describe('topStatsCatalog', () => {
-  it('has 39 entries across 5 categories', () => {
-    expect(TOP_STATS_CATALOG).toHaveLength(39);
+  it('has 40 entries across 5 categories', () => {
+    expect(TOP_STATS_CATALOG).toHaveLength(40);
     const cats = new Set(TOP_STATS_CATALOG.map((d) => d.category));
     expect([...cats].sort()).toEqual(['boon', 'control', 'defense', 'offense', 'utility']);
   });
@@ -33,6 +33,14 @@ describe('topStatsCatalog', () => {
     // global.d.ts inlines this list (to avoid importing the lucide-bearing
     // catalog); this guards against the two drifting apart.
     expect(DEFAULT_STATS_VIEW_SETTINGS.enabledTopStats).toEqual(DEFAULT_ENABLED_TOP_STATS);
+  });
+
+  it('offers Invulns as an MVP-weightable defense stat beside Blocks and Evades', () => {
+    const def = TOP_STATS_CATALOG.find((d) => d.id === 'invulns');
+    expect(def).toMatchObject({ label: 'Invulns', category: 'defense', higherIsBetter: true, defaultOn: false, supportsRate: false });
+    expect(def!.mvpWeightable).not.toBe(false);
+    const ids = TOP_STATS_CATALOG.map((d) => d.id);
+    expect(ids.indexOf('invulns')).toBe(ids.indexOf('evades') + 1);
   });
 
   it('all ids are unique', () => {

@@ -1,5 +1,5 @@
 
-import { getPlayerCleansesArcdps, getPlayerStrips, getPlayerOutgoingInterrupts, getPlayerDamageTaken, getPlayerBreakbarDamage, getPlayerBlocked, getPlayerEvaded, getPlayerMissed, getTargetStatTotal, createDistanceToTagResolver, getVindicatorDodgeCasts } from './dashboardMetrics';
+import { getPlayerCleansesArcdps, getPlayerStrips, getPlayerOutgoingInterrupts, getPlayerDamageTaken, getPlayerBreakbarDamage, getPlayerBlocked, getPlayerEvaded, getPlayerMissed, getPlayerInvulned, getTargetStatTotal, createDistanceToTagResolver, getVindicatorDodgeCasts } from './dashboardMetrics';
 import { applySquadStabilityGeneration as applyStabilityGeneration, computeDownContribution as getPlayerDownContribution, computeSquadHealing as getPlayerSquadHealing, computeSquadBarrier as getPlayerSquadBarrier, computeOutgoingCrowdControl as getPlayerOutgoingCrowdControl } from './combatMetrics';
 import { Player } from './dpsReportTypes';
 import { DisruptionMethod } from './metricsSettings';
@@ -43,6 +43,7 @@ export interface PlayerStats {
     blocks: number;
     evades: number;
     misses: number;
+    invulns: number;
     totalFightMs: number;
     offenseTotals: Record<string, number>;
     offenseRateWeights: Record<string, number>;
@@ -780,7 +781,7 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
             acc.playerStats.set(key, {
                 name, account: identity.accountLabel, characterNames: new Set<string>(), downContrib: 0, cleanses: 0, strips: 0, stab: 0, healing: 0, barrier: 0, cc: 0, interrupts: 0, logsJoined: 0,
                 totalDist: 0, distCount: 0, stackedLogCount: 0, dodges: 0, downs: 0, deaths: 0,
-                kills: 0, enemyDowns: 0, damageTaken: 0, breakbar: 0, blocks: 0, evades: 0, misses: 0, totalFightMs: 0,
+                kills: 0, enemyDowns: 0, damageTaken: 0, breakbar: 0, blocks: 0, evades: 0, misses: 0, invulns: 0, totalFightMs: 0,
                 offenseTotals: {}, offenseRateWeights: {}, defenseActiveMs: 0, defenseTotals: {}, defenseMinionDamageTaken: {}, supportActiveMs: 0, supportTotals: {},
                 healingActiveMs: 0, healingTotals: {}, hasHealAddon: false, profession: identity.profession, professions: new Set(),
                 professionTimeMs: {}, squadActiveMs: 0, firstSeenFightTs: 0, lastSeenFightTs: 0, lastSeenFightDurationMs: 0, isCommander: false, damage: 0, dps: 0, revives: 0, revivesCompleted: null, outgoingConditions: {}, incomingConditions: {}, damageModTotals: {}, incomingDamageModTotals: {}
@@ -828,6 +829,7 @@ export const ingestLogPlayerData = (log: any, acc: PlayerAggregationAccumulators
         s.blocks += getPlayerBlocked(p);
         s.evades += getPlayerEvaded(p);
         s.misses += getPlayerMissed(p);
+        s.invulns += getPlayerInvulned(p);
         s.kills += getTargetStatTotal(p, 'killed');
         s.enemyDowns += getTargetStatTotal(p, 'downed');
         if (details.durationMS) s.totalFightMs += details.durationMS;

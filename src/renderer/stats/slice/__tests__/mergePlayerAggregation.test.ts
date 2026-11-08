@@ -305,7 +305,7 @@ describe('player aggregation merge rules pinned synthetically', () => {
         name: '', account: '', characterNames: new Set<string>(), downContrib: 0, cleanses: 0, strips: 0,
         stab: 0, healing: 0, barrier: 0, cc: 0, interrupts: 0, logsJoined: 0, totalDist: 0, distCount: 0,
         stackedLogCount: 0, dodges: 0, downs: 0, deaths: 0, kills: 0, enemyDowns: 0, damageTaken: 0,
-        breakbar: 0, blocks: 0, evades: 0, misses: 0, totalFightMs: 0, offenseTotals: {}, offenseRateWeights: {},
+        breakbar: 0, blocks: 0, evades: 0, misses: 0, invulns: 0, totalFightMs: 0, offenseTotals: {}, offenseRateWeights: {},
         defenseActiveMs: 0, defenseTotals: {}, defenseMinionDamageTaken: {}, supportActiveMs: 0, supportTotals: {},
         healingActiveMs: 0, healingTotals: {}, hasHealAddon: false, profession: 'Unknown', professions: new Set<string>(),
         professionTimeMs: {}, squadActiveMs: 0, firstSeenFightTs: 0, lastSeenFightTs: 0, lastSeenFightDurationMs: 0,
