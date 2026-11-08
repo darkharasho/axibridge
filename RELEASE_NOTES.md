@@ -1,10 +1,9 @@
 # Release Notes
 
-Version v3.22.12 — November 6, 2026
+Version v3.23.0 — November 8, 2026
 
-## Web Reports That Never Showed Up
-Sometimes GitHub's own Pages deploy gets stuck or fails after a publish, so the report link says "not available" for hours even though the upload worked. AxiBridge now watches the actual deploy and, if GitHub drops it, pushes a fresh deploy for you (up to twice). It also checks your report site about a minute after launch and fixes it if the last publish never went live, so sites that are stuck right now will repair themselves once you update.
-- The publish status now tells you when a retry was needed, and if GitHub keeps failing it says so instead of claiming success.
+## Invulns as a Top Stat
+Invulns now sit next to Blocks and Evades in the Defense top stats: the attacks a player absorbed while invulnerable. You can also weight them for MVP. They're off by default and have no MVP weight until you set one, so your current MVP picks won't change unless you turn them on.
 
-## Signed Windows Installer
-The Windows installer is now code-signed, so Windows should stop treating it as an unknown publisher.
+## Blocks, Evades and Invulns in Discord Embeds
+You can now add top-10 Blocks, Evades and Invulns lists to your Discord embeds. Turn them on in Settings → Top Stats Lists. All three are off by default, and like the other lists they only rank squad players.
