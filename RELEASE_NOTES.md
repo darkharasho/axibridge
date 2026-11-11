@@ -1,11 +1,8 @@
 # Release Notes
 
-Version v3.24.0 — November 10, 2026
+Version v3.24.1 — November 11, 2026
 
-## Revenant Damage Modifiers
-Revenant modifiers were missing from the damage modifier sections entirely. Now they're in: Revenant, Herald, Renegade, Vindicator and Conduit, both outgoing and incoming.
+## Fixes
+- Fixed Rite of the Great Dwarf and the other Revenant modifiers not showing up on logs you re-imported after updating to 3.24.0. AxiBridge was handing back its cached parse from before the update, which didn't have them.
 
-- Rite of the Great Dwarf now shows up under Incoming Damage Modifiers for anyone it covered, of any profession, including the Versed in Stone version.
-- Incoming modifiers like Demonic Resistance, Vengeful Hammers and Determined Resolution show up too, along with the outgoing Revenant traits.
-
-NOTE: This applies to logs parsed from now on. Re-parse older logs from History to pick them up.
+NOTE: To pick up the Revenant modifiers on older logs, re-import the log files. Re-parsing from History won't do it for logs AxiBridge already parsed itself (the 3.24.0 notes got this wrong, sorry).
