@@ -37,15 +37,16 @@ describe('cachedParserVersionIsStale', () => {
     });
 
     it('treats the version before the current minimum as stale', () => {
-        // 1.11.0 discarded enemy casts aimed at squad minions, so Enemy
-        // Attention's "At Minions" column would read a flat "—" off its cache
-        // and look like the enemy simply never aimed at a pet.
+        // 1.16.x has no Revenant damage modifiers, so a log re-imported after
+        // the upgrade would be served from that cache and Incoming Damage
+        // Modifiers would still show no Rite of the Great Dwarf.
+        expect(cachedParserVersionIsStale({ parserVersion: '1.16.0' })).toBe(true);
         expect(cachedParserVersionIsStale({ parserVersion: '1.11.0' })).toBe(true);
     });
 
     it('keeps a parse from the minimum version or newer', () => {
         expect(cachedParserVersionIsStale({ parserVersion: MIN_PARSER_VERSION })).toBe(false);
-        expect(cachedParserVersionIsStale({ parserVersion: '1.12.1' })).toBe(false);
+        expect(cachedParserVersionIsStale({ parserVersion: '1.17.1' })).toBe(false);
         expect(cachedParserVersionIsStale({ parserVersion: '2.0.0' })).toBe(false);
     });
 

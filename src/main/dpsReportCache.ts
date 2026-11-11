@@ -67,8 +67,12 @@ export const DETAILS_SCHEMA_VERSION = 2;
  *           aimed at squad minions, so Enemy Attention's "At Minions" column
  *           reads a flat "—" off an older cache — indistinguishable from the
  *           enemy genuinely never having aimed at a pet.
+ *  1.17.0 — the Revenant damage-modifier catalog (Rite of the Great Dwarf,
+ *           Demonic Resistance, Vengeful Hammers, ...). An older parse has no
+ *           rows for them at all, so Incoming Damage Modifiers silently omits
+ *           Rite even after the user re-imports the log to pick it up.
  */
-export const MIN_PARSER_VERSION = '1.12.0';
+export const MIN_PARSER_VERSION = '1.17.0';
 
 /**
  * Whether a cached entry's details were produced by a parser too old to trust.
