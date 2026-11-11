@@ -22,6 +22,18 @@ import {
 const FIXTURE = path.resolve(__dirname, '../../../../test-fixtures/axilog/wvw-small.anon.zevtc');
 const details = { native: parseFile(FIXTURE, { everything: true }) };
 
+// Entity ids are positional and axilog renumbers them between releases, so
+// find each entity by a stable identity: account for squad members, the EVTC
+// agent address for the (accountless) enemy.
+function entityId(match: (e: any) => boolean): number {
+    const hits = details.native.entities.filter(match);
+    if (hits.length !== 1) throw new Error(`expected exactly one entity, got ${hits.length}`);
+    return hits[0].id;
+}
+const BLIND_SOURCE = entityId((e) => e.account === 'Anon113.5181');
+const ENEMY_GUARDIAN = entityId((e) => e.agent_addr === 9594);
+const AMALGAM = entityId((e) => e.account === 'Anon104.4848');
+
 describe('listConditionIds', () => {
     it('returns every condition in the catalog and no boons', () => {
         expect(listConditionIds(details)).toEqual(
@@ -56,7 +68,10 @@ describe('listConditionApplications', () => {
 
     it('carries the raw state timeline through untouched', () => {
         const app = listConditionApplications(details).find(
-            (a) => a.targetEntityId === 42 && a.buffId === 720 && a.sourceEntityId === 9,
+            (a) =>
+                a.targetEntityId === ENEMY_GUARDIAN &&
+                a.buffId === 720 &&
+                a.sourceEntityId === BLIND_SOURCE,
         );
         expect(app?.states).toEqual([[0, 0], [22300, 1], [25300, 0]]);
     });
@@ -64,9 +79,9 @@ describe('listConditionApplications', () => {
 
 describe('getEntityConditionDamageRows', () => {
     it('reads EI-equivalent hits from outcomes.attempt_hits, not hits', () => {
-        // Entity 18 (:Anon104.4848) skill 736 Bleeding: native hits is 62 and
+        // Anon104.4848 skill 736 Bleeding: native hits is 62 and
         // attempt_hits is 63; EI reports 63.
-        const row = getEntityConditionDamageRows(details, 18).find((r) => r.skillId === 736);
+        const row = getEntityConditionDamageRows(details, AMALGAM).find((r) => r.skillId === 736);
         expect(row).toMatchObject({
             conditionName: 'Bleeding',
             damage: 13782,
@@ -77,7 +92,7 @@ describe('getEntityConditionDamageRows', () => {
 
     it('returns condition skills only', () => {
         const ids = new Set(listConditionIds(details));
-        for (const row of getEntityConditionDamageRows(details, 18)) {
+        for (const row of getEntityConditionDamageRows(details, AMALGAM)) {
             expect(ids.has(row.skillId)).toBe(true);
         }
     });
