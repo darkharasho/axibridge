@@ -71,8 +71,11 @@ export const DETAILS_SCHEMA_VERSION = 2;
  *           Demonic Resistance, Vengeful Hammers, ...). An older parse has no
  *           rows for them at all, so Incoming Damage Modifiers silently omits
  *           Rite even after the user re-imports the log to pick it up.
+ *  1.18.0 — `sources` on `blocks.boons` rows (the per-skill boon estimate).
+ *           An older parse has none, so Boon Output rows stay non-expandable
+ *           even for post-rework logs.
  */
-export const MIN_PARSER_VERSION = '1.17.0';
+export const MIN_PARSER_VERSION = '1.18.0';
 
 /**
  * Whether a cached entry's details were produced by a parser too old to trust.

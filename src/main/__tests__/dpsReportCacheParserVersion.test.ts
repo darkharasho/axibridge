@@ -37,16 +37,17 @@ describe('cachedParserVersionIsStale', () => {
     });
 
     it('treats the version before the current minimum as stale', () => {
-        // 1.16.x has no Revenant damage modifiers, so a log re-imported after
-        // the upgrade would be served from that cache and Incoming Damage
-        // Modifiers would still show no Rite of the Great Dwarf.
+        // 1.17.x has no per-skill boon sources, so a log re-imported after
+        // the upgrade would be served from that cache and its Boon Output
+        // rows could never expand into the skill split.
+        expect(cachedParserVersionIsStale({ parserVersion: '1.17.0' })).toBe(true);
         expect(cachedParserVersionIsStale({ parserVersion: '1.16.0' })).toBe(true);
         expect(cachedParserVersionIsStale({ parserVersion: '1.11.0' })).toBe(true);
     });
 
     it('keeps a parse from the minimum version or newer', () => {
         expect(cachedParserVersionIsStale({ parserVersion: MIN_PARSER_VERSION })).toBe(false);
-        expect(cachedParserVersionIsStale({ parserVersion: '1.17.1' })).toBe(false);
+        expect(cachedParserVersionIsStale({ parserVersion: '1.18.1' })).toBe(false);
         expect(cachedParserVersionIsStale({ parserVersion: '2.0.0' })).toBe(false);
     });
 
