@@ -61,6 +61,7 @@ import {
     hasCcTakenEvents, readCcTakenEvents,
 } from '@axiapps/bridge-metrics/nativeSeries';
 import { squadEntities } from '@axiapps/bridge-metrics/nativeRoster';
+import { collectBoonSourceSkills } from '@axiapps/bridge-metrics/nativeBoons';
 import { resolveMapFromDetails, computeFightAvgPosition, buildFightLabelV2 } from '../../shared/mapUtils';
 import { findNearestLandmark } from '../../shared/wvwLandmarks';
 import { TRACKED_REPLAY_STATE_IDS } from '../../shared/replayBuffs';
@@ -979,6 +980,9 @@ export class IncrementalAggregator {
                 durationMS: details.durationMS,
                 buffMap: details.buffMap,
                 native: nativeForBoons,
+                // `skillMap`/`catalogs.skills` aren't carried, so the
+                // per-skill boon split's names are resolved here.
+                boonSourceSkills: details.native ? collectBoonSourceSkills(details) : undefined,
                 players: (details.players || []).map((p: any) => ({
                     account: p.account,
                     name: p.name,

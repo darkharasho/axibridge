@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { SectionExpandButton } from '../ui/SectionExpandButton';
-import { Columns, Users } from 'lucide-react';
+import { ChevronRight, Columns, Users } from 'lucide-react';
 import { Gw2BoonIcon } from '../../ui/Gw2BoonIcon';
 import { ColumnFilterDropdown } from '../ui/ColumnFilterDropdown';
 import { DenseStatsTable } from '../ui/DenseStatsTable';
@@ -12,6 +12,54 @@ import { InlineIconLabel } from '../ui/StatsViewShared';
 import { useMetricSectionState } from '../hooks/useMetricSectionState';
 import { useStatsSharedContext } from '../StatsViewContext';
 import { expandedPaneProps } from './expandedPane';
+
+
+const MAX_SOURCE_SKILLS = 8;
+const OTHER_TITLE = 'Traits, relics and pulses that could not be matched to one cast. arcdps does not record which skill gave a boon, so it is estimated from cast timing.';
+
+const pct = (ms: number, total: number) => (total > 0 ? (100 * ms) / total : 0);
+
+/**
+ * One player's applied boon split by skill. It's an estimate (axilog matches
+ * applications to casts by timing), so the unmatched remainder is always
+ * shown as its own row rather than left out of the percentages.
+ */
+const BoonSourcesPanel = ({ sources, boonName }: { sources: any; boonName: string }) => {
+    const skills: Array<{ name: string; icon?: string; ms: number }> = sources.skills || [];
+    const shown = skills.slice(0, MAX_SOURCE_SKILLS);
+    const restMs = skills.slice(MAX_SOURCE_SKILLS).reduce((sum, s) => sum + s.ms, 0) + (sources.unnamedMs || 0);
+    const total = Number(sources.totalMs) || 0;
+    const line = (key: string, label: React.ReactNode, ms: number, muted = false, title?: string) => (
+        <div key={key} className="flex items-center gap-2 text-[11px]" title={title}>
+            <div className="flex items-center gap-1.5 min-w-0 w-48 shrink-0" style={{ color: muted ? 'var(--axi-text-dim)' : 'var(--axi-text)' }}>
+                {label}
+            </div>
+            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--axi-rule)' }}>
+                <div
+                    className="h-full rounded-full"
+                    style={{ width: `${pct(ms, total)}%`, background: muted ? 'var(--axi-text-faint)' : 'var(--section-boon)' }}
+                />
+            </div>
+            <span className="font-mono w-12 text-right" style={{ color: muted ? 'var(--axi-text-dim)' : 'var(--axi-text)' }}>
+                {pct(ms, total).toFixed(1)}%
+            </span>
+        </div>
+    );
+    return (
+        <div className="flex flex-col gap-1.5 py-2 pl-6 pr-2" data-testid="boon-sources-panel">
+            <div className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--axi-text-dim)' }} title={OTHER_TITLE}>
+                {boonName} applied, by skill (estimate)
+            </div>
+            {shown.map((skill) => line(
+                skill.name,
+                <InlineIconLabel name={skill.name} iconUrl={skill.icon} iconClassName="h-3.5 w-3.5" />,
+                skill.ms,
+            ))}
+            {restMs > 0 && line('rest', <span className="truncate">Other skills</span>, restMs)}
+            {line('other', <span className="truncate">Other (traits, relics, unmatched)</span>, sources.otherMs || 0, true, OTHER_TITLE)}
+        </div>
+    );
+};
 
 type BoonOutputSectionProps = {
     activeBoonCategory: string;
@@ -66,6 +114,8 @@ export const BoonOutputSection = ({
         renderProfessionIcon,
     });
     const isExpanded = expandedSection === 'boon-output';
+    const [openSourcesKey, setOpenSourcesKey] = useState<string | null>(null);
+    const hasSources = !!activeBoonTable?.rows?.some((row: any) => row.sources);
     // Outside Self, "uptime" is what this player alone gave each recipient on
     // average -- in a 40-man squad that is single digits for everyone, and
     // reading it as the squad's uptime is how it gets reported as a bug.
@@ -351,6 +401,11 @@ export const BoonOutputSection = ({
                         <div className="axi-empty">Select a boon to view details</div>
                     ) : (
                         <StatsTableShell
+                            header={hasSources ? (
+                                <div className="text-[11px] pb-1.5" style={{ color: 'var(--axi-text-dim)' }} title={OTHER_TITLE}>
+                                    Click a player to see which skills gave it (estimated from cast timing).
+                                </div>
+                            ) : undefined}
                             expanded={expandedSection === 'boon-output'}
                             animationKey={`${activeBoonTab}-${activeBoonCategory}-${activeBoonMetric}`}
                             maxHeightClass="max-h-64"
@@ -394,15 +449,45 @@ rows={
                                                 return diff || String(a.account || '').localeCompare(String(b.account || ''));
                                             })()
                                         ))
-                                        .map((row: any, idx: number) => (
-                                            <tr key={`${activeBoonTable.id}-${row.account}-${idx}`}>
+                                        .map((row: any, idx: number) => {
+                                            const rowKey = `${activeBoonTable.id}-${row.account}-${idx}`;
+                                            const open = !!row.sources && openSourcesKey === `${activeBoonTable.id}-${row.account}`;
+                                            return (
+                                            <Fragment key={rowKey}>
+                                            <tr>
 <td>{idx + 1}</td>
-<th scope="row"><span className="axi-table__who">{renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
-                                                    <span className="truncate">{row.account}</span></span></th>
+<th scope="row">{row.sources ? (
+                                                <button
+                                                    type="button"
+                                                    className="axi-table__who w-full text-left"
+                                                    aria-expanded={open}
+                                                    title={`Show which skills gave ${activeBoonTable.name}`}
+                                                    onClick={() => setOpenSourcesKey(open ? null : `${activeBoonTable.id}-${row.account}`)}
+                                                >
+                                                    <ChevronRight
+                                                        className="h-3 w-3 shrink-0 transition-transform"
+                                                        style={{ transform: open ? 'rotate(90deg)' : undefined, color: 'var(--axi-text-faint)' }}
+                                                    />
+                                                    {renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
+                                                    <span className="truncate">{row.account}</span>
+                                                </button>
+                                            ) : (
+                                                <span className="axi-table__who">{renderProfessionIcon(row.profession, row.professionList, 'w-4 h-4')}
+                                                    <span className="truncate">{row.account}</span></span>
+                                            )}</th>
 <td>{formatBoonMetricDisplay(row, activeBoonCategory, activeBoonTable.stacking, activeBoonMetric, { roundCountStats })}</td>
 <td>{row.activeTimeMs ? `${(row.activeTimeMs / 1000).toFixed(1)}s` : '-'}</td>
 </tr>
-                                        ))}
+                                            {open && (
+                                                <tr>
+                                                    <td colSpan={4}>
+                                                        <BoonSourcesPanel sources={row.sources} boonName={activeBoonTable.name} />
+                                                    </td>
+                                                </tr>
+                                            )}
+                                            </Fragment>
+                                            );
+                                        })}
                                 </>
                             }
                         />

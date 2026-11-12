@@ -1,4 +1,4 @@
-import { getBuffMeta, listBoonIds, getEntityBuffGeneration, getEntityActiveMs } from './nativeBoons';
+import { getBuffMeta, listBoonIds, getEntityBuffGeneration, getEntityActiveMs, getEntityBoonSources, resolveBoonSourceSkill } from './nativeBoons';
 import { squadEntities, getEntityProfession } from './nativeRoster';
 
 export type BoonCategory = 'selfBuffs' | 'groupBuffs' | 'squadBuffs' | 'totalBuffs';
@@ -28,6 +28,21 @@ export interface BoonRow {
     groupSupported: number;
     squadSupported: number;
     categories: Record<Exclude<BoonCategory, 'totalBuffs'>, { generationMs: number; wastedMs: number }>;
+    /**
+     * Estimated split of everything this player applied of the boon, by the
+     * skill that probably caused it. See `getEntityBoonSources`: `otherMs`
+     * must be shown, and these are shares of applied duration across ALL
+     * targets, so they don't follow the Self/Group/Squad toggle.
+     */
+    sources?: BoonSourceBreakdown;
+}
+
+export interface BoonSourceBreakdown {
+    /** Named skills, largest first. Unnamed ids are pooled into `unnamedMs`. */
+    skills: Array<{ name: string; icon?: string; ms: number }>;
+    unnamedMs: number;
+    otherMs: number;
+    totalMs: number;
 }
 
 export interface BoonTable {
@@ -175,6 +190,14 @@ export const formatBoonMetricDisplay = (
     return formatted;
 };
 
+const toBreakdown = (acc: { skills: Map<string, { icon?: string; ms: number }>; unnamedMs: number; otherMs: number }): BoonSourceBreakdown => {
+    const skills = Array.from(acc.skills.entries())
+        .map(([name, { icon, ms }]) => ({ name, ...(icon ? { icon } : {}), ms }))
+        .sort((a, b) => b.ms - a.ms || a.name.localeCompare(b.name));
+    const totalMs = skills.reduce((sum, s) => sum + s.ms, 0) + acc.unnamedMs + acc.otherMs;
+    return { skills, unnamedMs: acc.unnamedMs, otherMs: acc.otherMs, totalMs };
+};
+
 export const buildBoonTables = (logs: Array<{ details?: any }>, splitPlayersByClass = false) => {
     const boonMeta = new Map<string, BuffInfo>();
     const playerAgg = new Map<string, {
@@ -187,6 +210,7 @@ export const buildBoonTables = (logs: Array<{ details?: any }>, splitPlayersByCl
         groupSupported: number;
         squadSupported: number;
         boons: Record<string, BoonRow['categories']>;
+        sources: Record<string, { skills: Map<string, { icon?: string; ms: number }>; unnamedMs: number; otherMs: number }>;
     }>();
 
     logs.forEach((log) => {
@@ -232,6 +256,7 @@ export const buildBoonTables = (logs: Array<{ details?: any }>, splitPlayersByCl
                     groupSupported: 0,
                     squadSupported: 0,
                     boons: {},
+                    sources: {},
                 });
             }
 
@@ -271,6 +296,30 @@ export const buildBoonTables = (logs: Array<{ details?: any }>, splitPlayersByCl
 
                     agg.boons[boonId][category].generationMs += generationMs;
                     agg.boons[boonId][category].wastedMs += wastedMs;
+                });
+            });
+
+            boonMeta.forEach((_meta, boonId) => {
+                const boonIdNum = Number(boonId.slice(1));
+                if (!Number.isFinite(boonIdNum)) return;
+                const split = getEntityBoonSources(details, entity.id, boonIdNum);
+                if (!split) return;
+                const acc = agg.sources[boonId] ??= { skills: new Map(), unnamedMs: 0, otherMs: 0 };
+                acc.otherMs += split.otherMs;
+                split.bySkill.forEach(({ id, ms }) => {
+                    const meta = resolveBoonSourceSkill(details, id);
+                    if (!meta.name) {
+                        acc.unnamedMs += ms;
+                        return;
+                    }
+                    // Keyed by name: a skill's cast and proc ids share one row.
+                    const entry = acc.skills.get(meta.name);
+                    if (entry) {
+                        entry.ms += ms;
+                        entry.icon = entry.icon || meta.icon;
+                    } else {
+                        acc.skills.set(meta.name, { icon: meta.icon, ms });
+                    }
                 });
             });
         });
@@ -315,6 +364,7 @@ export const buildBoonTables = (logs: Array<{ details?: any }>, splitPlayersByCl
                     groupBuffs: { ...boonData.groupBuffs },
                     squadBuffs: { ...boonData.squadBuffs },
                 },
+                ...(agg.sources[boonId] ? { sources: toBreakdown(agg.sources[boonId]) } : {}),
             });
         });
 

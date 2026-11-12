@@ -137,3 +137,84 @@ export const getEntityActiveMs = (details: any, entityId: number, fallbackMs: nu
     const value = Number(active);
     return Number.isFinite(value) && value > 0 ? value : fallbackMs;
 };
+
+/**
+ * axilog's per-skill split of the boon an entity APPLIED (`sources` on a
+ * `blocks.boons` row, axilog >= 1.18.0). It is an ESTIMATE from cast->apply
+ * timing -- arcdps records no causing skill -- and `otherMs` (trait and relic
+ * procs, unmatched pulses) is routinely half the total, so every reader must
+ * show it. Durations are ms summed over targets (stack-ms for intensity
+ * boons): shares of what was applied, not of `generation`'s percentages.
+ * `null` when the entity applied none of the boon or the log predates the
+ * arcdps buff rework.
+ */
+export interface NativeBoonSources {
+    bySkill: Array<{ id: number; ms: number }>;
+    otherMs: number;
+}
+
+export const getEntityBoonSources = (
+    details: any, entityId: number, buffId: number,
+): NativeBoonSources | null => {
+    const raw = entryOf(details, entityId, buffId)?.sources;
+    if (!raw || typeof raw !== 'object') return null;
+    const bySkill: Array<{ id: number; ms: number }> = [];
+    for (const [key, value] of Object.entries<any>(raw.by_skill ?? {})) {
+        const id = Number(key);
+        const ms = Number(value);
+        if (!Number.isFinite(id) || !Number.isFinite(ms) || ms <= 0) continue;
+        bySkill.push({ id, ms });
+    }
+    const otherMs = Math.max(0, Number(raw.other_ms) || 0);
+    if (bySkill.length === 0 && otherMs === 0) return null;
+    return { bySkill, otherMs };
+};
+
+export interface BoonSourceSkillMeta {
+    /** `null` when no source names the skill; such ids are grouped, never shown raw. */
+    name: string | null;
+    icon?: string;
+}
+
+const PLACEHOLDER_SKILL_NAME = /^(Skill )?\d+$/;
+
+/**
+ * Display name for a `sources` skill id: the EI-shaped `skillMap` first
+ * (it carries axilog's curated variant labels), then `catalogs.skills`.
+ * A projection that dropped both can pre-resolve into `boonSourceSkills`.
+ */
+export const resolveBoonSourceSkill = (details: any, id: number): BoonSourceSkillMeta => {
+    const pre = details?.boonSourceSkills?.[String(id)];
+    if (pre) return pre;
+    const candidates = [
+        details?.skillMap?.[`s${id}`],
+        details?.skillMap?.[String(id)],
+        nativeOf(details)?.catalogs?.skills?.[String(id)],
+    ];
+    let icon: string | undefined;
+    for (const entry of candidates) {
+        if (!entry) continue;
+        icon = icon || (typeof entry.icon === 'string' && entry.icon ? entry.icon : undefined);
+        const name = typeof entry.name === 'string' ? entry.name.trim() : '';
+        if (name && !PLACEHOLDER_SKILL_NAME.test(name)) return { name, icon };
+    }
+    return { name: null, icon };
+};
+
+/**
+ * Every skill id any `sources` row references, resolved. Lets a projection
+ * that drops `skillMap`/`catalogs.skills` keep the boon split readable.
+ */
+export const collectBoonSourceSkills = (details: any): Record<string, BoonSourceSkillMeta> => {
+    const out: Record<string, BoonSourceSkillMeta> = {};
+    const byEntity = nativeOf(details)?.blocks?.boons?.by_entity;
+    if (!byEntity || typeof byEntity !== 'object') return out;
+    for (const rows of Object.values<any>(byEntity)) {
+        for (const row of Object.values<any>(rows ?? {})) {
+            for (const key of Object.keys(row?.sources?.by_skill ?? {})) {
+                if (!out[key]) out[key] = resolveBoonSourceSkill(details, Number(key));
+            }
+        }
+    }
+    return out;
+};
